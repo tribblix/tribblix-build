@@ -1,0 +1,12 @@
+#!/bin/sh
+
+DESTDIR=/export/tribblix/dist
+
+ISODIR=/var/tmp
+ISONAME=tribblix-0m1.iso
+
+/usr/bin/mkisofs -o ${ISODIR}/${ISONAME} -b boot/grub/stage2_eltorito \
+	-c .catalog -volset `cat ${DESTDIR}/.volsetid` \
+	-no-emul-boot -boot-load-size 4 -boot-info-table -N -l -R -U \
+        -allow-multidot -no-iso-translate -cache-inodes -d -D \
+	-V "Tribblix0.1" ${DESTDIR}

@@ -1,0 +1,11 @@
+#!/bin/sh
+
+PKGDIR=/var/tmp/created-pkgs/pkgs
+THOME=/home/ptribble/Tribblix
+DESTDIR=/export/tribblix/dist
+PKGLIST=pkg-list
+
+for mypkg in `cat ${THOME}/${PKGLIST}`
+do
+  pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${PKGDIR}/${mypkg}.pkg $mypkg
+done

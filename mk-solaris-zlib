@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# create the solaris.zlib file
+#
+
+DESTDIR=/export/tribblix/dist
+
+cd ${DESTDIR}
+
+#
+# ought to investigate sorting
+#
+SORT_OPTION=""
+mkisofs -o solaris.zlib $SORT_OPTION -quiet -N -l -R \
+    -U -allow-multidot -no-iso-translate -cache-inodes \
+    -d -D -V "compress" usr
+ls -lsh solaris.zlib
+lofiadm -C gzip solaris.zlib
+ls -lsh solaris.zlib

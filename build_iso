@@ -1,0 +1,97 @@
+#!/bin/sh
+#
+# build a bootable iso
+#
+
+THOME=/home/ptribble/Tribblix
+DESTTOP=/export/tribblix
+DESTDIR=${DESTTOP}/dist
+TRIBVER="Tribblix 0.1TD"
+TRIBMSG="Tribblix 0.1 technology demonstrator, prerelease"
+
+#
+# assumes packages have already been installed, for now
+#
+#${THOME}/install-pkgs
+
+#
+# fix the image
+#
+echo "Reset initial files"
+echo ${TRIBVER} | md5sum - | awk '{print $1}' > ${DESTTOP}/dist/.volsetid
+cp /etc/system ${DESTDIR}/etc/system
+cp /boot/grub/menu.lst ${DESTDIR}/boot/grub/menu.lst
+echo "tribblix" > ${DESTDIR}/etc/nodename
+echo "${TRIBVER}" > ${DESTDIR}/etc/release
+cat /etc/release >> ${DESTDIR}/etc/release
+cp /etc/motd ${DESTDIR}/etc/motd
+echo "${TRIBMSG}" >> ${DESTDIR}/etc/motd
+rm -f ${DESTDIR}/etc/svc/profile/generic.xml
+rm -f ${DESTDIR}/etc/svc/profile/platform.xml
+rm -f ${DESTDIR}/etc/svc/profile/name_service.xml
+if [ -f ${DESTTOP}/prebuilt/generic_live.xml ]; then
+    cp ${DESTTOP}/prebuilt/generic_live.xml ${DESTDIR}/etc/svc/profile
+    ln -s generic_live.xml ${DESTDIR}/etc/svc/profile/generic.xml
+else
+    ln -s generic_limited_net.xml ${DESTDIR}/etc/svc/profile/generic.xml
+fi
+ln -s platform_none.xml ${DESTDIR}/etc/svc/profile/platform.xml
+ln -s ns_dns.xml ${DESTDIR}/etc/svc/profile/name_service.xml
+HNAME=`/usr/bin/hostname`
+cat /etc/dumpadm.conf | sed s:${HNAME}:tribblix:g > ${DESTDIR}/etc/dumpadm.conf
+mkdir -p ${DESTDIR}/var/crash/tribblix
+chmod 0700 ${DESTDIR}/var/crash/tribblix
+
+#
+# sync up the overlays. before we create the ramdisk
+#
+mkdir -p ${DESTDIR}/var/sadm/overlays
+cp ${THOME}/overlays/* ${DESTDIR}/var/sadm/overlays
+/bin/rm -f ${DESTDIR}/var/sadm/overlays/*~
+
+echo "Fixing image"
+${THOME}/install-fix
+
+#
+# create the zlib files
+#
+echo "Creating solaris.zlib"
+${THOME}/mk-solaris-zlib
+rm -f ${DESTDIR}/solarismisc.zlib
+sync
+
+#
+# shuffle pieces out of the way to save space on the iso
+# /usr comes from solaris.zlib, the others are in the ramdisk already
+#
+mkdir -p ${DESTTOP}/save
+mv ${DESTDIR}/usr ${DESTTOP}/save
+mv ${DESTDIR}/etc ${DESTTOP}/save
+mv ${DESTDIR}/opt ${DESTTOP}/save
+mv ${DESTDIR}/var ${DESTTOP}/save
+mv ${DESTDIR}/sbin ${DESTTOP}/save
+mv ${DESTDIR}/lib ${DESTTOP}/save
+mv ${DESTDIR}/tmp ${DESTTOP}/save
+mv ${DESTDIR}/mnt ${DESTTOP}/save
+mv ${DESTDIR}/kernel ${DESTTOP}/save
+mv ${DESTDIR}/system ${DESTTOP}/save
+mv ${DESTDIR}/export ${DESTTOP}/save
+mv ${DESTDIR}/home ${DESTTOP}/save
+mv ${DESTDIR}/proc ${DESTTOP}/save
+sync
+
+#
+# make sure the install script is up to date
+#
+cp ${THOME}/live_install.sh ${DESTDIR}
+chmod a+x ${DESTDIR}/live_install.sh
+
+#
+# actually build the iso
+#
+${THOME}/create-iso
+
+#
+# shuffle the files back so the image area is still valid
+#
+mv ${DESTTOP}/save/* ${DESTDIR}

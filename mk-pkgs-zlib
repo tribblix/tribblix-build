@@ -1,0 +1,56 @@
+#!/bin/sh
+#
+# create the pkgs.zlib file, including all the packages necessary for
+# the shipped overlays
+#
+
+DESTDIR=/var/tmp/created-pkgs
+THOME=/home/ptribble/Tribblix
+
+#
+# create a temporary directory, make hard links, and then delete the packages
+# that are in the live image already and anything else we don't want
+#
+cd ${DESTDIR}
+mkdir zlib-tmp
+cd zlib-tmp
+mkdir pkgs
+for ipkg in `cat ${THOME}/overlays/*.pkgs`
+do
+  ln ../pkgs/${ipkg}.pkg pkgs
+done
+cp ${THOME}/retro/*.pkg pkgs
+rm pkgs/PCTe16.pkg
+rm pkgs/PCTafterstep.pkg
+#
+# this should be unnecessary, the overlays should not include
+# anything in the base install
+#
+cd pkgs
+for dpkg in `cat ${THOME}/pkg-list`
+do
+  rm -f ${dpkg}.pkg
+done
+cd ..
+
+#
+# ought to investigate sorting
+#
+SORT_OPTION=""
+#
+# The full pkg set was 2.9G, down to 951M compressed with gzip
+# The reduced pkg set was 2.3G, down to 756M compressed with gzip
+# The reduced pkg set gets down to 623M with lzma, but that's
+# very slow (~10x slower to compress, maybe 2x slower uncompress)
+#
+# the initial overlay set was 472M down to 138M with gzip
+#
+mkisofs -o ${DESTDIR}/pkgs.zlib $SORT_OPTION -quiet -N -l -R \
+    -U -allow-multidot -no-iso-translate -cache-inodes \
+    -d -D -V "compress" pkgs
+ls -lsh ${DESTDIR}/pkgs.zlib
+lofiadm -C gzip ${DESTDIR}/pkgs.zlib
+ls -lsh ${DESTDIR}/pkgs.zlib
+
+cd ${DESTDIR}
+rm -fr zlib-tmp

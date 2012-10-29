@@ -1,0 +1,105 @@
+#!/bin/sh
+
+DESTTOP=/export/tribblix
+DESTDIR=${DESTTOP}/dist
+
+#
+# this is the size of the ramdisk.
+#
+MRSIZE=224m
+
+#
+# FIXME is this still necessary?
+#
+mv ${DESTDIR}/etc/driver_classes ${DESTDIR}/etc/driver_classes.grok
+cat ${DESTDIR}/etc/driver_classes.grok | sort | uniq > ${DESTDIR}/etc/driver_classes
+rm ${DESTDIR}/etc/driver_classes.grok
+
+#
+# I make a dual 32/64-bit boot archive
+#
+# NB. sometimes need  -B acpi-user-options=2
+# VBox and OI151a5 and early tribblix builds needed it, at least
+#
+cat >> ${DESTDIR}/boot/grub/menu.lst << _EOF
+title Tribblix 0.1
+kernel\$ /platform/i86pc/kernel/\$ISADIR/unix
+module\$ /platform/i86pc/boot_archive
+title Tribblix 0.1 debug
+kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -k
+module\$ /platform/i86pc/boot_archive
+title Boot from hard disk
+rootnoverify (hd0)
+chainloader +1
+_EOF
+
+#
+# https://blogs.oracle.com/darren/entry/sending_a_break_to_opensolaris
+#
+cat >> ${DESTDIR}/etc/system << _EOF
+set pcplusmp:apic_kmdb_on_nmi=1
+_EOF
+
+${DESTDIR}/usr/sbin/devfsadm -r ${DESTDIR}
+if [ -f ${DESTTOP}/prebuilt/repository.db ]; then
+    cp -p ${DESTTOP}/prebuilt/repository.db ${DESTDIR}/etc/svc/repository.db
+else
+    env SVCCFG_CHECKHASH=1 /usr/share/distro_const/mkrepo ${DESTDIR} ${DESTDIR}
+fi
+if [ -f ${DESTTOP}/prebuilt/repository-installed.db ]; then
+    cp -p ${DESTTOP}/prebuilt/repository-installed.db ${DESTDIR}
+fi
+
+
+
+#
+# This is based on the joyent list; the live-media method scripts call
+# svcadm and fstyp
+#
+rm ${DESTDIR}/platform/i86pc/amd64/boot_archive
+rm ${DESTDIR}/platform/i86pc/boot_archive
+mkfile ${MRSIZE} /tmp/${MRSIZE}
+lofiadm -a /tmp/${MRSIZE}
+newfs /dev/rlofi/1
+BFS=/tmp/nb.$$
+mkdir $BFS
+mount -Fufs -o nologging /dev/lofi/1 $BFS
+cd ${DESTDIR}
+tar cf - `bootadm list-archive` | ( cd $BFS ; tar xf -)
+tar cfp - lib system tmp proc sbin etc var root jack | ( cd $BFS ; tar xf -)
+mkdir ${BFS}/usr
+cd usr
+tar cf - bin/[ bin/cat bin/head bin/i86/ksh93 bin/ls bin/sh sbin/lofiadm \
+        bin/sed bin/cut sbin/prtconf sbin/i86/prtconf sbin/svcadm \
+        lib/fs/ufs/fstyp* lib/fs/hsfs/fstyp* lib/libfstyp.so* \
+        lib/libzonecfg* lib/libbrand* \
+        lib/libproject.so lib/libproject.so.1 lib/libshell.so.1 \
+        lib/libcmd.so.1 lib/libast.so.1 lib/libsum.so.1 lib/libdll.so.1 \
+        lib/libidmap.so lib/libidmap.so.1 lib/libpkcs11.so lib/libpkcs11.so.1 \
+        lib/fm/libfmevent.so lib/fm/libfmevent.so.1 lib/fm/libtopo.so \
+        lib/fm/libtopo.so.1 lib/libexacct.so lib/libexacct.so.1 \
+        lib/libipmi.so lib/libipmi.so.1 lib/libpool.so lib/libpool.so.1 \
+        lib/libsmbios.so lib/libsmbios.so.1 | ( cd ${BFS}/usr ; tar xf -)
+cd $BFS
+ln -s usr/bin bin
+mkdir -p dev/fd devices/pseudo opt var var/run
+${DESTDIR}/usr/sbin/devfsadm -r ${BFS}
+mkdir .cdrom
+touch .livecd
+cp ${DESTDIR}/.volsetid .
+touch etc/mnttab
+touch reconfigure
+mkdir -p mnt/misc mnt/pkgs
+if [ -f ${DESTTOP}/prebuilt/repository.db ]; then
+    cp -p ${DESTTOP}/prebuilt/repository.db ${BFS}/etc/svc/repository.db
+else
+    env SVCCFG_CHECKHASH=1 /usr/share/distro_const/mkrepo ${BFS} ${BFS}
+fi
+cd /
+df -h $BFS
+umount $BFS
+lofiadm -d /dev/lofi/1
+gzip /tmp/${MRSIZE}
+cp /tmp/${MRSIZE}.gz ${DESTDIR}/platform/i86pc/boot_archive
+rm /tmp/${MRSIZE}.gz
+rmdir $BFS

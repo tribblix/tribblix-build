@@ -1,0 +1,233 @@
+<?xml version='1.0'?>
+<!DOCTYPE service_bundle SYSTEM '/usr/share/lib/xml/dtd/service_bundle.dtd.1'>
+<!--
+    CDDL HEADER START
+   
+    The contents of this file are subject to the terms of the
+    Common Development and Distribution License (the "License").
+    You may not use this file except in compliance with the License.
+   
+    You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+    or http://www.opensolaris.org/os/licensing.
+    See the License for the specific language governing permissions
+    and limitations under the License.
+   
+    When distributing Covered Code, include this CDDL HEADER in each
+    file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+    If applicable, add the following below this CDDL HEADER, with the
+    fields enclosed by brackets "[]" replaced with your own identifying
+    information: Portions Copyright [yyyy] [name of copyright owner]
+   
+    CDDL HEADER END
+   
+    Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+
+    Base service profile customized for all live images.
+-->
+<service_bundle type='profile' name='generic_live'>
+  <!--
+      svc.startd(1M) services
+  -->
+  <service name='system/boot-archive-update' version='1' type='service'>
+    <instance name='default' enabled='false'/>
+  </service>
+  <!-- Fast reboot on panic is inappropriate in installation environments -->
+  <service name='system/boot-config' version='1' type='service'>
+    <instance name='default'>
+      <property_group name='config' type='application'>
+        <propval name='fastreboot_onpanic' value='false' />
+      </property_group>
+    </instance>
+  </service>
+  <service name='system/coreadm' version='1' type='service'>
+    <instance name='default' enabled='true'/>
+  </service>
+  <service name='system/cron' version='1' type='service'>
+    <instance name='default' enabled='false'/>
+  </service>
+  <service name='system/cryptosvc' version='1' type='service'>
+    <instance name='default' enabled='true'/>
+  </service>
+  <service name='system/fmd' version='1' type='service'>
+    <instance name='default' enabled='false'/>
+  </service>
+  <service name='system/identity' version='1' type='service'>
+    <instance name='domain' enabled='true'/>
+  </service>
+  <service name='system/intrd' version='1' type='service'>
+    <instance name='default' enabled='false'/>
+  </service>
+  <service name='system/keymap' version='1' type='service'>
+    <instance name='default' enabled='true'/>
+  </service>
+  <service name='system/metainit' version='1' type='service'>
+    <instance name='default' enabled='false'/>
+  </service>
+  <service name='system/metasync' version='1' type='service'>
+    <instance name='default' enabled='false'/>
+  </service>
+  <service name='system/picl' version='1' type='service'>
+    <instance name='default' enabled='true'/>
+  </service>
+  <service name='system/sac' version='1' type='service'>
+    <instance name='default' enabled='true'/>
+  </service>
+  <service name='system/system-log' version='1' type='service'>
+    <instance name='default' enabled='false'/>
+  </service>
+  <service name='system/utmp' version='1' type='service'>
+    <instance name='default' enabled='true'/>
+  </service>
+  <service name='network/location' version='1' type='service'>
+    <instance name='default' enabled='true'/>
+  </service>
+  <service name='network/netcfg' version='1' type='service'>
+    <instance name='default' enabled='true'/>
+  </service>
+  <service name='network/rpc/bind' version='1' type='service'>
+    <instance name='default' enabled='false'/>
+  </service>
+  <service name='system/name-service-cache' version='1' type='service'>
+    <instance name='default' enabled='true'/>
+  </service>
+  <service name='network/nfs/status' version='1' type='service'>
+    <instance name='default' enabled='false'/>
+  </service>
+  <service name='network/nfs/nlockmgr' version='1' type='service'>
+    <instance name='default' enabled='false'/>
+  </service>
+  <service name='network/nfs/client' version='1' type='service'>
+    <instance name='default' enabled='false'/>
+  </service>
+  <service name='network/nfs/cbd' version='1' type='service'>
+    <instance name='default' enabled='false'/>
+  </service>
+  <service name='network/nfs/mapid' version='1' type='service'>
+    <instance name='default' enabled='false'/>
+  </service>
+  <service name='network/nis/client' version='1' type='service'>
+      <instance name='default' enabled='false'/>
+  </service>
+  <service name='network/rpc/keyserv' version='1' type='service'>
+    <instance name='default' enabled='false'/>
+  </service>
+  <service name='network/ssh' version='1' type='service'>
+    <instance name='default' enabled='false'/>
+  </service>
+  <service name='network/smtp' version='1' type='service'>
+    <instance name='sendmail' enabled='false'/>
+  </service>
+  <service name='network/inetd' version='1' type='restarter'>
+    <instance name='default' enabled='false'/>
+  </service>
+  <service name='system/dumpadm' version='1' type='service'>
+    <instance name='default' enabled='false'/>
+  </service>
+  <service name='system/filesystem/autofs' version='1' type='service'>
+    <instance name='default' enabled='false'/>
+  </service>
+  <service name='system/power' version='1' type='service'>
+    <instance name='default' enabled='false'/>
+  </service>
+  <service name='system/zones-monitoring' version='1' type='service'>
+    <instance name='default' enabled='false'/>
+  </service>
+
+  <!--
+      Disable early-manifest-import
+  -->
+  <service name='system/early-manifest-import' version='1' type='service'>
+    <instance name='default' enabled='false'/>
+  </service>
+
+  <!--
+      Default service instances cloned as live-media instances
+  -->
+  <service name='system/sysidtool' version='1' type='service'>
+    <instance name='system' enabled='false'>
+       <exec_method
+                type='method'
+                name='start'
+                timeout_seconds='0'
+                exec=':true'/>
+    </instance>
+    <instance name='live-media' enabled='true'/>
+    <instance name='net' enabled='true'>
+       <exec_method
+                type='method'
+                name='start'
+                timeout_seconds='0'
+                exec=':true'/>
+    </instance>
+  </service>
+  <service name='system/filesystem/root-minimal' version='1' type='service'>
+    <instance name='live-media' enabled='true'/>
+  </service>
+  <service name='system/filesystem/root' version='1' type='service'>
+    <instance name='default' enabled='false'/>
+    <instance name='live-media' enabled='true'/>
+    <instance name='net' enabled='false'/>
+  </service>
+  <service name='system/filesystem/usr' version='1' type='service'>
+    <instance name='default' enabled='false'/>
+    <instance name='live-media' enabled='true'/>
+  </service>
+
+  <!--
+      Dummy out start methods for services we need to run, but as no-ops
+  -->
+  <service name='system/boot-archive' version='1' type='service'>
+    <instance name='default' enabled='true'>
+       <exec_method
+                type='method'
+                name='start'
+                timeout_seconds='0'
+                exec=':true'/>
+    </instance>
+  </service>
+  <service name='system/manifest-import' version='1' type='service'>
+    <instance name='default' enabled='true'>
+       <exec_method
+                type='method'
+                name='start'
+                timeout_seconds='0'
+                exec=':true'/>
+    </instance>
+  </service>
+  <service name='system/rmtmpfiles' version='1' type='service'>
+    <instance name='default' enabled='true'>
+       <exec_method
+                type='method'
+                name='start'
+                timeout_seconds='0'
+                exec=':true'/>
+    </instance>
+  </service>
+  <service name='application/font/fc-cache' version='1' type='service'>
+    <instance name='default' enabled='true'>
+       <exec_method
+                type='method'
+                name='start'
+                timeout_seconds='0'
+                exec=':true'/>
+    </instance>
+  </service>
+  <service name='system/scheduler' version='1' type='service'>
+    <instance name='default' enabled='true'>
+       <exec_method
+                type='method'
+                name='start'
+                timeout_seconds='0'
+                exec=':true'/>
+    </instance>
+  </service>
+  <service name='system/zones' version='1' type='service'>
+    <instance name='default' enabled='true'>
+       <exec_method
+                type='method'
+                name='start'
+                timeout_seconds='0'
+                exec=':true'/>
+    </instance>
+  </service>
+</service_bundle>
