@@ -14,7 +14,7 @@ TRIBnet-bridging
 TRIBsys-net
 TRIBsys-lib-math
 TRIBdev-dtrace
-TRIBsys-lib-gcc-3-runtime
+TRIBgcc4runtime
 TRIBsys-file-system-autofs
 TRIBsys-file-system-nfs
 TRIBsys-file-system-udfs
@@ -87,11 +87,15 @@ TRIBdrv-net-e1000g
 TRIBdrv-net-pcn
 TRIBdrv-net-atge
 TRIBdrv-net-rge
+TRIBdrv-net-nge
+TRIBdrv-net-ixgb
+TRIBdrv-net-ixgbe
 TRIBfile-gnu-coreutils
 TRIBsys-data-keyboard-keytables
 TRIBlocale-en
 TRIBlocale-de
 TRIBlocale-fr
+TRIBlocale-es
 TRIBstorage-stmf
 TRIBstorage-svm
 TRIBsys-libfcoe
@@ -108,3 +112,4 @@ TRIBnet-ftp
 TRIBlib-pcre
 TRIBlib-gmp
 TRIBsys-lib-iconv-utf-8
+TRIBtext-doctools

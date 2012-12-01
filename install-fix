@@ -6,14 +6,7 @@ DESTDIR=${DESTTOP}/dist
 #
 # this is the size of the ramdisk.
 #
-MRSIZE=224m
-
-#
-# FIXME is this still necessary?
-#
-mv ${DESTDIR}/etc/driver_classes ${DESTDIR}/etc/driver_classes.grok
-cat ${DESTDIR}/etc/driver_classes.grok | sort | uniq > ${DESTDIR}/etc/driver_classes
-rm ${DESTDIR}/etc/driver_classes.grok
+MRSIZE=192m
 
 #
 # I make a dual 32/64-bit boot archive
@@ -22,16 +15,32 @@ rm ${DESTDIR}/etc/driver_classes.grok
 # VBox and OI151a5 and early tribblix builds needed it, at least
 #
 cat >> ${DESTDIR}/boot/grub/menu.lst << _EOF
-title Tribblix 0.1
+title Tribblix 0.3i
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix
 module\$ /platform/i86pc/boot_archive
-title Tribblix 0.1 debug
+title Tribblix 0.3i debug
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -k
 module\$ /platform/i86pc/boot_archive
 title Boot from hard disk
 rootnoverify (hd0)
 chainloader +1
 _EOF
+
+#
+# customize jack's environment
+#
+if [ ! -d ${DESTDIR}/jack/.config ]; then
+  if [ -f ${DESTTOP}/prebuilt/dot-config.tar ]; then
+    cd ${DESTDIR}/jack
+    tar xf ${DESTTOP}/prebuilt/dot-config.tar
+    chown -R jack:staff .config
+  fi
+fi
+cp ${DESTDIR}/root/.bashrc ${DESTDIR}/jack/.bashrc
+grep export ${DESTDIR}/root/.profile > ${DESTDIR}/jack/.bash_profile
+chown jack:staff ${DESTDIR}/jack/.bash_profile
+cat ${DESTDIR}/jack/.bashrc >> ${DESTDIR}/jack/.bash_profile
+cat ${DESTDIR}/root/.profile | /bin/sed -e 's:root:jack:' -e 's:}#:}\\\$:' > ${DESTDIR}/jack/.profile
 
 #
 # https://blogs.oracle.com/darren/entry/sending_a_break_to_opensolaris
@@ -56,14 +65,19 @@ fi
 # This is based on the joyent list; the live-media method scripts call
 # svcadm and fstyp
 #
-rm ${DESTDIR}/platform/i86pc/amd64/boot_archive
-rm ${DESTDIR}/platform/i86pc/boot_archive
+# size: tunefs 0 gains 10% (40M to 61M free on a 224M ramdisk)
+# we need ~4k inodes, defaults give us ~100k, so can tune -i 16384
+# which saves a little more
+#
+rm -f ${DESTDIR}/platform/i86pc/amd64/boot_archive
+rm -f ${DESTDIR}/platform/i86pc/boot_archive
 mkfile ${MRSIZE} /tmp/${MRSIZE}
-lofiadm -a /tmp/${MRSIZE}
-newfs /dev/rlofi/1
+LOFIDEV=`lofiadm -a /tmp/${MRSIZE}`
+LOFINUM=`echo $LOFIDEV|awk -F/ '{print $NF}'`
+echo "y" | newfs -o space -m 0 -i 16384 /dev/rlofi/$LOFINUM
 BFS=/tmp/nb.$$
 mkdir $BFS
-mount -Fufs -o nologging /dev/lofi/1 $BFS
+mount -Fufs -o nologging $LOFIDEV $BFS
 cd ${DESTDIR}
 tar cf - `bootadm list-archive` | ( cd $BFS ; tar xf -)
 tar cfp - lib system tmp proc sbin etc var root jack | ( cd $BFS ; tar xf -)
@@ -97,6 +111,7 @@ else
 fi
 cd /
 df -h $BFS
+df -i $BFS
 umount $BFS
 lofiadm -d /dev/lofi/1
 gzip /tmp/${MRSIZE}

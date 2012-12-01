@@ -6,8 +6,8 @@
 THOME=/home/ptribble/Tribblix
 DESTTOP=/export/tribblix
 DESTDIR=${DESTTOP}/dist
-TRIBVER="Tribblix 0.1TD"
-TRIBMSG="Tribblix 0.1 technology demonstrator, prerelease"
+TRIBVER="Tribblix 0.3iTD"
+TRIBMSG="Tribblix 0.3i technology demonstrator, prerelease"
 
 #
 # assumes packages have already been installed, for now
@@ -22,10 +22,10 @@ echo ${TRIBVER} | md5sum - | awk '{print $1}' > ${DESTTOP}/dist/.volsetid
 cp /etc/system ${DESTDIR}/etc/system
 cp /boot/grub/menu.lst ${DESTDIR}/boot/grub/menu.lst
 echo "tribblix" > ${DESTDIR}/etc/nodename
-echo "${TRIBVER}" > ${DESTDIR}/etc/release
-cat /etc/release >> ${DESTDIR}/etc/release
-cp /etc/motd ${DESTDIR}/etc/motd
-echo "${TRIBMSG}" >> ${DESTDIR}/etc/motd
+echo "${TRIBMSG}" > ${DESTDIR}/etc/release
+echo Assembled `/bin/date '+%d %B %Y'` >> ${DESTDIR}/etc/release
+#cp /etc/motd ${DESTDIR}/etc/motd
+#echo "${TRIBMSG}" >> ${DESTDIR}/etc/motd
 rm -f ${DESTDIR}/etc/svc/profile/generic.xml
 rm -f ${DESTDIR}/etc/svc/profile/platform.xml
 rm -f ${DESTDIR}/etc/svc/profile/name_service.xml
@@ -65,19 +65,25 @@ sync
 # /usr comes from solaris.zlib, the others are in the ramdisk already
 #
 mkdir -p ${DESTTOP}/save
-mv ${DESTDIR}/usr ${DESTTOP}/save
+mv ${DESTDIR}/bin ${DESTTOP}/save
+mv ${DESTDIR}/dev ${DESTTOP}/save
+mv ${DESTDIR}/devices ${DESTTOP}/save
 mv ${DESTDIR}/etc ${DESTTOP}/save
-mv ${DESTDIR}/opt ${DESTTOP}/save
-mv ${DESTDIR}/var ${DESTTOP}/save
-mv ${DESTDIR}/sbin ${DESTTOP}/save
-mv ${DESTDIR}/lib ${DESTTOP}/save
-mv ${DESTDIR}/tmp ${DESTTOP}/save
-mv ${DESTDIR}/mnt ${DESTTOP}/save
-mv ${DESTDIR}/kernel ${DESTTOP}/save
-mv ${DESTDIR}/system ${DESTTOP}/save
 mv ${DESTDIR}/export ${DESTTOP}/save
 mv ${DESTDIR}/home ${DESTTOP}/save
+mv ${DESTDIR}/kernel ${DESTTOP}/save
+mv ${DESTDIR}/lib ${DESTTOP}/save
+mv ${DESTDIR}/mnt ${DESTTOP}/save
+mv ${DESTDIR}/opt ${DESTTOP}/save
 mv ${DESTDIR}/proc ${DESTTOP}/save
+mv ${DESTDIR}/sbin ${DESTTOP}/save
+mv ${DESTDIR}/system ${DESTTOP}/save
+mv ${DESTDIR}/tmp ${DESTTOP}/save
+mv ${DESTDIR}/usr ${DESTTOP}/save
+mv ${DESTDIR}/var ${DESTTOP}/save
+mv ${DESTDIR}/root ${DESTTOP}/save
+mv ${DESTDIR}/jack ${DESTTOP}/save
+mv ${DESTDIR}/reconfigure ${DESTTOP}/save
 sync
 
 #

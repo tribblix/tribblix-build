@@ -5,11 +5,14 @@
 #
 
 DESTDIR=/var/tmp/created-pkgs
+IPKGDIR=/var/tmp/illumos-pkgs
 THOME=/home/ptribble/Tribblix
 
 #
-# create a temporary directory, make hard links, and then delete the packages
-# that are in the live image already and anything else we don't want
+# create a temporary directory, make copies hard links, and then delete the
+# packages that are in the live image already and anything else we don't want
+#
+# we look in ${THOME}/pkgs, ${THOME}/retro, then default to ${DESTDIR}/pkgs
 #
 cd ${DESTDIR}
 mkdir zlib-tmp
@@ -17,11 +20,16 @@ cd zlib-tmp
 mkdir pkgs
 for ipkg in `cat ${THOME}/overlays/*.pkgs`
 do
-  ln ../pkgs/${ipkg}.pkg pkgs
+  if [ -f ${THOME}/pkgs/${ipkg}.pkg ]; then
+      cp ${THOME}/pkgs/${ipkg}.pkg pkgs
+  elif [ -f ${THOME}/retro/${ipkg}.pkg ]; then
+      cp ${THOME}/retro/${ipkg}.pkg pkgs
+  elif [ -f ${IPKGDIR}/pkgs/${ipkg}.pkg ]; then
+      ln ${IPKGDIR}/pkgs/${ipkg}.pkg pkgs
+  else
+      ln ../pkgs/${ipkg}.pkg pkgs
+  fi
 done
-cp ${THOME}/retro/*.pkg pkgs
-rm pkgs/PCTe16.pkg
-rm pkgs/PCTafterstep.pkg
 #
 # this should be unnecessary, the overlays should not include
 # anything in the base install
@@ -45,11 +53,13 @@ SORT_OPTION=""
 #
 # the initial overlay set was 472M down to 138M with gzip
 #
+# As of milestone 2, 1.2G of pkgs was 367M with gzip and 364M with gzip-9
+#
 mkisofs -o ${DESTDIR}/pkgs.zlib $SORT_OPTION -quiet -N -l -R \
     -U -allow-multidot -no-iso-translate -cache-inodes \
     -d -D -V "compress" pkgs
 ls -lsh ${DESTDIR}/pkgs.zlib
-lofiadm -C gzip ${DESTDIR}/pkgs.zlib
+lofiadm -C gzip-9 ${DESTDIR}/pkgs.zlib
 ls -lsh ${DESTDIR}/pkgs.zlib
 
 cd ${DESTDIR}

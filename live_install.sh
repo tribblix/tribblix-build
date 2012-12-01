@@ -46,8 +46,6 @@ cd /.cdrom
 /usr/bin/find boot -print -depth | cpio -pdm /rpool
 
 #
-# FIXME: maybe have a pre-packaged dev tree on the cd
-#
 echo "Adding extra directories"
 cd /a
 /usr/bin/ln -s ./usr/bin .
@@ -122,7 +120,7 @@ touch /rpool/boot/grub/bootsign/pool_rpool
 echo "pool_rpool" > /rpool/etc/bootsign
 
 /usr/bin/cat > /rpool/boot/grub/menu.lst << _EOF
-title Tribblix 0.1
+title Tribblix 0.3i
 findroot (pool_rpool,0,a)
 bootfs rpool/ROOT/tribblix
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B \$ZFS-BOOTFS
@@ -140,12 +138,16 @@ echo "Updating boot archive"
 sleep 5
 
 #
+# enable swap
+#
+/bin/echo "/dev/zvol/dsk/rpool/swap\t-\t-\tswap\t-\tno\t-" >> /a/etc/vfstab
+
+#
 # Copy /jack to the installed system
 #
-# FIXME copy live or off the cd?
-#
-cd /.cdrom
+cd /
 find jack -print | cpio -pmud /a
+/usr/bin/rm -f /a/jack/.bash_history
 sync
 #
 # this is to fix a 3s delay in xterm startup

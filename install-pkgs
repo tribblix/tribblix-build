@@ -1,11 +1,19 @@
 #!/bin/sh
 
 PKGDIR=/var/tmp/created-pkgs/pkgs
+IPKGDIR=/var/tmp/illumos-pkgs/pkgs
 THOME=/home/ptribble/Tribblix
+TPKGDIR=${THOME}/pkgs
 DESTDIR=/export/tribblix/dist
 PKGLIST=pkg-list
 
 for mypkg in `cat ${THOME}/${PKGLIST}`
 do
-  pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${PKGDIR}/${mypkg}.pkg $mypkg
+  if [ -f ${TPKGDIR}/${mypkg}.pkg ]; then
+    pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${TPKGDIR}/${mypkg}.pkg $mypkg
+  elif [ -f ${IPKGDIR}/${mypkg}.pkg ]; then
+    pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${IPKGDIR}/${mypkg}.pkg $mypkg
+  else
+    pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${PKGDIR}/${mypkg}.pkg $mypkg
+  fi
 done

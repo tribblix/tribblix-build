@@ -23,30 +23,13 @@
 #
 
 #
-# obvious shortcomings and fixes:
-#
-# 1. any non-file actions need auto-generated scripts to be created
-# 2. What are the real package names?
-# 3. What are the package names used in dependencies? Presumably the
-#   legacy ones, as that's what the svr4 emulation layer creates. In that
-#   case we need to use the legacy names too, or have a translation map
-#   into a private namespace
-# 4. Should skip any package for which pkg.renamed is true; we aren't
-#   that interested in obsoleted packages. Should probably check for
-#   dependencies on renamed packages and correct them, though
-#
-
-#
 # weaknesses of the current implementation
 # 1. no attempt at architecture variants
 # 2. fixed paths
 # 3. need to fully handle set actions
 # 4. need to fully handle driver actions
-# 5. need to check dependencies, once we've solved package naming
-# 6. handle reboot-needed
-# 7. handle editable files (how identified - preserve=renamenew ?)
-# 8. Need to handle multiple legacy lines in a single manifest (eg ZFS)
-# 9. Need to handle global/ngz
+# 5. handle reboot-needed
+# 6. Need to handle global/ngz
 #
 
 #
@@ -112,6 +95,29 @@ EOF
 chmod a+x ${BDIR}/install/postremove ${BDIR}/install/postinstall
 echo "i postinstall=./install/postinstall" >> ${BDIR}/prototype
 echo "i postremove=./install/postremove" >> ${BDIR}/prototype
+fi
+}
+
+#
+# class action scripts
+#
+init_preserve() {
+mkdir -p ${BDIR}/install
+if [ ! -f ${BDIR}/install/i.preserve ]; then
+cat > ${BDIR}/install/i.preserve <<EOF
+#!/bin/sh
+#
+# bone-headed class-action script for preserve
+#
+while read src dest
+do
+  if [ ! -f $dest ] ; then
+    cp $src $dest
+  fi
+done
+exit 0
+EOF
+echo "i i.preserve=./install/i.preserve" >> ${BDIR}/prototype
 fi
 }
 
@@ -376,6 +382,8 @@ echo "l none ${dirpath}=${target}" >> ${BDIR}/prototype
 #
 handle_file() {
 HAS_CONTENT=true
+FTYPE="f"
+FCLASS="none"
 TSTAMP=""
 echo $* | read fhash line
 # file in the repo is ${REPODIR}/file/${fh}/${fhash}
@@ -415,6 +423,11 @@ restart_fmri)
     touch ${BDIR}/restart_fmri_list
     echo $value >>${BDIR}/restart_fmri_list
     ;;
+preserve)
+    FTYPE="e"
+    #FCLASS="preserve"
+    #init_preserve
+    ;;
 *)
     echo "unhandled file attribute $frag"
     ;;
@@ -422,7 +435,6 @@ esac
 done
 dpath=`dirname $filepath`
 if [ ! -d ${BDIR}/${dpath} ]; then
-    echo mkdir -p ${BDIR}/${dpath}
     mkdir -p ${BDIR}/${dpath}
 fi
 if [ -f ${BDIR}/${filepath} ]; then
@@ -435,7 +447,7 @@ if [ -f ${REPODIR}/${filepath} ]; then
     if [ "xx${TSTAMP}" != "xx" ]; then
 	/bin/touch -t ${TSTAMP} ${BDIR}/${filepath}
     fi
-    echo "f none ${filepath}=${filepath} ${mode} ${owner} ${group}" >> ${BDIR}/prototype
+    echo "${FTYPE} ${FCLASS} ${filepath}=${filepath} ${mode} ${owner} ${group}" >> ${BDIR}/prototype
 else
     echo "ERROR: missing file ${REPODIR}/${filepath}"
 fi
@@ -782,6 +794,27 @@ fi
 if [ -f var/adm/wtmpx ]; then
     cp /dev/null var/adm/wtmpx
     touch -r /etc/passwd var/adm/wtmpx
+fi
+if [ -f root/.bashrc ]; then
+cat > root/.bashrc <<EOF
+PS1='\u@\h:\w\\\$ '
+EOF
+fi
+if [ -f root/.profile ]; then
+cat > root/.profile <<EOF
+#
+# Simple profile places /usr/gnu/bin at front,
+# adds /usr/sbin and /sbin to the end.
+#
+export PATH=/usr/gnu/bin:/usr/bin:/usr/sbin:/sbin
+export PAGER="more -s"
+
+#
+# Define default prompt to <username>@<hostname>:<path><"($|#) "
+#
+PS1='root@\$(/usr/bin/hostname):\$(
+    printf "%s" "\${PWD/\${HOME}/~}# ")'
+EOF
 fi
 
 #
