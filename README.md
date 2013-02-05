@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 Tribblix Build
 ==============
 
@@ -7,8 +6,7 @@ you've created all the SVR4 packages already.
 
 The first step is to create a distribution area and run install-pkgs
 to install the base. The list of packages in the minimal system is in
-the pkg-list file. Installation is interactive (and you can see that
-the created packages have one or two minor errors).
+the pkg-list file. Installation is interactive.
 
 The area you drop the build into ought to contain a 'dist' directory, a
 'save' directory, and a 'prebuilt' directory.
@@ -28,33 +26,33 @@ Then just run build_iso to create the iso.
 
 The live_install.sh script is what gets put onto the live CD and used
 to install Tribblix to a hard disk.
-=======
+
+
 ips2svr4
 ========
 
 Conversion scripts for taking IPS packages (either from an installed
 system or from the repo created from an Illumos build) and creating an
-equivalent SCR4 package.
+equivalent SVR4 package.
 
 pkg_name.sh - an ugly way to translate IPS package names to SVR4 names
 
 ips2svr4.sh - script to convert a package from an installed system
+
 repo2svr4.sh - script to convert a package from an Illumos build
 
 repo_all.sh, mk_all.sh - wrappers to create all packages
 
 Thes have my own build locations hardcoded, which will need fixing -
 search for "ptribble" and "/var/tmp" in the scripts and put in whatever
-makes sense for your own system
->>>>>>> ead55b0b1690807527a525198d153d7ebd2d25f9
+makes sense for your own system.
+
 
 Known issues
 ============
 
-<<<<<<< HEAD
 The scripts have way too many paths hard-coded for my own build server.
-=======
+
 Not all package attributes are handled correctly.
 
 Editable files aren't handled as such.
->>>>>>> ead55b0b1690807527a525198d153d7ebd2d25f9
