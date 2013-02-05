@@ -69,6 +69,7 @@ TRIBdrv-storage-nv-sata
 TRIBdrv-storage-amr
 TRIBdrv-storage-ahci
 TRIBdrv-storage-si3124
+TRIBdrv-storage-arcmsr
 TRIBdrv-i86pc-platform
 TRIBdrv-i86pc-ioat
 TRIBdrv-i86pc-fipe
@@ -90,6 +91,15 @@ TRIBdrv-net-rge
 TRIBdrv-net-nge
 TRIBdrv-net-ixgb
 TRIBdrv-net-ixgbe
+TRIBdrv-net-afe
+TRIBdrv-net-amd8111s
+TRIBdrv-net-bfe
+TRIBdrv-net-efe
+TRIBdrv-net-elxl
+TRIBdrv-net-rtls
+TRIBdrv-net-sfe
+TRIBdrv-net-vr
+TRIBdrv-net-yge
 TRIBfile-gnu-coreutils
 TRIBsys-data-keyboard-keytables
 TRIBlocale-en
@@ -113,3 +123,8 @@ TRIBlib-pcre
 TRIBlib-gmp
 TRIBsys-lib-iconv-utf-8
 TRIBtext-doctools
+TRIBsys-xopen-xcu4
+TRIBsys-xopen-xcu6
+TRIBsys-scheduler-fss
+TRIBlibidn
+TRIBcurl

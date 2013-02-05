@@ -120,7 +120,7 @@ touch /rpool/boot/grub/bootsign/pool_rpool
 echo "pool_rpool" > /rpool/etc/bootsign
 
 /usr/bin/cat > /rpool/boot/grub/menu.lst << _EOF
-title Tribblix 0.3i
+title Tribblix 0.4i
 findroot (pool_rpool,0,a)
 bootfs rpool/ROOT/tribblix
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B \$ZFS-BOOTFS

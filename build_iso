@@ -6,8 +6,8 @@
 THOME=/home/ptribble/Tribblix
 DESTTOP=/export/tribblix
 DESTDIR=${DESTTOP}/dist
-TRIBVER="Tribblix 0.3iTD"
-TRIBMSG="Tribblix 0.3i technology demonstrator, prerelease"
+TRIBVER="Tribblix 0.4iTD"
+TRIBMSG="Tribblix 0.4i technology demonstrator, prerelease"
 
 #
 # assumes packages have already been installed, for now

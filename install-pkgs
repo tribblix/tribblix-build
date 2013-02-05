@@ -7,6 +7,32 @@ TPKGDIR=${THOME}/pkgs
 DESTDIR=/export/tribblix/dist
 PKGLIST=pkg-list
 
+#
+# first verify
+#
+VALID=yes
+for mypkg in `cat ${THOME}/${PKGLIST}`
+do
+  if [ -f ${TPKGDIR}/${mypkg}.pkg ]; then
+      echo "Installing $mypkg from Tribblix"
+  elif [ -f ${IPKGDIR}/${mypkg}.pkg ]; then
+      echo "Installing $mypkg from Illumos"
+  elif [ -f ${PKGDIR}/${mypkg}.pkg ]; then
+      echo "Installing $mypkg from OpenIndiana"
+  else
+      echo "ERROR: package $mypkg not found"
+      VALID=no
+  fi
+done
+
+if [ "X$VALID" = "Xno" ]; then
+    echo "ERROR: missing packages, install aborted"
+    exit 1
+fi
+
+#
+# now install
+#
 for mypkg in `cat ${THOME}/${PKGLIST}`
 do
   if [ -f ${TPKGDIR}/${mypkg}.pkg ]; then

@@ -12,22 +12,44 @@ THOME=/home/ptribble/Tribblix
 # create a temporary directory, make copies hard links, and then delete the
 # packages that are in the live image already and anything else we don't want
 #
-# we look in ${THOME}/pkgs, ${THOME}/retro, then default to ${DESTDIR}/pkgs
+# we look in ${THOME}/pkgs, then default to ${DESTDIR}/pkgs
 #
 cd ${DESTDIR}
 mkdir zlib-tmp
 cd zlib-tmp
 mkdir pkgs
-for ipkg in `cat ${THOME}/overlays/*.pkgs`
+#
+# verify
+#
+VALID=yes
+for ipkg in `cat ${THOME}/overlays/*.pkgs|sort|uniq`
+do
+  if [ -f ${THOME}/pkgs/${ipkg}.pkg ]; then
+      echo "Installing $ipkg from Tribblix"
+  elif [ -f ${IPKGDIR}/pkgs/${ipkg}.pkg ]; then
+      echo "Installing $ipkg from Illumos"
+  elif [ -f ${DESTDIR}/pkgs/${ipkg}.pkg ]; then
+      echo "Installing $ipkg from OpenIndiana"
+  else
+      echo "ERROR: package $ipkg not found"
+      VALID=no
+  fi
+done
+if [ "X$VALID" = "Xno" ]; then
+    echo "ERROR: missing packages, pkgs-zlib aborted"
+    exit 1
+fi
+#
+# copy
+#
+for ipkg in `cat ${THOME}/overlays/*.pkgs|sort|uniq`
 do
   if [ -f ${THOME}/pkgs/${ipkg}.pkg ]; then
       cp ${THOME}/pkgs/${ipkg}.pkg pkgs
-  elif [ -f ${THOME}/retro/${ipkg}.pkg ]; then
-      cp ${THOME}/retro/${ipkg}.pkg pkgs
   elif [ -f ${IPKGDIR}/pkgs/${ipkg}.pkg ]; then
       ln ${IPKGDIR}/pkgs/${ipkg}.pkg pkgs
   else
-      ln ../pkgs/${ipkg}.pkg pkgs
+      ln ${DESTDIR}/pkgs/${ipkg}.pkg pkgs
   fi
 done
 #

@@ -632,7 +632,7 @@ esac
 #
 # these ought to be args
 #
-REPODIR=/home/ptribble/Illumos/illumos-gate/packages/i386/nightly-nd/repo.redist
+REPODIR=/home/ptribble/Illumos/update/illumos-gate/packages/i386/nightly-nd/repo.redist
 DSTDIR=/var/tmp/illumos-pkgs
 
 if [ ! -d "${REPODIR}" ]; then

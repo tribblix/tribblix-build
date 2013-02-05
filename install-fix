@@ -15,10 +15,10 @@ MRSIZE=192m
 # VBox and OI151a5 and early tribblix builds needed it, at least
 #
 cat >> ${DESTDIR}/boot/grub/menu.lst << _EOF
-title Tribblix 0.3i
+title Tribblix 0.4i
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix
 module\$ /platform/i86pc/boot_archive
-title Tribblix 0.3i debug
+title Tribblix 0.4i debug
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -k
 module\$ /platform/i86pc/boot_archive
 title Boot from hard disk
@@ -34,6 +34,7 @@ if [ ! -d ${DESTDIR}/jack/.config ]; then
     cd ${DESTDIR}/jack
     tar xf ${DESTTOP}/prebuilt/dot-config.tar
     chown -R jack:staff .config
+    rm -fr .config/xfce4/panel/launcher-10
   fi
 fi
 cp ${DESTDIR}/root/.bashrc ${DESTDIR}/jack/.bashrc
@@ -59,7 +60,11 @@ if [ -f ${DESTTOP}/prebuilt/repository-installed.db ]; then
     cp -p ${DESTTOP}/prebuilt/repository-installed.db ${DESTDIR}
 fi
 
-
+#
+# we don't need the splash images
+#
+rm -f ${DESTDIR}/boot/solaris.xpm
+rm -f ${DESTDIR}/boot/splashimage.xpm
 
 #
 # This is based on the joyent list; the live-media method scripts call
