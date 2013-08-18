@@ -14,19 +14,27 @@ The area you drop the build into ought to contain a 'dist' directory, a
 Once you've booted up the live image successfully, and have the
 services running correctly, copy off /etc/svc/repository.db into the
 prebuilt directory and you'll avoid manifest import from then
-on. Likewise after a successful install (without overlays) into
+on.
+
+Likewise after a successful install (without overlays) into
 repository-installed.db and you'll avoid manifest import at first
 boot. The generic_live.xml here is the profile used for the live boot.
 
-You'll need to create pkgs.zlib and put it int the root of the dist
-area. The mk-pkgs-zlib script here will create one based on the
-overlays it finds.
+If you have a commonly installed overlay then you can install that,
+copy off the repository from after the first boot, and put that into
+the prebuilt directory named as repository-overlay.db, and update the
+installation scripts - I do this by default for the kitchen-sink overlay.
+
+You'll need to create dist/pkgs and run mk-pkgas-zap to populate it
+with the packages referenced in the overlays.
 
 Then just run build_iso to create the iso.
 
 The live_install.sh script is what gets put onto the live CD and used
 to install Tribblix to a hard disk.
 
+The ufs_install.sh script is a test script that allows install to ufs
+instead of zfs.
 
 ips2svr4
 ========

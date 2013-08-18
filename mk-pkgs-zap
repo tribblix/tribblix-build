@@ -1,0 +1,74 @@
+#!/bin/sh
+#
+# create the pkgs.zlib file, including all the packages necessary for
+# the shipped overlays
+#
+
+DISTROOT=/export/tribblix/dist
+ZAPDIR=${DISTROOT}/pkgs
+OIPKGDIR=/var/tmp/created-pkgs
+IPKGDIR=/var/tmp/illumos-pkgs
+THOME=/home/ptribble/Tribblix
+PKG2ZAP=${THOME}/pkg2zap
+
+#
+# we look in ${THOME}/pkgs, then ${IPKGDIR}/pkgs and ${OIPKGDIR}/pkgs
+#
+#
+# verify first
+#
+VALID=yes
+for ipkg in `cat ${THOME}/overlays/*.pkgs|sort|uniq`
+do
+  if [ -f ${THOME}/pkgs/${ipkg}.pkg ]; then
+      echo "Installing $ipkg from Tribblix"
+  elif [ -f ${IPKGDIR}/pkgs/${ipkg}.pkg ]; then
+      echo "Installing $ipkg from Illumos"
+  elif [ -f ${OIPKGDIR}/pkgs/${ipkg}.pkg ]; then
+      echo "Installing $ipkg from OpenIndiana"
+  else
+      echo "ERROR: package $ipkg not found"
+      VALID=no
+  fi
+done
+if [ "X$VALID" = "Xno" ]; then
+    echo "ERROR: missing packages, mk-pkgs-zap aborted"
+    exit 1
+fi
+
+mkdir -p $ZAPDIR
+if [ ! -d $SZAPDIR ]; then
+    echo "ERROR: unable to create $ZAPDIR"
+    exit 1
+fi
+
+#
+# create the zap files
+# use pre-existing zap files if we find them
+#
+for ipkg in `cat ${THOME}/overlays/*.pkgs|sort|uniq`
+do
+  if [ -f ${DISTROOT}/var/sadm/pkg/${ipkg}/pkginfo ]; then
+      echo "Skipping installed ${ipkg}"
+  else
+      if [ -f ${THOME}/pkgs/${ipkg}.zap ]; then
+	  cp ${THOME}/pkgs/${ipkg}.zap $ZAPDIR
+      elif [ -f ${THOME}/pkgs/${ipkg}.pkg ]; then
+	  $PKG2ZAP ${THOME}/pkgs/${ipkg}.pkg $ZAPDIR
+      elif [ -f ${IPKGDIR}/pkgs/${ipkg}.zap ]; then
+	  cp ${IPKGDIR}/pkgs/${ipkg}.zap $ZAPDIR
+      elif [ -f ${IPKGDIR}/pkgs/${ipkg}.pkg ]; then
+	  $PKG2ZAP ${IPKGDIR}/pkgs/${ipkg}.pkg $ZAPDIR
+      elif [ -f ${OIPKGDIR}/pkgs/${ipkg}.zap ]; then
+	  cp ${OIPKGDIR}/pkgs/${ipkg}.zap $ZAPDIR
+      else
+	  $PKG2ZAP ${OIPKGDIR}/pkgs/${ipkg}.pkg $ZAPDIR
+      fi
+  fi
+done
+
+#
+# initial space: 697M with default compression; pkgs.zlib was 644M with gzip-9
+# zip -9 went to 691M
+#
+/usr/bin/du -hds $ZAPDIR
