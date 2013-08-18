@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/ksh
 #
 # build a bootable iso
 #
@@ -6,8 +6,8 @@
 THOME=/home/ptribble/Tribblix
 DESTTOP=/export/tribblix
 DESTDIR=${DESTTOP}/dist
-TRIBVER="Tribblix 0.4iTD"
-TRIBMSG="Tribblix 0.4i technology demonstrator, prerelease"
+TRIBVER="Tribblix 0.7TD"
+TRIBMSG="Tribblix 0.7 technology demonstrator, prerelease"
 
 #
 # assumes packages have already been installed, for now
@@ -44,10 +44,16 @@ chmod 0700 ${DESTDIR}/var/crash/tribblix
 
 #
 # sync up the overlays. before we create the ramdisk
+# xxx.pkgs - include pkgs on the iso
+# xxx.pkgs.repo - don't include pkgs on the iso, but rename this file
 #
 mkdir -p ${DESTDIR}/var/sadm/overlays
 cp ${THOME}/overlays/* ${DESTDIR}/var/sadm/overlays
 /bin/rm -f ${DESTDIR}/var/sadm/overlays/*~
+for pfile in ${DESTDIR}/var/sadm/overlays/*.pkgs.repo
+do
+  mv $pfile ${pfile%.repo}
+done
 
 echo "Fixing image"
 ${THOME}/install-fix
@@ -83,6 +89,7 @@ mv ${DESTDIR}/usr ${DESTTOP}/save
 mv ${DESTDIR}/var ${DESTTOP}/save
 mv ${DESTDIR}/root ${DESTTOP}/save
 mv ${DESTDIR}/jack ${DESTTOP}/save
+mv ${DESTDIR}/zonelib ${DESTTOP}/save
 mv ${DESTDIR}/reconfigure ${DESTTOP}/save
 sync
 
@@ -91,6 +98,8 @@ sync
 #
 cp ${THOME}/live_install.sh ${DESTDIR}
 chmod a+x ${DESTDIR}/live_install.sh
+cp ${THOME}/ufs_install.sh ${DESTDIR}
+chmod a+x ${DESTDIR}/ufs_install.sh
 
 #
 # actually build the iso

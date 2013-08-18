@@ -14,7 +14,7 @@ TRIBnet-bridging
 TRIBsys-net
 TRIBsys-lib-math
 TRIBdev-dtrace
-TRIBgcc4runtime
+TRIBsys-lib-gcc-3-runtime
 TRIBsys-file-system-autofs
 TRIBsys-file-system-nfs
 TRIBsys-file-system-udfs
@@ -128,3 +128,5 @@ TRIBsys-xopen-xcu6
 TRIBsys-scheduler-fss
 TRIBlibidn
 TRIBcurl
+TRIBzap
+TRIBblix-zones

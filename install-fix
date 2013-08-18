@@ -6,7 +6,7 @@ DESTDIR=${DESTTOP}/dist
 #
 # this is the size of the ramdisk.
 #
-MRSIZE=192m
+MRSIZE=180m
 
 #
 # I make a dual 32/64-bit boot archive
@@ -15,10 +15,10 @@ MRSIZE=192m
 # VBox and OI151a5 and early tribblix builds needed it, at least
 #
 cat >> ${DESTDIR}/boot/grub/menu.lst << _EOF
-title Tribblix 0.4i
+title Tribblix 0.7
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix
 module\$ /platform/i86pc/boot_archive
-title Tribblix 0.4i debug
+title Tribblix 0.7 debug
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -k
 module\$ /platform/i86pc/boot_archive
 title Boot from hard disk
@@ -56,9 +56,16 @@ if [ -f ${DESTTOP}/prebuilt/repository.db ]; then
 else
     env SVCCFG_CHECKHASH=1 /usr/share/distro_const/mkrepo ${DESTDIR} ${DESTDIR}
 fi
-if [ -f ${DESTTOP}/prebuilt/repository-installed.db ]; then
-    cp -p ${DESTTOP}/prebuilt/repository-installed.db ${DESTDIR}
+if [ -d ${DESTTOP}/prebuilt ]; then
+    cd ${DESTTOP}/prebuilt
+    for repofile in repository-*.db
+    do
+	cp -p ${repofile} ${DESTDIR}
+	rm -f ${DESTDIR}/${repofile}.gz
+	gzip ${DESTDIR}/${repofile}
+    done
 fi
+cd ${DESTDIR}
 
 #
 # we don't need the splash images
@@ -79,13 +86,13 @@ rm -f ${DESTDIR}/platform/i86pc/boot_archive
 mkfile ${MRSIZE} /tmp/${MRSIZE}
 LOFIDEV=`lofiadm -a /tmp/${MRSIZE}`
 LOFINUM=`echo $LOFIDEV|awk -F/ '{print $NF}'`
-echo "y" | newfs -o space -m 0 -i 16384 /dev/rlofi/$LOFINUM
+echo "y" | newfs -o space -m 0 -i 24576 /dev/rlofi/$LOFINUM
 BFS=/tmp/nb.$$
 mkdir $BFS
 mount -Fufs -o nologging $LOFIDEV $BFS
 cd ${DESTDIR}
 tar cf - `bootadm list-archive` | ( cd $BFS ; tar xf -)
-tar cfp - lib system tmp proc sbin etc var root jack | ( cd $BFS ; tar xf -)
+tar cfp - lib system tmp proc sbin etc var zonelib root jack | ( cd $BFS ; tar xf -)
 mkdir ${BFS}/usr
 cd usr
 tar cf - bin/[ bin/cat bin/head bin/i86/ksh93 bin/ls bin/sh sbin/lofiadm \
@@ -101,14 +108,20 @@ tar cf - bin/[ bin/cat bin/head bin/i86/ksh93 bin/ls bin/sh sbin/lofiadm \
         lib/libsmbios.so lib/libsmbios.so.1 | ( cd ${BFS}/usr ; tar xf -)
 cd $BFS
 ln -s usr/bin bin
-mkdir -p dev/fd devices/pseudo opt var var/run
+mkdir -p dev/fd devices/pseudo opt var var/run mnt
 ${DESTDIR}/usr/sbin/devfsadm -r ${BFS}
+#
+# clean up entries that shouldn't exist in the device tree, as
+# they're incompatible with the empty path_to_inst we supply
+#
+rm -f ${BFS}/dev/dsk/* ${BFS}/dev/rdsk/* ${BFS}/dev/usb/h*
+rm -f ${BFS}/dev/removable-media/dsk/* ${BFS}/dev/removable-media/rdsk/*
+#
 mkdir .cdrom
 touch .livecd
 cp ${DESTDIR}/.volsetid .
 touch etc/mnttab
 touch reconfigure
-mkdir -p mnt/misc mnt/pkgs
 if [ -f ${DESTTOP}/prebuilt/repository.db ]; then
     cp -p ${DESTTOP}/prebuilt/repository.db ${BFS}/etc/svc/repository.db
 else

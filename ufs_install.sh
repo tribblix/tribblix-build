@@ -2,74 +2,54 @@
 #
 # FIXME: do fdisk and partitions first
 #
+# This installs to ufs. On a physical partition, not SVM (yet).
+#
+# The assumption is that root=s0 swap=s1
+#
 
 case $# in
 0)
-	echo "Usage: $0 [ -m device ] device [overlay ... ]"
+	echo "Usage: $0 device [overlay ... ]"
 	exit 1
 	;;
 esac
 
 DRIVELIST=""
-#
-# handle zfs mirrors
-#
-case $1 in
--m)
-	shift
-	DRIVE1=$1
-	shift
-	if [ ! -e /dev/dsk/$DRIVE1 ]; then
-	    echo "ERROR: Unable to find device $DRIVE1"
-	    exit 1
-	fi
-	ZFSARGS="mirror"
-	DRIVELIST="$DRIVE1"
-	;;
--*)
-	echo "Usage: $0 [ -m device ] device [overlay ... ]"
-	exit 1
-	;;
-esac
 
 case $# in
 0)
-	echo "Usage: $0 [ -m device ] device [overlay ... ]"
+	echo "Usage: $0 device [overlay ... ]"
 	exit 1
 	;;
 esac
 
 DRIVE2=$1
 shift
-DRIVELIST="$DRIVELIST $DRIVE2"
+DRIVELIST="$DRIVE2"
 
 if [ ! -e /dev/dsk/$DRIVE2 ]; then
     echo "ERROR: Unable to find device $DRIVE2"
     exit 1
 fi
 
+case $DRIVE2 in
+*s0)
+	SWAPDEV=`echo $DRIVE2 | sed 's:s0$:s1:'`
+	;;
+*)
+	echo "ERROR: Root slice must be slice 0"
+	exit 1
+	;;
+esac
+
 #
-# FIXME allow ufs
 # FIXME allow svm
 #
 /usr/bin/mkdir /a
-echo "Creating root pool"
-/usr/sbin/zpool create -f -o failmode=continue rpool $ZFSARGS $DRIVELIST
-
-echo "Creating filesystems"
-/usr/sbin/zfs create -o mountpoint=legacy rpool/ROOT
-/usr/sbin/zfs create -o mountpoint=/a rpool/ROOT/tribblix
-/usr/sbin/zpool set bootfs=rpool/ROOT/tribblix rpool
-/usr/sbin/zfs create -o mountpoint=/a/export rpool/export
-/usr/sbin/zfs create rpool/export/home
-/usr/sbin/zfs create -V 2g -b 8k rpool/swap
-/usr/sbin/zfs create -V 2g rpool/dump
-
-#
-# this gives the initial BE a UUID, necessary for 'beadm list -H'
-# to not show null, and for zone uninstall to work
-#
-/usr/sbin/zfs set org.opensolaris.libbe:uuid=`/usr/lib/zap/generate-uuid` rpool/ROOT/tribblix
+echo "Creating root file system"
+/usr/sbin/newfs /dev/rdsk/$DRIVE2
+/usr/sbin/mount /dev/dsk/$DRIVE2 /a
+mkdir -p /a/export/home
 
 echo "Copying main filesystems"
 cd /
@@ -77,7 +57,6 @@ cd /
 echo "Copying other filesystems"
 cd /.cdrom
 /usr/bin/find boot -print -depth | cpio -pdm /a
-/usr/bin/find boot -print -depth | cpio -pdm /rpool
 
 #
 echo "Adding extra directories"
@@ -104,7 +83,7 @@ cd /
 # also, do it after copying the main OS as it changes the dump settings
 #
 if [ $# -gt 0 ]; then
-  swap -a /dev/zvol/dsk/rpool/swap
+  swap -a /dev/dsk/$SWAPDEV
   LOGFILE="/a/var/sadm/install/logs/initial.log"
   echo "Installing overlays" | tee $LOGFILE
   /usr/bin/date | tee -a $LOGFILE
@@ -171,17 +150,29 @@ echo "Configuring devices"
 touch /a/reconfigure
 
 echo "Setting up boot"
-/usr/bin/mkdir -p /rpool/boot/grub/bootsign /rpool/etc
-touch /rpool/boot/grub/bootsign/pool_rpool
-echo "pool_rpool" > /rpool/etc/bootsign
+/usr/bin/mkdir -p /a/boot/grub/bootsign /a/etc
+touch /a/boot/grub/bootsign/tribblix_07
+echo "tribblix_07" > /a/etc/bootsign
 
-/usr/bin/cat > /rpool/boot/grub/menu.lst << _EOF
+/usr/bin/cat > /a/boot/grub/menu.lst << _EOF
 title Tribblix 0.7
-findroot (pool_rpool,0,a)
-bootfs rpool/ROOT/tribblix
-kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B \$ZFS-BOOTFS
+findroot (tribblix_07,0,a)
+kernel\$ /platform/i86pc/kernel/\$ISADIR/unix
 module\$ /platform/i86pc/\$ISADIR/boot_archive
 _EOF
+
+#
+# mount / at boot and enable swap
+#
+/bin/echo "/dev/dsk/$DRIVE2\t/dev/rdsk/$DRIVE2\t/\tufs\t1\tno\tlogging" >> /a/etc/vfstab
+/bin/echo "/dev/dsk/$SWAPDEV\t-\t-\tswap\t-\tno\t-" >> /a/etc/vfstab
+
+#
+# need to put the device path of the root slice into bootenv.rc so
+# the boot can find it
+#
+BOOTDEV=`/bin/ls -l /dev/dsk/$DRIVE2 | awk '{print $NF}' | sed s:../../devices::'`
+echo "setprop bootpath $BOOTDEV" >> /a/boot/solaris/bootenv.rc
 
 #
 # FIXME: why is this so much larger than a regular system?
@@ -192,11 +183,6 @@ echo "Updating boot archive"
 /sbin/bootadm update-archive -R /a
 /usr/bin/sync
 sleep 2
-
-#
-# enable swap
-#
-/bin/echo "/dev/zvol/dsk/rpool/swap\t-\t-\tswap\t-\tno\t-" >> /a/etc/vfstab
 
 #
 # Copy /jack to the installed system
@@ -210,10 +196,3 @@ sync
 #
 echo "*openIm: false" > /a/jack/.Xdefaults
 /usr/bin/chown jack:staff /a/jack/.Xdefaults
-
-/usr/sbin/fuser -c /a
-#
-# remount zfs filesystem in the right place for next boot
-#
-/usr/sbin/zfs set mountpoint=/export rpool/export
-/usr/sbin/zfs set mountpoint=/ rpool/ROOT/tribblix

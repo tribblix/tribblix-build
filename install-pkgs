@@ -5,13 +5,18 @@ IPKGDIR=/var/tmp/illumos-pkgs/pkgs
 THOME=/home/ptribble/Tribblix
 TPKGDIR=${THOME}/pkgs
 DESTDIR=/export/tribblix/dist
-PKGLIST=pkg-list
+
+#
+# this is the base install, plus we add TRIBsys-install-media-internal
+# to the iso
+#
+PKGLIST=${THOME}/overlays/base.pkgs
 
 #
 # first verify
 #
 VALID=yes
-for mypkg in `cat ${THOME}/${PKGLIST}`
+for mypkg in `cat ${PKGLIST}` TRIBsys-install-media-internal
 do
   if [ -f ${TPKGDIR}/${mypkg}.pkg ]; then
       echo "Installing $mypkg from Tribblix"
@@ -33,7 +38,7 @@ fi
 #
 # now install
 #
-for mypkg in `cat ${THOME}/${PKGLIST}`
+for mypkg in `cat ${PKGLIST}` TRIBsys-install-media-internal
 do
   if [ -f ${TPKGDIR}/${mypkg}.pkg ]; then
     pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${TPKGDIR}/${mypkg}.pkg $mypkg

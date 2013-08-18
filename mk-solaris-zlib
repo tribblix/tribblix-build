@@ -4,6 +4,7 @@
 #
 
 DESTDIR=/export/tribblix/dist
+CLEVEL="gzip"
 
 cd ${DESTDIR}
 
@@ -15,5 +16,5 @@ mkisofs -o solaris.zlib $SORT_OPTION -quiet -N -l -R \
     -U -allow-multidot -no-iso-translate -cache-inodes \
     -d -D -V "compress" usr
 ls -lsh solaris.zlib
-lofiadm -C gzip-9 solaris.zlib
+lofiadm -C ${CLEVEL} solaris.zlib
 ls -lsh solaris.zlib
