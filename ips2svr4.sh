@@ -818,6 +818,15 @@ EOF
 fi
 
 #
+# if we find any other files with stupid timestamps, correct them again
+# using /etc/passwd as a reference so the pakages we generate are stable
+#
+for dubiousfile in `find . -xdev -type f -mtime +10000`
+do
+    touch -r /etc/passwd $dubiousfile
+done
+
+#
 # if there were any services that need to be restarted, create install scripts
 #
 handle_restarts
