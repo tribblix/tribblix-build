@@ -6,6 +6,12 @@
 DESTDIR=/export/tribblix/dist
 CLEVEL="gzip"
 
+case $# in
+1)
+	DESTDIR=${DESTDIR}.$1
+	;;
+esac
+
 cd ${DESTDIR}
 
 #

@@ -12,6 +12,13 @@ DESTDIR=/export/tribblix/dist
 #
 PKGLIST=${THOME}/overlays/base.pkgs
 
+case $# in
+1)
+	DESTDIR=${DESTDIR}.$1
+	PKGLIST=${PKGLIST}.$1
+	;;
+esac
+
 #
 # first verify
 #
@@ -32,6 +39,11 @@ done
 
 if [ "X$VALID" = "Xno" ]; then
     echo "ERROR: missing packages, install aborted"
+    exit 1
+fi
+
+if [ ! -d ${DESTDIR} ]; then
+    echo "ERROR: Target destination ${DESTDIR} not found, install aborted"
     exit 1
 fi
 

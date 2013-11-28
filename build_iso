@@ -6,8 +6,14 @@
 THOME=/home/ptribble/Tribblix
 DESTTOP=/export/tribblix
 DESTDIR=${DESTTOP}/dist
-TRIBVER="Tribblix 0.7TD"
-TRIBMSG="Tribblix 0.7 technology demonstrator, prerelease"
+TRIBVER="Tribblix 0.8TD"
+TRIBMSG="Tribblix 0.8 technology demonstrator, prerelease"
+
+case $# in
+1)
+	DESTDIR=${DESTDIR}.$1
+	;;
+esac
 
 #
 # assumes packages have already been installed, for now
@@ -18,7 +24,7 @@ TRIBMSG="Tribblix 0.7 technology demonstrator, prerelease"
 # fix the image
 #
 echo "Reset initial files"
-echo ${TRIBVER} | md5sum - | awk '{print $1}' > ${DESTTOP}/dist/.volsetid
+echo ${TRIBVER} | md5sum - | awk '{print $1}' > ${DESTDIR}/.volsetid
 cp /etc/system ${DESTDIR}/etc/system
 cp /boot/grub/menu.lst ${DESTDIR}/boot/grub/menu.lst
 echo "tribblix" > ${DESTDIR}/etc/nodename
@@ -48,21 +54,32 @@ chmod 0700 ${DESTDIR}/var/crash/tribblix
 # xxx.pkgs.repo - don't include pkgs on the iso, but rename this file
 #
 mkdir -p ${DESTDIR}/var/sadm/overlays
-cp ${THOME}/overlays/* ${DESTDIR}/var/sadm/overlays
-/bin/rm -f ${DESTDIR}/var/sadm/overlays/*~
+cp ${THOME}/overlays/*.pkgs ${DESTDIR}/var/sadm/overlays
+cp ${THOME}/overlays/*.pkgs.repo ${DESTDIR}/var/sadm/overlays
+cp ${THOME}/overlays/*.ovl ${DESTDIR}/var/sadm/overlays
 for pfile in ${DESTDIR}/var/sadm/overlays/*.pkgs.repo
 do
   mv $pfile ${pfile%.repo}
 done
 
+#
+# make sure the install script is up to date
+#
+mkdir -p ${DESTDIR}/root
+cp ${THOME}/live_install.sh ${DESTDIR}/root
+chmod a+x ${DESTDIR}/root/live_install.sh
+cp ${THOME}/ufs_install.sh ${DESTDIR}/root
+chmod a+x ${DESTDIR}/root/ufs_install.sh
+cp ${THOME}/format-a-disk.sh ${DESTDIR}/root
+chmod a+x ${DESTDIR}/root/format-a-disk.sh
 echo "Fixing image"
-${THOME}/install-fix
+${THOME}/install-fix $*
 
 #
 # create the zlib files
 #
 echo "Creating solaris.zlib"
-${THOME}/mk-solaris-zlib
+${THOME}/mk-solaris-zlib $*
 rm -f ${DESTDIR}/solarismisc.zlib
 sync
 
@@ -77,34 +94,26 @@ mv ${DESTDIR}/devices ${DESTTOP}/save
 mv ${DESTDIR}/etc ${DESTTOP}/save
 mv ${DESTDIR}/export ${DESTTOP}/save
 mv ${DESTDIR}/home ${DESTTOP}/save
+mv ${DESTDIR}/jack ${DESTTOP}/save
 mv ${DESTDIR}/kernel ${DESTTOP}/save
 mv ${DESTDIR}/lib ${DESTTOP}/save
 mv ${DESTDIR}/mnt ${DESTTOP}/save
 mv ${DESTDIR}/opt ${DESTTOP}/save
 mv ${DESTDIR}/proc ${DESTTOP}/save
+mv ${DESTDIR}/reconfigure ${DESTTOP}/save
+mv ${DESTDIR}/root ${DESTTOP}/save
 mv ${DESTDIR}/sbin ${DESTTOP}/save
 mv ${DESTDIR}/system ${DESTTOP}/save
 mv ${DESTDIR}/tmp ${DESTTOP}/save
 mv ${DESTDIR}/usr ${DESTTOP}/save
 mv ${DESTDIR}/var ${DESTTOP}/save
-mv ${DESTDIR}/root ${DESTTOP}/save
-mv ${DESTDIR}/jack ${DESTTOP}/save
 mv ${DESTDIR}/zonelib ${DESTTOP}/save
-mv ${DESTDIR}/reconfigure ${DESTTOP}/save
 sync
-
-#
-# make sure the install script is up to date
-#
-cp ${THOME}/live_install.sh ${DESTDIR}
-chmod a+x ${DESTDIR}/live_install.sh
-cp ${THOME}/ufs_install.sh ${DESTDIR}
-chmod a+x ${DESTDIR}/ufs_install.sh
 
 #
 # actually build the iso
 #
-${THOME}/create-iso
+${THOME}/create-iso $*
 
 #
 # shuffle the files back so the image area is still valid

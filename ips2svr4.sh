@@ -366,7 +366,14 @@ target)
     ;;
 esac
 done
-echo "l none ${dirpath}=${target}" >> ${BDIR}/prototype
+case ${target} in
+*~*)
+    echo "WARNING: skipping link to $target"
+    ;;
+*)
+    echo "l none ${dirpath}=${target}" >> ${BDIR}/prototype
+    ;;
+esac
 }
 
 #
@@ -447,7 +454,14 @@ if [ -f ${REPODIR}/${filepath} ]; then
     if [ "xx${TSTAMP}" != "xx" ]; then
 	/bin/touch -t ${TSTAMP} ${BDIR}/${filepath}
     fi
+case ${filepath} in
+*~*)
+    echo "WARNING: skipping file path $filepath"
+    ;;
+*)
     echo "${FTYPE} ${FCLASS} ${filepath}=${filepath} ${mode} ${owner} ${group}" >> ${BDIR}/prototype
+    ;;
+esac
 else
     echo "ERROR: missing file ${REPODIR}/${filepath}"
 fi

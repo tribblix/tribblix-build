@@ -1,15 +1,48 @@
 #!/bin/sh
 #
-# create the pkgs.zlib file, including all the packages necessary for
-# the shipped overlays
+# copy packages into the pkgs folder on the iso, including all the packages
+# necessary for the shipped overlays
 #
 
 DISTROOT=/export/tribblix/dist
 ZAPDIR=${DISTROOT}/pkgs
 OIPKGDIR=/var/tmp/created-pkgs
 IPKGDIR=/var/tmp/illumos-pkgs
-THOME=/home/ptribble/Tribblix
-PKG2ZAP=${THOME}/pkg2zap
+THOME=/packages/localsrc/Tribblix
+PKG2ZAP=${THOME}/build/pkg2zap
+VARIANT=""
+
+#
+# Tribblix packages are explicitly versioned, we make a fake version
+# based on the current release for OI and Illumos packages
+#
+# also create a fake release number for unversioned Tribblix packages
+# there should be none of these
+#
+RELVER="0.8"
+OIVER="${RELVER}o"
+ILVER="${RELVER}i"
+TRVER="${RELVER}t"
+
+case $# in
+1)
+	DISTROOT=${DISTROOT}.$1
+	ZAPDIR=${DISTROOT}/pkgs
+	VARIANT=$1
+	;;
+esac
+
+TFILE="/tmp/mkzap.$$"
+rm -fr ${TFILE}
+touch $TFILE
+for opkg in ${THOME}/overlays/*.pkgs
+do
+    if [ -f ${opkg}.${VARIANT} ]; then
+	cat ${opkg}.${VARIANT} >> $TFILE
+    else
+	cat ${opkg} >> $TFILE
+    fi
+done
 
 #
 # we look in ${THOME}/pkgs, then ${IPKGDIR}/pkgs and ${OIPKGDIR}/pkgs
@@ -18,57 +51,113 @@ PKG2ZAP=${THOME}/pkg2zap
 # verify first
 #
 VALID=yes
-for ipkg in `cat ${THOME}/overlays/*.pkgs|sort|uniq`
+ERRLIST=""
+for ipkg in `cat ${TFILE}|sort|uniq`
 do
-  if [ -f ${THOME}/pkgs/${ipkg}.pkg ]; then
+  THISVER="XXX"
+  PKGI=${THOME}/build/${ipkg}/pkginfo
+  if [ -f ${PKGI} ]; then
+      THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
+  fi
+  if [ -f ${THOME}/pkgs/${ipkg}.${THISVER}.zap ]; then
+      echo "Installing $ipkg ${THISVER} from Tribblix"
+  elif [ -f ${THOME}/pkgs/${ipkg}.${THISVER}.pkg ]; then
+      echo "Installing $ipkg ${THISVER} from Tribblix"
+  elif [ -f ${THOME}/pkgs/${ipkg}.zap ]; then
       echo "Installing $ipkg from Tribblix"
+  elif [ -f ${THOME}/pkgs/${ipkg}.pkg ]; then
+      echo "Installing $ipkg from Tribblix"
+  elif [ -f ${IPKGDIR}/pkgs/${ipkg}.zap ]; then
+      echo "Installing $ipkg from Illumos"
   elif [ -f ${IPKGDIR}/pkgs/${ipkg}.pkg ]; then
       echo "Installing $ipkg from Illumos"
+  elif [ -f ${OIPKGDIR}/pkgs/${ipkg}.zap ]; then
+      echo "Installing $ipkg from OpenIndiana"
   elif [ -f ${OIPKGDIR}/pkgs/${ipkg}.pkg ]; then
       echo "Installing $ipkg from OpenIndiana"
   else
       echo "ERROR: package $ipkg not found"
       VALID=no
+      ERRLIST="$ERRLIST $ipkg"
   fi
 done
 if [ "X$VALID" = "Xno" ]; then
     echo "ERROR: missing packages, mk-pkgs-zap aborted"
+    echo "Missing: $ERRLIST"
+    rm -f $TFILE
     exit 1
 fi
 
 mkdir -p $ZAPDIR
 if [ ! -d $SZAPDIR ]; then
     echo "ERROR: unable to create $ZAPDIR"
+    rm -f $TFILE
     exit 1
 fi
+rm -f ${ZAPDIR}/catalog
+touch ${ZAPDIR}/catalog
+chmod 644 ${ZAPDIR}/catalog
 
 #
 # create the zap files
 # use pre-existing zap files if we find them
+# save the zap files back to the source if we generate them
 #
-for ipkg in `cat ${THOME}/overlays/*.pkgs|sort|uniq`
+for ipkg in `cat ${TFILE}|sort|uniq`
 do
   if [ -f ${DISTROOT}/var/sadm/pkg/${ipkg}/pkginfo ]; then
       echo "Skipping installed ${ipkg}"
   else
-      if [ -f ${THOME}/pkgs/${ipkg}.zap ]; then
-	  cp ${THOME}/pkgs/${ipkg}.zap $ZAPDIR
+      THISVER="XXX"
+      PKGI=${THOME}/build/${ipkg}/pkginfo
+      if [ -f ${PKGI} ]; then
+	  THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
+      fi
+      if [ -f ${THOME}/pkgs/${ipkg}.${THISVER}.zap ]; then
+	  cp ${THOME}/pkgs/${ipkg}.${THISVER}.zap $ZAPDIR
+      elif [ -f ${THOME}/pkgs/${ipkg}.${THISVER}.pkg ]; then
+	  $PKG2ZAP ${THOME}/pkgs/${ipkg}.${THISVER}.pkg $ZAPDIR
+      elif [ -f ${THOME}/pkgs/${ipkg}.zap ]; then
+	  cp ${THOME}/pkgs/${ipkg}.zap ${ZAPDIR}/${ipkg}.${TRVER}.zap
+	  THISVER=${TRVER}
       elif [ -f ${THOME}/pkgs/${ipkg}.pkg ]; then
 	  $PKG2ZAP ${THOME}/pkgs/${ipkg}.pkg $ZAPDIR
+	  mv ${ZAPDIR}/${ipkg}.zap ${ZAPDIR}/${ipkg}.${TRVER}.zap
+	  THISVER=${TRVER}
       elif [ -f ${IPKGDIR}/pkgs/${ipkg}.zap ]; then
-	  cp ${IPKGDIR}/pkgs/${ipkg}.zap $ZAPDIR
+	  cp ${IPKGDIR}/pkgs/${ipkg}.zap ${ZAPDIR}/${ipkg}.${ILVER}.zap
+	  THISVER=${ILVER}
       elif [ -f ${IPKGDIR}/pkgs/${ipkg}.pkg ]; then
 	  $PKG2ZAP ${IPKGDIR}/pkgs/${ipkg}.pkg $ZAPDIR
+	  cp ${ZAPDIR}/${ipkg}.zap ${IPKGDIR}/pkgs
+	  mv ${ZAPDIR}/${ipkg}.zap ${ZAPDIR}/${ipkg}.${ILVER}.zap
+	  THISVER=${ILVER}
       elif [ -f ${OIPKGDIR}/pkgs/${ipkg}.zap ]; then
-	  cp ${OIPKGDIR}/pkgs/${ipkg}.zap $ZAPDIR
+	  cp ${OIPKGDIR}/pkgs/${ipkg}.zap ${ZAPDIR}/${ipkg}.${OIVER}.zap
+	  THISVER=${OIVER}
       else
 	  $PKG2ZAP ${OIPKGDIR}/pkgs/${ipkg}.pkg $ZAPDIR
+	  cp ${ZAPDIR}/${ipkg}.zap ${OIPKGDIR}/pkgs
+	  mv ${ZAPDIR}/${ipkg}.zap ${ZAPDIR}/${ipkg}.${OIVER}.zap
+	  THISVER=${OIVER}
       fi
+      echo "${ipkg}|${THISVER}|"`${DISTROOT}/usr/lib/zap/pkgdepend ${ZAPDIR}/${ipkg}.${OIVER}.zap` >> ${ZAPDIR}/catalog
   fi
 done
+
+rm -f $TFILE
+
+#
+# preload package catalogs
+#
+cd ${THOME}/build
+./create-catalog > ${DISTROOT}/etc/zap/repositories/tribblix.catalog
+./create-oi-catalog > ${DISTROOT}/etc/zap/repositories/oi.catalog
+./create-illumos-catalog > ${DISTROOT}/etc/zap/repositories/illumos.catalog
 
 #
 # initial space: 697M with default compression; pkgs.zlib was 644M with gzip-9
 # zip -9 went to 691M
 #
+sync
 /usr/bin/du -hds $ZAPDIR

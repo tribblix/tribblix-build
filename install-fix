@@ -3,6 +3,12 @@
 DESTTOP=/export/tribblix
 DESTDIR=${DESTTOP}/dist
 
+case $# in
+1)
+	DESTDIR=${DESTDIR}.$1
+	;;
+esac
+
 #
 # this is the size of the ramdisk.
 #
@@ -15,10 +21,16 @@ MRSIZE=180m
 # VBox and OI151a5 and early tribblix builds needed it, at least
 #
 cat >> ${DESTDIR}/boot/grub/menu.lst << _EOF
-title Tribblix 0.7
+title Tribblix 0.8
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix
 module\$ /platform/i86pc/boot_archive
-title Tribblix 0.7 debug
+title Tribblix 0.8 (ttya)
+kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B console=ttya,input-device=ttya,output-device=ttya
+module\$ /platform/i86pc/boot_archive
+title Tribblix 0.8 (remote ssh)
+kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B livessh=enable
+module\$ /platform/i86pc/boot_archive
+title Tribblix 0.8 debug
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -k
 module\$ /platform/i86pc/boot_archive
 title Boot from hard disk
@@ -29,6 +41,10 @@ _EOF
 #
 # customize jack's environment
 #
+if [ ! -d ${DESTDIR}/jack ]; then
+   mkdir ${DESTDIR}/jack
+   chown jack:staff ${DESTDIR}/jack
+fi
 if [ ! -d ${DESTDIR}/jack/.config ]; then
   if [ -f ${DESTTOP}/prebuilt/dot-config.tar ]; then
     cd ${DESTDIR}/jack
@@ -60,9 +76,9 @@ if [ -d ${DESTTOP}/prebuilt ]; then
     cd ${DESTTOP}/prebuilt
     for repofile in repository-*.db
     do
-	cp -p ${repofile} ${DESTDIR}
-	rm -f ${DESTDIR}/${repofile}.gz
-	gzip ${DESTDIR}/${repofile}
+	cp -p ${repofile} ${DESTDIR}/usr/lib/zap
+	rm -f ${DESTDIR}/usr/lib/zap/${repofile}.gz
+	gzip ${DESTDIR}/usr/lib/zap/${repofile}
     done
 fi
 cd ${DESTDIR}
@@ -76,6 +92,11 @@ rm -f ${DESTDIR}/boot/splashimage.xpm
 #
 # This is based on the joyent list; the live-media method scripts call
 # svcadm and fstyp
+#
+# net-fs-root needs tmpfs mount
+#  plus wget, which pulls in libidn and libgcc_s
+#  and needs both architectures of prtconf, and libpcidb
+#  and add the whole of boot so we don't need to get it from anywhere else
 #
 # size: tunefs 0 gains 10% (40M to 61M free on a 224M ramdisk)
 # we need ~4k inodes, defaults give us ~100k, so can tune -i 16384
@@ -92,13 +113,15 @@ mkdir $BFS
 mount -Fufs -o nologging $LOFIDEV $BFS
 cd ${DESTDIR}
 tar cf - `bootadm list-archive` | ( cd $BFS ; tar xf -)
-tar cfp - lib system tmp proc sbin etc var zonelib root jack | ( cd $BFS ; tar xf -)
+tar cfp - boot lib system tmp proc sbin etc var zonelib root jack | ( cd $BFS ; tar xf -)
 mkdir ${BFS}/usr
 cd usr
 tar cf - bin/[ bin/cat bin/head bin/i86/ksh93 bin/ls bin/sh sbin/lofiadm \
-        bin/sed bin/cut sbin/prtconf sbin/i86/prtconf sbin/svcadm \
+        bin/sed bin/cut sbin/prtconf sbin/i86/prtconf sbin/amd64/prtconf \
+        lib/libpcidb.so.1 lib/64/libpcidb.so.1 sbin/svcadm \
         lib/fs/ufs/fstyp* lib/fs/hsfs/fstyp* lib/libfstyp.so* \
         lib/libzonecfg* lib/libbrand* \
+        lib/libidn.s* bin/wget lib/fs/tmpfs/mount sfw/lib/libgcc_s.so.1 \
         lib/libproject.so lib/libproject.so.1 lib/libshell.so.1 \
         lib/libcmd.so.1 lib/libast.so.1 lib/libsum.so.1 lib/libdll.so.1 \
         lib/libidmap.so lib/libidmap.so.1 lib/libpkcs11.so lib/libpkcs11.so.1 \
@@ -131,7 +154,7 @@ cd /
 df -h $BFS
 df -i $BFS
 umount $BFS
-lofiadm -d /dev/lofi/1
+lofiadm -d /dev/lofi/$LOFINUM
 gzip /tmp/${MRSIZE}
 cp /tmp/${MRSIZE}.gz ${DESTDIR}/platform/i86pc/boot_archive
 rm /tmp/${MRSIZE}.gz
