@@ -12,7 +12,7 @@ esac
 #
 # this is the size of the ramdisk.
 #
-MRSIZE=180m
+MRSIZE=172m
 
 #
 # I make a dual 32/64-bit boot archive
@@ -21,16 +21,16 @@ MRSIZE=180m
 # VBox and OI151a5 and early tribblix builds needed it, at least
 #
 cat >> ${DESTDIR}/boot/grub/menu.lst << _EOF
-title Tribblix 0.8
+title Tribblix 0.9
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix
 module\$ /platform/i86pc/boot_archive
-title Tribblix 0.8 (ttya)
+title Tribblix 0.9 (ttya)
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B console=ttya,input-device=ttya,output-device=ttya
 module\$ /platform/i86pc/boot_archive
-title Tribblix 0.8 (remote ssh)
+title Tribblix 0.9 (remote ssh)
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B livessh=enable
 module\$ /platform/i86pc/boot_archive
-title Tribblix 0.8 debug
+title Tribblix 0.9 debug
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -k
 module\$ /platform/i86pc/boot_archive
 title Boot from hard disk
@@ -116,12 +116,11 @@ tar cf - `bootadm list-archive` | ( cd $BFS ; tar xf -)
 tar cfp - boot lib system tmp proc sbin etc var zonelib root jack | ( cd $BFS ; tar xf -)
 mkdir ${BFS}/usr
 cd usr
-tar cf - bin/[ bin/cat bin/head bin/i86/ksh93 bin/ls bin/sh sbin/lofiadm \
-        bin/sed bin/cut sbin/prtconf sbin/i86/prtconf sbin/amd64/prtconf \
-        lib/libpcidb.so.1 lib/64/libpcidb.so.1 sbin/svcadm \
+tar cf - bin/cat bin/head bin/i86/ksh93 bin/ls bin/sh sbin/lofiadm \
+        bin/sed bin/cut sbin/svcadm \
         lib/fs/ufs/fstyp* lib/fs/hsfs/fstyp* lib/libfstyp.so* \
         lib/libzonecfg* lib/libbrand* \
-        lib/libidn.s* bin/wget lib/fs/tmpfs/mount sfw/lib/libgcc_s.so.1 \
+        lib/libidn.s* bin/wget lib/fs/tmpfs/mount lib/libgcc_s.so.1 \
         lib/libproject.so lib/libproject.so.1 lib/libshell.so.1 \
         lib/libcmd.so.1 lib/libast.so.1 lib/libsum.so.1 lib/libdll.so.1 \
         lib/libidmap.so lib/libidmap.so.1 lib/libpkcs11.so lib/libpkcs11.so.1 \
@@ -131,6 +130,7 @@ tar cf - bin/[ bin/cat bin/head bin/i86/ksh93 bin/ls bin/sh sbin/lofiadm \
         lib/libsmbios.so lib/libsmbios.so.1 | ( cd ${BFS}/usr ; tar xf -)
 cd $BFS
 ln -s usr/bin bin
+strip usr/bin/* usr/sbin/* usr/lib/* 
 mkdir -p dev/fd devices/pseudo opt var var/run mnt
 ${DESTDIR}/usr/sbin/devfsadm -r ${BFS}
 #

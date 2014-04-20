@@ -6,8 +6,8 @@
 THOME=/home/ptribble/Tribblix
 DESTTOP=/export/tribblix
 DESTDIR=${DESTTOP}/dist
-TRIBVER="Tribblix 0.8TD"
-TRIBMSG="Tribblix 0.8 technology demonstrator, prerelease"
+TRIBVER="Tribblix 0.9TD"
+TRIBMSG="Tribblix 0.9 technology demonstrator, prerelease"
 
 case $# in
 1)

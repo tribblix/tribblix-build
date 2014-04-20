@@ -23,9 +23,7 @@ SMFREPODIR="/usr/lib/zap"
 #
 # read an external configuration file
 #
-IPROFILE=`/usr/sbin/prtconf -v /devices | \
-    /usr/bin/sed -n '/install_profile/{;n;p;}' | \
-    /usr/bin/cut -f 2 -d \'`
+IPROFILE=`/sbin/devprop install_profile`
 if [ ! -z "$IPROFILE" ]; then
 case $IPROFILE in
 nfs*)
@@ -202,9 +200,7 @@ echo "Installing overlays" | tee $LOGFILE
 /usr/bin/date | tee -a $LOGFILE
 TMPDIR=/tmp
 export TMPDIR
-PKGMEDIA=`/usr/sbin/prtconf -v /devices | \
-    /usr/bin/sed -n '/install_pkgs/{;n;p;}' | \
-    /usr/bin/cut -f 2 -d \'`
+PKGMEDIA=`/sbin/devprop install_pkgs`
 if [ -d ${PKGLOC} ]; then
     for overlay in base-extras $*
     do
@@ -280,13 +276,22 @@ echo "Setting up boot"
 touch /rpool/boot/grub/bootsign/pool_rpool
 echo "pool_rpool" > /rpool/etc/bootsign
 
+#
+# copy any console settings to the running system
+#
+BCONSOLE=""
+ICONSOLE=`/sbin/devprop console`
+if [ ! -z "$ICONSOLE" ]; then
+  BCONSOLE=",console=${ICONSOLE},input-device=${ICONSOLE},output-device=${ICONSOLE}"
+fi
+
 /usr/bin/cat > /rpool/boot/grub/menu.lst << _EOF
 default 0
 timeout 10
-title Tribblix 0.8
+title Tribblix 0.9
 findroot (pool_rpool,0,a)
 bootfs rpool/ROOT/tribblix
-kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B \$ZFS-BOOTFS
+kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B \$ZFS-BOOTFS${BCONSOLE}
 module\$ /platform/i86pc/\$ISADIR/boot_archive
 _EOF
 

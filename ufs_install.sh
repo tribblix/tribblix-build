@@ -27,9 +27,7 @@ SMFREPODIR="/usr/lib/zap"
 #
 # read an external configuration file
 #
-IPROFILE=`/usr/sbin/prtconf -v /devices | \
-    /usr/bin/sed -n '/install_profile/{;n;p;}' | \
-    /usr/bin/cut -f 2 -d \'`
+IPROFILE=`/sbin/devprop install_profile`
 if [ ! -z "$IPROFILE" ]; then
 case $IPROFILE in
 nfs*)
@@ -127,9 +125,7 @@ echo "Installing overlays" | tee $LOGFILE
 /usr/bin/date | tee -a $LOGFILE
 TMPDIR=/tmp
 export TMPDIR
-PKGMEDIA=`/usr/sbin/prtconf -v /devices | \
-    /usr/bin/sed -n '/install_pkgs/{;n;p;}' | \
-    /usr/bin/cut -f 2 -d \'`
+PKGMEDIA=`/sbin/devprop install_pkgs`
 if [ -d ${PKGLOC} ]; then
     for overlay in base-extras $*
     do
@@ -202,15 +198,24 @@ touch /a/reconfigure
 
 echo "Setting up boot"
 /usr/bin/mkdir -p /a/boot/grub/bootsign /a/etc
-touch /a/boot/grub/bootsign/tribblix_08
-echo "tribblix_08" > /a/etc/bootsign
+touch /a/boot/grub/bootsign/tribblix_09
+echo "tribblix_09" > /a/etc/bootsign
+
+#
+# copy any console settings to the running system
+#
+BCONSOLE=""
+ICONSOLE=`/sbin/devprop console`
+if [ ! -z "$ICONSOLE" ]; then
+  BCONSOLE=" -B console=${ICONSOLE},input-device=${ICONSOLE},output-device=${ICONSOLE}"
+fi
 
 /usr/bin/cat > /a/boot/grub/menu.lst << _EOF
 default 0
 timeout 10
-title Tribblix 0.8
-findroot (tribblix_08,0,a)
-kernel\$ /platform/i86pc/kernel/\$ISADIR/unix
+title Tribblix 0.9
+findroot (tribblix_09,0,a)
+kernel\$ /platform/i86pc/kernel/\$ISADIR/unix${BCONSOLE}
 module\$ /platform/i86pc/\$ISADIR/boot_archive
 _EOF
 

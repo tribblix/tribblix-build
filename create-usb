@@ -1,0 +1,69 @@
+#!/bin/sh
+#
+# To write: find the device with rmformat -l and make sure it's unmounted
+# cat 1G.header image.usb | dd bs=1024k of=/dev/rdsk/cXtYdZ
+# note, no slice or fdisk partition, just the bare device
+#
+
+DESTDIR=/export/tribblix/dist
+
+ISODIR=/var/tmp
+ISONAME=tribblix-0m9.usb
+USIZE=1000000000
+
+case $# in
+1)
+	DESTDIR=${DESTDIR}.$1
+	ISONAME=tribblix-0m9-${1}.usb
+	;;
+esac
+
+UFILE=/tmp/${ISONAME}.img.$$
+BFS=/tmp/nb.usb.$$
+FTAB=/tmp/ftab.$$
+
+mkfile -n ${USIZE} $UFILE
+LOFIDEV=`lofiadm -a $UFILE`
+LOFINUM=`echo $LOFIDEV|awk -F/ '{print $NF}'`
+LOFIRDEV=`echo $LOFIDEV| sed s:/lofi:/rlofi:`
+cat > $FTAB <<EOF
+  12 128 9 34 0 144 63 121 600 1952400
+  0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0
+  0 0 0 0 0 0 0 0 0 0 
+EOF
+fdisk -F $FTAB $LOFIRDEV
+rm $FTAB
+echo "y" | mkfs -F pcfs -o fat=32 ${LOFIRDEV}:c
+mkdir $BFS
+mount -F pcfs ${LOFIDEV}:c $BFS
+
+#
+# copy files
+#
+# pcfs doesn't allow symlinks
+# to get any sane performance, you need to do this on tmpfs
+#
+# at current sizing as of the 0m8 rc:
+# /dev/lofi/1:c         939M  886M   54M  95% /tmp/nb.usb.5565
+#
+cp -r ${DESTDIR}/boot $BFS
+cp -r ${DESTDIR}/pkgs $BFS
+cp -r ${DESTDIR}/platform $BFS
+cp ${DESTDIR}/solaris.zlib $BFS
+
+cd /
+umount $BFS
+lofiadm -d /dev/lofi/$LOFINUM
+/bin/ls -lh $UFILE
+#
+# don't compress in-place to avoid filling /tmp
+# we would copy the file over in any event
+#
+# in this case, most of the data is already compressed, gzip gives better
+# overall compression than bzip2
+#
+gzip -c $UFILE > ${ISODIR}/${ISONAME}.gz
+rm ${UFILE}
+rmdir $BFS
+/bin/ls -lh ${ISODIR}/${ISONAME}.gz

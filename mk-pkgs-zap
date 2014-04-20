@@ -19,9 +19,9 @@ VARIANT=""
 # also create a fake release number for unversioned Tribblix packages
 # there should be none of these
 #
-RELVER="0.8"
-OIVER="${RELVER}o"
-ILVER="${RELVER}i"
+RELVER="0.9"
+OIVER="0.8o"
+ILVER="${RELVER}.0"
 TRVER="${RELVER}t"
 
 case $# in
@@ -67,6 +67,8 @@ do
       echo "Installing $ipkg from Tribblix"
   elif [ -f ${THOME}/pkgs/${ipkg}.pkg ]; then
       echo "Installing $ipkg from Tribblix"
+  elif [ -f ${IPKGDIR}/pkgs/${ipkg}.${ILVER}.zap ]; then
+      echo "Installing $ipkg from Illumos"
   elif [ -f ${IPKGDIR}/pkgs/${ipkg}.zap ]; then
       echo "Installing $ipkg from Illumos"
   elif [ -f ${IPKGDIR}/pkgs/${ipkg}.pkg ]; then
@@ -124,6 +126,9 @@ do
 	  $PKG2ZAP ${THOME}/pkgs/${ipkg}.pkg $ZAPDIR
 	  mv ${ZAPDIR}/${ipkg}.zap ${ZAPDIR}/${ipkg}.${TRVER}.zap
 	  THISVER=${TRVER}
+      elif [ -f ${IPKGDIR}/pkgs/${ipkg}.${ILVER}.zap ]; then
+	  cp ${IPKGDIR}/pkgs/${ipkg}.${ILVER}.zap ${ZAPDIR}/${ipkg}.${ILVER}.zap
+	  THISVER=${ILVER}
       elif [ -f ${IPKGDIR}/pkgs/${ipkg}.zap ]; then
 	  cp ${IPKGDIR}/pkgs/${ipkg}.zap ${ZAPDIR}/${ipkg}.${ILVER}.zap
 	  THISVER=${ILVER}
@@ -154,6 +159,12 @@ cd ${THOME}/build
 ./create-catalog > ${DISTROOT}/etc/zap/repositories/tribblix.catalog
 ./create-oi-catalog > ${DISTROOT}/etc/zap/repositories/oi.catalog
 ./create-illumos-catalog > ${DISTROOT}/etc/zap/repositories/illumos.catalog
+
+#
+# preload overlay catalog
+#
+${THOME}/overlays
+${THOME}/build/create-overlay-catalog > ${DISTROOT}/etc/zap/repositories/tribblix.overlays
 
 #
 # initial space: 697M with default compression; pkgs.zlib was 644M with gzip-9

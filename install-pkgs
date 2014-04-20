@@ -2,7 +2,7 @@
 
 PKGDIR=/var/tmp/created-pkgs/pkgs
 IPKGDIR=/var/tmp/illumos-pkgs/pkgs
-THOME=/home/ptribble/Tribblix
+THOME=/packages/localsrc/Tribblix
 TPKGDIR=${THOME}/pkgs
 DESTDIR=/export/tribblix/dist
 
@@ -25,8 +25,15 @@ esac
 VALID=yes
 for mypkg in `cat ${PKGLIST}` TRIBsys-install-media-internal
 do
-  if [ -f ${TPKGDIR}/${mypkg}.pkg ]; then
+  THISVER="XXX"
+  PKGI=${THOME}/build/${mypkg}/pkginfo
+  if [ -f ${PKGI} ]; then
+      THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
+  fi
+  if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.pkg ]; then
       echo "Installing $mypkg from Tribblix"
+  elif [ -f ${TPKGDIR}/${mypkg}.pkg ]; then
+      echo "Installing unversioned $mypkg from Tribblix"
   elif [ -f ${IPKGDIR}/${mypkg}.pkg ]; then
       echo "Installing $mypkg from Illumos"
   elif [ -f ${PKGDIR}/${mypkg}.pkg ]; then
@@ -52,7 +59,14 @@ fi
 #
 for mypkg in `cat ${PKGLIST}` TRIBsys-install-media-internal
 do
-  if [ -f ${TPKGDIR}/${mypkg}.pkg ]; then
+  THISVER="XXX"
+  PKGI=${THOME}/build/${mypkg}/pkginfo
+  if [ -f ${PKGI} ]; then
+      THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
+  fi
+  if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.pkg ]; then
+    pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${TPKGDIR}/${mypkg}.${THISVER}.pkg $mypkg
+  elif [ -f ${TPKGDIR}/${mypkg}.pkg ]; then
     pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${TPKGDIR}/${mypkg}.pkg $mypkg
   elif [ -f ${IPKGDIR}/${mypkg}.pkg ]; then
     pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${IPKGDIR}/${mypkg}.pkg $mypkg
@@ -60,3 +74,9 @@ do
     pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${PKGDIR}/${mypkg}.pkg $mypkg
   fi
 done
+
+#
+# need to mark the base overlay as installed
+#
+mkdir -p ${DESTDIR}/var/sadm/overlays/installed
+touch ${DESTDIR}/var/sadm/overlays/installed/base
