@@ -1,14 +1,16 @@
 #!/bin/sh
 
+RELEASE="0m10"
+
 DESTDIR=/export/tribblix/dist
 
 ISODIR=/var/tmp
-ISONAME=tribblix-0m9.iso
+ISONAME=tribblix-${RELEASE}.iso
 
 case $# in
 1)
 	DESTDIR=${DESTDIR}.$1
-	ISONAME=tribblix-0m9-${1}.iso
+	ISONAME=tribblix-${RELEASE}-${1}.iso
 	;;
 esac
 
@@ -16,6 +18,6 @@ esac
 	-c .catalog -volset `cat ${DESTDIR}/.volsetid` \
 	-no-emul-boot -boot-load-size 4 -boot-info-table -N -l -R -U \
         -allow-multidot -no-iso-translate -cache-inodes -d -D \
-	-V "Tribblix0.9" ${DESTDIR}
+	-V "Tribblix${RELEASE}" ${DESTDIR}
 
 /bin/ls -lh ${ISODIR}/${ISONAME}

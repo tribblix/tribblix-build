@@ -6,8 +6,8 @@
 THOME=/home/ptribble/Tribblix
 DESTTOP=/export/tribblix
 DESTDIR=${DESTTOP}/dist
-TRIBVER="Tribblix 0.9TD"
-TRIBMSG="Tribblix 0.9 technology demonstrator, prerelease"
+TRIBVER="Tribblix 0.10TD"
+TRIBMSG="Tribblix 0.10 technology demonstrator, prerelease"
 
 case $# in
 1)
@@ -49,18 +49,13 @@ mkdir -p ${DESTDIR}/var/crash/tribblix
 chmod 0700 ${DESTDIR}/var/crash/tribblix
 
 #
-# sync up the overlays. before we create the ramdisk
-# xxx.pkgs - include pkgs on the iso
-# xxx.pkgs.repo - don't include pkgs on the iso, but rename this file
+# sync up the overlays.
 #
 mkdir -p ${DESTDIR}/var/sadm/overlays
+rm ${DESTDIR}/var/sadm/overlays/*.pkgs
+rm ${DESTDIR}/var/sadm/overlays/*.ovl
 cp ${THOME}/overlays/*.pkgs ${DESTDIR}/var/sadm/overlays
-cp ${THOME}/overlays/*.pkgs.repo ${DESTDIR}/var/sadm/overlays
 cp ${THOME}/overlays/*.ovl ${DESTDIR}/var/sadm/overlays
-for pfile in ${DESTDIR}/var/sadm/overlays/*.pkgs.repo
-do
-  mv $pfile ${pfile%.repo}
-done
 
 #
 # make sure the install script is up to date
@@ -72,8 +67,19 @@ cp ${THOME}/ufs_install.sh ${DESTDIR}/root
 chmod a+x ${DESTDIR}/root/ufs_install.sh
 cp ${THOME}/format-a-disk.sh ${DESTDIR}/root
 chmod a+x ${DESTDIR}/root/format-a-disk.sh
+cp ${THOME}/S99auto_install ${DESTDIR}/etc/rc2.d
+chmod 755 ${DESTDIR}/etc/rc2.d/S99auto_install
 echo "Fixing image"
 ${THOME}/install-fix $*
+
+#
+# copy support tools
+#
+rm -fr ${DESTDIR}/tools
+mkdir ${DESTDIR}/tools
+cp ${THOME}/setup-pxe-server ${DESTDIR}/tools
+cp ${THOME}/add-pxe-client ${DESTDIR}/tools
+chmod 755 ${DESTDIR}/tools/*
 
 #
 # create the zlib files

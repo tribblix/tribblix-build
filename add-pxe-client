@@ -1,0 +1,156 @@
+#!/bin/ksh
+#
+# add a pxe client
+#
+# this script is run from the tftp location set up for this build
+#
+
+usage() {
+  echo "Usage: $0 -e ethernet_address [-c config_file] [-B boot_arguments] [-t terminal]"
+  exit 1
+}
+
+MAC_ADDR=""
+CFG_FILE=""
+BOOT_ARGS=""
+TERMINAL=""
+while getopts "e:c:B:t:" opt; do
+  case $opt in
+    e)
+      MAC_ADDR="$OPTARG"
+      ;;
+    c)
+      CFG_FILE="$OPTARG"
+      ;;
+    B)
+      BOOT_ARGS="$OPTARG"
+      ;;
+    t)
+      TERMINAL="$OPTARG"
+      ;;
+  esac
+done
+shift $((OPTIND-1))
+
+case $# in
+0)
+  printf ""
+  ;;
+*)
+  usage
+  ;;
+esac
+
+#
+# only the MAC address is essential
+#
+if [ -z "$MAC_ADDR" ]; then
+  usage
+fi
+#
+# but if we're given a config file, it must exist
+#
+if [ -n "$CFG_FILE" ]; then
+  if [ ! -f "$CFG_FILE" ]; then
+    echo "Unable to find specified configuration file"
+    usage
+  fi
+fi
+
+#
+# convert MAC address to canonical form
+#
+REAL_MAC=`echo $MAC_ADDR | /bin/tr '[:lower:]' '[:upper:]' | /bin/sed s=:==g`
+
+#
+# get install_media and install_pkgs from the saved setup file
+#
+CARDIGAN_CFG="cardigan.cfg"
+if [ ! -f $CARDIGAN_CFG ]; then
+  echo "Unable to find saved cardigan.cfg file"
+  usage
+fi
+INSTALL_MEDIA=`grep '^install_media=' $CARDIGAN_CFG | /bin/sed s:install_media=::`
+INSTALL_PKGS=`grep '^install_pkgs=' $CARDIGAN_CFG | /bin/sed s:install_pkgs=::`
+if [ -z "$INSTALL_MEDIA" ]; then
+  echo "Cardigan configuration does not specify a valid install_media"
+  usage
+fi
+if [ -z "$INSTALL_PKGS" ]; then
+  echo "Cardigan configuration does not specify a valid install_pkgs"
+  usage
+fi
+GRUB_BOOT_ARGS="-B install_media=${INSTALL_MEDIA},install_pkgs=${INSTALL_PKGS}"
+
+#
+# convert terminal setting to boot arguments
+#
+if [ -n "$TERMINAL" ]; then
+  GRUB_BOOT_ARGS="${GRUB_BOOT_ARGS},console=${TERMINAL},input-device=${TERMINAL},output-device=${TERMINAL}"
+fi
+
+#
+# add remaining boot arguments
+#
+if [ -n "${BOOT_ARGS}" ]; then
+  GRUB_BOOT_ARGS="${GRUB_BOOT_ARGS},${BOOT_ARGS}"
+fi
+
+#
+# copy config file to htdocs location
+# create boot argument for the config file
+#
+INTERACTIVE_BOOT_ARGS="${GRUB_BOOT_ARGS}"
+if [ -n "$CFG_FILE" ]; then
+  HTDOCS=`grep '^htdocs=' $CARDIGAN_CFG | /bin/sed s:htdocs=::`
+  CFG_NAME=`basename $CFG_FILE`
+  cp $CFG_FILE ${HTDOCS}/${CFG_NAME}
+  GRUB_BOOT_ARGS="${GRUB_BOOT_ARGS},install_profile=${INSTALL_MEDIA}/${CFG_NAME}"
+fi
+
+#
+# this should match where this script lives
+#
+TFTPDIR=`grep '^tftpdir=' $CARDIGAN_CFG | /bin/sed s:tftpdir=::`
+TFTPBOOT=`grep '^tftpboot=' $CARDIGAN_CFG | /bin/sed s:tftpboot=::`
+TFTPLOC=`echo $TFTPDIR | /bin/sed s:${TFTPBOOT}::`
+
+#
+# create a link to pxegrub
+#
+/bin/rm -f ${TFTPBOOT}/01${REAL_MAC}
+ln ${TFTPDIR}/pxegrub ${TFTPBOOT}/01${REAL_MAC}
+/bin/rm -f ${TFTPBOOT}/nbp.01${REAL_MAC}
+ln ${TFTPDIR}/pxegrub ${TFTPBOOT}/nbp.01${REAL_MAC}
+
+#
+# create menu.lst in /tftpboot for that ID
+#
+/bin/rm -f ${TFTPBOOT}/menu.lst.01${REAL_MAC}
+cat > ${TFTPBOOT}/menu.lst.01${REAL_MAC} <<EOF
+default 0
+timeout 10
+title Tribblix PXE
+kernel\$ ${TFTPLOC}/platform/i86pc/kernel/\$ISADIR/unix ${GRUB_BOOT_ARGS}
+module\$  ${TFTPLOC}/platform/i86pc/boot_archive
+EOF
+
+#
+# if automatic installation was requested, add an interactive optione
+#
+if [ -n "$CFG_FILE" ]; then
+cat >> ${TFTPBOOT}/menu.lst.01${REAL_MAC} <<EOF
+title Tribblix PXE (interactive)
+kernel\$ ${TFTPLOC}/platform/i86pc/kernel/\$ISADIR/unix ${INTERACTIVE_BOOT_ARGS}
+module\$  ${TFTPLOC}/platform/i86pc/boot_archive
+EOF
+fi
+
+#
+# tell the user what to add to dhcp
+#
+echo "Now configure DHCP for client identifier 01${REAL_MAC}"
+echo "with the following settings:"
+echo ""
+echo "Boot server:  `hostname`"
+echo "Boot file:    01${REAL_MAC}"

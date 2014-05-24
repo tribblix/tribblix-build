@@ -5,16 +5,18 @@
 # note, no slice or fdisk partition, just the bare device
 #
 
+RELEASE="0m10"
+
 DESTDIR=/export/tribblix/dist
 
 ISODIR=/var/tmp
-ISONAME=tribblix-0m9.usb
+ISONAME=tribblix-${RELEASE}.usb
 USIZE=1000000000
 
 case $# in
 1)
 	DESTDIR=${DESTDIR}.$1
-	ISONAME=tribblix-0m9-${1}.usb
+	ISONAME=tribblix-${RELEASE}-${1}.usb
 	;;
 esac
 

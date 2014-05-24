@@ -21,16 +21,16 @@ MRSIZE=172m
 # VBox and OI151a5 and early tribblix builds needed it, at least
 #
 cat >> ${DESTDIR}/boot/grub/menu.lst << _EOF
-title Tribblix 0.9
+title Tribblix 0.10
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix
 module\$ /platform/i86pc/boot_archive
-title Tribblix 0.9 (ttya)
+title Tribblix 0.10 (ttya)
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B console=ttya,input-device=ttya,output-device=ttya
 module\$ /platform/i86pc/boot_archive
-title Tribblix 0.9 (remote ssh)
+title Tribblix 0.10 (remote ssh)
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B livessh=enable
 module\$ /platform/i86pc/boot_archive
-title Tribblix 0.9 debug
+title Tribblix 0.10 debug
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -k
 module\$ /platform/i86pc/boot_archive
 title Boot from hard disk

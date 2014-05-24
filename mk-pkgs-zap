@@ -19,7 +19,7 @@ VARIANT=""
 # also create a fake release number for unversioned Tribblix packages
 # there should be none of these
 #
-RELVER="0.9"
+RELVER="0.10"
 OIVER="0.8o"
 ILVER="${RELVER}.0"
 TRVER="${RELVER}t"
@@ -35,12 +35,12 @@ esac
 TFILE="/tmp/mkzap.$$"
 rm -fr ${TFILE}
 touch $TFILE
-for opkg in ${THOME}/overlays/*.pkgs
+for opkg in `cat ${THOME}/overlays/overlays.iso`
 do
-    if [ -f ${opkg}.${VARIANT} ]; then
-	cat ${opkg}.${VARIANT} >> $TFILE
+    if [ -f ${THOME}/overlays/${opkg}.pkgs.${VARIANT} ]; then
+	cat ${THOME}/overlays/${opkg}.pkgs.${VARIANT} >> $TFILE
     else
-	cat ${opkg} >> $TFILE
+	cat ${THOME}/overlays/${opkg}.pkgs >> $TFILE
     fi
 done
 
@@ -163,7 +163,7 @@ cd ${THOME}/build
 #
 # preload overlay catalog
 #
-${THOME}/overlays
+cd ${THOME}/overlays
 ${THOME}/build/create-overlay-catalog > ${DISTROOT}/etc/zap/repositories/tribblix.overlays
 
 #

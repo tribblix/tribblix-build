@@ -3,7 +3,7 @@
 # convert an ips package to svr4, from an on-disk repo
 #
 
-PKG_VERSION="0.9.0"
+PKG_VERSION="0.10.0"
 
 #
 # high level strategy:
@@ -641,7 +641,7 @@ esac
 #
 # these ought to be args
 #
-REPODIR=/home/ptribble/Illumos/m9/illumos-gate/packages/i386/nightly-nd/repo.redist
+REPODIR=/home/ptribble/Illumos/m10a/illumos-gate/packages/i386/nightly-nd/repo.redist
 DSTDIR=/var/tmp/illumos-pkgs
 
 if [ ! -d "${REPODIR}" ]; then
@@ -810,8 +810,8 @@ handle_restarts
 #
 cd $BDIR
 ${PKGMK} -d $DSTDIR/tmp -f prototype -r `pwd` ${OUTPKG} > /dev/null
-${PKGTRANS} -s $DSTDIR/tmp ${DSTDIR}/pkgs/${OUTPKG}.pkg ${OUTPKG} > /dev/null
-if [ -f ${DSTDIR}/pkgs/${OUTPKG}.pkg ]; then
+${PKGTRANS} -s $DSTDIR/tmp ${DSTDIR}/pkgs/${OUTPKG}.${PKG_VERSION}.pkg ${OUTPKG} > /dev/null
+if [ -f ${DSTDIR}/pkgs/${OUTPKG}.${PKG_VERSION}.pkg ]; then
     cd /
     bail_out
 fi

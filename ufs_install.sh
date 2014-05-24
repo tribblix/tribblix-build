@@ -19,16 +19,27 @@ esac
 # these properties are available for customization
 #
 DRIVELIST=""
-FSTYPE="UFS"
+SWAPSIZE="2g"
+ZFSARGS=""
+BFLAG=""
+REBOOT="no"
+OVERLAYS=""
+NODENAME=""
+TIMEZONE=""
 
+FSTYPE="UFS"
+DRIVE1=""
+DRIVE2=""
 PKGLOC="/.cdrom/pkgs"
 SMFREPODIR="/usr/lib/zap"
+ALTROOT="/a"
 
 #
-# read an external configuration file
+# read an external configuration file, if supplied
 #
 IPROFILE=`/sbin/devprop install_profile`
 if [ ! -z "$IPROFILE" ]; then
+REBOOT="yes"
 case $IPROFILE in
 nfs*)
 	TMPMNT="/tmp/mnt1"
@@ -53,6 +64,21 @@ http*)
 esac
 fi
 
+#
+# interactive argument handling
+#
+while getopts "n:t:" opt; do
+    case $opt in
+        n)
+	    NODENAME="$OPTARG"
+	    ;;
+        t)
+	    TIMEZONE="$OPTARG"
+	    ;;
+    esac
+done
+shift $((OPTIND-1))
+
 case $# in
 0)
 	echo "Usage: $0 device [overlay ... ]"
@@ -60,18 +86,18 @@ case $# in
 	;;
 esac
 
-DRIVE2=$1
+DRIVE1=$1
 shift
-DRIVELIST="$DRIVE2"
+DRIVELIST="$DRIVE1"
 
-if [ ! -e /dev/dsk/$DRIVE2 ]; then
-    echo "ERROR: Unable to find device $DRIVE2"
+if [ ! -e /dev/dsk/$DRIVE1 ]; then
+    echo "ERROR: Unable to find device $DRIVE1"
     exit 1
 fi
 
-case $DRIVE2 in
+case $DRIVE1 in
 *s0)
-	SWAPDEV=`echo $DRIVE2 | sed 's:s0$:s1:'`
+	SWAPDEV=`echo $DRIVE1 | sed 's:s0$:s1:'`
 	;;
 *)
 	echo "ERROR: Root slice must be slice 0"
@@ -82,19 +108,23 @@ esac
 #
 # FIXME allow svm
 #
-/usr/bin/mkdir -p /a
+/usr/bin/mkdir -p ${ALTROOT}
 echo "Creating root file system"
-/usr/sbin/newfs /dev/rdsk/$DRIVE2
-/usr/sbin/mount /dev/dsk/$DRIVE2 /a
-mkdir -p /a/export/home
+/usr/sbin/newfs /dev/rdsk/$DRIVE1
+/usr/sbin/mount /dev/dsk/$DRIVE1 ${ALTROOT}
+mkdir -p ${ALTROOT}/export/home
 
 echo "Copying main filesystems"
 cd /
-/usr/bin/find boot kernel lib platform root sbin usr etc var opt zonelib -print -depth | cpio -pdm /a
+ZONELIB=""
+if [ -d zonelib ]; then
+    ZONELIB="zonelib"
+fi
+/usr/bin/find boot kernel lib platform root sbin usr etc var opt ${ZONELIB} -print -depth | cpio -pdm ${ALTROOT}
 
 #
 echo "Adding extra directories"
-cd /a
+cd ${ALTROOT}
 /usr/bin/ln -s ./usr/bin .
 /usr/bin/mkdir -m 1777 tmp
 /usr/bin/mkdir -p system/contract system/object proc mnt dev devices/pseudo
@@ -120,7 +150,7 @@ cd /
 # do it after copying the main OS as it changes the dump settings
 #
 swap -a /dev/zvol/dsk/rpool/swap
-LOGFILE="/a/var/sadm/install/logs/initial.log"
+LOGFILE="${ALTROOT}/var/sadm/install/logs/initial.log"
 echo "Installing overlays" | tee $LOGFILE
 /usr/bin/date | tee -a $LOGFILE
 TMPDIR=/tmp
@@ -130,12 +160,12 @@ if [ -d ${PKGLOC} ]; then
     for overlay in base-extras $*
     do
 	echo "Installing $overlay overlay" | tee -a $LOGFILE
-	/usr/lib/zap/install-overlay -R /a -s ${PKGLOC} $overlay | tee -a $LOGFILE
+	/usr/lib/zap/install-overlay -R ${ALTROOT} -s ${PKGLOC} $overlay | tee -a $LOGFILE
     done
 elif [ -z "$PKGMEDIA" ]; then
     echo "No packages found, unable to install overlays"
 else
-    echo "/a/var/zap/cache" > /etc/zap/cache_dir
+    echo "${ALTROOT}/var/zap/cache" > /etc/zap/cache_dir
     echo "5 cdrom" >> /etc/zap/repo.list
     echo "NAME=cdrom" > /etc/zap/repositories/cdrom.repo
     echo "DESC=Tribblix packages from CD image" >> /etc/zap/repositories/cdrom.repo
@@ -144,46 +174,45 @@ else
     for overlay in base-extras $*
     do
 	echo "Installing $overlay overlay" | tee -a $LOGFILE
-	/usr/lib/zap/install-overlay -R /a $overlay | tee -a $LOGFILE
+	/usr/lib/zap/install-overlay -R ${ALTROOT} $overlay | tee -a $LOGFILE
     done
 fi
 echo "Overlay installation complete" | tee -a $LOGFILE
 /usr/bin/date | tee -a $LOGFILE
 
 echo "Deleting live package"
-/usr/sbin/pkgrm -n -a /usr/lib/zap/pkg.force -R /a TRIBsys-install-media-internal
+/usr/sbin/pkgrm -n -a /usr/lib/zap/pkg.force -R ${ALTROOT} TRIBsys-install-media-internal
 
 #
 # use a prebuilt repository if available
 #
-/usr/bin/rm /a/etc/svc/repository.db
+/usr/bin/rm ${ALTROOT}/etc/svc/repository.db
 if [ -f ${SMFREPODIR}/repository-installed.db ]; then
-    /usr/bin/cp -p ${SMFREPODIR}/repository-installed.db /a/etc/svc/repository.db
+    /usr/bin/cp -p ${SMFREPODIR}/repository-installed.db ${ALTROOT}/etc/svc/repository.db
 elif [ -f ${SMFREPODIR}/repository-installed.db.gz ]; then
-    /usr/bin/cp -p ${SMFREPODIR}/repository-installed.db.gz /a/etc/svc/repository.db.gz
-    /usr/bin/gunzip /a/etc/svc/repository.db.gz
+    /usr/bin/cp -p ${SMFREPODIR}/repository-installed.db.gz ${ALTROOT}/etc/svc/repository.db.gz
+    /usr/bin/gunzip ${ALTROOT}/etc/svc/repository.db.gz
 else
-    /usr/bin/cp -p /lib/svc/seed/global.db /a/etc/svc/repository.db
+    /usr/bin/cp -p /lib/svc/seed/global.db ${ALTROOT}/etc/svc/repository.db
 fi
-if [ -f /a/var/sadm/overlays/installed/kitchen-sink ]; then
+if [ -f ${ALTROOT}/var/sadm/overlays/installed/kitchen-sink ]; then
     if [ -f ${SMFREPODIR}/repository-kitchen-sink.db.gz ]; then
-	/usr/bin/rm /a/etc/svc/repository.db
-	/usr/bin/cp -p ${SMFREPODIR}/repository-kitchen-sink.db.gz /a/etc/svc/repository.db.gz
-	/usr/bin/gunzip /a/etc/svc/repository.db.gz
+	/usr/bin/rm ${ALTROOT}/etc/svc/repository.db
+	/usr/bin/cp -p ${SMFREPODIR}/repository-kitchen-sink.db.gz ${ALTROOT}/etc/svc/repository.db.gz
+	/usr/bin/gunzip ${ALTROOT}/etc/svc/repository.db.gz
     fi
 fi
 
 #
 # reset the SMF profile from the live image to regular
 #
-/usr/bin/rm /a/etc/svc/profile/generic.xml
-/usr/bin/ln -s generic_limited_net.xml /a/etc/svc/profile/generic.xml
+/usr/bin/rm ${ALTROOT}/etc/svc/profile/generic.xml
+/usr/bin/ln -s generic_limited_net.xml ${ALTROOT}/etc/svc/profile/generic.xml
 
 #
-# try and kill any copies of pkgserv, as they block the unmount of the
-# target filesystem
+# shut down pkgserv, as it blocks the unmount of the target filesystem
 #
-pkill pkgserv
+pkgadm sync -R ${ALTROOT} -q
 
 #
 echo "Installing GRUB"
@@ -193,13 +222,13 @@ do
 done
 
 echo "Configuring devices"
-/a/usr/sbin/devfsadm -r /a
-touch /a/reconfigure
+${ALTROOT}/usr/sbin/devfsadm -r ${ALTROOT}
+touch ${ALTROOT}/reconfigure
 
 echo "Setting up boot"
-/usr/bin/mkdir -p /a/boot/grub/bootsign /a/etc
-touch /a/boot/grub/bootsign/tribblix_09
-echo "tribblix_09" > /a/etc/bootsign
+/usr/bin/mkdir -p ${ALTROOT}/boot/grub/bootsign ${ALTROOT}/etc
+touch ${ALTROOT}/boot/grub/bootsign/tribblix_10
+echo "tribblix_10" > ${ALTROOT}/etc/bootsign
 
 #
 # copy any console settings to the running system
@@ -210,11 +239,11 @@ if [ ! -z "$ICONSOLE" ]; then
   BCONSOLE=" -B console=${ICONSOLE},input-device=${ICONSOLE},output-device=${ICONSOLE}"
 fi
 
-/usr/bin/cat > /a/boot/grub/menu.lst << _EOF
+/usr/bin/cat > ${ALTROOT}/boot/grub/menu.lst << _EOF
 default 0
 timeout 10
-title Tribblix 0.9
-findroot (tribblix_09,0,a)
+title Tribblix 0.10
+findroot (tribblix_10,0,a)
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix${BCONSOLE}
 module\$ /platform/i86pc/\$ISADIR/boot_archive
 _EOF
@@ -222,35 +251,62 @@ _EOF
 #
 # mount / at boot and enable swap
 #
-/bin/echo "/dev/dsk/$DRIVE2\t/dev/rdsk/$DRIVE2\t/\tufs\t1\tno\tlogging" >> /a/etc/vfstab
-/bin/echo "/dev/dsk/$SWAPDEV\t-\t-\tswap\t-\tno\t-" >> /a/etc/vfstab
+/bin/echo "/dev/dsk/$DRIVE1\t/dev/rdsk/$DRIVE1\t/\tufs\t1\tno\tlogging" >> ${ALTROOT}/etc/vfstab
+/bin/echo "/dev/dsk/$SWAPDEV\t-\t-\tswap\t-\tno\t-" >> ${ALTROOT}/etc/vfstab
 
 #
 # need to put the device path of the root slice into bootenv.rc so
 # the boot can find it
 #
-BOOTDEV=`/bin/ls -l /dev/dsk/$DRIVE2 | awk '{print $NF}' | sed s:../../devices::'`
-echo "setprop bootpath $BOOTDEV" >> /a/boot/solaris/bootenv.rc
+BOOTDEV=`/bin/ls -l /dev/dsk/$DRIVE1 | awk '{print $NF}' | sed s:../../devices::'`
+echo "setprop bootpath $BOOTDEV" >> ${ALTROOT}/boot/solaris/bootenv.rc
+
+#
+# set nodename if requested
+#
+if [ -n "$NODENAME" ]; then
+    echo $NODENAME > ${ALTROOT}/etc/nodename
+fi
+
+#
+# set timezone if requested
+#
+if [ -n "$TIMEZONE" ]; then
+    mv ${ALTROOT}/etc/default/init ${ALTROOT}/etc/default/init.pre
+    cat ${ALTROOT}/etc/default/init.pre | /usr/bin/sed s:PST8PDT:${TIMEZONE}: > ${ALTROOT}/etc/default/init
+    rm ${ALTROOT}/etc/default/init.pre
+fi
 
 #
 # FIXME: why is this so much larger than a regular system?
 # FIXME and why does it take so long - it's half the install budget
 #
 echo "Updating boot archive"
-/usr/bin/mkdir -p /a/platform/i86pc/amd64
-/sbin/bootadm update-archive -R /a
-/usr/bin/sync
+/usr/bin/mkdir -p ${ALTROOT}/platform/i86pc/amd64
+/sbin/bootadm update-archive -R ${ALTROOT}
+/sbin/sync
 sleep 2
 
 #
 # Copy /jack to the installed system
 #
 cd /
-find jack -print | cpio -pmud /a
-/usr/bin/rm -f /a/jack/.bash_history
+find jack -print | cpio -pmud ${ALTROOT}
+/usr/bin/rm -f ${ALTROOT}/jack/.bash_history
 sync
 #
 # this is to fix a 3s delay in xterm startup
 #
-echo "*openIm: false" > /a/jack/.Xdefaults
-/usr/bin/chown jack:staff /a/jack/.Xdefaults
+echo "*openIm: false" > ${ALTROOT}/jack/.Xdefaults
+/usr/bin/chown jack:staff ${ALTROOT}/jack/.Xdefaults
+
+#
+# if specified, reboot
+#
+case $REBOOT in
+yes)
+	echo "Install complete, rebooting"
+	/sbin/sync
+	/usr/sbin/reboot -p
+	;;
+esac

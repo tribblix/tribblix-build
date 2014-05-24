@@ -6,6 +6,9 @@ THOME=/packages/localsrc/Tribblix
 TPKGDIR=${THOME}/pkgs
 DESTDIR=/export/tribblix/dist
 
+ILVER="0.10.0"
+OIVER="0.8o"
+
 #
 # this is the base install, plus we add TRIBsys-install-media-internal
 # to the iso
@@ -34,6 +37,8 @@ do
       echo "Installing $mypkg from Tribblix"
   elif [ -f ${TPKGDIR}/${mypkg}.pkg ]; then
       echo "Installing unversioned $mypkg from Tribblix"
+  elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.pkg ]; then
+      echo "Installing $mypkg from Illumos"
   elif [ -f ${IPKGDIR}/${mypkg}.pkg ]; then
       echo "Installing $mypkg from Illumos"
   elif [ -f ${PKGDIR}/${mypkg}.pkg ]; then
@@ -68,6 +73,8 @@ do
     pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${TPKGDIR}/${mypkg}.${THISVER}.pkg $mypkg
   elif [ -f ${TPKGDIR}/${mypkg}.pkg ]; then
     pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${TPKGDIR}/${mypkg}.pkg $mypkg
+  elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.pkg ]; then
+    pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${IPKGDIR}/${mypkg}.${ILVER}.pkg $mypkg
   elif [ -f ${IPKGDIR}/${mypkg}.pkg ]; then
     pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${IPKGDIR}/${mypkg}.pkg $mypkg
   else

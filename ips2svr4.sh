@@ -3,7 +3,7 @@
 # convert an ips package to svr4, from an installed system
 #
 
-PKG_VERSION="0.9.0"
+PKG_VERSION="0.10.0"
 
 #
 # high level strategy:
