@@ -1,12 +1,12 @@
 #!/bin/sh
 
-PKGDIR=/var/tmp/created-pkgs/pkgs
-IPKGDIR=/var/tmp/illumos-pkgs/pkgs
 THOME=/packages/localsrc/Tribblix
 TPKGDIR=${THOME}/pkgs
+PKGDIR=${THOME}/oi-pkgs-0.8/pkgs
+IPKGDIR=${THOME}/illumos-pkgs-m11/pkgs
 DESTDIR=/export/tribblix/dist
 
-ILVER="0.10.0"
+ILVER="0.11.0"
 OIVER="0.8o"
 
 #
@@ -59,6 +59,11 @@ if [ ! -d ${DESTDIR} ]; then
     exit 1
 fi
 
+#
+# building Tribblix in a zone on Tribblix, this needs to be created first
+# but most everything fails in a zone, so don't bother
+#
+#mkdir -p ${DESTDIR}/var/sadm/install
 #
 # now install
 #

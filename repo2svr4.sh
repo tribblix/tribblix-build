@@ -3,7 +3,9 @@
 # convert an ips package to svr4, from an on-disk repo
 #
 
-PKG_VERSION="0.10.0"
+PKG_VERSION="0.11.0"
+THOME=/packages/localsrc/Tribblix
+GATEDIR=/export/home/ptribble/Illumos/illumos-gate
 
 #
 # high level strategy:
@@ -41,7 +43,8 @@ PKGDIR=/usr/bin
 #PKGDIR=/var/tmp/nbuild/sprate-0.09/bin
 PKGMK="${PKGDIR}/pkgmk"
 PKGTRANS="${PKGDIR}/pkgtrans"
-PNAME=/home/ptribble/Tribblix/pkg_name.sh
+PNAME=${THOME}/tribblix-build/pkg_name.sh
+TRANSDIR=${THOME}/tribblix-transforms
 
 #
 # global flags
@@ -624,6 +627,84 @@ esac
 esac
 }
 
+#
+# transform to delete a pathname from this package
+#
+# we need to remove the file from our temporary area and from
+# the prototype file
+#
+transform_delete() {
+filepath=$1
+if [ -f ${BDIR}/${filepath} ]; then
+  /usr/bin/rm -f ${BDIR}/${filepath}
+else
+  echo "WARN: transform_delete cannot find path ${filepath}"
+fi
+/usr/bin/mv ${BDIR}/prototype ${BDIR}/prototype.transform
+cat ${BDIR}/prototype.transform | egrep -v " ${filepath}=${filepath} " > ${BDIR}/prototype
+/usr/bin/rm ${BDIR}/prototype.transform
+}
+
+#
+# transform to delete a directory pathname from this package
+#
+# we need to remove the directory from our temporary area and from
+# the prototype file
+#
+transform_rmdir() {
+filepath=$1
+if [ -d ${BDIR}/${filepath} ]; then
+  /usr/bin/rmdir ${BDIR}/${filepath}
+else
+  echo "WARN: transform_delete cannot find directory ${filepath}"
+fi
+if [ -d ${BDIR}/${filepath} ]; then
+  echo "WARN: transform_delete cannot remove directory ${filepath}"
+fi
+/usr/bin/mv ${BDIR}/prototype ${BDIR}/prototype.transform
+cat ${BDIR}/prototype.transform | egrep -v " none ${filepath} " > ${BDIR}/prototype
+/usr/bin/rm ${BDIR}/prototype.transform
+}
+
+#
+# transform to add a file to this package
+# we get the copy of the file from the proto area
+#
+transform_add() {
+FTYPE="f"
+FCLASS="none"
+for frag in $*
+do
+    key=${frag%%=*}
+    nval=${frag#*=}
+    value=${nval%%=*}
+case $key in
+path)
+    filepath=$value
+    ;;
+mode)
+    mode=$value
+    ;;
+owner)
+    owner=$value
+    ;;
+group)
+    group=$value
+    ;;
+esac
+done
+dpath=`dirname $filepath`
+if [ ! -d ${BDIR}/${dpath} ]; then
+    mkdir -p ${BDIR}/${dpath}
+fi
+if [ -f ${BDIR}/${filepath} ]; then
+    echo "DBG: parsing $hash $line"
+    echo "WARN: path $filepath already exists in $dpath"
+fi
+/usr/bin/cp -p ${PROTODIR}/${filepath} ${BDIR}/${filepath}
+echo "${FTYPE} ${FCLASS} ${filepath}=${filepath} ${mode} ${owner} ${group}" >> ${BDIR}/prototype
+}
+
 case $# in
 2)
     INPKG=$1
@@ -641,7 +722,8 @@ esac
 #
 # these ought to be args
 #
-REPODIR=/home/ptribble/Illumos/m10a/illumos-gate/packages/i386/nightly-nd/repo.redist
+REPODIR=${GATEDIR}/packages/i386/nightly-nd/repo.redist
+PROTODIR=${GATEDIR}/proto/root_i386
 DSTDIR=/var/tmp/illumos-pkgs
 
 if [ ! -d "${REPODIR}" ]; then
@@ -798,6 +880,37 @@ export PAGER="more -s"
 PS1='root@\$(/usr/bin/hostname):\$(
     printf "%s" "\${PWD/\${HOME}/~}# ")'
 EOF
+fi
+
+#
+# package transforms
+#
+if [ -f ${TRANSDIR}/${OUTPKG} ]; then
+cat ${TRANSDIR}/${OUTPKG} |
+{
+while read -r action pathname line ;
+do
+case $action in
+delete)
+    transform_delete $pathname
+    ;;
+rmdir)
+    transform_rmdir $pathname
+    ;;
+add)
+    transform_add path=$pathname $line
+    ;;
+modify)
+    echo "DBG: gsed -i '$line' ${BDIR}/${pathname}"
+    gsed -i "$line" ${BDIR}/${pathname}
+    ;;
+*)
+    echo ...transform action $action not yet supported...
+    ;;
+esac
+
+done
+}
 fi
 
 #

@@ -26,6 +26,10 @@ REBOOT="no"
 OVERLAYS=""
 NODENAME=""
 TIMEZONE=""
+DOMAINNAME=""
+BEGIN_SCRIPT=""
+FINISH_SCRIPT=""
+FIRSTBOOT_SCRIPT=""
 
 FSTYPE="UFS"
 DRIVE1=""
@@ -55,13 +59,54 @@ nfs*)
 	;;
 http*)
 	TMPF="/tmp/profile.$$"
-	/usr/bin/curl -f -s -o $TMPF $IPROFILE
-	if [ -f "$TMPF" ]; then
-	    . $TMPF
-	    rm -fr $TMPF
-	fi
+	DELAY=0
+	while [ ! -f "$TMPF" ]
+	do
+	    sleep $DELAY
+	    DELAY=$(($DELAY+1))
+	    /usr/bin/curl -f -s -S --retry 6 -o $TMPF $IPROFILE
+	done
+	. $TMPF
+	rm -fr $TMPF
 	;;
 esac
+fi
+
+#
+# begin script handling
+# the begin script is run and its output saved
+# then we source the output, this allows you to
+# dynamically create install settings
+#
+if [ -n "$BEGIN_SCRIPT" ]; then
+BEGINF="/tmp/begin.$$"
+case $BEGIN_SCRIPT in
+nfs*)
+	TMPMNT="/tmp/mnt1"
+	mkdir -p ${TMPMNT}
+	IPROFDIR=${BEGIN_SCRIPT%/*}
+	IPROFNAME=${BEGIN_SCRIPT##*/}
+	mount $IPROFDIR $TMPMNT
+	if [ -f ${TMPMNT}/${IPROFNAME} ]; then
+	    ${TMPMNT}/${IPROFNAME} > $BEGINF
+	fi
+	umount ${TMPMNT}
+	rmdir ${TMPMNT}
+	;;
+http*)
+	TMPF="/tmp/profile.$$"
+	/usr/bin/curl -f -s -S --retry 6 -o $TMPF $BEGIN_SCRIPT
+	if [ -s "$TMPF" ]; then
+	    chmod a+x $TMPF
+	    $TMPF > $BEGINF
+	fi
+	rm -f $TMPF
+	;;
+esac
+if [ -s "$BEGINF" ]; then
+    . $BEGINF
+fi
+rm -f $BEGINF
 fi
 
 #
@@ -227,8 +272,8 @@ touch ${ALTROOT}/reconfigure
 
 echo "Setting up boot"
 /usr/bin/mkdir -p ${ALTROOT}/boot/grub/bootsign ${ALTROOT}/etc
-touch ${ALTROOT}/boot/grub/bootsign/tribblix_10
-echo "tribblix_10" > ${ALTROOT}/etc/bootsign
+touch ${ALTROOT}/boot/grub/bootsign/tribblix_11
+echo "tribblix_11" > ${ALTROOT}/etc/bootsign
 
 #
 # copy any console settings to the running system
@@ -242,8 +287,8 @@ fi
 /usr/bin/cat > ${ALTROOT}/boot/grub/menu.lst << _EOF
 default 0
 timeout 10
-title Tribblix 0.10
-findroot (tribblix_10,0,a)
+title Tribblix 0.11
+findroot (tribblix_11,0,a)
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix${BCONSOLE}
 module\$ /platform/i86pc/\$ISADIR/boot_archive
 _EOF
@@ -266,6 +311,13 @@ echo "setprop bootpath $BOOTDEV" >> ${ALTROOT}/boot/solaris/bootenv.rc
 #
 if [ -n "$NODENAME" ]; then
     echo $NODENAME > ${ALTROOT}/etc/nodename
+fi
+
+#
+# set domain name if requested
+#
+if [ -n "$DOMAINNAME" ]; then
+    echo $DOMAINNAME > ${ALTROOT}/etc/defaultdomain
 fi
 
 #
@@ -293,12 +345,93 @@ sleep 2
 cd /
 find jack -print | cpio -pmud ${ALTROOT}
 /usr/bin/rm -f ${ALTROOT}/jack/.bash_history
-sync
+
 #
 # this is to fix a 3s delay in xterm startup
 #
 echo "*openIm: false" > ${ALTROOT}/jack/.Xdefaults
 /usr/bin/chown jack:staff ${ALTROOT}/jack/.Xdefaults
+
+#
+# if specified, run a finish script
+# the new root directory is passed as the only argument
+#
+if [ -n "$FINISH_SCRIPT" ]; then
+case $FINISH_SCRIPT in
+nfs*)
+	TMPMNT="/tmp/mnt1"
+	mkdir -p ${TMPMNT}
+	IPROFDIR=${FINISH_SCRIPT%/*}
+	IPROFNAME=${FINISH_SCRIPT##*/}
+	mount $IPROFDIR $TMPMNT
+	if [ -f ${TMPMNT}/${IPROFNAME} ]; then
+	    ${TMPMNT}/${IPROFNAME} ${ALTROOT}
+	fi
+	umount ${TMPMNT}
+	rmdir ${TMPMNT}
+	;;
+http*)
+	TMPF="/tmp/profile.$$"
+	/usr/bin/curl -f -s -S --retry 6 -o $TMPF $FINISH_SCRIPT
+	if [ -s "$TMPF" ]; then
+	    chmod a+x $TMPF
+	    $TMPF ${ALTROOT}
+	fi
+	rm -f $TMPF
+	;;
+esac
+fi
+
+#
+# remove the autoinstall startup script
+#
+/bin/rm -f ${ALTROOT}/etc/rc2.d/S99auto_install
+sync
+sleep 2
+
+#
+# if specified, enable a first-boot script
+#
+if [ -n "$FIRSTBOOT_SCRIPT" ]; then
+FIRSTDIR="${ALTROOT}/etc/tribblix"
+FIRSTF="${FIRSTDIR}/firstboot"
+mkdir ${FIRSTDIR}
+case $FIRSTBOOT_SCRIPT in
+nfs*)
+	TMPMNT="/tmp/mnt1"
+	mkdir -p ${TMPMNT}
+	IPROFDIR=${FIRSTBOOT_SCRIPT%/*}
+	IPROFNAME=${FIRSTBOOT_SCRIPT##*/}
+	mount $IPROFDIR $TMPMNT
+	if [ -f ${TMPMNT}/${IPROFNAME} ]; then
+	    cp ${TMPMNT}/${IPROFNAME} ${FIRSTF}
+	fi
+	umount ${TMPMNT}
+	rmdir ${TMPMNT}
+	;;
+http*)
+	TMPF="/tmp/profile.$$"
+	/usr/bin/curl -f -s -S --retry 6 -o $TMPF $FIRSTBOOT_SCRIPT
+	if [ -s "$TMPF" ]; then
+	    cp $TMPF $FIRSTF
+	fi
+	rm -f $TMPF
+	;;
+esac
+if [ -s "${FIRSTF}" ]; then
+    chmod a+x $FIRSTF
+cat >> ${ALTROOT}/etc/rc3.d/S99firstboot <<EOF
+#!/bin/sh
+if [ -f /etc/tribblix/firstboot ]; then
+mv /etc/tribblix/firstboot /etc/tribblix/firstboot.run
+/etc/tribblix/firstboot.run
+rm /etc/tribblix/firstboot.run
+fi
+rm /etc/rc3.d/S99firstboot
+EOF
+    chmod a+x ${ALTROOT}/etc/rc3.d/S99firstboot
+fi
+fi
 
 #
 # if specified, reboot

@@ -21,16 +21,16 @@ MRSIZE=172m
 # VBox and OI151a5 and early tribblix builds needed it, at least
 #
 cat >> ${DESTDIR}/boot/grub/menu.lst << _EOF
-title Tribblix 0.10
+title Tribblix 0.11
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix
 module\$ /platform/i86pc/boot_archive
-title Tribblix 0.10 (ttya)
+title Tribblix 0.11 (ttya)
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B console=ttya,input-device=ttya,output-device=ttya
 module\$ /platform/i86pc/boot_archive
-title Tribblix 0.10 (remote ssh)
+title Tribblix 0.11 (remote ssh)
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B livessh=enable
 module\$ /platform/i86pc/boot_archive
-title Tribblix 0.10 debug
+title Tribblix 0.11 debug
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -k
 module\$ /platform/i86pc/boot_archive
 title Boot from hard disk
@@ -44,6 +44,19 @@ _EOF
 if [ ! -d ${DESTDIR}/jack ]; then
    mkdir ${DESTDIR}/jack
    chown jack:staff ${DESTDIR}/jack
+fi
+if /usr/xpg4/bin/grep -q jack ${DESTDIR}/etc/passwd
+then
+  printf ""
+else
+  echo 'jack:x:123:10:Tribblix Jack:/jack:/bin/bash' >> ${DESTDIR}/etc/passwd
+  echo 'jack:$5$robNc/Vf$orrY6BIeUzrqk/IyZFuvf.4Pw2XzysreXiTqq//7mu3:15634::::::' >> ${DESTDIR}/etc/shadow
+fi
+if /usr/xpg4/bin/grep -q jack ${DESTDIR}/etc/user_attr
+then
+  printf ""
+else
+  echo 'jack::::roles=root' >> ${DESTDIR}/etc/user_attr
 fi
 if [ ! -d ${DESTDIR}/jack/.config ]; then
   if [ -f ${DESTTOP}/prebuilt/dot-config.tar ]; then
@@ -105,6 +118,10 @@ rm -f ${DESTDIR}/boot/splashimage.xpm
 rm -f ${DESTDIR}/platform/i86pc/amd64/boot_archive
 rm -f ${DESTDIR}/platform/i86pc/boot_archive
 mkfile ${MRSIZE} /tmp/${MRSIZE}
+#
+# gzip doesn't like the sticky bit
+#
+chmod o-t /tmp/${MRSIZE}
 LOFIDEV=`lofiadm -a /tmp/${MRSIZE}`
 LOFINUM=`echo $LOFIDEV|awk -F/ '{print $NF}'`
 echo "y" | newfs -o space -m 0 -i 24576 /dev/rlofi/$LOFINUM

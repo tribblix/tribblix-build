@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# if an install configuration exists, install according to that profile
+#
+
+case $1 in
+start)
+IPROFILE=`/sbin/devprop install_profile`
+if [ ! -z "$IPROFILE" ]; then
+  echo "PLEASE WAIT" | tee /dev/msglog
+  echo "Automatically installing Tribblix" | tee /dev/msglog
+  echo "Install profile is $IPROFILE" | tee /dev/msglog
+  /root/live_install.sh | tee /dev/msglog
+fi
+;;
+esac

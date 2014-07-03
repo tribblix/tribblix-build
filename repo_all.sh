@@ -1,13 +1,18 @@
 #!/bin/ksh
 #
-# generate all packages, from an illumos build
+# generate all packages, in both datastream and zap formats, from
+# an illumos build
 #
 # these ought to be args, but must match repo2svr4.sh
 #
-REPODIR=/home/ptribble/Illumos/m10a/illumos-gate/packages/i386/nightly-nd/repo.redist
+THOME=/packages/localsrc/Tribblix
+GATEDIR=/export/home/ptribble/Illumos/illumos-gate
 
-CMD=/home/ptribble/Tribblix/repo2svr4.sh
-PNAME=/home/ptribble/Tribblix/pkg_name.sh
+REPODIR=${GATEDIR}/packages/i386/nightly-nd/repo.redist
+
+CMD=${THOME}/tribblix-build/repo2svr4.sh
+PNAME=${THOME}/tribblix-build/pkg_name.sh
+PKG2ZAP=${THOME}/tribblix-build/pkg2zap
 
 cd $REPODIR/pkg
 
@@ -15,4 +20,9 @@ for file in *
 do
     echo $CMD $file `$PNAME $file`
     $CMD $file `$PNAME $file`
+done
+
+for file in /var/tmp/illumos-pkgs/pkgs/*
+do
+    $PKG2ZAP $file /var/tmp/illumos-pkgs/pkgs
 done

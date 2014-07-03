@@ -1,0 +1,8 @@
+#!/bin/sh
+
+THOME=/packages/localsrc/Tribblix
+
+TDIR=${THOME}/tribblix-build
+$TDIR/install-pkgs $*
+$TDIR/mk-pkgs-zap $*
+$TDIR/build_iso $*

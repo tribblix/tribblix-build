@@ -13,6 +13,10 @@ REBOOT="no"
 OVERLAYS=""
 NODENAME=""
 TIMEZONE=""
+DOMAINNAME=""
+BEGIN_SCRIPT=""
+FINISH_SCRIPT=""
+FIRSTBOOT_SCRIPT=""
 
 FSTYPE="ZFS"
 DRIVE1=""
@@ -53,6 +57,43 @@ http*)
 	rm -fr $TMPF
 	;;
 esac
+fi
+
+#
+# begin script handling
+# the begin script is run and its output saved
+# then we source the output, this allows you to
+# dynamically create install settings
+#
+if [ -n "$BEGIN_SCRIPT" ]; then
+BEGINF="/tmp/begin.$$"
+case $BEGIN_SCRIPT in
+nfs*)
+	TMPMNT="/tmp/mnt1"
+	mkdir -p ${TMPMNT}
+	IPROFDIR=${BEGIN_SCRIPT%/*}
+	IPROFNAME=${BEGIN_SCRIPT##*/}
+	mount $IPROFDIR $TMPMNT
+	if [ -f ${TMPMNT}/${IPROFNAME} ]; then
+	    ${TMPMNT}/${IPROFNAME} > $BEGINF
+	fi
+	umount ${TMPMNT}
+	rmdir ${TMPMNT}
+	;;
+http*)
+	TMPF="/tmp/profile.$$"
+	/usr/bin/curl -f -s -S --retry 6 -o $TMPF $BEGIN_SCRIPT
+	if [ -s "$TMPF" ]; then
+	    chmod a+x $TMPF
+	    $TMPF > $BEGINF
+	fi
+	rm -f $TMPF
+	;;
+esac
+if [ -s "$BEGINF" ]; then
+    . $BEGINF
+fi
+rm -f $BEGINF
 fi
 
 #
@@ -330,7 +371,7 @@ fi
 /usr/bin/cat > /${ROOTPOOL}/boot/grub/menu.lst << _EOF
 default 0
 timeout 10
-title Tribblix 0.10
+title Tribblix 0.11
 findroot (pool_${ROOTPOOL},0,a)
 bootfs ${ROOTPOOL}/ROOT/tribblix
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B \$ZFS-BOOTFS${BCONSOLE}
@@ -342,6 +383,13 @@ _EOF
 #
 if [ -n "$NODENAME" ]; then
     echo $NODENAME > ${ALTROOT}/etc/nodename
+fi
+
+#
+# set domain name if requested
+#
+if [ -n "$DOMAINNAME" ]; then
+    echo $DOMAINNAME > ${ALTROOT}/etc/defaultdomain
 fi
 
 #
@@ -380,11 +428,85 @@ echo "*openIm: false" > ${ALTROOT}/jack/.Xdefaults
 /usr/bin/chown jack:staff ${ALTROOT}/jack/.Xdefaults
 
 #
+# if specified, run a finish script
+# the new root directory is passed as the only argument
+#
+if [ -n "$FINISH_SCRIPT" ]; then
+case $FINISH_SCRIPT in
+nfs*)
+	TMPMNT="/tmp/mnt1"
+	mkdir -p ${TMPMNT}
+	IPROFDIR=${FINISH_SCRIPT%/*}
+	IPROFNAME=${FINISH_SCRIPT##*/}
+	mount $IPROFDIR $TMPMNT
+	if [ -f ${TMPMNT}/${IPROFNAME} ]; then
+	    ${TMPMNT}/${IPROFNAME} ${ALTROOT}
+	fi
+	umount ${TMPMNT}
+	rmdir ${TMPMNT}
+	;;
+http*)
+	TMPF="/tmp/profile.$$"
+	/usr/bin/curl -f -s -S --retry 6 -o $TMPF $FINISH_SCRIPT
+	if [ -s "$TMPF" ]; then
+	    chmod a+x $TMPF
+	    $TMPF ${ALTROOT}
+	fi
+	rm -f $TMPF
+	;;
+esac
+fi
+
+#
 # remove the autoinstall startup script
 #
 /bin/rm -f ${ALTROOT}/etc/rc2.d/S99auto_install
 sync
 sleep 2
+
+#
+# if specified, enable a first-boot script
+#
+if [ -n "$FIRSTBOOT_SCRIPT" ]; then
+FIRSTDIR="${ALTROOT}/etc/tribblix"
+FIRSTF="${FIRSTDIR}/firstboot"
+mkdir ${FIRSTDIR}
+case $FIRSTBOOT_SCRIPT in
+nfs*)
+	TMPMNT="/tmp/mnt1"
+	mkdir -p ${TMPMNT}
+	IPROFDIR=${FIRSTBOOT_SCRIPT%/*}
+	IPROFNAME=${FIRSTBOOT_SCRIPT##*/}
+	mount $IPROFDIR $TMPMNT
+	if [ -f ${TMPMNT}/${IPROFNAME} ]; then
+	    cp ${TMPMNT}/${IPROFNAME} ${FIRSTF}
+	fi
+	umount ${TMPMNT}
+	rmdir ${TMPMNT}
+	;;
+http*)
+	TMPF="/tmp/profile.$$"
+	/usr/bin/curl -f -s -S --retry 6 -o $TMPF $FIRSTBOOT_SCRIPT
+	if [ -s "$TMPF" ]; then
+	    cp $TMPF $FIRSTF
+	fi
+	rm -f $TMPF
+	;;
+esac
+if [ -s "${FIRSTF}" ]; then
+    chmod a+x $FIRSTF
+cat >> ${ALTROOT}/etc/rc3.d/S99firstboot <<EOF
+#!/bin/sh
+if [ -f /etc/tribblix/firstboot ]; then
+mv /etc/tribblix/firstboot /etc/tribblix/firstboot.run
+/etc/tribblix/firstboot.run
+rm /etc/tribblix/firstboot.run
+fi
+rm /etc/rc3.d/S99firstboot
+EOF
+    chmod a+x ${ALTROOT}/etc/rc3.d/S99firstboot
+fi
+fi
 
 #
 # remount zfs filesystem in the right place for next boot

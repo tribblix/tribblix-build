@@ -1,0 +1,43 @@
+#!/bin/ksh
+#
+# convert an svr4 package (in datastream format) into zap format
+#
+case $# in
+2)
+	FPKG="$1"
+	ODIR="$2"
+	;;
+*)
+	echo "Usage: $0 input_pkg output_dir"
+	exit 2
+	;;
+esac
+
+if [ ! -f "$FPKG" ]; then
+   echo "ERROR: input file not found"
+   exit 1
+fi
+
+if [ ! -d "$ODIR" ]; then
+   echo "ERROR: output directory not found"
+   exit 1
+fi
+
+# FIXME: uncompress compressed packages
+
+TDIR=/tmp/pkg2zap.`date '+%F-%T'`.$$
+rm -fr $TDIR
+mkdir -p $TDIR
+pkgtrans $FPKG $TDIR all
+cd $TDIR
+BPKG=${FPKG##*/}
+#zip -9 -q -r ${ODIR}/${BPKG%.pkg}.zap *
+7za a -tzip -mx=9 -mfb=256 ${ODIR}/${BPKG%.pkg}.zap *
+chmod a+r ${ODIR}/${BPKG%.pkg}.zap
+
+#
+# clean up
+#
+cd /
+rm -fr $TDIR
+ls -lsh ${ODIR}/${BPKG%.pkg}.zap

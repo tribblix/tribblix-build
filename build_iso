@@ -3,11 +3,11 @@
 # build a bootable iso
 #
 
-THOME=/home/ptribble/Tribblix
+THOME=/packages/localsrc/Tribblix
+TBHOME=${THOME}/tribblix-build
 DESTTOP=/export/tribblix
 DESTDIR=${DESTTOP}/dist
-TRIBVER="Tribblix 0.10TD"
-TRIBMSG="Tribblix 0.10 technology demonstrator, prerelease"
+TRIBVER="Tribblix 0.11TD"
 
 case $# in
 1)
@@ -18,20 +18,22 @@ esac
 #
 # assumes packages have already been installed, for now
 #
-#${THOME}/install-pkgs
+#${TBHOME}/install-pkgs
 
 #
 # fix the image
 #
 echo "Reset initial files"
 echo ${TRIBVER} | md5sum - | awk '{print $1}' > ${DESTDIR}/.volsetid
-cp /etc/system ${DESTDIR}/etc/system
-cp /boot/grub/menu.lst ${DESTDIR}/boot/grub/menu.lst
+#
+# ensure /etc/system is clean
+#
+grep -v '^set' /etc/system > ${DESTDIR}/etc/system
+#
+# and that menu.lst is blank (for install-fix to populate)
+#
+cp /dev/null ${DESTDIR}/boot/grub/menu.lst
 echo "tribblix" > ${DESTDIR}/etc/nodename
-echo "${TRIBMSG}" > ${DESTDIR}/etc/release
-echo Assembled `/bin/date '+%d %B %Y'` >> ${DESTDIR}/etc/release
-#cp /etc/motd ${DESTDIR}/etc/motd
-#echo "${TRIBMSG}" >> ${DESTDIR}/etc/motd
 rm -f ${DESTDIR}/etc/svc/profile/generic.xml
 rm -f ${DESTDIR}/etc/svc/profile/platform.xml
 rm -f ${DESTDIR}/etc/svc/profile/name_service.xml
@@ -61,31 +63,31 @@ cp ${THOME}/overlays/*.ovl ${DESTDIR}/var/sadm/overlays
 # make sure the install script is up to date
 #
 mkdir -p ${DESTDIR}/root
-cp ${THOME}/live_install.sh ${DESTDIR}/root
+cp ${TBHOME}/live_install.sh ${DESTDIR}/root
 chmod a+x ${DESTDIR}/root/live_install.sh
-cp ${THOME}/ufs_install.sh ${DESTDIR}/root
+cp ${TBHOME}/ufs_install.sh ${DESTDIR}/root
 chmod a+x ${DESTDIR}/root/ufs_install.sh
-cp ${THOME}/format-a-disk.sh ${DESTDIR}/root
+cp ${TBHOME}/format-a-disk.sh ${DESTDIR}/root
 chmod a+x ${DESTDIR}/root/format-a-disk.sh
-cp ${THOME}/S99auto_install ${DESTDIR}/etc/rc2.d
+cp ${TBHOME}/S99auto_install ${DESTDIR}/etc/rc2.d
 chmod 755 ${DESTDIR}/etc/rc2.d/S99auto_install
 echo "Fixing image"
-${THOME}/install-fix $*
+${TBHOME}/install-fix $*
 
 #
 # copy support tools
 #
 rm -fr ${DESTDIR}/tools
 mkdir ${DESTDIR}/tools
-cp ${THOME}/setup-pxe-server ${DESTDIR}/tools
-cp ${THOME}/add-pxe-client ${DESTDIR}/tools
+cp ${TBHOME}/setup-pxe-server ${DESTDIR}/tools
+cp ${TBHOME}/add-pxe-client ${DESTDIR}/tools
 chmod 755 ${DESTDIR}/tools/*
 
 #
 # create the zlib files
 #
 echo "Creating solaris.zlib"
-${THOME}/mk-solaris-zlib $*
+${TBHOME}/mk-solaris-zlib $*
 rm -f ${DESTDIR}/solarismisc.zlib
 sync
 
@@ -119,7 +121,7 @@ sync
 #
 # actually build the iso
 #
-${THOME}/create-iso $*
+${TBHOME}/create-iso $*
 
 #
 # shuffle the files back so the image area is still valid

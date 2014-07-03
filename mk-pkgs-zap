@@ -6,10 +6,10 @@
 
 DISTROOT=/export/tribblix/dist
 ZAPDIR=${DISTROOT}/pkgs
-OIPKGDIR=/var/tmp/created-pkgs
-IPKGDIR=/var/tmp/illumos-pkgs
 THOME=/packages/localsrc/Tribblix
-PKG2ZAP=${THOME}/build/pkg2zap
+OIPKGDIR=${THOME}/oi-pkgs-0.8
+IPKGDIR=${THOME}/illumos-pkgs-m11
+PKG2ZAP=${THOME}/tribblix-build/pkg2zap
 VARIANT=""
 
 #
@@ -19,7 +19,7 @@ VARIANT=""
 # also create a fake release number for unversioned Tribblix packages
 # there should be none of these
 #
-RELVER="0.10"
+RELVER="0.11"
 OIVER="0.8o"
 ILVER="${RELVER}.0"
 TRVER="${RELVER}t"
@@ -73,6 +73,8 @@ do
       echo "Installing $ipkg from Illumos"
   elif [ -f ${IPKGDIR}/pkgs/${ipkg}.pkg ]; then
       echo "Installing $ipkg from Illumos"
+  elif [ -f ${OIPKGDIR}/pkgs/${ipkg}.${OIVER}.zap ]; then
+      echo "Installing $ipkg from OpenIndiana"
   elif [ -f ${OIPKGDIR}/pkgs/${ipkg}.zap ]; then
       echo "Installing $ipkg from OpenIndiana"
   elif [ -f ${OIPKGDIR}/pkgs/${ipkg}.pkg ]; then
@@ -90,6 +92,10 @@ if [ "X$VALID" = "Xno" ]; then
     exit 1
 fi
 
+#
+# delete the pkgs directory to avoid lingering leftovers
+#
+rm -fr $ZAPDIR
 mkdir -p $ZAPDIR
 if [ ! -d $SZAPDIR ]; then
     echo "ERROR: unable to create $ZAPDIR"
@@ -137,6 +143,9 @@ do
 	  cp ${ZAPDIR}/${ipkg}.zap ${IPKGDIR}/pkgs
 	  mv ${ZAPDIR}/${ipkg}.zap ${ZAPDIR}/${ipkg}.${ILVER}.zap
 	  THISVER=${ILVER}
+      elif [ -f ${OIPKGDIR}/pkgs/${ipkg}.${OIVER}.zap ]; then
+	  cp ${OIPKGDIR}/pkgs/${ipkg}.${OIVER}.zap ${ZAPDIR}/${ipkg}.${OIVER}.zap
+	  THISVER=${OIVER}
       elif [ -f ${OIPKGDIR}/pkgs/${ipkg}.zap ]; then
 	  cp ${OIPKGDIR}/pkgs/${ipkg}.zap ${ZAPDIR}/${ipkg}.${OIVER}.zap
 	  THISVER=${OIVER}
