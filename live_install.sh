@@ -368,6 +368,10 @@ if [ ! -z "$ICONSOLE" ]; then
   BCONSOLE=",console=${ICONSOLE},input-device=${ICONSOLE},output-device=${ICONSOLE}"
 fi
 
+#
+# the real grub menu is under the root pool, not under /boot on the root
+# filesystem. zero the latter to avoid confusion
+#
 /usr/bin/cat > /${ROOTPOOL}/boot/grub/menu.lst << _EOF
 default 0
 timeout 10
@@ -377,6 +381,7 @@ bootfs ${ROOTPOOL}/ROOT/tribblix
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B \$ZFS-BOOTFS${BCONSOLE}
 module\$ /platform/i86pc/\$ISADIR/boot_archive
 _EOF
+cp /dev/null ${ALTROOT}/boot/grub/menu.lst
 
 #
 # set nodename if requested
