@@ -71,6 +71,7 @@ grep export ${DESTDIR}/root/.profile > ${DESTDIR}/jack/.bash_profile
 chown jack:staff ${DESTDIR}/jack/.bash_profile
 cat ${DESTDIR}/jack/.bashrc >> ${DESTDIR}/jack/.bash_profile
 cat ${DESTDIR}/root/.profile | /bin/sed -e 's:root:jack:' -e 's:}#:}\\\$:' > ${DESTDIR}/jack/.profile
+chown jack:staff ${DESTDIR}/jack/.profile ${DESTDIR}/jack/.bashrc
 
 #
 # https://blogs.oracle.com/darren/entry/sending_a_break_to_opensolaris
