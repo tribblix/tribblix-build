@@ -3,10 +3,10 @@
 THOME=/packages/localsrc/Tribblix
 TPKGDIR=${THOME}/pkgs
 PKGDIR=${THOME}/oi-pkgs-0.8/pkgs
-IPKGDIR=${THOME}/illumos-pkgs-m11/pkgs
+IPKGDIR=${THOME}/illumos-pkgs-m12/pkgs
 DESTDIR=/export/tribblix/dist
 
-ILVER="0.11.0"
+ILVER="0.12.0"
 OIVER="0.8o"
 
 #

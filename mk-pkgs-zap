@@ -8,7 +8,7 @@ DISTROOT=/export/tribblix/dist
 ZAPDIR=${DISTROOT}/pkgs
 THOME=/packages/localsrc/Tribblix
 OIPKGDIR=${THOME}/oi-pkgs-0.8
-IPKGDIR=${THOME}/illumos-pkgs-m11
+IPKGDIR=${THOME}/illumos-pkgs-m12
 PKG2ZAP=${THOME}/tribblix-build/pkg2zap
 VARIANT=""
 
@@ -19,7 +19,7 @@ VARIANT=""
 # also create a fake release number for unversioned Tribblix packages
 # there should be none of these
 #
-RELVER="0.11"
+RELVER="0.12"
 OIVER="0.8o"
 ILVER="${RELVER}.0"
 TRVER="${RELVER}t"
