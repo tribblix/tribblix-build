@@ -674,6 +674,18 @@ cat ${BDIR}/prototype.transform | egrep -v " ${filepath}=${filepath} " > ${BDIR}
 }
 
 #
+# transform to delete a linked pathname from this package
+#
+# we need to remove the file from the prototype file
+#
+transform_linkdel() {
+filepath=$1
+/usr/bin/mv ${BDIR}/prototype ${BDIR}/prototype.transform
+cat ${BDIR}/prototype.transform | egrep -v " ${filepath}=" > ${BDIR}/prototype
+/usr/bin/rm ${BDIR}/prototype.transform
+}
+
+#
 # transform to delete a directory pathname from this package
 #
 # we need to remove the directory from our temporary area and from
@@ -921,6 +933,9 @@ do
 case $action in
 delete)
     transform_delete $pathname
+    ;;
+linkdel)
+    transform_linkdel $pathname
     ;;
 rmdir)
     transform_rmdir $pathname
