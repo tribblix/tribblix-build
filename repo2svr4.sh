@@ -67,6 +67,28 @@ bail_out() {
 }
 
 #
+# some drivers (ata is the only example I know of) claim more than 1 class
+# I can't find a way for add_drv to cope with this, so resort to
+# fiddling /etc/driver_classes by hand
+#
+# I assume that init_driver has been called already
+#
+# first argument is the driver, 2nd the class
+#
+add_driver_class() {
+NDRIVER=$1
+NCLASS=$2
+cat >>${BDIR}/install/postinstall <<EOF
+echo "$NDRIVER\t$NCLASS" >> \${BASEDIR}/etc/driver_classes
+EOF
+cat >>${BDIR}/install/postremove <<EOF
+cat \${BASEDIR}/etc/driver_classes | /bin/sed '/^${NDRIVER}.*${NCLASS}/d' > /tmp/adc.\$\$
+cp /tmp/adc.\$\$ \${BASEDIR}/etc/driver_classes
+rm /tmp/adc.\$\$
+EOF
+}
+
+#
 # initialize driver handling by creating the postinstall and postremove
 # scripts
 #
@@ -205,6 +227,7 @@ PERMS=""
 CLONEPERMS=""
 ALIASES=""
 CLASS=""
+EXTRA_CLASSES=""
 for frag in "$@"
 do
     key=${frag%%=*}
@@ -229,7 +252,11 @@ alias)
     fi
     ;;
 class)
-    CLASS="-c $value"
+    if [ "x${CLASS}" = "x" ]; then
+	CLASS="-c $value"
+    else
+	EXTRA_CLASSES="${EXTRA_CLASSES} $value"
+    fi
     ;;
 *zone*)
     printf ""
@@ -241,6 +268,13 @@ clone_perms)
     echo unhandled driver action $frag
     ;;
 esac
+done
+#
+# add any extra driver classes
+#
+for NCLASS in $EXTRA_CLASSES
+do
+    add_driver_class $DNAME $NCLASS
 done
 #
 # ddi_pseudo confuses the parser, override where it breaks
