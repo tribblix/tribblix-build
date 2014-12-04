@@ -762,8 +762,8 @@ esac
 #
 # these ought to be args
 #
-REPODIR=${GATEDIR}/packages/i386/nightly-nd/repo.redist
-PROTODIR=${GATEDIR}/proto/root_i386
+REPODIR=${GATEDIR}/packages/`uname -p`/nightly-nd/repo.redist
+PROTODIR=${GATEDIR}/proto/root_`uname -p`
 DSTDIR=/var/tmp/illumos-pkgs
 
 if [ ! -d "${REPODIR}" ]; then

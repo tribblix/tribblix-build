@@ -8,7 +8,7 @@
 THOME=/packages/localsrc/Tribblix
 GATEDIR=/export/home/ptribble/Illumos/illumos-gate
 
-REPODIR=${GATEDIR}/packages/i386/nightly-nd/repo.redist
+REPODIR=${GATEDIR}/packages/`uname -p`/nightly-nd/repo.redist
 
 CMD=${THOME}/tribblix-build/repo2svr4.sh
 PNAME=${THOME}/tribblix-build/pkg_name.sh
