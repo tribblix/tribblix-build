@@ -1,0 +1,86 @@
+#!/bin/sh
+
+THOME=/packages/localsrc/Tribblix
+TPKGDIR=${THOME}/pkgs.sparc
+PKGDIR=${THOME}/opensxce-pkgs/pkgs
+IPKGDIR=${THOME}/illumos-pkgs-m13.sparc/pkgs
+DESTDIR=/export/tribblix/dist
+
+ILVER="0.13.0"
+OXVER="2014"
+
+#
+# this is the base install, plus we add TRIBsys-install-media-internal
+# to the iso
+#
+PKGLIST=${THOME}/overlays.sparc/base.pkgs
+
+case $# in
+1)
+	DESTDIR=${DESTDIR}.$1
+	PKGLIST=${PKGLIST}.$1
+	;;
+esac
+
+#
+# first verify
+#
+VALID=yes
+for mypkg in `cat ${PKGLIST}` TRIBsys-install-media-internal
+do
+  THISVER="XXX"
+  PKGI=${THOME}/build/${mypkg}/pkginfo
+  if [ -f ${PKGI} ]; then
+      THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
+  fi
+  if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.pkg ]; then
+      echo "Installing $mypkg from Tribblix"
+  elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.pkg ]; then
+      echo "Installing $mypkg from Illumos"
+  elif [ -f ${PKGDIR}/${mypkg}.${OXVER}.pkg ]; then
+      echo "Installing $mypkg from OpenSXCE"
+  else
+      echo "ERROR: package $mypkg not found"
+      VALID=no
+  fi
+done
+
+if [ "X$VALID" = "Xno" ]; then
+    echo "ERROR: missing packages, install aborted"
+    exit 1
+fi
+
+if [ ! -d ${DESTDIR} ]; then
+    echo "ERROR: Target destination ${DESTDIR} not found, install aborted"
+    exit 1
+fi
+
+#
+# building Tribblix in a zone on Tribblix, this needs to be created first
+# but most everything fails in a zone, so don't bother
+#
+#mkdir -p ${DESTDIR}/var/sadm/install
+#
+# now install
+#
+for mypkg in `cat ${PKGLIST}` TRIBsys-install-media-internal
+do
+  THISVER="XXX"
+  PKGI=${THOME}/build/${mypkg}/pkginfo
+  if [ -f ${PKGI} ]; then
+      THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
+  fi
+  if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.pkg ]; then
+    pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${TPKGDIR}/${mypkg}.${THISVER}.pkg $mypkg
+  elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.pkg ]; then
+    pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${IPKGDIR}/${mypkg}.${ILVER}.pkg $mypkg
+  else
+    pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${PKGDIR}/${mypkg}.${OXVER}.pkg $mypkg
+  fi
+done
+
+#
+# need to mark the base overlay as installed
+#
+mkdir -p ${DESTDIR}/var/sadm/overlays/installed
+touch ${DESTDIR}/var/sadm/overlays/installed/base

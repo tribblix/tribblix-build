@@ -3,6 +3,26 @@
 THOME=/packages/localsrc/Tribblix
 
 TDIR=${THOME}/tribblix-build
-$TDIR/install-pkgs $*
-$TDIR/mk-pkgs-zap $*
+case `uname -p` in
+sparc)
+	$TDIR/install-pkgs $*
+	;;
+i386)
+	$TDIR/install-pkgs $*
+	;;
+*)
+	echo "ERROR: unrecognized architecture"
+	exit 1
+	;;
+esac
+
+case `uname -p` in
+sparc)
+	$TDIR/mk-pkgs-zap.sparc $*
+	;;
+i386)
+	$TDIR/mk-pkgs-zap $*
+	;;
+esac
+
 $TDIR/build_iso $*

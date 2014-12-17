@@ -1,0 +1,63 @@
+#!/bin/sh
+#
+# given a drive, partitions it with a single large slice 0
+#
+
+PRTVTOC=/usr/sbin/prtvtoc
+FMTHARD=/usr/sbin/fmthard
+FDISK=/sbin/fdisk
+
+TFILE=/tmp/prtvtoc-input.$$
+OFILE=/tmp/prtvtoc-output.$$
+
+case $# in
+2)
+	# -B accepted but ignored for compatibility with x86
+	BFLAG=$1
+	DISKDEV=$2
+	;;
+1)
+	DISKDEV=$1
+	;;
+*)
+	echo "Usage: $0 [-B] disk_device"
+	exit 1
+	;;
+esac
+
+case $DISKDEV in
+/*)
+	printf ""
+	;;
+*)
+	DISKDEV="/dev/rdsk/$DISKDEV"
+	;;
+esac
+
+case $DISKDEV in
+*s2)
+	printf ""
+	;;
+*)
+	DISKDEV="${DISKDEV}s2"
+	;;
+esac
+
+if [ ! -e $DISKDEV ]; then
+    echo "Error: unable to find disk device $DISKDEV"
+    exit 1
+fi
+
+$PRTVTOC $DISKDEV | /usr/bin/grep -v '^\*' > $TFILE
+
+#
+# copy slice 2 to slice 0
+#
+SIZE0=`/usr/bin/awk '{ if ($1 == "2") print $6}' $TFILE`
+
+echo "0 2 00 0 $SIZE0" > $OFILE
+echo "2 5 00 0 $SIZE0" >> $OFILE
+
+$FMTHARD -s $OFILE $DISKDEV
+
+/bin/rm -f $TFILE $OFILE

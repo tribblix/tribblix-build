@@ -12,8 +12,24 @@ esac
 #
 # this is the size of the ramdisk.
 #
-MRSIZE=172m
+case `uname -p` in
+i386)
+	MRSIZE=172m
+	XARCH="i86"
+	;;
+sparc)
+	MRSIZE=240m
+	BASIZE=245760
+	XARCH="sparcv7"
+	;;
+*)
+	echo "ERROR: unrecognized architecture"
+	exit 1
+	;;
+esac
 
+case `uname -p` in
+i386)
 #
 # I make a dual 32/64-bit boot archive
 #
@@ -38,12 +54,15 @@ rootnoverify (hd0)
 chainloader +1
 _EOF
 
+;;
+esac
+
 #
 # customize jack's environment
 #
 if [ ! -d ${DESTDIR}/jack ]; then
    mkdir ${DESTDIR}/jack
-   chown jack:staff ${DESTDIR}/jack
+   chown 123:10 ${DESTDIR}/jack
 fi
 if /usr/xpg4/bin/grep -q jack ${DESTDIR}/etc/passwd
 then
@@ -62,23 +81,27 @@ if [ ! -d ${DESTDIR}/jack/.config ]; then
   if [ -f ${DESTTOP}/prebuilt/dot-config.tar ]; then
     cd ${DESTDIR}/jack
     tar xf ${DESTTOP}/prebuilt/dot-config.tar
-    chown -R jack:staff .config
+    chown -R 123:10 .config
     rm -fr .config/xfce4/panel/launcher-10
   fi
 fi
 cp ${DESTDIR}/root/.bashrc ${DESTDIR}/jack/.bashrc
 grep export ${DESTDIR}/root/.profile > ${DESTDIR}/jack/.bash_profile
-chown jack:staff ${DESTDIR}/jack/.bash_profile
+chown 123:10 ${DESTDIR}/jack/.bash_profile
 cat ${DESTDIR}/jack/.bashrc >> ${DESTDIR}/jack/.bash_profile
 cat ${DESTDIR}/root/.profile | /bin/sed -e 's:root:jack:' -e 's:}#:}\\\$:' > ${DESTDIR}/jack/.profile
-chown jack:staff ${DESTDIR}/jack/.profile ${DESTDIR}/jack/.bashrc
+chown 123:10 ${DESTDIR}/jack/.profile ${DESTDIR}/jack/.bashrc
 
+case `uname -p` in
+i386)
 #
 # https://blogs.oracle.com/darren/entry/sending_a_break_to_opensolaris
 #
 cat >> ${DESTDIR}/etc/system << _EOF
 set pcplusmp:apic_kmdb_on_nmi=1
 _EOF
+;;
+esac
 
 ${DESTDIR}/usr/sbin/devfsadm -r ${DESTDIR}
 if [ -f ${DESTTOP}/prebuilt/repository.db ]; then
@@ -117,7 +140,7 @@ rm -f ${DESTDIR}/boot/splashimage.xpm
 # which saves a little more
 #
 rm -f ${DESTDIR}/platform/i86pc/amd64/boot_archive
-rm -f ${DESTDIR}/platform/i86pc/boot_archive
+rm -f ${DESTDIR}/platform/*/boot_archive
 mkfile ${MRSIZE} /tmp/${MRSIZE}
 #
 # gzip doesn't like the sticky bit
@@ -130,11 +153,18 @@ BFS=/tmp/nb.$$
 mkdir $BFS
 mount -Fufs -o nologging $LOFIDEV $BFS
 cd ${DESTDIR}
-tar cf - `bootadm list-archive` | ( cd $BFS ; tar xf -)
+case `uname -p` in
+i386)
+	tar cf - `bootadm list-archive` | ( cd $BFS ; tar xf -)
+	;;
+sparc)
+	tar cf - kernel platform | ( cd $BFS ; tar xf -)
+	;;
+esac
 tar cfp - boot lib system tmp proc sbin etc var zonelib root jack | ( cd $BFS ; tar xf -)
 mkdir ${BFS}/usr
 cd usr
-tar cf - bin/cat bin/head bin/i86/ksh93 bin/ls bin/sh sbin/lofiadm \
+tar cf - bin/cat bin/head bin/${XARCH}/ksh93 bin/ls bin/sh sbin/lofiadm \
         bin/sed bin/cut sbin/svcadm \
         lib/fs/ufs/fstyp* lib/fs/hsfs/fstyp* lib/libfstyp.so* \
         lib/libzonecfg* lib/libbrand* \
@@ -171,9 +201,32 @@ fi
 cd /
 df -h $BFS
 df -i $BFS
+
+#
+# boot archive needs a boot block on sparc
+# and /etc/system tweaks
+#
+case `uname -p` in
+sparc)
+	echo "set root_is_ramdisk=1" >> ${BFS}/etc/system
+	echo "set ramdisk_size=${BASIZE}" >> ${BFS}/etc/system
+	echo "Installing bootblock to miniroot"
+	/usr/sbin/installboot ${DESTDIR}/usr/platform/sun4u/lib/fs/ufs/bootblk /dev/rlofi/$LOFINUM
+	;;
+esac
+
 umount $BFS
 lofiadm -d /dev/lofi/$LOFINUM
+case `uname -p` in
+i386)
 gzip /tmp/${MRSIZE}
 cp /tmp/${MRSIZE}.gz ${DESTDIR}/platform/i86pc/boot_archive
 rm /tmp/${MRSIZE}.gz
+;;
+sparc)
+cp /tmp/${MRSIZE} ${DESTDIR}/platform/sun4v/boot_archive
+rm /tmp/${MRSIZE}
+;;
+esac
+
 rmdir $BFS

@@ -16,15 +16,14 @@ case $# in
 esac
 
 #
-# assumes packages have already been installed, for now
-#
-#${TBHOME}/install-pkgs
-
-#
 # fix the image
 #
 echo "Reset initial files"
-echo ${TRIBVER} | md5sum - | awk '{print $1}' > ${DESTDIR}/.volsetid
+if [ -x /usr/gnu/bin/md5sum ]; then
+    echo ${TRIBVER} | /usr/gnu/bin/md5sum - | awk '{print $1}' > ${DESTDIR}/.volsetid
+else
+    echo ${TRIBVER} | openssl md5 | awk '{print $NF}' > ${DESTDIR}/.volsetid
+fi
 #
 # ensure /etc/system is clean
 #
@@ -32,7 +31,11 @@ grep -v '^set' /etc/system > ${DESTDIR}/etc/system
 #
 # and that menu.lst is blank (for install-fix to populate)
 #
-cp /dev/null ${DESTDIR}/boot/grub/menu.lst
+case `uname -p` in
+i386)
+	cp /dev/null ${DESTDIR}/boot/grub/menu.lst
+	;;
+esac
 echo "tribblix" > ${DESTDIR}/etc/nodename
 rm -f ${DESTDIR}/etc/svc/profile/generic.xml
 rm -f ${DESTDIR}/etc/svc/profile/platform.xml
@@ -53,22 +56,39 @@ chmod 0700 ${DESTDIR}/var/crash/tribblix
 #
 # sync up the overlays.
 #
+case `uname -p` in
+i386)
+	OVSRC="${THOME}/overlays"
+	;;
+sparc)
+	OVSRC="${THOME}/overlays.sparc"
+	;;
+esac
 mkdir -p ${DESTDIR}/var/sadm/overlays
 rm ${DESTDIR}/var/sadm/overlays/*.pkgs
 rm ${DESTDIR}/var/sadm/overlays/*.ovl
-cp ${THOME}/overlays/*.pkgs ${DESTDIR}/var/sadm/overlays
-cp ${THOME}/overlays/*.ovl ${DESTDIR}/var/sadm/overlays
+cp ${OVSRC}/*.pkgs ${DESTDIR}/var/sadm/overlays
+cp ${OVSRC}/*.ovl ${DESTDIR}/var/sadm/overlays
 
 #
 # make sure the install script is up to date
 #
 mkdir -p ${DESTDIR}/root
-cp ${TBHOME}/live_install.sh ${DESTDIR}/root
+case `uname -p` in
+i386)
+	cp ${TBHOME}/live_install.sh ${DESTDIR}/root
+	cp ${TBHOME}/format-a-disk.sh ${DESTDIR}/root
+	cp ${TBHOME}/ufs_install.sh ${DESTDIR}/root
+	;;
+sparc)
+	cp ${TBHOME}/live_install.sh.sparc ${DESTDIR}/root/live_install.sh
+	cp ${TBHOME}/format-a-disk.sh.sparc ${DESTDIR}/root/format-a-disk.sh
+	cp ${TBHOME}/ufs_install.sh ${DESTDIR}/root
+	;;
+esac
 chmod a+x ${DESTDIR}/root/live_install.sh
-cp ${TBHOME}/ufs_install.sh ${DESTDIR}/root
-chmod a+x ${DESTDIR}/root/ufs_install.sh
-cp ${TBHOME}/format-a-disk.sh ${DESTDIR}/root
 chmod a+x ${DESTDIR}/root/format-a-disk.sh
+chmod a+x ${DESTDIR}/root/ufs_install.sh
 cp ${TBHOME}/S99auto_install ${DESTDIR}/etc/rc2.d
 chmod 755 ${DESTDIR}/etc/rc2.d/S99auto_install
 echo "Fixing image"
@@ -79,8 +99,15 @@ ${TBHOME}/install-fix $*
 #
 rm -fr ${DESTDIR}/tools
 mkdir ${DESTDIR}/tools
-cp ${TBHOME}/setup-pxe-server ${DESTDIR}/tools
-cp ${TBHOME}/add-pxe-client ${DESTDIR}/tools
+case `uname -p` in
+i386)
+	cp ${TBHOME}/setup-pxe-server ${DESTDIR}/tools
+	cp ${TBHOME}/add-pxe-client ${DESTDIR}/tools
+	;;
+sparc)
+	echo "WARNING: need to create sparc netinstall tools"
+	;;
+esac
 chmod 755 ${DESTDIR}/tools/*
 
 #

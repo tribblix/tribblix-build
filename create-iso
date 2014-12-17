@@ -5,19 +5,41 @@ RELEASE="0m13"
 DESTDIR=/export/tribblix/dist
 
 ISODIR=/var/tmp
-ISONAME=tribblix-${RELEASE}.iso
+ISOROOT="tribblix"
 
-case $# in
-1)
-	DESTDIR=${DESTDIR}.$1
-	ISONAME=tribblix-${RELEASE}-${1}.iso
+case `uname -p` in
+sparc)
+	ISOROOT="tribblix-sparc"
 	;;
 esac
 
-/usr/bin/mkisofs -o ${ISODIR}/${ISONAME} -b boot/grub/stage2_eltorito \
+ISONAME=${ISOROOT}-${RELEASE}.iso
+case $# in
+1)
+	DESTDIR=${DESTDIR}.$1
+	ISONAME=${ISOROOT}-${RELEASE}-${1}.iso
+	;;
+esac
+
+case `uname -p` in
+sparc)
+	/usr/bin/dd if="${DESTDIR}/platform/sun4v/lib/fs/hsfs/bootblk" \
+            of="${DESTDIR}/boot/hsfs.bootblock" \
+            bs=1b oseek=1 count=15 conv=sync 2> /dev/null
+
+	/usr/bin/mkisofs -o ${ISODIR}/${ISONAME} -G "${DESTDIR}/boot/hsfs.bootblock" \
+	-B ... -N -l -ldots -R -D -volset `cat ${DESTDIR}/.volsetid` \
+	-V "Tribblix${RELEASE}" ${DESTDIR}
+
+	;;
+i386)
+	/usr/bin/mkisofs -o ${ISODIR}/${ISONAME} -b boot/grub/stage2_eltorito \
 	-c .catalog -volset `cat ${DESTDIR}/.volsetid` \
 	-no-emul-boot -boot-load-size 4 -boot-info-table -N -l -R -U \
         -allow-multidot -no-iso-translate -cache-inodes -d -D \
 	-V "Tribblix${RELEASE}" ${DESTDIR}
+
+	;;
+esac
 
 /bin/ls -lh ${ISODIR}/${ISONAME}
