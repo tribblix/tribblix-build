@@ -53,7 +53,7 @@ $PRTVTOC $DISKDEV | /usr/bin/grep -v '^\*' > $TFILE
 #
 # copy slice 2 to slice 0
 #
-SIZE0=`/usr/bin/awk '{ if ($1 == "2") print $6}' $TFILE`
+SIZE0=`/usr/bin/awk '{ if ($1 == "2") print $5}' $TFILE`
 
 echo "0 2 00 0 $SIZE0" > $OFILE
 echo "2 5 00 0 $SIZE0" >> $OFILE

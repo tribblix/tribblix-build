@@ -5,7 +5,7 @@ THOME=/packages/localsrc/Tribblix
 TDIR=${THOME}/tribblix-build
 case `uname -p` in
 sparc)
-	$TDIR/install-pkgs $*
+	$TDIR/install-pkgs.sparc $*
 	;;
 i386)
 	$TDIR/install-pkgs $*
