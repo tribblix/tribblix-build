@@ -5,6 +5,7 @@ TPKGDIR=${THOME}/pkgs
 PKGDIR=${THOME}/oi-pkgs-0.8/pkgs
 IPKGDIR=${THOME}/illumos-pkgs-m13/pkgs
 DESTDIR=/export/tribblix/dist
+FDEFAULT=${THOME}/tribblix-build/pkg.default
 
 ILVER="0.13.0"
 OIVER="0.8o"
@@ -75,15 +76,15 @@ do
       THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
   fi
   if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.pkg ]; then
-    pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${TPKGDIR}/${mypkg}.${THISVER}.pkg $mypkg
+    pkgadd -a ${FDEFAULT} -R $DESTDIR -d ${TPKGDIR}/${mypkg}.${THISVER}.pkg $mypkg
   elif [ -f ${TPKGDIR}/${mypkg}.pkg ]; then
-    pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${TPKGDIR}/${mypkg}.pkg $mypkg
+    pkgadd -a ${FDEFAULT} -R $DESTDIR -d ${TPKGDIR}/${mypkg}.pkg $mypkg
   elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.pkg ]; then
-    pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${IPKGDIR}/${mypkg}.${ILVER}.pkg $mypkg
+    pkgadd -a ${FDEFAULT} -R $DESTDIR -d ${IPKGDIR}/${mypkg}.${ILVER}.pkg $mypkg
   elif [ -f ${IPKGDIR}/${mypkg}.pkg ]; then
-    pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${IPKGDIR}/${mypkg}.pkg $mypkg
+    pkgadd -a ${FDEFAULT} -R $DESTDIR -d ${IPKGDIR}/${mypkg}.pkg $mypkg
   else
-    pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${PKGDIR}/${mypkg}.pkg $mypkg
+    pkgadd -a ${FDEFAULT} -R $DESTDIR -d ${PKGDIR}/${mypkg}.pkg $mypkg
   fi
 done
 

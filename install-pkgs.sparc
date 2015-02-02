@@ -5,6 +5,7 @@ TPKGDIR=${THOME}/pkgs.sparc
 PKGDIR=${THOME}/opensxce-pkgs/pkgs
 IPKGDIR=${THOME}/illumos-pkgs-m13.sparc/pkgs
 DESTDIR=/export/tribblix/dist
+FDEFAULT=${THOME}/tribblix-build/pkg.default
 
 ILVER="0.13.0"
 OXVER="2014"
@@ -71,11 +72,11 @@ do
       THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
   fi
   if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.pkg ]; then
-    pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${TPKGDIR}/${mypkg}.${THISVER}.pkg $mypkg
+    pkgadd -a ${FDEFAULT} -R $DESTDIR -d ${TPKGDIR}/${mypkg}.${THISVER}.pkg $mypkg
   elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.pkg ]; then
-    pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${IPKGDIR}/${mypkg}.${ILVER}.pkg $mypkg
+    pkgadd -a ${FDEFAULT} -R $DESTDIR -d ${IPKGDIR}/${mypkg}.${ILVER}.pkg $mypkg
   else
-    pkgadd -a ${THOME}/pkg.default -R $DESTDIR -d ${PKGDIR}/${mypkg}.${OXVER}.pkg $mypkg
+    pkgadd -a ${FDEFAULT} -R $DESTDIR -d ${PKGDIR}/${mypkg}.${OXVER}.pkg $mypkg
   fi
 done
 

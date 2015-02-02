@@ -18,8 +18,8 @@ i386)
 	XARCH="i86"
 	;;
 sparc)
-	MRSIZE=200m
-	BASIZE=204800
+	MRSIZE=172m
+	BASIZE=176128
 	XARCH="sparcv7"
 	;;
 *)
@@ -148,7 +148,8 @@ mkfile ${MRSIZE} /tmp/${MRSIZE}
 chmod o-t /tmp/${MRSIZE}
 LOFIDEV=`lofiadm -a /tmp/${MRSIZE}`
 LOFINUM=`echo $LOFIDEV|awk -F/ '{print $NF}'`
-echo "y" | newfs -o space -m 0 -i 24576 /dev/rlofi/$LOFINUM
+##echo "y" | newfs -o space -m 0 -i 24576 /dev/rlofi/$LOFINUM
+echo "y" | newfs -o space -m 0 -i 20480 /dev/rlofi/$LOFINUM
 BFS=/tmp/nb.$$
 mkdir $BFS
 mount -Fufs -o nologging $LOFIDEV $BFS
@@ -199,8 +200,12 @@ else
     env SVCCFG_CHECKHASH=1 /usr/share/distro_const/mkrepo ${BFS} ${BFS}
 fi
 cd /
-df -h $BFS
-df -i $BFS
+DF=/usr/bin/df
+if [ -x /usr/gnu/bin/df ]; then
+    DF=/usr/gnu/bin/df
+fi
+$DF -h $BFS
+$DF -i $BFS
 
 #
 # boot archive needs a boot block on sparc
@@ -225,6 +230,7 @@ rm /tmp/${MRSIZE}.gz
 ;;
 sparc)
 cp /tmp/${MRSIZE} ${DESTDIR}/platform/sun4v/boot_archive
+ln -s ../../platform/sun4v/boot_archive ${DESTDIR}/platform/sun4u/boot_archive
 rm /tmp/${MRSIZE}
 ;;
 esac
