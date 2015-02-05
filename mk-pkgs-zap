@@ -9,20 +9,16 @@ ZAPDIR=${DISTROOT}/pkgs
 THOME=/packages/localsrc/Tribblix
 OIPKGDIR=${THOME}/oi-pkgs-0.8
 IPKGDIR=${THOME}/illumos-pkgs-m13
-PKG2ZAP=${THOME}/tribblix-build/pkg2zap
 VARIANT=""
+OVDIR="overlays"
 
 #
-# Tribblix packages are explicitly versioned, we make a fake version
-# based on the current release for OI and Illumos packages
-#
-# also create a fake release number for unversioned Tribblix packages
-# there should be none of these
+# Tribblix and illumos packages are explicitly versioned, we fake a version
+# based on the current release for OI/OpenSXCE
 #
 RELVER="0.13"
 OIVER="0.8o"
 ILVER="${RELVER}.0"
-TRVER="${RELVER}t"
 
 case $# in
 1)
@@ -35,12 +31,12 @@ esac
 TFILE="/tmp/mkzap.$$"
 rm -fr ${TFILE}
 touch $TFILE
-for opkg in `cat ${THOME}/overlays/overlays.iso`
+for opkg in `cat ${THOME}/${OVDIR}/overlays.iso`
 do
-    if [ -f ${THOME}/overlays/${opkg}.pkgs.${VARIANT} ]; then
-	cat ${THOME}/overlays/${opkg}.pkgs.${VARIANT} >> $TFILE
+    if [ -f ${THOME}/${OVDIR}/${opkg}.pkgs.${VARIANT} ]; then
+	cat ${THOME}/${OVDIR}/${opkg}.pkgs.${VARIANT} >> $TFILE
     else
-	cat ${THOME}/overlays/${opkg}.pkgs >> $TFILE
+	cat ${THOME}/${OVDIR}/${opkg}.pkgs >> $TFILE
     fi
 done
 
@@ -61,23 +57,9 @@ do
   fi
   if [ -f ${THOME}/pkgs/${ipkg}.${THISVER}.zap ]; then
       echo "Installing $ipkg ${THISVER} from Tribblix"
-  elif [ -f ${THOME}/pkgs/${ipkg}.${THISVER}.pkg ]; then
-      echo "Installing $ipkg ${THISVER} from Tribblix"
-  elif [ -f ${THOME}/pkgs/${ipkg}.zap ]; then
-      echo "Installing $ipkg from Tribblix"
-  elif [ -f ${THOME}/pkgs/${ipkg}.pkg ]; then
-      echo "Installing $ipkg from Tribblix"
   elif [ -f ${IPKGDIR}/pkgs/${ipkg}.${ILVER}.zap ]; then
       echo "Installing $ipkg from Illumos"
-  elif [ -f ${IPKGDIR}/pkgs/${ipkg}.zap ]; then
-      echo "Installing $ipkg from Illumos"
-  elif [ -f ${IPKGDIR}/pkgs/${ipkg}.pkg ]; then
-      echo "Installing $ipkg from Illumos"
   elif [ -f ${OIPKGDIR}/pkgs/${ipkg}.${OIVER}.zap ]; then
-      echo "Installing $ipkg from OpenIndiana"
-  elif [ -f ${OIPKGDIR}/pkgs/${ipkg}.zap ]; then
-      echo "Installing $ipkg from OpenIndiana"
-  elif [ -f ${OIPKGDIR}/pkgs/${ipkg}.pkg ]; then
       echo "Installing $ipkg from OpenIndiana"
   else
       echo "ERROR: package $ipkg not found"
@@ -107,9 +89,7 @@ touch ${ZAPDIR}/catalog
 chmod 644 ${ZAPDIR}/catalog
 
 #
-# create the zap files
-# use pre-existing zap files if we find them
-# save the zap files back to the source if we generate them
+# use pre-existing zap files
 #
 for ipkg in `cat ${TFILE}|sort|uniq`
 do
@@ -123,39 +103,14 @@ do
       fi
       if [ -f ${THOME}/pkgs/${ipkg}.${THISVER}.zap ]; then
 	  cp ${THOME}/pkgs/${ipkg}.${THISVER}.zap $ZAPDIR
-      elif [ -f ${THOME}/pkgs/${ipkg}.${THISVER}.pkg ]; then
-	  $PKG2ZAP ${THOME}/pkgs/${ipkg}.${THISVER}.pkg $ZAPDIR
-      elif [ -f ${THOME}/pkgs/${ipkg}.zap ]; then
-	  cp ${THOME}/pkgs/${ipkg}.zap ${ZAPDIR}/${ipkg}.${TRVER}.zap
-	  THISVER=${TRVER}
-      elif [ -f ${THOME}/pkgs/${ipkg}.pkg ]; then
-	  $PKG2ZAP ${THOME}/pkgs/${ipkg}.pkg $ZAPDIR
-	  mv ${ZAPDIR}/${ipkg}.zap ${ZAPDIR}/${ipkg}.${TRVER}.zap
-	  THISVER=${TRVER}
       elif [ -f ${IPKGDIR}/pkgs/${ipkg}.${ILVER}.zap ]; then
 	  cp ${IPKGDIR}/pkgs/${ipkg}.${ILVER}.zap ${ZAPDIR}/${ipkg}.${ILVER}.zap
 	  THISVER=${ILVER}
-      elif [ -f ${IPKGDIR}/pkgs/${ipkg}.zap ]; then
-	  cp ${IPKGDIR}/pkgs/${ipkg}.zap ${ZAPDIR}/${ipkg}.${ILVER}.zap
-	  THISVER=${ILVER}
-      elif [ -f ${IPKGDIR}/pkgs/${ipkg}.pkg ]; then
-	  $PKG2ZAP ${IPKGDIR}/pkgs/${ipkg}.pkg $ZAPDIR
-	  cp ${ZAPDIR}/${ipkg}.zap ${IPKGDIR}/pkgs
-	  mv ${ZAPDIR}/${ipkg}.zap ${ZAPDIR}/${ipkg}.${ILVER}.zap
-	  THISVER=${ILVER}
-      elif [ -f ${OIPKGDIR}/pkgs/${ipkg}.${OIVER}.zap ]; then
+      else
 	  cp ${OIPKGDIR}/pkgs/${ipkg}.${OIVER}.zap ${ZAPDIR}/${ipkg}.${OIVER}.zap
 	  THISVER=${OIVER}
-      elif [ -f ${OIPKGDIR}/pkgs/${ipkg}.zap ]; then
-	  cp ${OIPKGDIR}/pkgs/${ipkg}.zap ${ZAPDIR}/${ipkg}.${OIVER}.zap
-	  THISVER=${OIVER}
-      else
-	  $PKG2ZAP ${OIPKGDIR}/pkgs/${ipkg}.pkg $ZAPDIR
-	  cp ${ZAPDIR}/${ipkg}.zap ${OIPKGDIR}/pkgs
-	  mv ${ZAPDIR}/${ipkg}.zap ${ZAPDIR}/${ipkg}.${OIVER}.zap
-	  THISVER=${OIVER}
       fi
-      echo "${ipkg}|${THISVER}|"`${DISTROOT}/usr/lib/zap/pkgdepend ${ZAPDIR}/${ipkg}.${OIVER}.zap` >> ${ZAPDIR}/catalog
+      echo "${ipkg}|${THISVER}|"`${DISTROOT}/usr/lib/zap/pkgdepend ${ZAPDIR}/${ipkg}.${THISVER}.zap` >> ${ZAPDIR}/catalog
   fi
 done
 
@@ -172,12 +127,11 @@ cd ${THOME}/build
 #
 # preload overlay catalog
 #
-cd ${THOME}/overlays
+cd ${THOME}/${OVDIR}
 ${THOME}/build/create-overlay-catalog > ${DISTROOT}/etc/zap/repositories/tribblix.overlays
 
 #
-# initial space: 697M with default compression; pkgs.zlib was 644M with gzip-9
-# zip -9 went to 691M
+# show the space used
 #
 sync
 /usr/bin/du -hds $ZAPDIR
