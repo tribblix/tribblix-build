@@ -99,7 +99,7 @@ fi
 #
 # interactive argument handling
 #
-while getopts "Bm:n:t:" opt; do
+while getopts "Bm:n:s:t:" opt; do
     case $opt in
         B)
 	    BFLAG="-B"
@@ -110,6 +110,9 @@ while getopts "Bm:n:t:" opt; do
 	    ;;
         n)
 	    NODENAME="$OPTARG"
+	    ;;
+        s)
+	    SWAPSIZE="$OPTARG"
 	    ;;
         t)
 	    TIMEZONE="$OPTARG"

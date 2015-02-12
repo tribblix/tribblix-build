@@ -194,7 +194,7 @@ cd /
 # give ourselves some swap to avoid /tmp exhaustion
 # do it after copying the main OS as it changes the dump settings
 #
-swap -a /dev/zvol/dsk/rpool/swap
+swap -a /dev/dsk/$SWAPDEV
 LOGFILE="${ALTROOT}/var/sadm/install/logs/initial.log"
 echo "Installing overlays" | tee $LOGFILE
 /usr/bin/date | tee -a $LOGFILE
