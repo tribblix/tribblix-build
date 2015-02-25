@@ -1,10 +1,23 @@
 #!/bin/sh
 #
+# FIXME: do fdisk and partitions first
+#
+# This installs to ufs. On a physical partition, not SVM (yet).
+#
+# The assumption is that root=s0 swap=s1
+# and that the drive is already partitioned
+#
+
+case $# in
+0)
+	echo "Usage: $0 device [overlay ... ]"
+	exit 1
+	;;
+esac
 
 #
 # these properties are available for customization
 #
-ROOTPOOL="rpool"
 DRIVELIST=""
 SWAPSIZE="2g"
 ZFSARGS=""
@@ -18,7 +31,7 @@ BEGIN_SCRIPT=""
 FINISH_SCRIPT=""
 FIRSTBOOT_SCRIPT=""
 
-FSTYPE="ZFS"
+FSTYPE="UFS"
 DRIVE1=""
 DRIVE2=""
 PKGLOC="/.cdrom/pkgs"
@@ -99,20 +112,10 @@ fi
 #
 # interactive argument handling
 #
-while getopts "Bm:n:s:t:" opt; do
+while getopts "n:t:" opt; do
     case $opt in
-        B)
-	    BFLAG="-B"
-	    ;;
-        m)
-	    ZFSARGS="mirror"
-	    DRIVE2="$OPTARG"
-	    ;;
         n)
 	    NODENAME="$OPTARG"
-	    ;;
-        s)
-	    SWAPSIZE="$OPTARG"
 	    ;;
         t)
 	    TIMEZONE="$OPTARG"
@@ -121,135 +124,40 @@ while getopts "Bm:n:s:t:" opt; do
 done
 shift $((OPTIND-1))
 
-#
-# the first remaining argument is a drive to install to
-#
 case $# in
 0)
-	printf ""
-	;;
-*)
-	DRIVE1=$1
-	shift
+	echo "Usage: $0 device [overlay ... ]"
+	exit 1
 	;;
 esac
 
-#
-# everything else is an overlay
-#
-OVERLAYS="$OVERLAYS $*"
+DRIVE1=$1
+shift
+DRIVELIST="$DRIVE1"
 
-#
-# if we have a drive list at this point, it must be from cardigan, 
-# so check the list for validity
-#
-if [ -n "$DRIVELIST" ]; then
-  for TDRIVE in $DRIVELIST
-  do
-    if [ ! -e /dev/dsk/$TDRIVE ]; then
-      if [ ! -e /dev/dsk/${TDRIVE}s0 ]; then
-        echo "ERROR: Unable to find supplied device $TDRIVE"
-        exit 1
-      fi
-    fi
-  done
-fi
-
-#
-# verify drives are valid
-#
-
-if [ -n "$DRIVE1" ]; then
-    if [ ! -e /dev/dsk/$DRIVE1 ]; then
-	if [ -e /dev/dsk/${DRIVE1}s0 ]; then
-	    DRIVE1="${DRIVE1}s0"
-	else
-	    echo "ERROR: Unable to find device $DRIVE1"
-	    exit 1
-	fi
-    fi
-    DRIVELIST="$DRIVELIST $DRIVE1"
-fi
-if [ -n "$DRIVE2" ]; then
-    if [ ! -e /dev/dsk/$DRIVE2 ]; then
-	if [ -e /dev/dsk/${DRIVE2}s0 ]; then
-	    DRIVE2="${DRIVE2}s0"
-	else
-	    echo "ERROR: Unable to find device $DRIVE2"
-	    exit 1
-	fi
-    fi
-    DRIVELIST="$DRIVELIST $DRIVE2"
-fi
-
-#
-# end interactive argument handling
-#
-
-#
-# if no drives are listed to install to, exit now
-#
-if [ -z "$DRIVELIST" ]; then
-    echo "ERROR: no installation drives specified or found"
-    echo "Usage: $0 [-B] [ -m device ] device [overlay ... ]"
+if [ ! -e /dev/dsk/$DRIVE1 ]; then
+    echo "ERROR: Unable to find device $DRIVE1"
     exit 1
 fi
 
-#
-# if we were asked to fdisk the drive, do so
-#
-case $BFLAG in
--B)
-FDRIVELIST=""
-for FDRIVE in $DRIVELIST
-do
-# normalize drive name, replace slice by slice2 for fdisk and by s0 for zpool
-case $FDRIVE in
-*s?)
-    NDRIVE=`echo $FDRIVE | /usr/bin/sed 's:s.$:s2:'`
-    FDRIVE=$NDRIVE
-    NDRIVE=`echo $FDRIVE | /usr/bin/sed 's:s.$:s0:'`
-    ;;
+case $DRIVE1 in
+*s0)
+	SWAPDEV=`echo $DRIVE1 | sed 's:s0$:s1:'`
+	;;
 *)
-    NDRIVE="${FDRIVE}s0"
-    FDRIVE="${FDRIVE}s2"
-esac
-    FDRIVELIST="$FDRIVELIST $NDRIVE"
-    /root/format-a-disk.sh -B $FDRIVE
-done
-DRIVELIST="$FDRIVELIST"
-;;
+	echo "ERROR: Root slice must be slice 0"
+	exit 1
+	;;
 esac
 
 #
-# FIXME allow ufs
 # FIXME allow svm
 #
 /usr/bin/mkdir -p ${ALTROOT}
-echo "Creating root pool"
-#
-# on sparc, lz4_compress is toxic due to #4924
-# the problem there is that if lz4_compress is enabled, it will
-# be used for metadata compression and immediately made active
-# worse, you can't create a pool with it disabled other than
-# fixing the version
-#
-/usr/sbin/zpool create -f -o version=28 -o failmode=continue ${ROOTPOOL} $ZFSARGS $DRIVELIST
-
-echo "Creating filesystems"
-/usr/sbin/zfs create -o mountpoint=legacy ${ROOTPOOL}/ROOT
-/usr/sbin/zfs create -o mountpoint=${ALTROOT} ${ROOTPOOL}/ROOT/tribblix
-/usr/sbin/zpool set bootfs=${ROOTPOOL}/ROOT/tribblix ${ROOTPOOL}
-/usr/sbin/zfs create -o mountpoint=${ALTROOT}/export ${ROOTPOOL}/export
-/usr/sbin/zfs create ${ROOTPOOL}/export/home
-/usr/sbin/zfs create -V ${SWAPSIZE} -b 4k ${ROOTPOOL}/swap
-/usr/sbin/zfs create -V ${SWAPSIZE} ${ROOTPOOL}/dump
-
-#
-# this gives the initial BE a UUID, necessary for 'beadm list -H'
-# to not show null, and for zone uninstall to work
-#
-/usr/sbin/zfs set org.opensolaris.libbe:uuid=`/usr/lib/zap/generate-uuid` ${ROOTPOOL}/ROOT/tribblix
+echo "Creating root file system"
+/usr/sbin/newfs /dev/rdsk/$DRIVE1
+/usr/sbin/mount /dev/dsk/$DRIVE1 ${ALTROOT}
+mkdir -p ${ALTROOT}/export/home
 
 echo "Copying main filesystems"
 cd /
@@ -258,8 +166,6 @@ if [ -d zonelib ]; then
     ZONELIB="zonelib"
 fi
 /usr/bin/find boot kernel lib platform root sbin usr etc var opt ${ZONELIB} -print -depth | cpio -pdm ${ALTROOT}
-echo "Copying other filesystems"
-/usr/bin/find boot -print -depth | cpio -pdm /${ROOTPOOL}
 
 #
 echo "Adding extra directories"
@@ -288,7 +194,7 @@ cd /
 # give ourselves some swap to avoid /tmp exhaustion
 # do it after copying the main OS as it changes the dump settings
 #
-swap -a /dev/zvol/dsk/${ROOTPOOL}/swap
+swap -a /dev/dsk/$SWAPDEV
 LOGFILE="${ALTROOT}/var/sadm/install/logs/initial.log"
 echo "Installing overlays" | tee $LOGFILE
 /usr/bin/date | tee -a $LOGFILE
@@ -296,7 +202,7 @@ TMPDIR=/tmp
 export TMPDIR
 PKGMEDIA=`/sbin/devprop install_pkgs`
 if [ -d ${PKGLOC} ]; then
-    for overlay in base-extras $OVERLAYS
+    for overlay in base-extras $*
     do
 	echo "Installing $overlay overlay" | tee -a $LOGFILE
 	/usr/lib/zap/install-overlay -R ${ALTROOT} -s ${PKGLOC} $overlay | tee -a $LOGFILE
@@ -310,7 +216,7 @@ else
     echo "DESC=Tribblix packages from CD image" >> /etc/zap/repositories/cdrom.repo
     echo "URL=${PKGMEDIA}" >> /etc/zap/repositories/cdrom.repo
     /usr/lib/zap/refresh-catalog cdrom
-    for overlay in base-extras $OVERLAYS
+    for overlay in base-extras $*
     do
 	echo "Installing $overlay overlay" | tee -a $LOGFILE
 	/usr/lib/zap/install-overlay -R ${ALTROOT} $overlay | tee -a $LOGFILE
@@ -358,14 +264,20 @@ fi
 #
 pkgadm sync -R ${ALTROOT} -q
 
-echo "Configuring devices"
-${ALTROOT}/usr/sbin/devfsadm -r ${ALTROOT}
-touch ${ALTROOT}/reconfigure
-
 for DRIVE in $DRIVELIST
 do
     /usr/sbin/installboot -F zfs /usr/platform/`uname -i`/lib/fs/zfs/bootblk /dev/rdsk/$DRIVE
 done
+
+echo "Configuring devices"
+${ALTROOT}/usr/sbin/devfsadm -r ${ALTROOT}
+touch ${ALTROOT}/reconfigure
+
+#
+# mount / at boot and enable swap
+#
+/bin/echo "/dev/dsk/$DRIVE1\t/dev/rdsk/$DRIVE1\t/\tufs\t1\tno\tlogging" >> ${ALTROOT}/etc/vfstab
+/bin/echo "/dev/dsk/$SWAPDEV\t-\t-\tswap\t-\tno\t-" >> ${ALTROOT}/etc/vfstab
 
 #
 # set nodename if requested
@@ -396,11 +308,8 @@ fi
 #
 echo "Updating boot archive"
 /sbin/bootadm update-archive -R ${ALTROOT}
-
-#
-# enable swap
-#
-/bin/echo "/dev/zvol/dsk/${ROOTPOOL}/swap\t-\t-\tswap\t-\tno\t-" >> ${ALTROOT}/etc/vfstab
+/sbin/sync
+sleep 2
 
 #
 # Copy /jack to the installed system
@@ -506,12 +415,6 @@ if [ -n "${KLAYOUT}" ]; then
     /usr/sbin/eeprom keyboard-layout=${NLAYOUT}
   fi
 fi
-
-#
-# remount zfs filesystem in the right place for next boot
-#
-/usr/sbin/zfs set mountpoint=/export ${ROOTPOOL}/export
-/usr/sbin/zfs set mountpoint=/ ${ROOTPOOL}/ROOT/tribblix
 
 #
 # if specified, reboot

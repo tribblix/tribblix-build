@@ -83,7 +83,7 @@ i386)
 sparc)
 	cp ${TBHOME}/live_install.sh.sparc ${DESTDIR}/root/live_install.sh
 	cp ${TBHOME}/format-a-disk.sh.sparc ${DESTDIR}/root/format-a-disk.sh
-	cp ${TBHOME}/ufs_install.sh ${DESTDIR}/root
+	cp ${TBHOME}/ufs_install.sh.sparc ${DESTDIR}/root/ufs_install.sh
 	;;
 esac
 chmod a+x ${DESTDIR}/root/live_install.sh
