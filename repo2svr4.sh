@@ -656,6 +656,27 @@ esac
 }
 
 #
+# transform to replace a pathname in this package
+#
+# we look for an architecture-specific and a generic replacement
+# in the transforms hierarchy
+#
+transform_replace() {
+filepath=$1
+if [ -f ${BDIR}/${filepath} ]; then
+  if [ -f ${TRANSDIR}/$filepath.`uname -p` ]; then
+    cp ${TRANSDIR}/$filepath.`uname -p` ${BDIR}/${filepath}
+  elif [ -f ${TRANSDIR}/$filepath ]; then
+    cp ${TRANSDIR}/$filepath ${BDIR}/${filepath}
+  else
+    echo "WARN: transform_replace cannot find replacement for ${filepath}"
+  fi
+else
+  echo "WARN: transform_replace cannot find path ${filepath}"
+fi
+}
+
+#
 # transform to delete a pathname from this package
 #
 # we need to remove the file from our temporary area and from
@@ -942,6 +963,9 @@ rmdir)
     ;;
 add)
     transform_add path=$pathname $line
+    ;;
+replace)
+    transform_replace $pathname
     ;;
 modify)
     echo "DBG: gsed -i '$line' ${BDIR}/${pathname}"
