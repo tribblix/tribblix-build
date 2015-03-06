@@ -222,9 +222,6 @@ DRIVELIST="$FDRIVELIST"
 esac
 
 #
-# FIXME allow ufs
-# FIXME allow svm
-#
 /usr/bin/mkdir -p ${ALTROOT}
 echo "Creating root pool"
 #

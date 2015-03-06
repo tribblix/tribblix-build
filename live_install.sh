@@ -222,9 +222,6 @@ DRIVELIST="$FDRIVELIST"
 esac
 
 #
-# FIXME allow ufs
-# FIXME allow svm
-#
 /usr/bin/mkdir -p ${ALTROOT}
 echo "Creating root pool"
 /usr/sbin/zpool create -f -o failmode=continue ${ROOTPOOL} $ZFSARGS $DRIVELIST
@@ -378,7 +375,7 @@ fi
 /usr/bin/cat > /${ROOTPOOL}/boot/grub/menu.lst << _EOF
 default 0
 timeout 10
-title Tribblix 0.13
+title Tribblix 0.14
 findroot (pool_${ROOTPOOL},0,a)
 bootfs ${ROOTPOOL}/ROOT/tribblix
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B \$ZFS-BOOTFS${BCONSOLE}
