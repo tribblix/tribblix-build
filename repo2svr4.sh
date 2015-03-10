@@ -677,6 +677,27 @@ fi
 }
 
 #
+# transform to add a dependency
+#
+transform_depend() {
+pkgdep=$1
+init_depend
+echo "P ${pkgdep}" >> ${BDIR}/install/depend
+}
+
+#
+# transform to remove a dependency
+#
+transform_undepend() {
+pkgdep=$1
+if [ -f ${BDIR}/install/depend ]; then
+    mv ${BDIR}/install/depend ${BDIR}/install/depend.transform
+    cat ${BDIR}/install/depend.transform | egrep -v "P ${pkgdep}\$" > ${BDIR}/install/depend
+    rm ${BDIR}/install/depend.transform
+fi
+}
+
+#
 # transform to delete a pathname from this package
 #
 # we need to remove the file from our temporary area and from
@@ -960,6 +981,12 @@ linkdel)
     ;;
 rmdir)
     transform_rmdir $pathname
+    ;;
+depend)
+    transform_depend $pathname
+    ;;
+undepend)
+    transform_undepend $pathname
     ;;
 add)
     transform_add path=$pathname $line
