@@ -711,7 +711,7 @@ else
   echo "WARN: transform_delete cannot find path ${filepath}"
 fi
 /usr/bin/mv ${BDIR}/prototype ${BDIR}/prototype.transform
-cat ${BDIR}/prototype.transform | egrep -v " ${filepath}=${filepath} " > ${BDIR}/prototype
+cat ${BDIR}/prototype.transform | grep -v " ${filepath}=${filepath} " > ${BDIR}/prototype
 /usr/bin/rm ${BDIR}/prototype.transform
 }
 
