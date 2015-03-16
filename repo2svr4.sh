@@ -723,7 +723,7 @@ cat ${BDIR}/prototype.transform | grep -v " ${filepath}=${filepath} " > ${BDIR}/
 transform_linkdel() {
 filepath=$1
 /usr/bin/mv ${BDIR}/prototype ${BDIR}/prototype.transform
-cat ${BDIR}/prototype.transform | egrep -v " ${filepath}=" > ${BDIR}/prototype
+cat ${BDIR}/prototype.transform | grep -v " ${filepath}=" > ${BDIR}/prototype
 /usr/bin/rm ${BDIR}/prototype.transform
 }
 
