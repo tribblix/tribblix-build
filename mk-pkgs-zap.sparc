@@ -117,12 +117,15 @@ done
 rm -f $TFILE
 
 #
-# preload package catalogs
+# preload package catalogs and aliases
 #
 cd ${THOME}/build
 ./create-catalog ../pkgs.sparc > ${DISTROOT}/etc/zap/repositories/tribblix.catalog
 ./create-opensxce-catalog ${OXPKGDIR}/pkgs > ${DISTROOT}/etc/zap/repositories/opensxce.catalog
 ./create-illumos-catalog ${IPKGDIR}/pkgs > ${DISTROOT}/etc/zap/repositories/illumos.catalog
+./create-aliases ../pkgs.sparc > ${DISTROOT}/etc/zap/repositories/tribblix.aliases
+./create-illumos-aliases ${IPKGDIR}/pkgs > ${DISTROOT}/etc/zap/repositories/illumos.aliases
+touch ${DISTROOT}/etc/zap/repositories/opensxce.aliases
 
 #
 # preload overlay catalog

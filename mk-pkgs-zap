@@ -117,12 +117,15 @@ done
 rm -f $TFILE
 
 #
-# preload package catalogs
+# preload package catalogs and aliases
 #
 cd ${THOME}/build
 ./create-catalog > ${DISTROOT}/etc/zap/repositories/tribblix.catalog
 ./create-oi-catalog > ${DISTROOT}/etc/zap/repositories/oi.catalog
 ./create-illumos-catalog > ${DISTROOT}/etc/zap/repositories/illumos.catalog
+./create-aliases > ${DISTROOT}/etc/zap/repositories/tribblix.aliases
+./create-oi-aliases > ${DISTROOT}/etc/zap/repositories/oi.aliases
+./create-illumos-aliases > ${DISTROOT}/etc/zap/repositories/illumos.aliases
 
 #
 # preload overlay catalog
