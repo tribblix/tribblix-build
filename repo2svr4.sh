@@ -738,14 +738,46 @@ filepath=$1
 if [ -d ${BDIR}/${filepath} ]; then
   /usr/bin/rmdir ${BDIR}/${filepath}
 else
-  echo "WARN: transform_delete cannot find directory ${filepath}"
+  echo "WARN: transform_rmdir cannot find directory ${filepath}"
 fi
 if [ -d ${BDIR}/${filepath} ]; then
-  echo "WARN: transform_delete cannot remove directory ${filepath}"
+  echo "WARN: transform_rmdir cannot remove directory ${filepath}"
 fi
 /usr/bin/mv ${BDIR}/prototype ${BDIR}/prototype.transform
 cat ${BDIR}/prototype.transform | egrep -v " none ${filepath} " > ${BDIR}/prototype
 /usr/bin/rm ${BDIR}/prototype.transform
+}
+
+#
+# transform to recursively delete a directory and everything under it
+#
+# we do nothing here, but transform all the links, files, and directories
+# that we find
+#
+# does not understand hard links, you will need to explicitly transform
+# those away first
+#
+transform_rrmdir() {
+filepath=$1
+if [ -d ${BDIR}/${filepath} ]; then
+  for npath in `cd $BDIR ; find ${filepath} -xdev -type f`
+  do
+    transform_delete $npath
+  done
+  for npath in `cd $BDIR ; find ${filepath} -xdev -type l`
+  do
+    transform_linkdel $npath
+  done
+  for npath in `cd $BDIR ; find ${filepath} -xdev -type d -depth`
+  do
+    transform_rmdir $npath
+  done
+else
+  echo "WARN: transform_rrmdir cannot find directory ${filepath}"
+fi
+if [ -d ${BDIR}/${filepath} ]; then
+  echo "WARN: transform_rrmdir cannot remove directory ${filepath}"
+fi
 }
 
 #
@@ -981,6 +1013,9 @@ linkdel)
     ;;
 rmdir)
     transform_rmdir $pathname
+    ;;
+rrmdir)
+    transform_rrmdir $pathname
     ;;
 depend)
     transform_depend $pathname
