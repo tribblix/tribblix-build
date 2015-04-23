@@ -8,7 +8,7 @@ DISTROOT=/export/tribblix/dist
 ZAPDIR=${DISTROOT}/pkgs
 THOME=/packages/localsrc/Tribblix
 OXPKGDIR=${THOME}/opensxce-pkgs
-IPKGDIR=${THOME}/illumos-pkgs-m14.sparc
+IPKGDIR=${THOME}/illumos-pkgs-m15.sparc
 VARIANT=""
 OVDIR="overlays.sparc"
 
@@ -16,7 +16,7 @@ OVDIR="overlays.sparc"
 # Tribblix and illumos packages are explicitly versioned, we fake a version
 # based on the current release for OI/OpenSXCE
 #
-RELVER="0.14"
+RELVER="0.15"
 OXVER="2014"
 ILVER="${RELVER}.0"
 

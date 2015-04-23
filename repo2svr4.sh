@@ -3,7 +3,7 @@
 # convert an ips package to svr4, from an on-disk repo
 #
 
-PKG_VERSION="0.14.0"
+PKG_VERSION="0.15.0"
 THOME=/packages/localsrc/Tribblix
 GATEDIR=/export/home/ptribble/Illumos/illumos-gate
 

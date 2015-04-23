@@ -3,11 +3,11 @@
 THOME=/packages/localsrc/Tribblix
 TPKGDIR=${THOME}/pkgs.sparc
 PKGDIR=${THOME}/opensxce-pkgs/pkgs
-IPKGDIR=${THOME}/illumos-pkgs-m14.sparc/pkgs
+IPKGDIR=${THOME}/illumos-pkgs-m15.sparc/pkgs
 DESTDIR=/export/tribblix/dist
 FDEFAULT=${THOME}/tribblix-build/pkg.default
 
-ILVER="0.14.0"
+ILVER="0.15.0"
 OXVER="2014"
 
 #
