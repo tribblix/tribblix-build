@@ -6,7 +6,7 @@
 #
 THOME=/packages/localsrc/Tribblix
 
-CMD=${THOME}/tribblix-build/repo2svr4.sh
+CMD=${THOME}/tribblix-build/ips2svr4.sh
 PNAME=${THOME}/tribblix-build/pkg_name.sh
 PKG2ZAP=${THOME}/tribblix-build/pkg2zap
 
