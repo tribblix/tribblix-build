@@ -3,7 +3,8 @@
 # convert an ips package to svr4, from an installed system
 #
 
-PKG_VERSION="0.10.0"
+PKG_VERSION="0.9o"
+THOME=/packages/localsrc/Tribblix
 
 #
 # high level strategy:
@@ -41,7 +42,8 @@ PKGDIR=/usr/bin
 #PKGDIR=/var/tmp/nbuild/sprate-0.09/bin
 PKGMK="${PKGDIR}/pkgmk"
 PKGTRANS="${PKGDIR}/pkgtrans"
-PNAME=/home/ptribble/Tribblix/pkg_name.sh
+PNAME=${THOME}/tribblix-build/pkg_name.sh
+TRANSDIR=${THOME}/tribblix-transforms
 
 #
 # global flags
@@ -61,6 +63,28 @@ usage() {
 bail_out() {
     rm -fr $BDIR $DSTDIR/tmp/${OUTPKG}
     exit 0
+}
+
+#
+# some drivers (ata is the only example I know of) claim more than 1 class
+# I can't find a way for add_drv to cope with this, so resort to
+# fiddling /etc/driver_classes by hand
+#
+# I assume that init_driver has been called already
+#
+# first argument is the driver, 2nd the class
+#
+add_driver_class() {
+NDRIVER=$1
+NCLASS=$2
+cat >>${BDIR}/install/postinstall <<EOF
+echo "$NDRIVER\t$NCLASS" >> \${BASEDIR}/etc/driver_classes
+EOF
+cat >>${BDIR}/install/postremove <<EOF
+cat \${BASEDIR}/etc/driver_classes | /bin/sed '/^${NDRIVER}.*${NCLASS}/d' > /tmp/adc.\$\$
+cp /tmp/adc.\$\$ \${BASEDIR}/etc/driver_classes
+rm /tmp/adc.\$\$
+EOF
 }
 
 #
@@ -182,12 +206,6 @@ EOF
 /usr/bin/cat ${BDIR}/restart_fmri_list | /usr/bin/sort | /usr/bin/uniq | /usr/bin/awk '{print "/usr/sbin/svcadm restart "$1}' >> ${BDIR}/install/postremove
 echo "fi" >> ${BDIR}/install/postinstall
 echo "fi" >> ${BDIR}/install/postremove
-#
-# some of the packages have broken dependencies, so we exit cleanly to
-# stop errors from missing services messing up pkgadd or pkgrm
-#
-echo "exit 0" >> ${BDIR}/install/postinstall
-echo "exit 0" >> ${BDIR}/install/postremove
 /usr/bin/rm ${BDIR}/restart_fmri_list
 fi
 }
@@ -208,6 +226,7 @@ PERMS=""
 CLONEPERMS=""
 ALIASES=""
 CLASS=""
+EXTRA_CLASSES=""
 for frag in "$@"
 do
     key=${frag%%=*}
@@ -232,7 +251,11 @@ alias)
     fi
     ;;
 class)
-    CLASS="-c $value"
+    if [ "x${CLASS}" = "x" ]; then
+	CLASS="-c $value"
+    else
+	EXTRA_CLASSES="${EXTRA_CLASSES} $value"
+    fi
     ;;
 *zone*)
     printf ""
@@ -244,6 +267,13 @@ clone_perms)
     echo unhandled driver action $frag
     ;;
 esac
+done
+#
+# add any extra driver classes
+#
+for NCLASS in $EXTRA_CLASSES
+do
+    add_driver_class $DNAME $NCLASS
 done
 #
 # ddi_pseudo confuses the parser, override where it breaks
@@ -621,6 +651,170 @@ esac
 esac
 }
 
+#
+# transform to replace a pathname in this package
+#
+# we look for an architecture-specific and a generic replacement
+# in the transforms hierarchy
+#
+transform_replace() {
+filepath=$1
+if [ -f ${BDIR}/${filepath} ]; then
+  if [ -f ${TRANSDIR}/$filepath.`uname -p` ]; then
+    cp ${TRANSDIR}/$filepath.`uname -p` ${BDIR}/${filepath}
+  elif [ -f ${TRANSDIR}/$filepath ]; then
+    cp ${TRANSDIR}/$filepath ${BDIR}/${filepath}
+  else
+    echo "WARN: transform_replace cannot find replacement for ${filepath}"
+  fi
+else
+  echo "WARN: transform_replace cannot find path ${filepath}"
+fi
+}
+
+#
+# transform to add a dependency
+#
+transform_depend() {
+pkgdep=$1
+init_depend
+echo "P ${pkgdep}" >> ${BDIR}/install/depend
+}
+
+#
+# transform to remove a dependency
+#
+transform_undepend() {
+pkgdep=$1
+if [ -f ${BDIR}/install/depend ]; then
+    mv ${BDIR}/install/depend ${BDIR}/install/depend.transform
+    cat ${BDIR}/install/depend.transform | egrep -v "P ${pkgdep}\$" > ${BDIR}/install/depend
+    rm ${BDIR}/install/depend.transform
+fi
+}
+
+#
+# transform to delete a pathname from this package
+#
+# we need to remove the file from our temporary area and from
+# the prototype file
+#
+transform_delete() {
+filepath=$1
+if [ -f ${BDIR}/${filepath} ]; then
+  /usr/bin/rm -f ${BDIR}/${filepath}
+else
+  echo "WARN: transform_delete cannot find path ${filepath}"
+fi
+/usr/bin/mv ${BDIR}/prototype ${BDIR}/prototype.transform
+cat ${BDIR}/prototype.transform | grep -v " ${filepath}=${filepath} " > ${BDIR}/prototype
+/usr/bin/rm ${BDIR}/prototype.transform
+}
+
+#
+# transform to delete a linked pathname from this package
+#
+# we need to remove the file from the prototype file
+#
+transform_linkdel() {
+filepath=$1
+/usr/bin/mv ${BDIR}/prototype ${BDIR}/prototype.transform
+cat ${BDIR}/prototype.transform | grep -v " ${filepath}=" > ${BDIR}/prototype
+/usr/bin/rm ${BDIR}/prototype.transform
+}
+
+#
+# transform to delete a directory pathname from this package
+#
+# we need to remove the directory from our temporary area and from
+# the prototype file
+#
+transform_rmdir() {
+filepath=$1
+if [ -d ${BDIR}/${filepath} ]; then
+  /usr/bin/rmdir ${BDIR}/${filepath}
+else
+  echo "WARN: transform_rmdir cannot find directory ${filepath}"
+fi
+if [ -d ${BDIR}/${filepath} ]; then
+  echo "WARN: transform_rmdir cannot remove directory ${filepath}"
+fi
+/usr/bin/mv ${BDIR}/prototype ${BDIR}/prototype.transform
+cat ${BDIR}/prototype.transform | egrep -v " none ${filepath} " > ${BDIR}/prototype
+/usr/bin/rm ${BDIR}/prototype.transform
+}
+
+#
+# transform to recursively delete a directory and everything under it
+#
+# we do nothing here, but transform all the links, files, and directories
+# that we find
+#
+# does not understand hard links, you will need to explicitly transform
+# those away first
+#
+transform_rrmdir() {
+filepath=$1
+if [ -d ${BDIR}/${filepath} ]; then
+  for npath in `cd $BDIR ; find ${filepath} -xdev -type f`
+  do
+    transform_delete $npath
+  done
+  for npath in `cd $BDIR ; find ${filepath} -xdev -type l`
+  do
+    transform_linkdel $npath
+  done
+  for npath in `cd $BDIR ; find ${filepath} -xdev -type d -depth`
+  do
+    transform_rmdir $npath
+  done
+else
+  echo "WARN: transform_rrmdir cannot find directory ${filepath}"
+fi
+if [ -d ${BDIR}/${filepath} ]; then
+  echo "WARN: transform_rrmdir cannot remove directory ${filepath}"
+fi
+}
+
+#
+# transform to add a file to this package
+# we get the copy of the file from the installed system
+#
+transform_add() {
+FTYPE="f"
+FCLASS="none"
+for frag in $*
+do
+    key=${frag%%=*}
+    nval=${frag#*=}
+    value=${nval%%=*}
+case $key in
+path)
+    filepath=$value
+    ;;
+mode)
+    mode=$value
+    ;;
+owner)
+    owner=$value
+    ;;
+group)
+    group=$value
+    ;;
+esac
+done
+dpath=`dirname $filepath`
+if [ ! -d ${BDIR}/${dpath} ]; then
+    mkdir -p ${BDIR}/${dpath}
+fi
+if [ -f ${BDIR}/${filepath} ]; then
+    echo "DBG: parsing $hash $line"
+    echo "WARN: path $filepath already exists in $dpath"
+fi
+/usr/bin/cp -p ${PROTODIR}/${filepath} ${BDIR}/${filepath}
+echo "${FTYPE} ${FCLASS} ${filepath}=${filepath} ${mode} ${owner} ${group}" >> ${BDIR}/prototype
+}
+
 case $# in
 2)
     INPKG=$1
@@ -845,17 +1039,79 @@ do
 done
 
 #
+# package transforms
+#
+if [ -f ${TRANSDIR}/${OUTPKG} ]; then
+cat ${TRANSDIR}/${OUTPKG} |
+{
+while read -r action pathname line ;
+do
+case $action in
+delete)
+    transform_delete $pathname
+    ;;
+linkdel)
+    transform_linkdel $pathname
+    ;;
+rmdir)
+    transform_rmdir $pathname
+    ;;
+rrmdir)
+    transform_rrmdir $pathname
+    ;;
+depend)
+    transform_depend $pathname
+    ;;
+undepend)
+    transform_undepend $pathname
+    ;;
+add)
+    transform_add path=$pathname $line
+    ;;
+replace)
+    transform_replace $pathname
+    ;;
+modify)
+    echo "DBG: gsed -i '$line' ${BDIR}/${pathname}"
+    gsed -i "$line" ${BDIR}/${pathname}
+    ;;
+*)
+    echo ...transform action $action not yet supported...
+    ;;
+esac
+
+done
+}
+fi
+
+#
 # if there were any services that need to be restarted, create install scripts
 #
 handle_restarts
+
+#
+# some of the packages have broken dependencies, so we exit cleanly to
+# stop errors from missing services messing up pkgadd or pkgrm
+#
+# also rem_drv doesn't exit cleanly
+#
+# in any case, the policy is that packaging should succeed so that we
+# can sort out errors later
+#
+if [ -f ${BDIR}/install/postinstall ]; then
+    echo "exit 0" >> ${BDIR}/install/postinstall
+fi
+if [ -f ${BDIR}/install/postremove ]; then
+    echo "exit 0" >> ${BDIR}/install/postremove
+fi
 
 #
 # build a package
 #
 cd $BDIR
 ${PKGMK} -d $DSTDIR/tmp -f prototype -r `pwd` ${OUTPKG} > /dev/null
-${PKGTRANS} -s $DSTDIR/tmp ${DSTDIR}/pkgs/${OUTPKG}.pkg ${OUTPKG} > /dev/null
-if [ -f ${DSTDIR}/pkgs/${OUTPKG}.pkg ]; then
+${PKGTRANS} -s $DSTDIR/tmp ${DSTDIR}/pkgs/${OUTPKG}.${PKG_VERSION}.pkg ${OUTPKG} > /dev/null
+if [ -f ${DSTDIR}/pkgs/${OUTPKG}.${PKG_VERSION}.pkg ]; then
     cd /
     bail_out
 fi
