@@ -2,13 +2,13 @@
 
 THOME=/packages/localsrc/Tribblix
 TPKGDIR=${THOME}/pkgs
-PKGDIR=${THOME}/oi-pkgs-0.8/pkgs
+PKGDIR=${THOME}/oi-pkgs-0.9/pkgs
 IPKGDIR=${THOME}/illumos-pkgs-m15/pkgs
 DESTDIR=/export/tribblix/dist
 FDEFAULT=${THOME}/tribblix-build/pkg.default
 
 ILVER="0.15.0"
-OIVER="0.8o"
+OIVER="0.9o"
 
 #
 # this is the base install, plus we add TRIBsys-install-media-internal
@@ -42,6 +42,8 @@ do
       echo "Installing $mypkg from Illumos"
   elif [ -f ${IPKGDIR}/${mypkg}.pkg ]; then
       echo "Installing $mypkg from Illumos"
+  elif [ -f ${PKGDIR}/${mypkg}.${OIVER}.pkg ]; then
+      echo "Installing $mypkg from OpenIndiana"
   elif [ -f ${PKGDIR}/${mypkg}.pkg ]; then
       echo "Installing $mypkg from OpenIndiana"
   else
@@ -83,6 +85,8 @@ do
     pkgadd -a ${FDEFAULT} -R $DESTDIR -d ${IPKGDIR}/${mypkg}.${ILVER}.pkg $mypkg
   elif [ -f ${IPKGDIR}/${mypkg}.pkg ]; then
     pkgadd -a ${FDEFAULT} -R $DESTDIR -d ${IPKGDIR}/${mypkg}.pkg $mypkg
+  elif [ -f ${PKGDIR}/${mypkg}.${OIVER}.pkg ]; then
+    pkgadd -a ${FDEFAULT} -R $DESTDIR -d ${PKGDIR}/${mypkg}.${OIVER}.pkg $mypkg
   else
     pkgadd -a ${FDEFAULT} -R $DESTDIR -d ${PKGDIR}/${mypkg}.pkg $mypkg
   fi

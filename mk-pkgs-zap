@@ -7,7 +7,7 @@
 DISTROOT=/export/tribblix/dist
 ZAPDIR=${DISTROOT}/pkgs
 THOME=/packages/localsrc/Tribblix
-OIPKGDIR=${THOME}/oi-pkgs-0.8
+OIPKGDIR=${THOME}/oi-pkgs-0.9
 IPKGDIR=${THOME}/illumos-pkgs-m15
 VARIANT=""
 OVDIR="overlays"
@@ -17,7 +17,7 @@ OVDIR="overlays"
 # based on the current release for OI/OpenSXCE
 #
 RELVER="0.15"
-OIVER="0.8o"
+OIVER="0.9o"
 ILVER="${RELVER}.0"
 
 case $# in
