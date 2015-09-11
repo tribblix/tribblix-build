@@ -997,6 +997,19 @@ EOF
 fi
 
 #
+# de-ctf scsi_vhci, just in case
+#
+if [ -f kernel/drv/scsi_vhci ]; then
+    mcs -d -n .SUNW_ctf kernel/drv/scsi_vhci
+fi
+if [ -f kernel/drv/amd64/scsi_vhci ]; then
+    mcs -d -n .SUNW_ctf kernel/drv/amd64/scsi_vhci
+fi
+if [ -f kernel/drv/sparcv9/scsi_vhci ]; then
+    mcs -d -n .SUNW_ctf kernel/drv/sparcv9/scsi_vhci
+fi
+
+#
 # package transforms
 #
 if [ -f ${TRANSDIR}/${OUTPKG} ]; then

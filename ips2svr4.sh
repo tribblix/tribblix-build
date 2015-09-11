@@ -1030,8 +1030,21 @@ EOF
 fi
 
 #
+# de-ctf scsi_vhci, just in case
+#
+if [ -f kernel/drv/scsi_vhci ]; then
+    mcs -d -n .SUNW_ctf kernel/drv/scsi_vhci
+fi
+if [ -f kernel/drv/amd64/scsi_vhci ]; then
+    mcs -d -n .SUNW_ctf kernel/drv/amd64/scsi_vhci
+fi
+if [ -f kernel/drv/sparcv9/scsi_vhci ]; then
+    mcs -d -n .SUNW_ctf kernel/drv/sparcv9/scsi_vhci
+fi
+
+#
 # if we find any other files with stupid timestamps, correct them again
-# using /etc/passwd as a reference so the pakages we generate are stable
+# using /etc/passwd as a reference so the packages we generate are stable
 #
 for dubiousfile in `find . -xdev -type f -mtime +10000`
 do
