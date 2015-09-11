@@ -272,8 +272,8 @@ touch ${ALTROOT}/reconfigure
 
 echo "Setting up boot"
 /usr/bin/mkdir -p ${ALTROOT}/boot/grub/bootsign ${ALTROOT}/etc
-touch ${ALTROOT}/boot/grub/bootsign/tribblix_15
-echo "tribblix_15" > ${ALTROOT}/etc/bootsign
+touch ${ALTROOT}/boot/grub/bootsign/tribblix_16
+echo "tribblix_16" > ${ALTROOT}/etc/bootsign
 
 #
 # copy any console settings to the running system
@@ -287,8 +287,8 @@ fi
 /usr/bin/cat > ${ALTROOT}/boot/grub/menu.lst << _EOF
 default 0
 timeout 10
-title Tribblix 0.15
-findroot (tribblix_15,0,a)
+title Tribblix 0.16
+findroot (tribblix_16,0,a)
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix${BCONSOLE}
 module\$ /platform/i86pc/\$ISADIR/boot_archive
 _EOF
