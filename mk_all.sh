@@ -19,7 +19,8 @@ do
 done
 
 
-for file in /var/tmp/created-pkgs/pkgs/*
+for file in /var/tmp/created-pkgs/pkgs/*.pkg
 do
     $PKG2ZAP $file /var/tmp/created-pkgs/pkgs
+    openssl md5 ${file%.pkg}.zap | /usr/bin/awk '{print $NF}' > ${file%.pkg}.zap.md5
 done

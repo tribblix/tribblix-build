@@ -22,7 +22,8 @@ do
     $CMD $file `$PNAME $file`
 done
 
-for file in /var/tmp/illumos-pkgs/pkgs/*
+for file in /var/tmp/illumos-pkgs/pkgs/*.pkg
 do
     $PKG2ZAP $file /var/tmp/illumos-pkgs/pkgs
+    openssl md5 ${file%.pkg}.zap | /usr/bin/awk '{print $NF}' > ${file%.pkg}.zap.md5
 done
