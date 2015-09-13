@@ -8,6 +8,7 @@ DISTROOT=/export/tribblix/dist
 ZAPDIR=${DISTROOT}/pkgs
 THOME=/packages/localsrc/Tribblix
 OIPKGDIR=${THOME}/oi-pkgs-0.9
+OIREPODIR=${THOME}/repo-master/oi-151a9
 IPKGDIR=${THOME}/illumos-pkgs-m16
 VARIANT=""
 OVDIR="overlays"
@@ -120,18 +121,46 @@ rm -f $TFILE
 # preload package catalogs and aliases
 #
 cd ${THOME}/build
-./create-catalog > ${DISTROOT}/etc/zap/repositories/tribblix.catalog
-./create-oi-catalog > ${DISTROOT}/etc/zap/repositories/oi.catalog
-./create-illumos-catalog > ${DISTROOT}/etc/zap/repositories/illumos.catalog
-./create-aliases > ${DISTROOT}/etc/zap/repositories/tribblix.aliases
-./create-oi-aliases > ${DISTROOT}/etc/zap/repositories/oi.aliases
-./create-illumos-aliases > ${DISTROOT}/etc/zap/repositories/illumos.aliases
+if [ -f ${THOME}/pkgs/catalog ]; then
+    cp ${THOME}/pkgs/catalog ${DISTROOT}/etc/zap/repositories/tribblix.catalog
+else
+    ./create-catalog > ${DISTROOT}/etc/zap/repositories/tribblix.catalog
+fi
+if [ -f ${OIREPODIR}/catalog ]; then
+    cp ${OIREPODIR}/catalog ${DISTROOT}/etc/zap/repositories/oi.catalog
+else
+    ./create-oi-catalog > ${DISTROOT}/etc/zap/repositories/oi.catalog
+fi
+if [ -f ${IPKGDIR}/pkgs/catalog ]; then
+    cp ${IPKGDIR}/pkgs/catalog ${DISTROOT}/etc/zap/repositories/illumos.catalog
+else
+    ./create-illumos-catalog > ${DISTROOT}/etc/zap/repositories/illumos.catalog
+fi
+if [ -f ${THOME}/pkgs/aliases ]; then
+    cp ${THOME}/pkgs/aliases ${DISTROOT}/etc/zap/repositories/tribblix.aliases
+else
+    ./create-aliases > ${DISTROOT}/etc/zap/repositories/tribblix.aliases
+fi
+if [ -f ${OIREPODIR}/aliases ]; then
+    cp ${OIREPODIR}/aliases ${DISTROOT}/etc/zap/repositories/oi.aliases
+else
+    ./create-oi-aliases > ${DISTROOT}/etc/zap/repositories/oi.aliases
+fi
+if [ -f ${IPKGDIR}/pkgs/aliases ]; then
+    cp ${IPKGDIR}/pkgs/aliases ${DISTROOT}/etc/zap/repositories/illumos.aliases
+else
+    ./create-illumos-aliases > ${DISTROOT}/etc/zap/repositories/illumos.aliases
+fi
 
 #
 # preload overlay catalog
 #
 cd ${THOME}/${OVDIR}
-${THOME}/build/create-overlay-catalog > ${DISTROOT}/etc/zap/repositories/tribblix.overlays
+if [ -f catalog ]; then
+    cp catalog ${DISTROOT}/etc/zap/repositories/tribblix.overlays
+else
+    ${THOME}/build/create-overlay-catalog > ${DISTROOT}/etc/zap/repositories/tribblix.overlays
+fi
 
 #
 # show the space used

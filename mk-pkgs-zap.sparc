@@ -120,18 +120,42 @@ rm -f $TFILE
 # preload package catalogs and aliases
 #
 cd ${THOME}/build
-./create-catalog ../pkgs.sparc > ${DISTROOT}/etc/zap/repositories/tribblix.catalog
-./create-opensxce-catalog ${OXPKGDIR}/pkgs > ${DISTROOT}/etc/zap/repositories/opensxce.catalog
-./create-illumos-catalog ${IPKGDIR}/pkgs > ${DISTROOT}/etc/zap/repositories/illumos.catalog
-./create-aliases ../pkgs.sparc > ${DISTROOT}/etc/zap/repositories/tribblix.aliases
-./create-illumos-aliases ${IPKGDIR}/pkgs > ${DISTROOT}/etc/zap/repositories/illumos.aliases
+if [ -f ${THOME}/pkgs.sparc/catalog ]; then
+    cp ${THOME}/pkgs.sparc/catalog ${DISTROOT}/etc/zap/repositories/tribblix.catalog
+else
+    ./create-catalog ../pkgs.sparc > ${DISTROOT}/etc/zap/repositories/tribblix.catalog
+fi
+if [ -f ${OXPKGDIR}/pkgs/catalog ]; then
+    cp ${OXPKGDIR}/pkgs/catalog ${DISTROOT}/etc/zap/repositories/opensxce.catalog
+else
+    ./create-opensxce-catalog ${OXPKGDIR}/pkgs > ${DISTROOT}/etc/zap/repositories/opensxce.catalog
+fi
+if [ -f ${IPKGDIR}/pkgs/catalog ]; then
+    cp ${IPKGDIR}/pkgs/catalog ${DISTROOT}/etc/zap/repositories/illumos.catalog
+else
+    ./create-illumos-catalog ${IPKGDIR}/pkgs > ${DISTROOT}/etc/zap/repositories/illumos.catalog
+fi
+if [ -f ${THOME}/pkgs.sparc/aliases ]; then
+    cp ${THOME}/pkgs.sparc/aliases ${DISTROOT}/etc/zap/repositories/tribblix.aliases
+else
+    ./create-aliases ../pkgs.sparc > ${DISTROOT}/etc/zap/repositories/tribblix.aliases
+fi
+if [ -f ${IPKGDIR}/pkgs/aliases ]; then
+    cp ${IPKGDIR}/pkgs/aliases ${DISTROOT}/etc/zap/repositories/illumos.aliases
+else
+    ./create-illumos-aliases ${IPKGDIR}/pkgs > ${DISTROOT}/etc/zap/repositories/illumos.aliases
+fi
 touch ${DISTROOT}/etc/zap/repositories/opensxce.aliases
 
 #
 # preload overlay catalog
 #
 cd ${THOME}/${OVDIR}
-${THOME}/build/create-overlay-catalog > ${DISTROOT}/etc/zap/repositories/tribblix.overlays
+if [ -f catalog ]; then
+    cp catalog ${DISTROOT}/etc/zap/repositories/tribblix.overlays
+else
+    ${THOME}/build/create-overlay-catalog > ${DISTROOT}/etc/zap/repositories/tribblix.overlays
+fi
 
 #
 # show the space used
