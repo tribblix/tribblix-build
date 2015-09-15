@@ -949,16 +949,7 @@ if [ -f etc/logadm.conf ]; then
     touch -r /etc/passwd etc/logadm.conf
 fi
 if [ -f etc/user_attr ]; then
-    cat /etc/user_attr | grep -v ptribble > etc/user_attr
     touch -r /etc/passwd etc/user_attr
-fi
-if [ -f etc/passwd ]; then
-    cat /etc/passwd | grep -v ptribble > etc/passwd
-    touch -r /etc/passwd etc/passwd
-fi
-if [ -f etc/shadow ]; then
-    cat /etc/shadow | grep -v ptribble > etc/shadow
-    touch -r /etc/passwd etc/shadow
 fi
 if [ -f etc/security/auth_attr ]; then
     touch -r /etc/passwd etc/security/auth_attr
@@ -968,32 +959,6 @@ if [ -f etc/security/exec_attr ]; then
 fi
 if [ -f etc/security/prof_attr ]; then
     touch -r /etc/passwd etc/security/prof_attr
-fi
-if [ -f etc/inet/hosts ]; then
-    HNAME=`/usr/bin/hostname`
-    cat /etc/inet/hosts | sed s:${HNAME}:tribblix:g > etc/inet/hosts
-    touch -r /etc/passwd etc/inet/hosts
-fi
-if [ -f root/.bashrc ]; then
-cat > root/.bashrc <<EOF
-PS1='\u@\h:\w\\\$ '
-EOF
-fi
-if [ -f root/.profile ]; then
-cat > root/.profile <<EOF
-#
-# Simple profile places /usr/gnu/bin at front,
-# adds /usr/sbin and /sbin to the end.
-#
-export PATH=/usr/gnu/bin:/usr/bin:/usr/sbin:/sbin
-export PAGER="more -s"
-
-#
-# Define default prompt to <username>@<hostname>:<path><"($|#) "
-#
-PS1='root@\$(/usr/bin/hostname):\$(
-    printf "%s" "\${PWD/\${HOME}/~}# ")'
-EOF
 fi
 
 #
