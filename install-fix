@@ -15,7 +15,7 @@ esac
 #
 case `uname -p` in
 i386)
-	MRSIZE=160m
+	MRSIZE=156m
 	NBPI=16384
 	XARCH="i86"
 	;;
