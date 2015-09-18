@@ -716,6 +716,23 @@ cat ${BDIR}/prototype.transform | grep -v " ${filepath}=${filepath} " > ${BDIR}/
 }
 
 #
+# transform to change the ftype of a pathname from this package
+#
+transform_type() {
+filepath=$1
+newtype=$2
+if [ -f ${BDIR}/${filepath} ]; then
+  /usr/bin/mv ${BDIR}/prototype ${BDIR}/prototype.transform
+  cat ${BDIR}/prototype.transform | grep " ${filepath}=${filepath} " | read otype oclass opath operm ouser ogroup
+  cat ${BDIR}/prototype.transform | grep -v " ${filepath}=${filepath} " > ${BDIR}/prototype
+  echo "${newtype} ${oclass} ${opath} ${operm} ${ouser} ${ogroup}" >> ${BDIR}/prototype
+  /usr/bin/rm ${BDIR}/prototype.transform
+else
+  echo "WARN: transform_type cannot find $filepath"
+fi
+}
+
+#
 # transform to delete a linked pathname from this package
 #
 # we need to remove the file from the prototype file
@@ -994,6 +1011,9 @@ rmdir)
     ;;
 rrmdir)
     transform_rrmdir $pathname
+    ;;
+type)
+    transform_type $pathname $line
     ;;
 depend)
     transform_depend $pathname
