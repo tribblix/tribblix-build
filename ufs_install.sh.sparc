@@ -202,7 +202,7 @@ TMPDIR=/tmp
 export TMPDIR
 PKGMEDIA=`/sbin/devprop install_pkgs`
 if [ -d ${PKGLOC} ]; then
-    for overlay in base-extras $*
+    for overlay in base $*
     do
 	echo "Installing $overlay overlay" | tee -a $LOGFILE
 	/usr/lib/zap/install-overlay -R ${ALTROOT} -s ${PKGLOC} $overlay | tee -a $LOGFILE
@@ -216,7 +216,7 @@ else
     echo "DESC=Tribblix packages from CD image" >> /etc/zap/repositories/cdrom.repo
     echo "URL=${PKGMEDIA}" >> /etc/zap/repositories/cdrom.repo
     /usr/lib/zap/refresh-catalog cdrom
-    for overlay in base-extras $*
+    for overlay in base $*
     do
 	echo "Installing $overlay overlay" | tee -a $LOGFILE
 	/usr/lib/zap/install-overlay -R ${ALTROOT} $overlay | tee -a $LOGFILE

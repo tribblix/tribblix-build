@@ -14,7 +14,7 @@ OIVER="0.9o"
 # this is the base install, plus we add TRIBsys-install-media-internal
 # to the iso
 #
-PKGLIST=${THOME}/overlays/base.pkgs
+PKGLIST=${THOME}/overlays/base-iso.pkgs
 
 case $# in
 1)

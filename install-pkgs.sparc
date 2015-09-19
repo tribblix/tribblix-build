@@ -14,7 +14,7 @@ OXVER="2014"
 # this is the base install, plus we add TRIBsys-install-media-internal
 # to the iso
 #
-PKGLIST=${THOME}/overlays.sparc/base.pkgs
+PKGLIST=${THOME}/overlays.sparc/base-iso.pkgs
 
 case $# in
 1)
