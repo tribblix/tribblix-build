@@ -81,7 +81,7 @@ do
 done
 
 #
-# need to mark the base overlay as installed
+# need to mark the base-iso overlay as installed
 #
 mkdir -p ${DESTDIR}/var/sadm/overlays/installed
-touch ${DESTDIR}/var/sadm/overlays/installed/base
+touch ${DESTDIR}/var/sadm/overlays/installed/base-iso
