@@ -514,7 +514,7 @@ for frag in "$*"
 do
     eval "$frag"
 done
-NAME="$name"
+NAME=`echo $name| sed -e 's:, (Root)::' -e 's: (Root)::' -e 's:, (Usr)::' -e 's: (Usr)::' -e 's: (root)::'`
 VERSION="$PKG_VERSION"
 IPS_VERSION="$version"
 ARCH="$arch"
