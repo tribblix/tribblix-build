@@ -336,6 +336,16 @@ elif [ -f ${SMFREPODIR}/repository-installed.db.gz ]; then
 else
     /usr/bin/cp -p /lib/svc/seed/global.db ${ALTROOT}/etc/svc/repository.db
 fi
+#
+# We have an x11 version because we have to enable hal
+#
+if [ -f ${ALTROOT}/var/sadm/overlays/installed/x11 ]; then
+    if [ -f ${SMFREPODIR}/repository-x11.db.gz ]; then
+	/usr/bin/rm ${ALTROOT}/etc/svc/repository.db
+	/usr/bin/cp -p ${SMFREPODIR}/repository-x11.db.gz ${ALTROOT}/etc/svc/repository.db.gz
+	/usr/bin/gunzip ${ALTROOT}/etc/svc/repository.db.gz
+    fi
+fi
 if [ -f ${ALTROOT}/var/sadm/overlays/installed/kitchen-sink ]; then
     if [ -f ${SMFREPODIR}/repository-kitchen-sink.db.gz ]; then
 	/usr/bin/rm ${ALTROOT}/etc/svc/repository.db
