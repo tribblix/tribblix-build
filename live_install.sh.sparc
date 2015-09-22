@@ -275,6 +275,12 @@ cd dev
 cd /
 
 #
+# delete mkisofs from the installed image, we have an unpackaged copy
+# on the bootable /usr which we use to optimize boot archive creation
+#
+/usr/bin/rm -f ${ALTROOT}/usr/bin/mkisofs
+
+#
 # add overlays, from the pkgs directory on the iso
 # or an alternate location supplied by boot
 #

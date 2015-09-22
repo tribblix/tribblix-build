@@ -73,6 +73,13 @@ _EOF
 esac
 
 #
+# Add an unpackaged copy of mkisofs to the bootable media which we use to
+# optimize boot archive creation. The installers will remove this file from the
+# installed system (allowing a pkgadd of cdrtools to install it properly)
+#
+cp /usr/bin/mkisofs ${DESTDIR}/usr/bin/mkisofs
+
+#
 # customize jack's environment
 #
 if [ ! -d ${DESTDIR}/jack ]; then
