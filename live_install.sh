@@ -546,6 +546,7 @@ fi
 # remount zfs filesystem in the right place for next boot
 #
 /usr/sbin/zfs set mountpoint=/export ${ROOTPOOL}/export
+/usr/sbin/zfs set canmount=noauto ${ROOTPOOL}/ROOT/tribblix
 /usr/sbin/zfs set mountpoint=/ ${ROOTPOOL}/ROOT/tribblix
 
 #
