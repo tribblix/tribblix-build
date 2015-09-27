@@ -97,3 +97,9 @@ done
 #
 mkdir -p ${DESTDIR}/var/sadm/overlays/installed
 touch ${DESTDIR}/var/sadm/overlays/installed/base-iso
+
+#
+# close pkgserv to stop it holding files open
+#
+sync
+pkgadm sync -R ${DESTDIR} -q
