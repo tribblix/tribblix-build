@@ -37,7 +37,7 @@ esac
 #
 case $1 in
 32)
-	MRSIZE=88m
+	MRSIZE=68m
 	NBPI=16384
 	XARCH="i86"
 	;;
@@ -153,7 +153,7 @@ rm -f ${DESTDIR}/boot/splashimage.xpm
 # svcadm and fstyp
 #
 # net-fs-root needs tmpfs mount
-#  plus wget, which pulls in libidn and libgcc_s
+#  plus wget, which pulls in libidn
 #  and needs both architectures of prtconf, and libpcidb
 #  and add the whole of boot so we don't need to get it from anywhere else
 #
@@ -186,7 +186,7 @@ tar cf - bin/cat bin/head bin/${XARCH}/ksh93 bin/ls bin/sh sbin/lofiadm \
         bin/sed bin/cut sbin/svcadm \
         lib/fs/ufs/fstyp* lib/fs/hsfs/fstyp* lib/libfstyp.so* \
         lib/libzonecfg* lib/libbrand* \
-        lib/libidn.s* bin/wget lib/fs/tmpfs/mount lib/libgcc_s.so.1 \
+        lib/libidn.s* bin/wget lib/fs/tmpfs/mount \
         lib/libproject.so lib/libproject.so.1 lib/libshell.so.1 \
         lib/libcmd.so.1 lib/libast.so.1 lib/libsum.so.1 lib/libdll.so.1 \
         lib/libidmap.so lib/libidmap.so.1 lib/libpkcs11.so lib/libpkcs11.so.1 \
