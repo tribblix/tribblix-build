@@ -232,7 +232,7 @@ echo "Overlay installation complete" | tee -a $LOGFILE
 /usr/bin/date | tee -a $LOGFILE
 
 echo "Deleting live package"
-/usr/sbin/pkgrm -n -a /usr/lib/zap/pkg.force -R ${ALTROOT} TRIBsys-install-media-internal
+/usr/bin/zap uninstall -R ${ALTROOT} TRIBsys-install-media-internal
 
 #
 # fix /etc/system
