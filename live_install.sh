@@ -390,7 +390,7 @@ fi
 #
 /usr/bin/cat > /${ROOTPOOL}/boot/grub/menu.lst << _EOF
 default 0
-timeout 10
+timeout 3
 title Tribblix 0.16
 findroot (pool_${ROOTPOOL},0,a)
 bootfs ${ROOTPOOL}/ROOT/tribblix

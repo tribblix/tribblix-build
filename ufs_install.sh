@@ -302,7 +302,7 @@ fi
 
 /usr/bin/cat > ${ALTROOT}/boot/grub/menu.lst << _EOF
 default 0
-timeout 10
+timeout 3
 title Tribblix 0.16
 findroot (tribblix_16,0,a)
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix${BCONSOLE}
