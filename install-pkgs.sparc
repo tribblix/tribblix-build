@@ -6,6 +6,7 @@ PKGDIR=${THOME}/opensxce-pkgs/pkgs
 IPKGDIR=${THOME}/illumos-pkgs-m16.sparc/pkgs
 DESTDIR=/export/tribblix/dist
 FDEFAULT=${THOME}/tribblix-build/pkg.default
+INSTZAP=/usr/lib/zap/instzap
 
 ILVER="0.16.0"
 OXVER="2014"
@@ -34,11 +35,11 @@ do
   if [ -f ${PKGI} ]; then
       THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
   fi
-  if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.pkg ]; then
+  if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.zap ]; then
       echo "Installing $mypkg from Tribblix"
-  elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.pkg ]; then
+  elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.zap ]; then
       echo "Installing $mypkg from Illumos"
-  elif [ -f ${PKGDIR}/${mypkg}.${OXVER}.pkg ]; then
+  elif [ -f ${PKGDIR}/${mypkg}.${OXVER}.zap ]; then
       echo "Installing $mypkg from OpenSXCE"
   else
       echo "ERROR: package $mypkg not found"
@@ -53,6 +54,11 @@ fi
 
 if [ ! -d ${DESTDIR} ]; then
     echo "ERROR: Target destination ${DESTDIR} not found, install aborted"
+    exit 1
+fi
+
+if [ ! -x ${INSTZAP} ]; then
+    echo "No installer $INSTZAP, install aborted"
     exit 1
 fi
 
@@ -71,12 +77,12 @@ do
   if [ -f ${PKGI} ]; then
       THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
   fi
-  if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.pkg ]; then
-    pkgadd -a ${FDEFAULT} -R $DESTDIR -d ${TPKGDIR}/${mypkg}.${THISVER}.pkg $mypkg
-  elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.pkg ]; then
-    pkgadd -a ${FDEFAULT} -R $DESTDIR -d ${IPKGDIR}/${mypkg}.${ILVER}.pkg $mypkg
+  if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.zap ]; then
+    $INSTZAP -R $DESTDIR ${TPKGDIR}/${mypkg}.${THISVER}.zap $mypkg
+  elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.zap ]; then
+    $INSTZAP -R $DESTDIR ${IPKGDIR}/${mypkg}.${ILVER}.zap $mypkg
   else
-    pkgadd -a ${FDEFAULT} -R $DESTDIR -d ${PKGDIR}/${mypkg}.${OXVER}.pkg $mypkg
+    $INSTZAP -R $DESTDIR ${PKGDIR}/${mypkg}.${OXVER}.zap $mypkg
   fi
 done
 

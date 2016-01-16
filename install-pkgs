@@ -6,6 +6,7 @@ PKGDIR=${THOME}/oi-pkgs-0.9/pkgs
 IPKGDIR=${THOME}/illumos-pkgs-m16/pkgs
 DESTDIR=/export/tribblix/dist
 FDEFAULT=${THOME}/tribblix-build/pkg.default
+INSTZAP=/usr/lib/zap/instzap
 
 ILVER="0.16.0"
 OIVER="0.9o"
@@ -34,17 +35,11 @@ do
   if [ -f ${PKGI} ]; then
       THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
   fi
-  if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.pkg ]; then
+  if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.zap ]; then
       echo "Installing $mypkg from Tribblix"
-  elif [ -f ${TPKGDIR}/${mypkg}.pkg ]; then
-      echo "Installing unversioned $mypkg from Tribblix"
-  elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.pkg ]; then
+  elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.zap ]; then
       echo "Installing $mypkg from Illumos"
-  elif [ -f ${IPKGDIR}/${mypkg}.pkg ]; then
-      echo "Installing $mypkg from Illumos"
-  elif [ -f ${PKGDIR}/${mypkg}.${OIVER}.pkg ]; then
-      echo "Installing $mypkg from OpenIndiana"
-  elif [ -f ${PKGDIR}/${mypkg}.pkg ]; then
+  elif [ -f ${PKGDIR}/${mypkg}.${OIVER}.zap ]; then
       echo "Installing $mypkg from OpenIndiana"
   else
       echo "ERROR: package $mypkg not found"
@@ -59,6 +54,11 @@ fi
 
 if [ ! -d ${DESTDIR} ]; then
     echo "ERROR: Target destination ${DESTDIR} not found, install aborted"
+    exit 1
+fi
+
+if [ ! -x ${INSTZAP} ]; then
+    echo "No installer $INSTZAP, install aborted"
     exit 1
 fi
 
@@ -77,18 +77,12 @@ do
   if [ -f ${PKGI} ]; then
       THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
   fi
-  if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.pkg ]; then
-    pkgadd -a ${FDEFAULT} -R $DESTDIR -d ${TPKGDIR}/${mypkg}.${THISVER}.pkg $mypkg
-  elif [ -f ${TPKGDIR}/${mypkg}.pkg ]; then
-    pkgadd -a ${FDEFAULT} -R $DESTDIR -d ${TPKGDIR}/${mypkg}.pkg $mypkg
-  elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.pkg ]; then
-    pkgadd -a ${FDEFAULT} -R $DESTDIR -d ${IPKGDIR}/${mypkg}.${ILVER}.pkg $mypkg
-  elif [ -f ${IPKGDIR}/${mypkg}.pkg ]; then
-    pkgadd -a ${FDEFAULT} -R $DESTDIR -d ${IPKGDIR}/${mypkg}.pkg $mypkg
-  elif [ -f ${PKGDIR}/${mypkg}.${OIVER}.pkg ]; then
-    pkgadd -a ${FDEFAULT} -R $DESTDIR -d ${PKGDIR}/${mypkg}.${OIVER}.pkg $mypkg
-  else
-    pkgadd -a ${FDEFAULT} -R $DESTDIR -d ${PKGDIR}/${mypkg}.pkg $mypkg
+  if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.zap ]; then
+    $INSTZAP -R $DESTDIR ${TPKGDIR}/${mypkg}.${THISVER}.zap ${mypkg}
+  elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.zap ]; then
+    $INSTZAP -R $DESTDIR ${IPKGDIR}/${mypkg}.${ILVER}.zap ${mypkg}
+  elif [ -f ${PKGDIR}/${mypkg}.${OIVER}.zap ]; then
+    $INSTZAP -R $DESTDIR ${PKGDIR}/${mypkg}.${OIVER}.zap ${mypkg}
   fi
 done
 
