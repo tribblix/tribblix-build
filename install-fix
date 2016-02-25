@@ -2,6 +2,8 @@
 
 DESTTOP=/export/tribblix
 DESTDIR=${DESTTOP}/dist
+THOME=/packages/localsrc/Tribblix
+MKREPO=${THOME}/tribblix-build/mkrepo
 
 case $# in
 1)
@@ -129,7 +131,7 @@ ${DESTDIR}/usr/sbin/devfsadm -r ${DESTDIR}
 if [ -f ${DESTTOP}/prebuilt/repository.db ]; then
     cp -p ${DESTTOP}/prebuilt/repository.db ${DESTDIR}/etc/svc/repository.db
 else
-    env SVCCFG_CHECKHASH=1 /usr/share/distro_const/mkrepo ${DESTDIR} ${DESTDIR}
+    env SVCCFG_CHECKHASH=1 $MKREPO ${DESTDIR} ${DESTDIR}
 fi
 if [ -d ${DESTTOP}/prebuilt ]; then
     cd ${DESTTOP}/prebuilt
@@ -214,7 +216,7 @@ touch reconfigure
 if [ -f ${DESTTOP}/prebuilt/repository.db ]; then
     cp -p ${DESTTOP}/prebuilt/repository.db ${BFS}/etc/svc/repository.db
 else
-    env SVCCFG_CHECKHASH=1 /usr/share/distro_const/mkrepo ${BFS} ${BFS}
+    env SVCCFG_CHECKHASH=1 $MKREPO ${BFS} ${BFS}
 fi
 cd /
 DF=/usr/bin/df
