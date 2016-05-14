@@ -3,12 +3,12 @@
 THOME=/packages/localsrc/Tribblix
 TPKGDIR=${THOME}/pkgs.sparc
 PKGDIR=${THOME}/opensxce-pkgs/pkgs
-IPKGDIR=${THOME}/illumos-pkgs-m16.sparc/pkgs
+IPKGDIR=${THOME}/illumos-pkgs-m17.sparc/pkgs
 DESTDIR=/export/tribblix/dist
 FDEFAULT=${THOME}/tribblix-build/pkg.default
 INSTZAP=/usr/lib/zap/instzap
 
-ILVER="0.16.0"
+ILVER="0.17.0"
 OXVER="2014"
 
 #
