@@ -256,10 +256,11 @@ echo "Adding extra directories"
 cd ${ALTROOT}
 /usr/bin/ln -s ./usr/bin .
 /usr/bin/mkdir -m 1777 tmp
-/usr/bin/mkdir -p system/contract system/object proc mnt dev devices/pseudo
+/usr/bin/mkdir -p system/contract system/object system/boot proc mnt dev devices/pseudo
 /usr/bin/mkdir -p dev/fd dev/rmt dev/swap dev/dsk dev/rdsk dev/net dev/ipnet
 /usr/bin/mkdir -p dev/sad dev/pts dev/term dev/vt dev/zcons
-/usr/bin/chgrp -R sys dev devices
+/usr/bin/chgrp -R sys dev devices mnt
+/usr/bin/chmod 555 system system/* proc
 cd dev
 /usr/bin/ln -s ./fd/2 stderr
 /usr/bin/ln -s ./fd/1 stdout
