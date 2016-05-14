@@ -134,7 +134,7 @@ fi
 if [ -f ${IPKGDIR}/pkgs/catalog ]; then
     cp ${IPKGDIR}/pkgs/catalog ${DISTROOT}/etc/zap/repositories/illumos.catalog
 else
-    ./create-illumos-catalog > ${DISTROOT}/etc/zap/repositories/illumos.catalog
+    ./create-illumos-catalog ${IPKGDIR}/pkgs > ${DISTROOT}/etc/zap/repositories/illumos.catalog
 fi
 if [ -f ${THOME}/pkgs/aliases ]; then
     cp ${THOME}/pkgs/aliases ${DISTROOT}/etc/zap/repositories/tribblix.aliases
@@ -149,7 +149,7 @@ fi
 if [ -f ${IPKGDIR}/pkgs/aliases ]; then
     cp ${IPKGDIR}/pkgs/aliases ${DISTROOT}/etc/zap/repositories/illumos.aliases
 else
-    ./create-illumos-aliases > ${DISTROOT}/etc/zap/repositories/illumos.aliases
+    ./create-illumos-aliases ${IPKGDIR}/pkgs > ${DISTROOT}/etc/zap/repositories/illumos.aliases
 fi
 
 #
