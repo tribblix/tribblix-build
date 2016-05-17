@@ -77,6 +77,8 @@ mkdir -p ${DESTDIR}/root
 case `uname -p` in
 i386)
 	cp ${TBHOME}/live_install.sh ${DESTDIR}/root
+	cp ${TBHOME}/over_install.sh ${DESTDIR}/root
+	chmod a+x ${DESTDIR}/root/over_install.sh
 	cp ${TBHOME}/format-a-disk.sh ${DESTDIR}/root
 	cp ${TBHOME}/ufs_install.sh ${DESTDIR}/root
 	;;
