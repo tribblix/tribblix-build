@@ -8,6 +8,7 @@ ROOTPOOL="rpool"
 DRIVELIST=""
 SWAPSIZE="2g"
 ZFSARGS=""
+COMPRESSARGS=""
 BFLAG=""
 REBOOT="no"
 OVERLAYS=""
@@ -106,10 +107,13 @@ fi
 #
 # interactive argument handling
 #
-while getopts "Bm:n:s:t:" opt; do
+while getopts "BCm:n:s:t:" opt; do
     case $opt in
         B)
 	    BFLAG="-B"
+	    ;;
+        C)
+	    COMPRESSARGS="-O compression=lz4"
 	    ;;
         m)
 	    ZFSARGS="mirror"
@@ -231,7 +235,7 @@ esac
 #
 /usr/bin/mkdir -p ${ALTROOT}
 echo "Creating root pool"
-/usr/sbin/zpool create -f -o failmode=continue ${ROOTPOOL} $ZFSARGS $DRIVELIST
+/usr/sbin/zpool create -f -o failmode=continue ${COMPRESSARGS} ${ROOTPOOL} $ZFSARGS $DRIVELIST
 
 echo "Creating filesystems"
 /usr/sbin/zfs create -o mountpoint=legacy ${ROOTPOOL}/ROOT

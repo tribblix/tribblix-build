@@ -8,6 +8,7 @@ ROOTPOOL="rpool"
 DRIVELIST=""
 SWAPSIZE="2g"
 ZFSARGS=""
+COMPRESSARGS=""
 BFLAG=""
 REBOOT="no"
 OVERLAYS=""
@@ -106,10 +107,14 @@ fi
 #
 # interactive argument handling
 #
-while getopts "Bm:n:s:t:" opt; do
+while getopts "BCm:n:s:t:" opt; do
     case $opt in
         B)
 	    BFLAG="-B"
+	    ;;
+        C)
+	    # not yet supported on sparc COMPRESSARGS="-O compression=lz4"
+	    COMPRESSARGS=""
 	    ;;
         m)
 	    ZFSARGS="mirror"
@@ -237,8 +242,9 @@ echo "Creating root pool"
 # be used for metadata compression and immediately made active
 # worse, you can't create a pool with it disabled other than
 # fixing the version
+# similarly, -C is understood but is a no-op
 #
-/usr/sbin/zpool create -f -o version=28 -o failmode=continue ${ROOTPOOL} $ZFSARGS $DRIVELIST
+/usr/sbin/zpool create -f -o version=28 -o failmode=continue ${COMPRESSARGS} ${ROOTPOOL} $ZFSARGS $DRIVELIST
 
 echo "Creating filesystems"
 /usr/sbin/zfs create -o mountpoint=legacy ${ROOTPOOL}/ROOT
