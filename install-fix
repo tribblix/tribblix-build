@@ -106,7 +106,6 @@ if [ ! -d ${DESTDIR}/jack/.config ]; then
     cd ${DESTDIR}/jack
     tar xf ${DESTTOP}/prebuilt/dot-config.tar
     chown -R 123:10 .config
-    rm -fr .config/xfce4/panel/launcher-10
   fi
 fi
 cp ${DESTDIR}/root/.bashrc ${DESTDIR}/jack/.bashrc
