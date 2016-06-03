@@ -38,6 +38,13 @@ PKGLOC="/.cdrom/pkgs"
 SMFREPODIR="/usr/lib/zap"
 ALTROOT="/a"
 
+WCLIENT=/usr/bin/curl
+WARGS="-f -s -S --retry 6 -o"
+if [ ! -x $WCLIENT ]; then
+    WCLIENT=/usr/bin/wget
+    WARGS="-q --tries=6 --retry-connrefused --waitretry=2 -O"
+fi
+
 #
 # read an external configuration file, if supplied
 #
@@ -64,7 +71,7 @@ http*)
 	do
 	    sleep $DELAY
 	    DELAY=$(($DELAY+1))
-	    /usr/bin/curl -f -s -S --retry 6 -o $TMPF $IPROFILE
+	    ${WCLIENT} ${WARGS} $TMPF $IPROFILE
 	done
 	. $TMPF
 	rm -fr $TMPF
@@ -95,7 +102,7 @@ nfs*)
 	;;
 http*)
 	TMPF="/tmp/profile.$$"
-	/usr/bin/curl -f -s -S --retry 6 -o $TMPF $BEGIN_SCRIPT
+	${WCLIENT} ${WARGS} $TMPF $BEGIN_SCRIPT
 	if [ -s "$TMPF" ]; then
 	    chmod a+x $TMPF
 	    $TMPF > $BEGINF
@@ -389,7 +396,7 @@ nfs*)
 	;;
 http*)
 	TMPF="/tmp/profile.$$"
-	/usr/bin/curl -f -s -S --retry 6 -o $TMPF $FINISH_SCRIPT
+	${WCLIENT} ${WARGS} $TMPF $FINISH_SCRIPT
 	if [ -s "$TMPF" ]; then
 	    chmod a+x $TMPF
 	    $TMPF ${ALTROOT}
@@ -428,7 +435,7 @@ nfs*)
 	;;
 http*)
 	TMPF="/tmp/profile.$$"
-	/usr/bin/curl -f -s -S --retry 6 -o $TMPF $FIRSTBOOT_SCRIPT
+	${WCLIENT} ${WARGS} $TMPF $FIRSTBOOT_SCRIPT
 	if [ -s "$TMPF" ]; then
 	    cp $TMPF $FIRSTF
 	fi
