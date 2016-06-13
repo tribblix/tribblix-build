@@ -162,7 +162,7 @@ esac
 #
 /usr/bin/mkdir -p ${ALTROOT}
 echo "Creating root file system"
-/usr/sbin/newfs /dev/rdsk/$DRIVE1
+env NOINUSE_CHECK=1 /usr/sbin/newfs /dev/rdsk/$DRIVE1
 /usr/sbin/mount /dev/dsk/$DRIVE1 ${ALTROOT}
 mkdir -p ${ALTROOT}/export/home
 
