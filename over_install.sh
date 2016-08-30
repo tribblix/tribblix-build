@@ -499,7 +499,7 @@ mkdir -p $TDIR
 /usr/bin/cp -p ${TDIR}/etc/passwd ${ALTROOT}/etc/passwd
 /usr/bin/cp -p ${TDIR}/etc/group ${ALTROOT}/etc/group
 /usr/bin/cp -p ${TDIR}/etc/shadow ${ALTROOT}/etc/shadow
-/usr/bin/cp -p ${TDIR}/etc/ssh/ssh* ${ALTROOT}/etc/ssh
+/usr/bin/cp -p ${TDIR}/etc/ssh/ssh_host* ${ALTROOT}/etc/ssh
 if [ -z "$NODENAME" ]; then
     /usr/bin/cp -p ${TDIR}/etc/nodename ${ALTROOT}/etc/nodename
 fi
