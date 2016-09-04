@@ -403,7 +403,7 @@ fi
 /usr/bin/cat > /${ROOTPOOL}/boot/grub/menu.lst << _EOF
 default 0
 timeout 3
-title Tribblix 0.17
+title Tribblix 0.18
 findroot (pool_${ROOTPOOL},0,a)
 bootfs ${ROOTPOOL}/ROOT/tribblix
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B \$ZFS-BOOTFS${BCONSOLE}
