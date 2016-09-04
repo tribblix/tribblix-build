@@ -206,6 +206,13 @@ ${DESTDIR}/usr/sbin/devfsadm -r ${BFS}
 #
 rm -f ${BFS}/dev/dsk/* ${BFS}/dev/rdsk/* ${BFS}/dev/usb/h*
 rm -f ${BFS}/dev/removable-media/dsk/* ${BFS}/dev/removable-media/rdsk/*
+# mounting /usr calls lofiadm, which calls devfsadm
+# we don't have devfsadm at that point, so ensure that the
+# correct symlinks exist in /dev
+rm -f ${BFS}/dev/lofi/* ${BFS}/dev/rlofi/*
+ln -s ../../devices/pseudo/lofi@1:disk ${BFS}/dev/lofi/1
+ln -s ../../devices/pseudo/lofi@1:disk,raw ${BFS}/dev/rlofi/1
+rm -fr ${BFS}/dev/zcons/*
 #
 mkdir .cdrom
 touch .livecd
