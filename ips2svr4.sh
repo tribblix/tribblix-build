@@ -815,6 +815,65 @@ fi
 echo "${FTYPE} ${FCLASS} ${filepath}=${filepath} ${mode} ${owner} ${group}" >> ${BDIR}/prototype
 }
 
+#
+# transform to add a symlink to this package
+#
+transform_symlink() {
+for frag in $*
+do
+    key=${frag%%=*}
+    nval=${frag#*=}
+    value=${nval%%=*}
+case $key in
+path)
+    filepath=$value
+    ;;
+target)
+    target=$value
+    ;;
+esac
+done
+dpath=`dirname $filepath`
+if [ ! -d ${BDIR}/${dpath} ]; then
+    mkdir -p ${BDIR}/${dpath}
+fi
+if [ -f ${BDIR}/${filepath} ]; then
+    echo "DBG: parsing $hash $line"
+    echo "WARN: path $filepath already exists in $dpath"
+fi
+echo "s none ${filepath}=${target}" >> ${BDIR}/prototype
+}
+
+#
+# transform to add a directory to this package
+#
+transform_mkdir() {
+for frag in $*
+do
+    key=${frag%%=*}
+    nval=${frag#*=}
+    value=${nval%%=*}
+case $key in
+path)
+    filepath=$value
+    ;;
+mode)
+    mode=$value
+    ;;
+owner)
+    owner=$value
+    ;;
+group)
+    group=$value
+    ;;
+esac
+done
+if [ ! -d ${BDIR}/${filepath} ]; then
+    mkdir -p -m $mode ${BDIR}/${filepath}
+fi
+echo "d none ${filepath} ${mode} ${owner} ${group}" >> ${BDIR}/prototype
+}
+
 case $# in
 2)
     INPKG=$1
@@ -1080,6 +1139,12 @@ undepend)
     ;;
 add)
     transform_add path=$pathname $line
+    ;;
+symlink)
+    transform_symlink path=$pathname $line
+    ;;
+mkdir)
+    transform_mkdir path=$pathname $line
     ;;
 replace)
     transform_replace $pathname
