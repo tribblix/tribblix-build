@@ -775,25 +775,25 @@ cat ${BDIR}/prototype.transform | egrep -v " none ${filepath} " > ${BDIR}/protot
 # those away first
 #
 transform_rrmdir() {
-filepath=$1
-if [ -d ${BDIR}/${filepath} ]; then
-  for npath in `cd $BDIR ; find ${filepath} -xdev -type f`
+rfilepath=$1
+if [ -d ${BDIR}/${rfilepath} ]; then
+  for npath in `cd $BDIR ; find ${rfilepath} -xdev -type f`
   do
     transform_delete $npath
   done
-  for npath in `cd $BDIR ; find ${filepath} -xdev -type l`
+  for npath in `cd $BDIR ; find ${rfilepath} -xdev -type l`
   do
     transform_linkdel $npath
   done
-  for npath in `cd $BDIR ; find ${filepath} -xdev -type d -depth`
+  for npath in `cd $BDIR ; find ${rfilepath} -xdev -type d -depth`
   do
     transform_rmdir $npath
   done
 else
-  echo "WARN: transform_rrmdir cannot find directory ${filepath}"
+  echo "WARN: transform_rrmdir cannot find directory ${rfilepath}"
 fi
-if [ -d ${BDIR}/${filepath} ]; then
-  echo "WARN: transform_rrmdir cannot remove directory ${filepath}"
+if [ -d ${BDIR}/${rfilepath} ]; then
+  echo "WARN: transform_rrmdir cannot remove directory ${rfilepath}"
 fi
 }
 
