@@ -799,7 +799,8 @@ fi
 
 #
 # transform to add a file to this package
-# we get the copy of the file from the proto area
+# we get the copy of the file either from the proto area
+# or from this repo
 #
 transform_add() {
 FTYPE="f"
@@ -832,8 +833,18 @@ if [ -f ${BDIR}/${filepath} ]; then
     echo "DBG: parsing $hash $line"
     echo "WARN: path $filepath already exists in $dpath"
 fi
-/usr/bin/cp -p ${PROTODIR}/${filepath} ${BDIR}/${filepath}
-echo "${FTYPE} ${FCLASS} ${filepath}=${filepath} ${mode} ${owner} ${group}" >> ${BDIR}/prototype
+if [ -f ${PROTODIR}/${filepath} ]; then
+  /usr/bin/cp -p ${PROTODIR}/${filepath} ${BDIR}/${filepath}
+elif [ -f ${TRANSDIR}/${filepath}.`uname -p` ]; then
+  /usr/bin/cp -p ${TRANSDIR}/${filepath}.`uname -p` ${BDIR}/${filepath}
+elif [ -f ${TRANSDIR}/${filepath} ]; then
+  /usr/bin/cp -p ${TRANSDIR}/${filepath} ${BDIR}/${filepath}
+else
+  echo "WARN: transform_add cannot find source for ${filepath}"
+fi
+if [ -f ${BDIR}/${filepath} ]; then
+  echo "${FTYPE} ${FCLASS} ${filepath}=${filepath} ${mode} ${owner} ${group}" >> ${BDIR}/prototype
+fi
 }
 
 #
