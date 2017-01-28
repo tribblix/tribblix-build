@@ -21,6 +21,14 @@ case $# in
 	;;
 esac
 
+#
+# for x86, detect whether we're using grub or the new loader
+#
+CDBOOT="boot/grub/stage2_eltorito"
+if [ -f ${DESTDIR}/boot/cdboot ]; then
+    CDBOOT="boot/cdboot"
+fi
+
 case `uname -p` in
 sparc)
 	/usr/bin/dd if="${DESTDIR}/platform/sun4v/lib/fs/hsfs/bootblk" \
@@ -33,7 +41,7 @@ sparc)
 
 	;;
 i386)
-	/usr/bin/mkisofs -o ${ISODIR}/${ISONAME} -b boot/grub/stage2_eltorito \
+	/usr/bin/mkisofs -o ${ISODIR}/${ISONAME} -b ${CDBOOT} \
 	-c .catalog -volset `cat ${DESTDIR}/.volsetid` \
 	-no-emul-boot -boot-load-size 4 -boot-info-table -N -l -R -U \
         -allow-multidot -no-iso-translate -cache-inodes -d -D \
