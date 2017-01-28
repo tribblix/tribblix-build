@@ -435,14 +435,6 @@ if [ -n "$TIMEZONE" ]; then
 fi
 
 #
-# FIXME: why is this so much larger than a regular system?
-# FIXME and why does it take so long - it's half the install budget
-#
-echo "Updating boot archive"
-/usr/bin/mkdir -p ${ALTROOT}/platform/i86pc/amd64
-/sbin/bootadm update-archive -R ${ALTROOT}
-
-#
 # enable swap
 #
 /bin/echo "/dev/zvol/dsk/${ROOTPOOL}/swap\t-\t-\tswap\t-\tno\t-" >> ${ALTROOT}/etc/vfstab
@@ -553,6 +545,13 @@ if [ -n "${KLAYOUT}" ]; then
     /usr/bin/mv ${ALTROOT}/boot/solaris/bootenv.rc.tmp ${ALTROOT}/boot/solaris/bootenv.rc
   fi
 fi
+
+#
+# moved later, must be done after we change any files such as bootenv.rc
+#
+echo "Updating boot archive"
+/usr/bin/mkdir -p ${ALTROOT}/platform/i86pc/amd64
+/sbin/bootadm update-archive -R ${ALTROOT}
 
 #
 # remount zfs filesystem in the right place for next boot
