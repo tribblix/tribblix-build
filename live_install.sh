@@ -372,20 +372,12 @@ fi
 pkgadm sync -R ${ALTROOT} -q
 
 #
-echo "Installing GRUB"
-for DRIVE in $DRIVELIST
-do
-    /sbin/installgrub -fm /boot/grub/stage1 /boot/grub/stage2 /dev/rdsk/$DRIVE
-done
+echo "Installing boot loader"
+/sbin/bootadm install-bootloader -f -M -P ${ROOTPOOL}
 
 echo "Configuring devices"
 ${ALTROOT}/usr/sbin/devfsadm -r ${ALTROOT}
 touch ${ALTROOT}/reconfigure
-
-echo "Setting up boot"
-/usr/bin/mkdir -p /${ROOTPOOL}/boot/grub/bootsign /${ROOTPOOL}/etc
-touch /${ROOTPOOL}/boot/grub/bootsign/pool_${ROOTPOOL}
-echo "pool_${ROOTPOOL}" > /${ROOTPOOL}/etc/bootsign
 
 #
 # copy any console settings to the running system
@@ -396,9 +388,22 @@ if [ ! -z "$ICONSOLE" ]; then
   BCONSOLE=",console=${ICONSOLE},input-device=${ICONSOLE},output-device=${ICONSOLE}"
 fi
 
+echo "Setting up boot"
+
+if [ -f ${ALTROOT}/boot/cdboot ]; then
+# new loader
+/usr/bin/cat > /${ROOTPOOL}/boot/menu.lst << _EOF
+title Tribblix 0.19
+bootfs ${ROOTPOOL}/ROOT/tribblix
+_EOF
+else
+#grub
+/usr/bin/mkdir -p /${ROOTPOOL}/boot/grub/bootsign /${ROOTPOOL}/etc
+touch /${ROOTPOOL}/boot/grub/bootsign/pool_${ROOTPOOL}
+echo "pool_${ROOTPOOL}" > /${ROOTPOOL}/etc/bootsign
+
 #
-# the real grub menu is under the root pool, not under /boot on the root
-# filesystem. zero the latter to avoid confusion
+# the real menu is under the root pool
 #
 /usr/bin/cat > /${ROOTPOOL}/boot/grub/menu.lst << _EOF
 default 0
@@ -410,6 +415,7 @@ kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B \$ZFS-BOOTFS${BCONSOLE}
 module\$ /platform/i86pc/\$ISADIR/boot_archive
 _EOF
 cp /dev/null ${ALTROOT}/boot/grub/menu.lst
+fi
 
 #
 # set nodename if requested
