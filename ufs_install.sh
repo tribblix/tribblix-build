@@ -18,7 +18,6 @@ esac
 #
 # these properties are available for customization
 #
-DRIVELIST=""
 SWAPSIZE="2g"
 ZFSARGS=""
 BFLAG=""
@@ -33,7 +32,6 @@ FIRSTBOOT_SCRIPT=""
 
 FSTYPE="UFS"
 DRIVE1=""
-DRIVE2=""
 PKGLOC="/.cdrom/pkgs"
 SMFREPODIR="/usr/lib/zap"
 ALTROOT="/a"
@@ -140,7 +138,6 @@ esac
 
 DRIVE1=$1
 shift
-DRIVELIST="$DRIVE1"
 
 if [ ! -e /dev/dsk/$DRIVE1 ]; then
     echo "ERROR: Unable to find device $DRIVE1"
@@ -281,11 +278,12 @@ fi
 pkgadm sync -R ${ALTROOT} -q
 
 #
-echo "Installing GRUB"
-for DRIVE in $DRIVELIST
-do
-    /sbin/installgrub -fm /boot/grub/stage1 /boot/grub/stage2 /dev/rdsk/$DRIVE
-done
+echo "Installing boot loader"
+if [ -f ${ALTROOT}/boot/cdboot ]; then
+    /usr/sbin/installboot -f -m /boot/pmbr /boot/gptzfsboot /dev/rdsk/$DRIVE1
+else
+    /sbin/installgrub -fm /boot/grub/stage1 /boot/grub/stage2 /dev/rdsk/$DRIVE1
+fi
 
 echo "Configuring devices"
 ${ALTROOT}/usr/sbin/devfsadm -r ${ALTROOT}
@@ -325,7 +323,7 @@ _EOF
 # the boot can find it
 #
 BOOTDEV=`/bin/ls -l /dev/dsk/$DRIVE1 | awk '{print $NF}' | sed s:../../devices::'`
-echo "setprop bootpath $BOOTDEV" >> ${ALTROOT}/boot/solaris/bootenv.rc
+echo "setprop bootpath '$BOOTDEV'" >> ${ALTROOT}/boot/solaris/bootenv.rc
 
 #
 # set nodename if requested
