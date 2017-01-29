@@ -2,7 +2,7 @@
 #
 # FIXME: do fdisk and partitions first
 #
-# This installs to ufs. On a physical partition, not SVM (yet).
+# This installs to ufs. Must be a partition on a single physical disk.
 #
 # The assumption is that root=s0 swap=s1
 # and that the drive is already partitioned
@@ -157,9 +157,6 @@ case $DRIVE1 in
 	;;
 esac
 
-#
-# FIXME allow svm
-#
 /usr/bin/mkdir -p ${ALTROOT}
 echo "Creating root file system"
 env NOINUSE_CHECK=1 /usr/sbin/newfs /dev/rdsk/$DRIVE1
@@ -354,16 +351,6 @@ if [ -n "$TIMEZONE" ]; then
 fi
 
 #
-# FIXME: why is this so much larger than a regular system?
-# FIXME and why does it take so long - it's half the install budget
-#
-echo "Updating boot archive"
-/usr/bin/mkdir -p ${ALTROOT}/platform/i86pc/amd64
-/sbin/bootadm update-archive -R ${ALTROOT}
-/sbin/sync
-sleep 2
-
-#
 # Copy /jack to the installed system
 #
 cd /
@@ -469,6 +456,15 @@ if [ -n "${KLAYOUT}" ]; then
     /usr/bin/mv ${ALTROOT}/boot/solaris/bootenv.rc.tmp ${ALTROOT}/boot/solaris/bootenv.rc
   fi
 fi
+
+#
+# moved later, must be done after we change any files such as bootenv.rc
+#
+echo "Updating boot archive"
+/usr/bin/mkdir -p ${ALTROOT}/platform/i86pc/amd64
+/sbin/bootadm update-archive -R ${ALTROOT}
+/sbin/sync
+sleep 2
 
 #
 # if specified, reboot

@@ -507,6 +507,13 @@ fi
 /usr/sbin/zfs set canmount=noauto ${OLDBE}
 
 #
+# moved later, must be done after we change any files such as bootenv.rc
+#
+echo "Updating boot archive"
+/usr/bin/mkdir -p ${ALTROOT}/platform/i86pc/amd64
+/sbin/bootadm update-archive -R ${ALTROOT}
+
+#
 # remount zfs filesystem in the right place for next boot
 #
 /usr/sbin/zfs set canmount=noauto ${ROOTPOOL}/ROOT/${NEWBE}
