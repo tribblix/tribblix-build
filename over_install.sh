@@ -10,8 +10,9 @@
 # We install a new bootloader to the pool, to be sure it's consistent
 # with the bits we install. With -B, also update the MBR.
 #
-# While the grub menu will only show this new instance of Tribblix, any
-# old BEs will still be present and can be seen (and activated) using beadm
+# While the menu will only show this new instance of Tribblix, any
+# old BEs will still be present. Due to the change in bootloader they
+# cannot be activated with beadm, but can be accessed manually
 #
 # We copy account details (group, passwd, shadow) and the system ssh keys
 # from the existing BE. Any existing ZFS file systems will automatically
@@ -315,11 +316,6 @@ echo "Configuring devices"
 ${ALTROOT}/usr/sbin/devfsadm -r ${ALTROOT}
 touch ${ALTROOT}/reconfigure
 
-echo "Setting up boot"
-/usr/bin/mkdir -p /${ROOTPOOL}/boot/grub/bootsign /${ROOTPOOL}/etc
-touch /${ROOTPOOL}/boot/grub/bootsign/pool_${ROOTPOOL}
-echo "pool_${ROOTPOOL}" > /${ROOTPOOL}/etc/bootsign
-
 #
 # copy any console settings to the running system
 #
@@ -329,9 +325,22 @@ if [ ! -z "$ICONSOLE" ]; then
   BCONSOLE=",console=${ICONSOLE},input-device=${ICONSOLE},output-device=${ICONSOLE}"
 fi
 
+echo "Setting up boot"
+
+if [ -f ${ALTROOT}/boot/cdboot ]; then
+# new loader
+/usr/bin/cat > /${ROOTPOOL}/boot/menu.lst << _EOF
+title Tribblix 0.19
+bootfs ${ROOTPOOL}/ROOT/${NEWBE}
+_EOF
+else
+#grub
+/usr/bin/mkdir -p /${ROOTPOOL}/boot/grub/bootsign /${ROOTPOOL}/etc
+touch /${ROOTPOOL}/boot/grub/bootsign/pool_${ROOTPOOL}
+echo "pool_${ROOTPOOL}" > /${ROOTPOOL}/etc/bootsign
+
 #
-# the real grub menu is under the root pool, not under /boot on the root
-# filesystem. zero the latter to avoid confusion
+# the real menu is under the root pool
 #
 /usr/bin/cat > /${ROOTPOOL}/boot/grub/menu.lst << _EOF
 default 0
@@ -343,6 +352,7 @@ kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B \$ZFS-BOOTFS${BCONSOLE}
 module\$ /platform/i86pc/\$ISADIR/boot_archive
 _EOF
 cp /dev/null ${ALTROOT}/boot/grub/menu.lst
+fi
 
 #
 # set nodename if requested
@@ -366,14 +376,6 @@ if [ -n "$TIMEZONE" ]; then
     cat ${ALTROOT}/etc/default/init.pre | /usr/bin/sed s:PST8PDT:${TIMEZONE}: > ${ALTROOT}/etc/default/init
     rm ${ALTROOT}/etc/default/init.pre
 fi
-
-#
-# FIXME: why is this so much larger than a regular system?
-# FIXME and why does it take so long - it's half the install budget
-#
-echo "Updating boot archive"
-/usr/bin/mkdir -p ${ALTROOT}/platform/i86pc/amd64
-/sbin/bootadm update-archive -R ${ALTROOT}
 
 #
 # enable swap
