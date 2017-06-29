@@ -33,7 +33,7 @@ DOMAINNAME=""
 BEGIN_SCRIPT=""
 FINISH_SCRIPT=""
 FIRSTBOOT_SCRIPT=""
-NEWBE="tribblix-m19"
+NEWBE="tribblix-m20"
 
 FSTYPE="ZFS"
 PKGLOC="/.cdrom/pkgs"
@@ -330,7 +330,7 @@ echo "Setting up boot"
 if [ -f ${ALTROOT}/boot/cdboot ]; then
 # new loader
 /usr/bin/cat > /${ROOTPOOL}/boot/menu.lst << _EOF
-title Tribblix 0.19
+title Tribblix 0.20
 bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 _EOF
 else
@@ -345,7 +345,7 @@ echo "pool_${ROOTPOOL}" > /${ROOTPOOL}/etc/bootsign
 /usr/bin/cat > /${ROOTPOOL}/boot/grub/menu.lst << _EOF
 default 0
 timeout 3
-title Tribblix 0.19
+title Tribblix 0.20
 findroot (pool_${ROOTPOOL},0,a)
 bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B \$ZFS-BOOTFS${BCONSOLE}

@@ -3,12 +3,12 @@
 THOME=/packages/localsrc/Tribblix
 TPKGDIR=${THOME}/pkgs
 PKGDIR=${THOME}/oi-pkgs-0.9/pkgs
-IPKGDIR=${THOME}/illumos-pkgs-m19/pkgs
+IPKGDIR=${THOME}/illumos-pkgs-m20/pkgs
 DESTDIR=/export/tribblix/dist
 FDEFAULT=${THOME}/tribblix-build/pkg.default
 INSTZAP=/usr/lib/zap/instzap
 
-ILVER="0.19.0"
+ILVER="0.20.0"
 OIVER="0.9o"
 
 #

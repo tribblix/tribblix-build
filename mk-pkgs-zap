@@ -9,7 +9,7 @@ ZAPDIR=${DISTROOT}/pkgs
 THOME=/packages/localsrc/Tribblix
 OIPKGDIR=${THOME}/oi-pkgs-0.9
 OIREPODIR=${THOME}/repo-master/oi-151a9
-IPKGDIR=${THOME}/illumos-pkgs-m19
+IPKGDIR=${THOME}/illumos-pkgs-m20
 VARIANT=""
 OVDIR="overlays"
 
@@ -17,7 +17,7 @@ OVDIR="overlays"
 # Tribblix and illumos packages are explicitly versioned, we fake a version
 # based on the current release for OI/OpenSXCE
 #
-RELVER="0.19"
+RELVER="0.20"
 OIVER="0.9o"
 ILVER="${RELVER}.0"
 
