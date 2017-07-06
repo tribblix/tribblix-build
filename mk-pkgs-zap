@@ -9,7 +9,7 @@ ZAPDIR=${DISTROOT}/pkgs
 THOME=/packages/localsrc/Tribblix
 OIPKGDIR=${THOME}/oi-pkgs-0.9
 OIREPODIR=${THOME}/repo-master/oi-151a9
-IPKGDIR=${THOME}/illumos-pkgs-m20
+IPKGDIR=${THOME}/illumos-pkgs-m20.1
 VARIANT=""
 OVDIR="overlays"
 
@@ -19,7 +19,7 @@ OVDIR="overlays"
 #
 RELVER="0.20"
 OIVER="0.9o"
-ILVER="${RELVER}.0"
+ILVER="${RELVER}.1"
 
 case $# in
 1)
@@ -49,7 +49,7 @@ done
 #
 VALID=yes
 ERRLIST=""
-for ipkg in `cat ${TFILE}|sort|uniq`
+for ipkg in `cat ${TFILE}|sort|uniq|egrep -v '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$'`
 do
   THISVER="XXX"
   PKGI=${THOME}/build/${ipkg}/pkginfo
@@ -92,7 +92,7 @@ chmod 644 ${ZAPDIR}/catalog
 #
 # use pre-existing zap files
 #
-for ipkg in `cat ${TFILE}|sort|uniq`
+for ipkg in `cat ${TFILE}|sort|uniq|egrep -v '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$'`
 do
   if [ -f ${DISTROOT}/var/sadm/pkg/${ipkg}/pkginfo ]; then
       echo "Skipping installed ${ipkg}"

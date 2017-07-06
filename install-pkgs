@@ -1,14 +1,17 @@
 #!/bin/sh
 
+RELEASE=20.1
+
 THOME=/packages/localsrc/Tribblix
+RPKGDIR=${THOME}/release-repos/m${RELEASE}.`uname -p`
 TPKGDIR=${THOME}/pkgs
 PKGDIR=${THOME}/oi-pkgs-0.9/pkgs
-IPKGDIR=${THOME}/illumos-pkgs-m20/pkgs
+IPKGDIR=${THOME}/illumos-pkgs-m${RELEASE}/pkgs
 DESTDIR=/export/tribblix/dist
 FDEFAULT=${THOME}/tribblix-build/pkg.default
 INSTZAP=/usr/lib/zap/instzap
 
-ILVER="0.20.0"
+ILVER="0.${RELEASE}"
 OIVER="0.9o"
 
 #
@@ -25,10 +28,33 @@ case $# in
 esac
 
 #
+# check we have a matching release repo
+#
+if [ ! -d "${RPKGDIR}" ]; then
+    echo "Cannot find release directory ${RPKGDIR}"
+    exit 1
+fi
+#
+# and that the release packages exist
+#
+if [ ! -f "${RPKGDIR}/TRIBrelease-name.0.${RELEASE}.zap" ]; then
+    echo "Cannot find release package"
+    exit 1
+fi
+if [ ! -f "${RPKGDIR}/TRIBzap-upgrade.0.${RELEASE}.0.zap" ]; then
+    echo "Cannot find zap upgrade package"
+    exit 1
+fi
+if [ ! -f "${RPKGDIR}/TRIBzap.0.0.${RELEASE}.zap" ]; then
+    echo "Cannot find zap package"
+    exit 1
+fi
+
+#
 # first verify
 #
 VALID=yes
-for mypkg in `cat ${PKGLIST}` TRIBsys-install-media-internal
+for mypkg in `cat ${PKGLIST} | egrep -v '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$'` TRIBsys-install-media-internal
 do
   THISVER="XXX"
   PKGI=${THOME}/build/${mypkg}/pkginfo
@@ -70,7 +96,7 @@ fi
 #
 # now install
 #
-for mypkg in `cat ${PKGLIST}` TRIBsys-install-media-internal
+for mypkg in `cat ${PKGLIST} | egrep -v '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$'` TRIBsys-install-media-internal
 do
   THISVER="XXX"
   PKGI=${THOME}/build/${mypkg}/pkginfo
@@ -85,6 +111,14 @@ do
     $INSTZAP -R $DESTDIR ${PKGDIR}/${mypkg}.${OIVER}.zap ${mypkg}
   fi
 done
+
+#
+# now the release packages
+#
+echo "Installing release packages for $RELEASE"
+$INSTZAP -R $DESTDIR ${RPKGDIR}/TRIBrelease-name.0.${RELEASE}.zap TRIBrelease-name
+$INSTZAP -R $DESTDIR ${RPKGDIR}/TRIBzap-upgrade.0.${RELEASE}.0.zap TRIBzap-upgrade
+$INSTZAP -R $DESTDIR ${RPKGDIR}/TRIBzap.0.0.${RELEASE}.zap TRIBzap
 
 #
 # need to mark the base-iso overlay as installed
