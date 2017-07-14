@@ -497,6 +497,12 @@ if [ -n "${KLAYOUT}" ]; then
     /usr/bin/grep -v keyboard-layout ${ALTROOT}/boot/solaris/bootenv.rc > ${ALTROOT}/boot/solaris/bootenv.rc.tmp
     echo "setprop keyboard-layout ${NLAYOUT}" >> ${ALTROOT}/boot/solaris/bootenv.rc.tmp
     /usr/bin/mv ${ALTROOT}/boot/solaris/bootenv.rc.tmp ${ALTROOT}/boot/solaris/bootenv.rc
+    /usr/bin/rm -f /tmp/keymap-set
+    echo "repository ${ALTROOT}/etc/svc/repository.db" > /tmp/keymap-set
+    echo "select keymap:default" >> /tmp/keymap-set
+    echo "setprop keymap/layout=${NLAYOUT}"  >> /tmp/keymap-set
+    /usr/sbin/svccfg -f /tmp/keymap-set
+    /usr/bin/rm -f /tmp/keymap-set
   fi
 fi
 

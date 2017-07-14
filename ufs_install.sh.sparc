@@ -436,6 +436,12 @@ if [ -n "${KLAYOUT}" ]; then
   NLAYOUT=`/usr/bin/nawk -v ntyp=${KLAYOUT} -F= '{if ($2 == ntyp) print $1}' /usr/share/lib/keytables/type_6/kbd_layouts`
   if [ -n "${NLAYOUT}" ]; then
     /usr/sbin/eeprom keyboard-layout=${NLAYOUT}
+    /usr/bin/rm -f /tmp/keymap-set
+    echo "repository ${ALTROOT}/etc/svc/repository.db" > /tmp/keymap-set
+    echo "select keymap:default" >> /tmp/keymap-set
+    echo "setprop keymap/layout=${NLAYOUT}"  >> /tmp/keymap-set
+    /usr/sbin/svccfg -f /tmp/keymap-set
+    /usr/bin/rm -f /tmp/keymap-set
   fi
 fi
 
