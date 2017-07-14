@@ -152,6 +152,17 @@ case $# in
 esac
 
 #
+# if we get to this point we shouldn't have any arguments
+#
+case $1 in
+-*)
+	echo "ERROR: unexpected argument $*"
+	echo "(expecting overlays)"
+	exit 1
+	;;
+esac
+
+#
 # everything else is an overlay
 #
 OVERLAYS="$OVERLAYS $*"
