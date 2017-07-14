@@ -72,15 +72,28 @@ if [ ! -f $CARDIGAN_CFG ]; then
 fi
 INSTALL_MEDIA=`grep '^install_media=' $CARDIGAN_CFG | /bin/sed s:install_media=::`
 INSTALL_PKGS=`grep '^install_pkgs=' $CARDIGAN_CFG | /bin/sed s:install_pkgs=::`
-if [ -z "$INSTALL_MEDIA" ]; then
-  echo "Cardigan configuration does not specify a valid install_media"
-  usage
-fi
+HTDOCS=`grep '^htdocs=' $CARDIGAN_CFG | /bin/sed s:htdocs=::`
 if [ -z "$INSTALL_PKGS" ]; then
   echo "Cardigan configuration does not specify a valid install_pkgs"
   usage
 fi
-GRUB_BOOT_ARGS="-B install_media=${INSTALL_MEDIA},install_pkgs=${INSTALL_PKGS}"
+if [ -z "$INSTALL_MEDIA" ]; then
+  echo "Cardigan configuration does not specify a valid install_media"
+  usage
+fi
+if [ -z "$HTDOCS" ]; then
+  echo "Cardigan configuration does not specify a valid htdocs location"
+  usage
+fi
+#
+# we only use INSTALL_MEDIA here if we have a split iso and need
+# to deliver solaris.zlib
+#
+if [ -f "${HTDOCS}/solaris.zlib" ]; then
+  GRUB_BOOT_ARGS="-B install_media=${INSTALL_MEDIA},install_pkgs=${INSTALL_PKGS}"
+else
+  GRUB_BOOT_ARGS="-B install_pkgs=${INSTALL_PKGS}"
+fi
 
 #
 # convert terminal setting to boot arguments
@@ -102,7 +115,6 @@ fi
 #
 INTERACTIVE_BOOT_ARGS="${GRUB_BOOT_ARGS}"
 if [ -n "$CFG_FILE" ]; then
-  HTDOCS=`grep '^htdocs=' $CARDIGAN_CFG | /bin/sed s:htdocs=::`
   CFG_NAME=`basename $CFG_FILE`
   cp $CFG_FILE ${HTDOCS}/${CFG_NAME}
   GRUB_BOOT_ARGS="${GRUB_BOOT_ARGS},install_profile=${INSTALL_MEDIA}/${CFG_NAME}"
@@ -136,7 +148,7 @@ module\$  ${TFTPLOC}/platform/i86pc/boot_archive
 EOF
 
 #
-# if automatic installation was requested, add an interactive optione
+# if automatic installation was requested, add an interactive option
 #
 if [ -n "$CFG_FILE" ]; then
 cat >> ${TFTPBOOT}/menu.lst.01${REAL_MAC} <<EOF

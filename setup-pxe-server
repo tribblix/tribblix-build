@@ -140,7 +140,6 @@ esac
 #  grub
 #  platform
 #  pkgs
-#  solaris.zlib
 #
 if [ ! -d pkgs ]; then
   echo "Unable to find pkgs"
@@ -158,19 +157,22 @@ if [ ! -f boot/grub/pxegrub ]; then
   echo "Unable to find pxegrub"
   exit 2
 fi
+#
+# the ISO always has a combined boot archive, so need just the one
+# even if it looks like this is only 32-bit
+#
 if [ ! -f platform/i86pc/boot_archive ]; then
   echo "Unable to find the boot archive"
   exit 2
 fi
+#
+# only fail if both 32-bit and 64-bit kernels are missing
+#
 if [ ! -f platform/i86pc/kernel/unix ]; then
   if [ ! -f platform/i86pc/kernel/amd64/unix ]; then
     echo "Unable to find the kernel"
     exit 2
   fi
-fi
-if [ ! -f solaris.zlib ]; then
-  echo "Unable to find solaris.zlib"
-  exit 2
 fi
 
 #
@@ -179,8 +181,14 @@ fi
 $DEBUG mkdir -p $HTDOCS
 echo "Copying packages"
 $DEBUG cp -r pkgs $HTDOCS
-echo "Copying solaris.zlib"
-$DEBUG cp solaris.zlib $HTDOCS
+#
+# solaris.zlib only exists in the old-style split iso
+# but if it exists, need to copy it
+#
+if [ -f solaris.zlib ]; then
+    echo "Copying solaris.zlib"
+    $DEBUG cp solaris.zlib $HTDOCS
+fi
 echo "Copying files to tftp server"
 $DEBUG mkdir -p ${TFTPBOOT}/$TFTPDIR/platform/i86pc/kernel/amd64
 $DEBUG cp boot/grub/pxegrub ${TFTPBOOT}/$TFTPDIR
@@ -201,6 +209,10 @@ fi
 #
 $DEBUG cp tools/add-pxe-client ${TFTPBOOT}/$TFTPDIR
 
+#
+# install_media is used for both the optional solaris.zlib delivery
+# and also the cardigan configuration file
+#
 save_config() {
 echo tftpboot=${TFTPBOOT}
 echo tftpdir=${TFTPBOOT}/$TFTPDIR
