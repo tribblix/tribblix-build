@@ -17,13 +17,13 @@ esac
 #
 case `uname -p` in
 i386)
-	MRSIZE=320m
-	NBPI=12288
+	MRSIZE=144m
+	NBPI=16384
 	XARCH="i86"
 	;;
 sparc)
-	MRSIZE=150m
-	BASIZE=153600
+	MRSIZE=160m
+	BASIZE=163840
 	NBPI=20480
 	XARCH="sparcv7"
 	;;
@@ -184,8 +184,24 @@ sparc)
 	tar cf - kernel platform | ( cd $BFS ; tar xf -)
 	;;
 esac
-tar cfp - boot lib system tmp proc sbin etc var zonelib root jack usr bin | ( cd $BFS ; tar xf -)
+tar cfp - boot lib system tmp proc sbin etc var zonelib root jack | ( cd $BFS ; tar xf -)
+mkdir ${BFS}/usr
+cd usr
+tar cf - bin/cat bin/head bin/${XARCH}/ksh93 bin/ls bin/sh sbin/lofiadm \
+        bin/sed bin/cut sbin/svcadm \
+        lib/fs/ufs/fstyp* lib/fs/hsfs/fstyp* lib/libfstyp.so* \
+        lib/libzonecfg* lib/libbrand* \
+        lib/libidn.s* bin/wget lib/fs/tmpfs/mount \
+        lib/libproject.so lib/libproject.so.1 lib/libshell.so.1 \
+        lib/libcmd.so.1 lib/libast.so.1 lib/libsum.so.1 lib/libdll.so.1 \
+        lib/libidmap.so lib/libidmap.so.1 lib/libpkcs11.so lib/libpkcs11.so.1 \
+        lib/fm/libfmevent.so lib/fm/libfmevent.so.1 lib/fm/libtopo.so \
+        lib/fm/libtopo.so.1 lib/libexacct.so lib/libexacct.so.1 \
+        lib/libipmi.so lib/libipmi.so.1 lib/libpool.so lib/libpool.so.1 \
+        lib/libsmbios.so lib/libsmbios.so.1 | ( cd ${BFS}/usr ; tar xf -)
 cd $BFS
+ln -s usr/bin bin
+strip usr/bin/* usr/sbin/* usr/lib/* 
 mkdir -p dev/fd devices/pseudo opt var var/run mnt
 /usr/sbin/devfsadm -r ${BFS}
 #
@@ -194,7 +210,12 @@ mkdir -p dev/fd devices/pseudo opt var var/run mnt
 #
 rm -f ${BFS}/dev/dsk/* ${BFS}/dev/rdsk/* ${BFS}/dev/usb/h*
 rm -f ${BFS}/dev/removable-media/dsk/* ${BFS}/dev/removable-media/rdsk/*
+# mounting /usr calls lofiadm, which calls devfsadm
+# we don't have devfsadm at that point, so ensure that the
+# correct symlinks exist in /dev
 rm -f ${BFS}/dev/lofi/* ${BFS}/dev/rlofi/*
+ln -s ../../devices/pseudo/lofi@1:disk ${BFS}/dev/lofi/1
+ln -s ../../devices/pseudo/lofi@1:disk,raw ${BFS}/dev/rlofi/1
 rm -fr ${BFS}/dev/zcons/*
 #
 mkdir .cdrom

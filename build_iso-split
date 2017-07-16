@@ -94,7 +94,7 @@ chmod a+x ${DESTDIR}/root/ufs_install.sh
 cp ${TBHOME}/S99auto_install ${DESTDIR}/etc/rc2.d
 chmod 755 ${DESTDIR}/etc/rc2.d/S99auto_install
 echo "Fixing image"
-${TBHOME}/install-fix $*
+${TBHOME}/install-fix-split $*
 
 #
 # copy support tools
@@ -115,9 +115,8 @@ chmod 755 ${DESTDIR}/tools/*
 #
 # create the zlib files
 #
-echo "Not creating solaris.zlib"
-#${TBHOME}/mk-solaris-zlib $*
-rm -f ${DESTDIR}/solaris.zlib
+echo "Creating solaris.zlib"
+${TBHOME}/mk-solaris-zlib $*
 rm -f ${DESTDIR}/solarismisc.zlib
 sync
 
