@@ -6,11 +6,12 @@
 PKG_VERSION="0.9o"
 THOME=/packages/localsrc/Tribblix
 DSTDIR=/var/tmp/created-pkgs
+DYNTRANS=""
 
 #
 # locations and variables should be passed as arguments
 #
-while getopts "V:T:D:" opt; do
+while getopts "V:T:D:M:" opt; do
     case $opt in
         V)
 	    PKG_VERSION="$OPTARG"
@@ -20,6 +21,9 @@ while getopts "V:T:D:" opt; do
 	    ;;
         D)
 	    DSTDIR="$OPTARG"
+	    ;;
+        M)
+	    DYNTRANS="$OPTARG"
 	    ;;
     esac
 done
@@ -1143,6 +1147,58 @@ done
 #
 if [ -f ${TRANSDIR}/${OUTPKG} ]; then
 cat ${TRANSDIR}/${OUTPKG} |
+{
+while read -r action pathname line ;
+do
+case $action in
+delete)
+    transform_delete $pathname
+    ;;
+linkdel)
+    transform_linkdel $pathname
+    ;;
+rmdir)
+    transform_rmdir $pathname
+    ;;
+rrmdir)
+    transform_rrmdir $pathname
+    ;;
+depend)
+    transform_depend $pathname
+    ;;
+undepend)
+    transform_undepend $pathname
+    ;;
+add)
+    transform_add path=$pathname $line
+    ;;
+symlink)
+    transform_symlink path=$pathname $line
+    ;;
+mkdir)
+    transform_mkdir path=$pathname $line
+    ;;
+replace)
+    transform_replace $pathname
+    ;;
+modify)
+    echo "DBG: gsed -i '$line' ${BDIR}/${pathname}"
+    gsed -i "$line" ${BDIR}/${pathname}
+    ;;
+*)
+    echo ...transform action $action not yet supported...
+    ;;
+esac
+
+done
+}
+fi
+
+#
+# dynamic transforms
+#
+if [ -x ${TRANSDIR}/${DYNTRANS}.sh ]; then
+${TRANSDIR}/${DYNTRANS}.sh |
 {
 while read -r action pathname line ;
 do
