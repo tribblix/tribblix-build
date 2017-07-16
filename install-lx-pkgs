@@ -1,0 +1,133 @@
+#!/bin/sh
+
+RELEASE=20lx.1
+
+THOME=/packages/localsrc/Tribblix
+RPKGDIR=${THOME}/release-repos/m${RELEASE}.`uname -p`
+TPKGDIR=${THOME}/pkgs
+PKGDIR=${THOME}/oi-pkgs-0.9/pkgs
+IPKGDIR=${THOME}/illumos-pkgs-m${RELEASE}/pkgs
+DESTDIR=/export/tribblix/dist
+FDEFAULT=${THOME}/tribblix-build/pkg.default
+INSTZAP=/usr/lib/zap/instzap
+
+ILVER="0.${RELEASE}"
+OIVER="0.9o"
+
+#
+# this is the base install, plus we add TRIBsys-install-media-internal
+# to the iso
+#
+PKGLIST=${THOME}/overlays/base-iso.pkgs
+
+case $# in
+1)
+	DESTDIR=${DESTDIR}.$1
+	PKGLIST=${PKGLIST}.$1
+	;;
+esac
+
+#
+# check we have a matching release repo
+#
+if [ ! -d "${RPKGDIR}" ]; then
+    echo "Cannot find release directory ${RPKGDIR}"
+    exit 1
+fi
+#
+# and that the release packages exist
+#
+if [ ! -f "${RPKGDIR}/TRIBrelease-name.0.${RELEASE}.zap" ]; then
+    echo "Cannot find release package"
+    exit 1
+fi
+if [ ! -f "${RPKGDIR}/TRIBzap-upgrade.0.${RELEASE}.0.zap" ]; then
+    echo "Cannot find zap upgrade package"
+    exit 1
+fi
+if [ ! -f "${RPKGDIR}/TRIBzap.0.0.${RELEASE}.zap" ]; then
+    echo "Cannot find zap package"
+    exit 1
+fi
+
+#
+# first verify
+#
+VALID=yes
+for mypkg in `cat ${PKGLIST} | egrep -v '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$'` TRIBsys-install-media-internal
+do
+  THISVER="XXX"
+  PKGI=${THOME}/build/${mypkg}/pkginfo
+  if [ -f ${PKGI} ]; then
+      THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
+  fi
+  if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.zap ]; then
+      echo "Installing $mypkg from Tribblix"
+  elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.zap ]; then
+      echo "Installing $mypkg from Illumos"
+  elif [ -f ${PKGDIR}/${mypkg}.${OIVER}.zap ]; then
+      echo "Installing $mypkg from OpenIndiana"
+  else
+      echo "ERROR: package $mypkg not found"
+      VALID=no
+  fi
+done
+
+if [ "X$VALID" = "Xno" ]; then
+    echo "ERROR: missing packages, install aborted"
+    exit 1
+fi
+
+if [ ! -d ${DESTDIR} ]; then
+    echo "ERROR: Target destination ${DESTDIR} not found, install aborted"
+    exit 1
+fi
+
+if [ ! -x ${INSTZAP} ]; then
+    echo "No installer $INSTZAP, install aborted"
+    exit 1
+fi
+
+#
+# building Tribblix in a zone on Tribblix, this needs to be created first
+# but most everything fails in a zone, so don't bother
+#
+#mkdir -p ${DESTDIR}/var/sadm/install
+#
+# now install
+#
+for mypkg in `cat ${PKGLIST} | egrep -v '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$'` TRIBsys-install-media-internal
+do
+  THISVER="XXX"
+  PKGI=${THOME}/build/${mypkg}/pkginfo
+  if [ -f ${PKGI} ]; then
+      THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
+  fi
+  if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.zap ]; then
+    $INSTZAP -R $DESTDIR ${TPKGDIR}/${mypkg}.${THISVER}.zap ${mypkg}
+  elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.zap ]; then
+    $INSTZAP -R $DESTDIR ${IPKGDIR}/${mypkg}.${ILVER}.zap ${mypkg}
+  elif [ -f ${PKGDIR}/${mypkg}.${OIVER}.zap ]; then
+    $INSTZAP -R $DESTDIR ${PKGDIR}/${mypkg}.${OIVER}.zap ${mypkg}
+  fi
+done
+
+#
+# now the release packages
+#
+echo "Installing release packages for $RELEASE"
+$INSTZAP -R $DESTDIR ${RPKGDIR}/TRIBrelease-name.0.${RELEASE}.zap TRIBrelease-name
+$INSTZAP -R $DESTDIR ${RPKGDIR}/TRIBzap-upgrade.0.${RELEASE}.0.zap TRIBzap-upgrade
+$INSTZAP -R $DESTDIR ${RPKGDIR}/TRIBzap.0.0.${RELEASE}.zap TRIBzap
+
+#
+# need to mark the base-iso overlay as installed
+#
+mkdir -p ${DESTDIR}/var/sadm/overlays/installed
+touch ${DESTDIR}/var/sadm/overlays/installed/base-iso
+
+#
+# close pkgserv to stop it holding files open
+#
+sync
+pkgadm sync -R ${DESTDIR} -q

@@ -1,0 +1,169 @@
+#!/bin/sh
+#
+# copy packages into the pkgs folder on the iso, including all the packages
+# necessary for the shipped overlays
+#
+
+DISTROOT=/export/tribblix/dist
+ZAPDIR=${DISTROOT}/pkgs
+THOME=/packages/localsrc/Tribblix
+OIPKGDIR=${THOME}/oi-pkgs-0.9
+OIREPODIR=${THOME}/repo-master/oi-151a9
+IPKGDIR=${THOME}/illumos-pkgs-m20lx.1
+VARIANT=""
+OVDIR="overlays-m20lx"
+
+#
+# Tribblix and illumos packages are explicitly versioned, we fake a version
+# based on the current release for OI/OpenSXCE
+#
+RELVER="0.20"
+OIVER="0.9o"
+ILVER="${RELVER}lx.1"
+
+case $# in
+1)
+	DISTROOT=${DISTROOT}.$1
+	ZAPDIR=${DISTROOT}/pkgs
+	VARIANT=$1
+	;;
+esac
+
+TFILE="/tmp/mkzap.$$"
+rm -fr ${TFILE}
+touch $TFILE
+for opkg in `cat ${THOME}/${OVDIR}/overlays.iso`
+do
+    if [ -f ${THOME}/${OVDIR}/${opkg}.pkgs.${VARIANT} ]; then
+	cat ${THOME}/${OVDIR}/${opkg}.pkgs.${VARIANT} >> $TFILE
+    else
+	cat ${THOME}/${OVDIR}/${opkg}.pkgs >> $TFILE
+    fi
+done
+
+#
+# we look in ${THOME}/pkgs, then ${IPKGDIR}/pkgs and ${OIPKGDIR}/pkgs
+#
+#
+# verify first
+#
+VALID=yes
+ERRLIST=""
+for ipkg in `cat ${TFILE}|sort|uniq|egrep -v '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$'`
+do
+  THISVER="XXX"
+  PKGI=${THOME}/build/${ipkg}/pkginfo
+  if [ -f ${PKGI} ]; then
+      THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
+  fi
+  if [ -f ${THOME}/pkgs/${ipkg}.${THISVER}.zap ]; then
+      echo "Installing $ipkg ${THISVER} from Tribblix"
+  elif [ -f ${IPKGDIR}/pkgs/${ipkg}.${ILVER}.zap ]; then
+      echo "Installing $ipkg from Illumos"
+  elif [ -f ${OIPKGDIR}/pkgs/${ipkg}.${OIVER}.zap ]; then
+      echo "Installing $ipkg from OpenIndiana"
+  else
+      echo "ERROR: package $ipkg not found"
+      VALID=no
+      ERRLIST="$ERRLIST $ipkg"
+  fi
+done
+if [ "X$VALID" = "Xno" ]; then
+    echo "ERROR: missing packages, mk-pkgs-zap aborted"
+    echo "Missing: $ERRLIST"
+    rm -f $TFILE
+    exit 1
+fi
+
+#
+# delete the pkgs directory to avoid lingering leftovers
+#
+rm -fr $ZAPDIR
+mkdir -p $ZAPDIR
+if [ ! -d $SZAPDIR ]; then
+    echo "ERROR: unable to create $ZAPDIR"
+    rm -f $TFILE
+    exit 1
+fi
+rm -f ${ZAPDIR}/catalog
+touch ${ZAPDIR}/catalog
+chmod 644 ${ZAPDIR}/catalog
+
+#
+# use pre-existing zap files
+#
+for ipkg in `cat ${TFILE}|sort|uniq|egrep -v '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$'`
+do
+  if [ -f ${DISTROOT}/var/sadm/pkg/${ipkg}/pkginfo ]; then
+      echo "Skipping installed ${ipkg}"
+  else
+      THISVER="XXX"
+      PKGI=${THOME}/build/${ipkg}/pkginfo
+      if [ -f ${PKGI} ]; then
+	  THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
+      fi
+      if [ -f ${THOME}/pkgs/${ipkg}.${THISVER}.zap ]; then
+	  cp ${THOME}/pkgs/${ipkg}.${THISVER}.zap $ZAPDIR
+      elif [ -f ${IPKGDIR}/pkgs/${ipkg}.${ILVER}.zap ]; then
+	  cp ${IPKGDIR}/pkgs/${ipkg}.${ILVER}.zap ${ZAPDIR}/${ipkg}.${ILVER}.zap
+	  THISVER=${ILVER}
+      else
+	  cp ${OIPKGDIR}/pkgs/${ipkg}.${OIVER}.zap ${ZAPDIR}/${ipkg}.${OIVER}.zap
+	  THISVER=${OIVER}
+      fi
+      echo "${ipkg}|${THISVER}|"`${DISTROOT}/usr/lib/zap/pkgdepend ${ZAPDIR}/${ipkg}.${THISVER}.zap` >> ${ZAPDIR}/catalog
+  fi
+done
+
+rm -f $TFILE
+
+#
+# preload package catalogs and aliases
+#
+cd ${THOME}/build
+if [ -f ${THOME}/pkgs/catalog ]; then
+    cp ${THOME}/pkgs/catalog ${DISTROOT}/etc/zap/repositories/tribblix.catalog
+else
+    ./create-catalog > ${DISTROOT}/etc/zap/repositories/tribblix.catalog
+fi
+if [ -f ${OIREPODIR}/catalog ]; then
+    cp ${OIREPODIR}/catalog ${DISTROOT}/etc/zap/repositories/oi.catalog
+else
+    ./create-oi-catalog > ${DISTROOT}/etc/zap/repositories/oi.catalog
+fi
+if [ -f ${IPKGDIR}/pkgs/catalog ]; then
+    cp ${IPKGDIR}/pkgs/catalog ${DISTROOT}/etc/zap/repositories/illumos.catalog
+else
+    ./create-illumos-catalog ${IPKGDIR}/pkgs > ${DISTROOT}/etc/zap/repositories/illumos.catalog
+fi
+if [ -f ${THOME}/pkgs/aliases ]; then
+    cp ${THOME}/pkgs/aliases ${DISTROOT}/etc/zap/repositories/tribblix.aliases
+else
+    ./create-aliases > ${DISTROOT}/etc/zap/repositories/tribblix.aliases
+fi
+if [ -f ${OIREPODIR}/aliases ]; then
+    cp ${OIREPODIR}/aliases ${DISTROOT}/etc/zap/repositories/oi.aliases
+else
+    ./create-oi-aliases > ${DISTROOT}/etc/zap/repositories/oi.aliases
+fi
+if [ -f ${IPKGDIR}/pkgs/aliases ]; then
+    cp ${IPKGDIR}/pkgs/aliases ${DISTROOT}/etc/zap/repositories/illumos.aliases
+else
+    ./create-illumos-aliases ${IPKGDIR}/pkgs > ${DISTROOT}/etc/zap/repositories/illumos.aliases
+fi
+
+#
+# preload overlay catalog
+#
+cd ${THOME}/${OVDIR}
+if [ -f catalog ]; then
+    cp catalog ${DISTROOT}/etc/zap/repositories/tribblix.overlays
+else
+    ${THOME}/build/create-overlay-catalog > ${DISTROOT}/etc/zap/repositories/tribblix.overlays
+fi
+
+#
+# show the space used
+#
+sync
+/usr/bin/du -hds $ZAPDIR

@@ -1,0 +1,53 @@
+#!/bin/sh
+
+RELEASE="0m20lx.1"
+
+DESTDIR=/export/tribblix/dist
+
+ISODIR=/var/tmp
+ISOROOT="omnitribblix"
+
+case `uname -p` in
+sparc)
+	ISOROOT="tribblix-sparc"
+	;;
+esac
+
+ISONAME=${ISOROOT}-${RELEASE}.iso
+case $# in
+1)
+	DESTDIR=${DESTDIR}.$1
+	ISONAME=${ISOROOT}-${RELEASE}-${1}.iso
+	;;
+esac
+
+#
+# for x86, detect whether we're using grub or the new loader
+#
+CDBOOT="boot/grub/stage2_eltorito"
+if [ -f ${DESTDIR}/boot/cdboot ]; then
+    CDBOOT="boot/cdboot"
+fi
+
+case `uname -p` in
+sparc)
+	/usr/bin/dd if="${DESTDIR}/platform/sun4v/lib/fs/hsfs/bootblk" \
+            of="${DESTDIR}/boot/hsfs.bootblock" \
+            bs=1b oseek=1 count=15 conv=sync 2> /dev/null
+
+	/usr/bin/mkisofs -o ${ISODIR}/${ISONAME} -G "${DESTDIR}/boot/hsfs.bootblock" \
+	-B ... -N -l -ldots -R -D -volset `cat ${DESTDIR}/.volsetid` \
+	-V "Tribblix${RELEASE}" ${DESTDIR}
+
+	;;
+i386)
+	/usr/bin/mkisofs -o ${ISODIR}/${ISONAME} -b ${CDBOOT} \
+	-c .catalog -volset `cat ${DESTDIR}/.volsetid` \
+	-no-emul-boot -boot-load-size 4 -boot-info-table -N -l -R -U \
+        -allow-multidot -no-iso-translate -cache-inodes -d -D \
+	-V "Tribblix${RELEASE}" ${DESTDIR}
+
+	;;
+esac
+
+/bin/ls -lh ${ISODIR}/${ISONAME}

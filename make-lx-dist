@@ -1,0 +1,22 @@
+#!/bin/sh
+
+THOME=/packages/localsrc/Tribblix
+
+TDIR=${THOME}/tribblix-build
+case `uname -p` in
+i386)
+	$TDIR/install-lx-pkgs $*
+	;;
+*)
+	echo "ERROR: unrecognized architecture for LX"
+	exit 1
+	;;
+esac
+
+case `uname -p` in
+i386)
+	$TDIR/mk-lx-pkgs-zap $*
+	;;
+esac
+
+$TDIR/lx_iso $*
