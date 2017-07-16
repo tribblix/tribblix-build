@@ -1,10 +1,13 @@
 #!/bin/ksh
 #
-# generate all packages, from an installed system
+# generate all packages, in both datastream and zap formats, from
+# an installed system
 #
-# these ought to be args, but must match ips2svr4.sh
+# these ought to be args
 #
+PKG_VERSION="0.9o"
 THOME=/packages/localsrc/Tribblix
+DSTDIR=/var/tmp/created-pkgs
 
 CMD=${THOME}/tribblix-build/ips2svr4.sh
 PNAME=${THOME}/tribblix-build/pkg_name.sh
@@ -14,19 +17,18 @@ cd /var/pkg/publisher/openindiana.org/pkg
 
 for file in *
 do
-    echo $CMD $file `$PNAME $file`
-    $CMD $file `$PNAME $file`
+    echo Packaging $file as `$PNAME $file`
+    $CMD -T $THOME -V $PKG_VERSION -D $DSTDIR $file `$PNAME $file`
 done
-
 
 #
 # convert the SVR4 pkg to zap format
 # create an md5 checksum for the catalog
 # optionally sign if we have a signing passphrase
 #
-for file in /var/tmp/created-pkgs/pkgs/*.pkg
+for file in ${DSTDIR}/pkgs/*.pkg
 do
-    $PKG2ZAP $file /var/tmp/created-pkgs/pkgs
+    $PKG2ZAP $file ${DSTDIR}/pkgs
     openssl md5 ${file%.pkg}.zap | /usr/bin/awk '{print $NF}' > ${file%.pkg}.zap.md5
     if [ -f ${HOME}/Tribblix/Sign.phrase ]; then
 	echo ""

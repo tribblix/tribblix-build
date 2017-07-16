@@ -6,6 +6,28 @@
 PKG_VERSION="0.20.1"
 THOME=/packages/localsrc/Tribblix
 GATEDIR=/export/home/ptribble/Illumos/illumos-gate
+DSTDIR=/var/tmp/illumos-pkgs
+
+#
+# locations and variables should be passed as arguments
+#
+while getopts "V:T:G:D:" opt; do
+    case $opt in
+        V)
+	    PKG_VERSION="$OPTARG"
+	    ;;
+        T)
+	    THOME="$OPTARG"
+	    ;;
+        G)
+	    GATEDIR="$OPTARG"
+	    ;;
+        D)
+	    DSTDIR="$OPTARG"
+	    ;;
+    esac
+done
+shift $((OPTIND-1))
 
 #
 # high level strategy:
@@ -40,7 +62,6 @@ GATEDIR=/export/home/ptribble/Illumos/illumos-gate
 # Global variables
 #
 PKGDIR=/usr/bin
-#PKGDIR=/var/tmp/nbuild/sprate-0.09/bin
 PKGMK="${PKGDIR}/pkgmk"
 PKGTRANS="${PKGDIR}/pkgtrans"
 PNAME=${THOME}/tribblix-build/pkg_name.sh
@@ -925,7 +946,6 @@ esac
 #
 REPODIR=${GATEDIR}/packages/`uname -p`/nightly-nd/repo.redist
 PROTODIR=${GATEDIR}/proto/root_`uname -p`
-DSTDIR=/var/tmp/illumos-pkgs
 
 if [ ! -d "${REPODIR}" ]; then
     echo "ERROR: Missing repo"

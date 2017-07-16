@@ -5,6 +5,25 @@
 
 PKG_VERSION="0.9o"
 THOME=/packages/localsrc/Tribblix
+DSTDIR=/var/tmp/created-pkgs
+
+#
+# locations and variables should be passed as arguments
+#
+while getopts "V:T:D:" opt; do
+    case $opt in
+        V)
+	    PKG_VERSION="$OPTARG"
+	    ;;
+        T)
+	    THOME="$OPTARG"
+	    ;;
+        D)
+	    DSTDIR="$OPTARG"
+	    ;;
+    esac
+done
+shift $((OPTIND-1))
 
 #
 # high level strategy:
@@ -902,7 +921,6 @@ esac
 # these ought to be args
 #
 REPODIR=/
-DSTDIR=/var/tmp/created-pkgs
 
 if [ ! -d "${REPODIR}" ]; then
     echo "ERROR: Missing repo"

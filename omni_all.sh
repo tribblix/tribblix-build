@@ -5,10 +5,10 @@
 #
 # these ought to be args
 #
-PKG_VERSION="0.20.1"
+PKG_VERSION="0.20lx.1"
 THOME=/packages/localsrc/Tribblix
-GATEDIR=/export/home/ptribble/Illumos/illumos-gate
-DSTDIR=/var/tmp/illumos-pkgs
+GATEDIR=/export/home/ptribble/Illumos/omnitribblix
+DSTDIR=/var/tmp/omni-pkgs
 
 REPODIR=${GATEDIR}/packages/`uname -p`/nightly-nd/repo.redist
 
