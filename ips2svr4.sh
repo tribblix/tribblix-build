@@ -751,6 +751,27 @@ fi
 }
 
 #
+# transform to rename a pathname in this package
+#
+transform_rename() {
+filepath=$1
+newpath=$2
+newdir=`dirname $newpath`
+echo "DBG: rename $filepath to $newpath in $newdir"
+if [ -f ${BDIR}/${filepath} ]; then
+  /usr/bin/mkdir -p ${BDIR}/${newdir}
+  /usr/bin/mv ${BDIR}/${filepath} ${BDIR}/${newpath}
+  /usr/bin/mv ${BDIR}/prototype ${BDIR}/prototype.transform
+  cat ${BDIR}/prototype.transform | grep " ${filepath}=${filepath} " | read otype oclass opath operm ouser ogroup
+  cat ${BDIR}/prototype.transform | grep -v " ${filepath}=${filepath} " > ${BDIR}/prototype
+  echo "${otype} ${oclass} ${newpath}=${newpath} ${operm} ${ouser} ${ogroup}" >> ${BDIR}/prototype
+  /usr/bin/rm ${BDIR}/prototype.transform
+else
+  echo "WARN: transform_rename cannot find $filepath"
+fi
+}
+
+#
 # transform to delete a linked pathname from this package
 #
 # we need to remove the file from the prototype file
@@ -1200,6 +1221,9 @@ mkdir)
 replace)
     transform_replace $pathname
     ;;
+rename)
+    transform_rename $pathname $line
+    ;;
 modify)
     echo "DBG: gsed -i '$line' ${BDIR}/${pathname}"
     gsed -i "$line" ${BDIR}/${pathname}
@@ -1254,6 +1278,9 @@ mkdir)
     ;;
 replace)
     transform_replace $pathname
+    ;;
+rename)
+    transform_rename $pathname $line
     ;;
 modify)
     echo "DBG: gsed -i '$line' ${BDIR}/${pathname}"
