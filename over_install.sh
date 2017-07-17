@@ -206,7 +206,7 @@ echo "Creating filesystems"
 /usr/sbin/zpool set bootfs=${ROOTPOOL}/ROOT/${NEWBE} ${ROOTPOOL}
 
 #
-# this gives the new BE a UUID, necessary for 'beadm list -H'
+# this gives the BE a UUID, necessary for 'beadm list -H'
 # to not show null, and for zone uninstall to work
 #
 /usr/sbin/zfs set org.opensolaris.libbe:uuid=`/usr/lib/zap/generate-uuid` ${ROOTPOOL}/ROOT/${NEWBE}

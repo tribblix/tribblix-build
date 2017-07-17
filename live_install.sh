@@ -18,6 +18,7 @@ DOMAINNAME=""
 BEGIN_SCRIPT=""
 FINISH_SCRIPT=""
 FIRSTBOOT_SCRIPT=""
+NEWBE="tribblix"
 
 FSTYPE="ZFS"
 DRIVE1=""
@@ -162,6 +163,10 @@ esac
 OVERLAYS="$OVERLAYS $*"
 
 #
+# end interactive argument handling
+#
+
+#
 # if we have a drive list at this point, it must be from cardigan, 
 # so check the list for validity
 #
@@ -205,10 +210,6 @@ if [ -n "$DRIVE2" ]; then
 fi
 
 #
-# end interactive argument handling
-#
-
-#
 # if no drives are listed to install to, exit now
 #
 if [ -z "$DRIVELIST" ]; then
@@ -250,18 +251,18 @@ echo "Creating root pool"
 
 echo "Creating filesystems"
 /usr/sbin/zfs create -o mountpoint=legacy ${ROOTPOOL}/ROOT
-/usr/sbin/zfs create -o mountpoint=${ALTROOT} ${ROOTPOOL}/ROOT/tribblix
-/usr/sbin/zpool set bootfs=${ROOTPOOL}/ROOT/tribblix ${ROOTPOOL}
+/usr/sbin/zfs create -o mountpoint=${ALTROOT} ${ROOTPOOL}/ROOT/${NEWBE}
+/usr/sbin/zpool set bootfs=${ROOTPOOL}/ROOT/${NEWBE} ${ROOTPOOL}
 /usr/sbin/zfs create -o mountpoint=${ALTROOT}/export ${ROOTPOOL}/export
 /usr/sbin/zfs create ${ROOTPOOL}/export/home
 /usr/sbin/zfs create -V ${SWAPSIZE} -b 4k ${ROOTPOOL}/swap
 /usr/sbin/zfs create -V ${SWAPSIZE} ${ROOTPOOL}/dump
 
 #
-# this gives the initial BE a UUID, necessary for 'beadm list -H'
+# this gives the BE a UUID, necessary for 'beadm list -H'
 # to not show null, and for zone uninstall to work
 #
-/usr/sbin/zfs set org.opensolaris.libbe:uuid=`/usr/lib/zap/generate-uuid` ${ROOTPOOL}/ROOT/tribblix
+/usr/sbin/zfs set org.opensolaris.libbe:uuid=`/usr/lib/zap/generate-uuid` ${ROOTPOOL}/ROOT/${NEWBE}
 
 echo "Copying main filesystems"
 cd /
@@ -416,7 +417,7 @@ if [ -f ${ALTROOT}/boot/cdboot ]; then
 # new loader
 /usr/bin/cat > /${ROOTPOOL}/boot/menu.lst << _EOF
 title Tribblix 0.20.1
-bootfs ${ROOTPOOL}/ROOT/tribblix
+bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 _EOF
 else
 #grub
@@ -432,7 +433,7 @@ default 0
 timeout 3
 title Tribblix 0.20.1
 findroot (pool_${ROOTPOOL},0,a)
-bootfs ${ROOTPOOL}/ROOT/tribblix
+bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B \$ZFS-BOOTFS${BCONSOLE}
 module\$ /platform/i86pc/\$ISADIR/boot_archive
 _EOF
@@ -591,8 +592,8 @@ echo "Updating boot archive"
 # remount zfs filesystem in the right place for next boot
 #
 /usr/sbin/zfs set mountpoint=/export ${ROOTPOOL}/export
-/usr/sbin/zfs set canmount=noauto ${ROOTPOOL}/ROOT/tribblix
-/usr/sbin/zfs set mountpoint=/ ${ROOTPOOL}/ROOT/tribblix
+/usr/sbin/zfs set canmount=noauto ${ROOTPOOL}/ROOT/${NEWBE}
+/usr/sbin/zfs set mountpoint=/ ${ROOTPOOL}/ROOT/${NEWBE}
 
 #
 # if specified, reboot
