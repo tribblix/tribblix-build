@@ -3,7 +3,7 @@
 # This script allows you to install a copy of Tribblix into an existing
 # zfs pool.
 #
-# ./over_install.sh [-B] rpool [overlays ...]
+# ./over_install.sh [-B] [-N] rpool [overlays ...]
 #
 # You need to specify the name of the pool, usually rpool.
 # You can specify overlays just like the normal install.
@@ -14,9 +14,10 @@
 # old BEs will still be present. Due to the change in bootloader they
 # cannot be activated with beadm, but can be accessed manually
 #
-# We copy account details (group, passwd, shadow) and the system ssh keys
+# We may copy account details (group, passwd, shadow) and the system ssh keys
 # from the existing BE. Any existing ZFS file systems will automatically
 # transfer across unchanged. All other customizations are left to the user.
+# With -N, don't copy any details from the old BE
 #
 
 #
@@ -34,6 +35,7 @@ BEGIN_SCRIPT=""
 FINISH_SCRIPT=""
 FIRSTBOOT_SCRIPT=""
 NEWBE="tribblix-m20.1"
+NFLAG=""
 
 FSTYPE="ZFS"
 PKGLOC="/.cdrom/pkgs"
@@ -121,10 +123,13 @@ fi
 #
 # interactive argument handling
 #
-while getopts "Bn:t:" opt; do
+while getopts "BNn:t:" opt; do
     case $opt in
         B)
 	    BFLAG="-M"
+	    ;;
+        N)
+	    NFLAG="no"
 	    ;;
         n)
 	    NODENAME="$OPTARG"
@@ -142,7 +147,9 @@ shift $((OPTIND-1))
 case $# in
 0)
 	echo "ERROR: You must specify an existing pool to install to"
-	echo "Usage: $0 [-B] old_pool [overlay ... ]"
+	echo "Usage: $0 [-B] [-N] old_pool [overlay ... ]"
+	echo "  with -B, replace mbr"
+	echo "  with -N, don't transfer anything from old system"
 	exit 1
 	;;
 *)
@@ -262,7 +269,18 @@ if [ -d ${PKGLOC} ]; then
 	/usr/lib/zap/install-overlay -R ${ALTROOT} -s ${PKGLOC} $overlay | tee -a $LOGFILE
     done
 elif [ -z "$PKGMEDIA" ]; then
-    echo "No packages found, unable to install overlays"
+    echo "No local packages found, trying to install overlays from the network"
+    echo "${ALTROOT}/var/zap/cache" > /etc/zap/cache_dir
+    /usr/lib/zap/install-overlay -R ${ALTROOT} base | tee -a $LOGFILE
+    # only try other overlays if base worked, to minimize wasteage
+    if [ -f ${ALTROOT}/var/sadm/overlays/installed/base ]; then
+	for overlay in $OVERLAYS
+	do
+	    /usr/lib/zap/install-overlay -R ${ALTROOT} $overlay | tee -a $LOGFILE
+	done
+    else
+	echo "Ignoring overlay installation"
+    fi
 else
     echo "${ALTROOT}/var/zap/cache" > /etc/zap/cache_dir
     echo "5 cdrom" >> /etc/zap/repo.list
@@ -507,22 +525,27 @@ if [ -n "${KLAYOUT}" ]; then
 fi
 
 #
-# we need to copy some stuff off the existing system,
+# we can copy some stuff off the existing system,
 # just basic identity
 # not the ssh config files because of sunssh vs openssh differences
+# copying disabled with -N
 #
-TDIR=/tmp/oldmnt
-mkdir -p $TDIR
-/usr/sbin/zfs set mountpoint=${TDIR} ${OLDBE}
-/usr/sbin/zfs mount ${OLDBE}
-/usr/bin/cp -p ${TDIR}/etc/passwd ${ALTROOT}/etc/passwd
-/usr/bin/cp -p ${TDIR}/etc/group ${ALTROOT}/etc/group
-/usr/bin/cp -p ${TDIR}/etc/shadow ${ALTROOT}/etc/shadow
-/usr/bin/cp -p ${TDIR}/etc/ssh/ssh_host* ${ALTROOT}/etc/ssh
-if [ -z "$NODENAME" ]; then
-    /usr/bin/cp -p ${TDIR}/etc/nodename ${ALTROOT}/etc/nodename
+# you can still mount the old BE later to retrieve data if you need to
+#
+if [ -z "$NFLAG" ]; then
+    TDIR=/tmp/oldmnt
+    mkdir -p $TDIR
+    /usr/sbin/zfs set mountpoint=${TDIR} ${OLDBE}
+    /usr/sbin/zfs mount ${OLDBE}
+    /usr/bin/cp -p ${TDIR}/etc/passwd ${ALTROOT}/etc/passwd
+    /usr/bin/cp -p ${TDIR}/etc/group ${ALTROOT}/etc/group
+    /usr/bin/cp -p ${TDIR}/etc/shadow ${ALTROOT}/etc/shadow
+    /usr/bin/cp -p ${TDIR}/etc/ssh/ssh_host* ${ALTROOT}/etc/ssh
+    if [ -z "$NODENAME" ]; then
+	/usr/bin/cp -p ${TDIR}/etc/nodename ${ALTROOT}/etc/nodename
+    fi
+    /usr/sbin/zfs unmount ${OLDBE}
 fi
-/usr/sbin/zfs unmount ${OLDBE}
 /usr/sbin/zfs set canmount=noauto ${OLDBE}
 
 #
