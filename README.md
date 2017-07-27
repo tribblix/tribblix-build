@@ -39,6 +39,23 @@ installation scripts - I do this by default for the kitchen-sink and
 x11 overlays. (For the x11 overlay I enable HAL, and the kitchen-sink
 has the SLiM login manager enabled as well.)
 
+
+img_install
+===========
+
+The img_install.sh script was designed to install a copy of Tribblix into
+a new BE (boot environment) on an existing illumos system. Specifically,
+it has been run on the OmniOS EC2 AMI to install Tribblix to a new BE
+(using the same image as is used for iPXE boot); rebooting that instance
+then boots up into Tribblix, allowing you to delete the OmniOS BE and
+create a pure Tribblix AMI.
+
+While it's specific to that particular case, it's really a variant of the
+over_install.sh script, and it could easily be modified to do the same trick
+with other images. (To see how to unpack some of the other distros, look at
+my alien zones brand which knows how to unpack various distros into a zone
+filesystem.)
+
 ips2svr4
 ========
 
