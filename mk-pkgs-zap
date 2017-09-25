@@ -19,7 +19,7 @@ OVDIR="overlays"
 #
 RELVER="0.20"
 OIVER="0.9o"
-ILVER="${RELVER}.1"
+ILVER="${RELVER}.2"
 
 case $# in
 1)
