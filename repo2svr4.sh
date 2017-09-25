@@ -8,11 +8,12 @@ THOME=/packages/localsrc/Tribblix
 GATEDIR=/export/home/ptribble/Illumos/illumos-gate
 DSTDIR=/var/tmp/illumos-pkgs
 DYNTRANS=""
+SIGNCERT=""
 
 #
 # locations and variables should be passed as arguments
 #
-while getopts "V:T:G:D:M:" opt; do
+while getopts "V:T:G:D:M:S:" opt; do
     case $opt in
         V)
 	    PKG_VERSION="$OPTARG"
@@ -29,9 +30,34 @@ while getopts "V:T:G:D:M:" opt; do
         M)
 	    DYNTRANS="$OPTARG"
 	    ;;
+        S)
+	    SIGNCERT="$OPTARG"
+	    ;;
     esac
 done
 shift $((OPTIND-1))
+
+#
+# verify signing - the cert and key must exist
+# if they don't, exit early
+#
+if [ -n "$SIGNCERT" ]; then
+    if [ -r "${SIGNCERT}.key" -a -r "${SIGNCERT}.crt" ]; then
+	:
+    else
+	echo "Error: invalid cert specified"
+	exit 1
+    fi
+    if [ ! -x "${GATEDIR}/usr/src/tools/scripts/find_elf" ]; then
+	echo "Cannot sign, find_elf missing"
+	exit 1
+    fi
+    if [ ! -x /usr/bin/elfsign ]; then
+	echo "Cannot sign, elfsign missing"
+	echo "  (is TRIBdev-linker installed?)"
+	exit 1
+    fi
+fi
 
 #
 # high level strategy:
@@ -1241,6 +1267,37 @@ if [ -f ${BDIR}/install/postinstall ]; then
 fi
 if [ -f ${BDIR}/install/postremove ]; then
     echo "exit 0" >> ${BDIR}/install/postremove
+fi
+
+#
+# sign elf objects if requested
+# find_elf only finds libraries and binaries, not kernel modules
+# so do those manually
+#
+if [ -n "$SIGNCERT" ]; then
+    cd $BDIR
+    for exe in `${GATEDIR}/usr/src/tools/scripts/find_elf . | grep '^OBJECT' | /usr/bin/awk '{if ($3 == "EXEC" || $3 == "DYN") print $NF}'`
+    do
+	/usr/bin/elfsign sign -k ${SIGNCERT}.key -c ${SIGNCERT}.crt -e $exe
+    done
+    if [ -d platform ]; then
+	for exe in `find platform -type f | grep -v '\.conf$'`	
+	do
+	    /usr/bin/elfsign sign -k ${SIGNCERT}.key -c ${SIGNCERT}.crt -e $exe
+	done
+    fi
+    if [ -d kernel ]; then
+	for exe in `find kernel -type f | grep -v '\.conf$'`	
+	do
+	    /usr/bin/elfsign sign -k ${SIGNCERT}.key -c ${SIGNCERT}.crt -e $exe
+	done
+    fi
+    if [ -d usr/kernel ]; then
+	for exe in `find usr/kernel -type f | grep -v '\.conf$'`	
+	do
+	    /usr/bin/elfsign sign -k ${SIGNCERT}.key -c ${SIGNCERT}.crt -e $exe
+	done
+    fi
 fi
 
 #
