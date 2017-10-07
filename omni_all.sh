@@ -5,10 +5,56 @@
 #
 # these ought to be args
 #
-PKG_VERSION="0.20lx.1"
+PKG_VERSION="0.20lx.2"
 THOME=/packages/localsrc/Tribblix
 GATEDIR=/export/home/ptribble/Illumos/omnitribblix
 DSTDIR=/var/tmp/omni-pkgs
+
+#
+# locations and variables should be passed as arguments
+#
+while getopts "V:T:G:D:M:S:" opt; do
+    case $opt in
+        V)
+	    PKG_VERSION="$OPTARG"
+	    ;;
+        T)
+	    THOME="$OPTARG"
+	    ;;
+        G)
+	    GATEDIR="$OPTARG"
+	    ;;
+        D)
+	    DSTDIR="$OPTARG"
+	    ;;
+        S)
+	    SIGNCERT="$OPTARG"
+	    ;;
+    esac
+done
+shift $((OPTIND-1))
+
+#
+# verify signing - the cert and key must exist
+# if they don't, exit early
+#
+if [ -n "$SIGNCERT" ]; then
+    if [ -r "${SIGNCERT}.key" -a -r "${SIGNCERT}.crt" ]; then
+	:
+    else
+	echo "Error: invalid cert specified"
+	exit 1
+    fi
+    if [ ! -x "${GATEDIR}/usr/src/tools/scripts/find_elf" ]; then
+	echo "Cannot sign, find_elf missing"
+	exit 1
+    fi
+    if [ ! -x /usr/bin/elfsign ]; then
+	echo "Cannot sign, elfsign missing"
+	echo "  (is TRIBdev-linker installed?)"
+	exit 1
+    fi
+fi
 
 REPODIR=${GATEDIR}/packages/`uname -p`/nightly-nd/repo.redist
 
@@ -22,7 +68,11 @@ cd $REPODIR/pkg
 for file in *
 do
     echo Packaging $file as `$PNAME $file`
-    $CMD -T $THOME -V $PKG_VERSION -G $GATEDIR -D $DSTDIR $file `$PNAME $file`
+    if [ -n "$SIGNCERT" ]; then
+	$CMD -T $THOME -V $PKG_VERSION -G $GATEDIR -D $DSTDIR -S $SIGNCERT $file `$PNAME $file`
+    else
+	$CMD -T $THOME -V $PKG_VERSION -G $GATEDIR -D $DSTDIR $file `$PNAME $file`
+    fi
 done
 
 #

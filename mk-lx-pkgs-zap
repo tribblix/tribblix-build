@@ -9,7 +9,7 @@ ZAPDIR=${DISTROOT}/pkgs
 THOME=/packages/localsrc/Tribblix
 OIPKGDIR=${THOME}/oi-pkgs-0.9
 OIREPODIR=${THOME}/repo-master/oi-151a9
-IPKGDIR=${THOME}/illumos-pkgs-m20lx.1
+IPKGDIR=${THOME}/illumos-pkgs-m20lx.2
 VARIANT=""
 OVDIR="overlays-m20lx"
 
