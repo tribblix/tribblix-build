@@ -10,5 +10,5 @@ version of python/perl/java comes with Tribblix and where it's installed.
 From release to release, normally only the VERSION string would change.
 
 You'll also need to replace usr/src/cmd/auditrecord/Makefile with the
-Makefile.auditrecord file from here, again becuase perl on Tribblix is
+Makefile.auditrecord file from here, again because perl on Tribblix is
 slightly different.
