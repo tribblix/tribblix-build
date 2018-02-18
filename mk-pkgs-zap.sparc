@@ -8,7 +8,7 @@ DISTROOT=/export/tribblix/dist
 ZAPDIR=${DISTROOT}/pkgs
 THOME=/packages/localsrc/Tribblix
 OXPKGDIR=${THOME}/opensxce-pkgs
-IPKGDIR=${THOME}/illumos-pkgs-m20.2.sparc
+IPKGDIR=${THOME}/illumos-pkgs-m20.3.sparc
 VARIANT=""
 OVDIR="overlays.sparc"
 

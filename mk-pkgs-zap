@@ -9,7 +9,7 @@ ZAPDIR=${DISTROOT}/pkgs
 THOME=/packages/localsrc/Tribblix
 OIPKGDIR=${THOME}/oi-pkgs-0.9
 OIREPODIR=${THOME}/repo-master/oi-151a9
-IPKGDIR=${THOME}/illumos-pkgs-m20.2
+IPKGDIR=${THOME}/illumos-pkgs-m20.3
 VARIANT=""
 OVDIR="overlays"
 
@@ -19,7 +19,7 @@ OVDIR="overlays"
 #
 RELVER="0.20"
 OIVER="0.9o"
-ILVER="${RELVER}.2"
+ILVER="${RELVER}.3"
 
 case $# in
 1)
