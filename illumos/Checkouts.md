@@ -1,0 +1,23 @@
+These are the commit ids for illumos-gate or illumos-omnios
+for a given release.
+
+m19:
+d2c5b266b717b923ea0e28b925ddb8e66dd98b42
+
+m20:
+afc62b4b94eec9d9cec1ba14fd65fcf304325e7f
+
+m20.1:
+04427e3bf236c18cc532680b957267ee70b1037d
+
+m20.2:
+d042c5a26452797afc4fe8c2ceddebff94d88745
+
+m20lx.2
+a28287ae00d4c7860bb8f95130a7a3fa153c2685
+
+m20.3:
+141fdc8db8933e5c2d4fe6a0f5ee25c59f0a0231
+
+m20lx.3:
+933062283134a78e7c82f609fa962ac6363a06fc
