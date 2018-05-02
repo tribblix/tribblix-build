@@ -54,6 +54,9 @@ if [ -n "$SIGNCERT" ]; then
 	echo "  (is TRIBdev-linker installed?)"
 	exit 1
     fi
+else
+    echo "Error: a signing certificate is required"
+    exit 1
 fi
 
 REPODIR=${GATEDIR}/packages/`uname -p`/nightly-nd/repo.redist
