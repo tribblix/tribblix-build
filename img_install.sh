@@ -36,7 +36,7 @@ DOMAINNAME=""
 BEGIN_SCRIPT=""
 FINISH_SCRIPT=""
 FIRSTBOOT_SCRIPT=""
-NEWBE="tribblix-m20"
+NEWBE="tribblix-m20.3"
 NFLAG=""
 
 #
@@ -49,9 +49,10 @@ NFLAG=""
 #
 # future enhancements could allow a wider choice
 #
-IMGSRC="http://pkgs.tribblix.org/m20/platform/i86pc/boot_archive"
+IMGSRC="http://pkgs.tribblix.org/m20.3/platform/i86pc/boot_archive"
 #IMGSRC="http://10.0.2.2/m20/platform/i86pc/boot_archive"
-IMGSUM="6d5d683f74097e472c4249ffc3908a8c758b5cad"
+# m20 IMGSUM="6d5d683f74097e472c4249ffc3908a8c758b5cad"
+IMGSUM="76c8a6f752498bd729e618ed84ae0c90193c6132"
 IMGTMP="/var/tmp/${NEWBE}.archive"
 
 FSTYPE="ZFS"
@@ -412,7 +413,7 @@ case `/sbin/uname -i` in
 /usr/bin/cat > /${ROOTPOOL}/boot/grub/menu.lst << _EOF
 default 0
 timeout 3
-title Tribblix 0.20
+title Tribblix 0.20.3
 findroot (pool_${ROOTPOOL},1,a)
 bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 kernel\$ /platform/i86pc/kernel/amd64/unix -B \$ZFS-BOOTFS
@@ -425,7 +426,7 @@ _EOF
 if [ -f ${ALTROOT}/boot/cdboot ]; then
 # new loader
 /usr/bin/cat > /${ROOTPOOL}/boot/menu.lst << _EOF
-title Tribblix 0.20
+title Tribblix 0.20.3
 bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 _EOF
 else
@@ -440,7 +441,7 @@ echo "pool_${ROOTPOOL}" > /${ROOTPOOL}/etc/bootsign
 /usr/bin/cat > /${ROOTPOOL}/boot/grub/menu.lst << _EOF
 default 0
 timeout 3
-title Tribblix 0.20
+title Tribblix 0.20.3
 findroot (pool_${ROOTPOOL},0,a)
 bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B \$ZFS-BOOTFS${BCONSOLE}
