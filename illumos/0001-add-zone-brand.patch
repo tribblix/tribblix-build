@@ -1,0 +1,11 @@
+--- a/usr/src/lib/libbe/common/libbe_priv.h
++++ b/usr/src/lib/libbe/common/libbe_priv.h
+@@ -74,7 +73,7 @@
+ 
+ #define	BE_ZONE_PARENTBE_PROPERTY	"org.opensolaris.libbe:parentbe"
+ #define	BE_ZONE_ACTIVE_PROPERTY		"org.opensolaris.libbe:active"
+-#define	BE_ZONE_SUPPORTED_BRANDS	"ipkg labeled"
++#define	BE_ZONE_SUPPORTED_BRANDS	"labeled sparse-root alien-root whole-root"
+ #define	BE_ZONE_SUPPORTED_BRANDS_DELIM	" "
+ 
+ /* Maximum length for the BE name. */

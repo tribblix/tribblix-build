@@ -12,3 +12,18 @@ From release to release, normally only the VERSION string would change.
 You'll also need to replace usr/src/cmd/auditrecord/Makefile with the
 Makefile.auditrecord file from here, again because perl on Tribblix is
 slightly different.
+
+There are 2 patches for Tribblix:
+
+0003-5709-Add-binary-compatibility-with-Solaris-10-update.patch
+is what it says, and is pretty much a definite commitment
+
+0001-add-zone-brand.patch
+is similar to the openindiana patch, but adds my brands not theirs
+this one is more experimental
+
+Both are against illumos-gate. The S10 compatibility isn't needed for
+omnitribblix, as illumos-omnios already includes that fix. The zone brand
+patch won't apply on illumos-omnios, so I just copy a patched
+usr/src/lib/libbe/common/libbe_priv.h from my illumos-gate into the
+omnitribblix build.
