@@ -5,7 +5,7 @@
 # note, no slice or fdisk partition, just the bare device
 #
 
-RELEASE="0m20.5"
+RELEASE="0m20.3"
 
 DESTDIR=/export/tribblix/dist
 
@@ -50,9 +50,9 @@ mount -F pcfs ${LOFIDEV}:c $BFS
 # /dev/lofi/1:c         939M  886M   54M  95% /tmp/nb.usb.5565
 #
 cp -r ${DESTDIR}/boot $BFS
-cp -r ${DESTDIR}/pkgs $BFS
+#cp -r ${DESTDIR}/pkgs $BFS
 cp -r ${DESTDIR}/platform $BFS
-cp ${DESTDIR}/solaris.zlib $BFS
+#cp ${DESTDIR}/solaris.zlib $BFS
 
 cd /
 umount $BFS
