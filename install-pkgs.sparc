@@ -20,10 +20,18 @@ OXVER="2014"
 #
 PKGLIST=${THOME}/overlays.sparc/base-iso.pkgs
 
+#
+# the one argument is a variant, which sets the destination directory
+#
+# if there's a named variant of base-iso.pkgs then use that, but normally
+# we use the default
+#
 case $# in
 1)
 	DESTDIR=${DESTDIR}.$1
-	PKGLIST=${PKGLIST}.$1
+	if [ -f ${PKGLIST}.$1 ]; then
+	    PKGLIST=${PKGLIST}.$1
+	fi
 	;;
 esac
 

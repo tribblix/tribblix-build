@@ -20,18 +20,27 @@ RELVER="0.20"
 OXVER="2014"
 ILVER="${RELVER}.5"
 
+#
+# the one argument is a variant, which sets the destination directory
+#
+# if there's a variant overlays.iso, then use that
+#
+OVLIST=${THOME}/${OVDIR}/overlays.iso
 case $# in
 1)
 	DISTROOT=${DISTROOT}.$1
 	ZAPDIR=${DISTROOT}/pkgs
 	VARIANT=$1
+	if [ -f ${THOME}/${OVDIR}/overlays.${VARIANT}.iso ]; then
+	    OVLIST=${THOME}/${OVDIR}/overlays.${VARIANT}.iso
+	fi
 	;;
 esac
 
 TFILE="/tmp/mkzap.$$"
 rm -fr ${TFILE}
 touch $TFILE
-for opkg in `cat ${THOME}/${OVDIR}/overlays.iso`
+for opkg in `cat ${OVLIST}`
 do
     if [ -f ${THOME}/${OVDIR}/${opkg}.pkgs.${VARIANT} ]; then
 	cat ${THOME}/${OVDIR}/${opkg}.pkgs.${VARIANT} >> $TFILE

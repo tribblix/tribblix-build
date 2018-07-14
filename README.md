@@ -20,7 +20,7 @@ The make-dist script is a simple way to run all the above steps.
 The live_install.sh script is what gets put onto the live CD and used
 to install Tribblix to a hard disk.
 
-The ufs_install.sh script is a test script that allows install to ufs
+The ufs_install.sh script is a script that allows install to ufs
 instead of zfs.
 
 Once you've booted up the live image successfully, and have the
