@@ -1,0 +1,10 @@
+--- a/usr/src/cmd/mdb/Makefile.common	Mon Sep 10 22:02:54 2018
++++ b/usr/src/cmd/mdb/Makefile.common	Fri Jan 11 22:16:54 2019
+@@ -38,7 +38,6 @@
+ 	libfksmbsrv \
+ 	libnvpair \
+ 	libproc \
+-	libpython \
+ 	libsysevent \
+ 	libtopo \
+ 	libumem \

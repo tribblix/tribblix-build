@@ -1,0 +1,19 @@
+--- a/usr/src/pkg/manifests/developer-debug-mdb.mf	Mon Sep 10 22:02:59 2018
++++ b/usr/src/pkg/manifests/developer-debug-mdb.mf	Fri Jan 11 22:17:11 2019
+@@ -211,8 +211,6 @@
+ file path=usr/lib/mdb/proc/$(ARCH64)/libcmdutils.so group=sys mode=0555
+ file path=usr/lib/mdb/proc/$(ARCH64)/libnvpair.so group=sys mode=0555
+ file path=usr/lib/mdb/proc/$(ARCH64)/libproc.so group=sys mode=0555
+-file path=usr/lib/mdb/proc/$(ARCH64)/libpython$(PYTHON_VERSION).so group=sys \
+-    mode=0555
+ file path=usr/lib/mdb/proc/$(ARCH64)/libsysevent.so group=sys mode=0555
+ file path=usr/lib/mdb/proc/$(ARCH64)/libtopo.so group=sys mode=0555
+ file path=usr/lib/mdb/proc/$(ARCH64)/libumem.so group=sys mode=0555
+@@ -226,7 +224,6 @@
+ file path=usr/lib/mdb/proc/libcmdutils.so group=sys mode=0555
+ file path=usr/lib/mdb/proc/libnvpair.so group=sys mode=0555
+ file path=usr/lib/mdb/proc/libproc.so group=sys mode=0555
+-file path=usr/lib/mdb/proc/libpython$(PYTHON_VERSION).so group=sys mode=0555
+ file path=usr/lib/mdb/proc/libsysevent.so group=sys mode=0555
+ file path=usr/lib/mdb/proc/libtopo.so group=sys mode=0555
+ file path=usr/lib/mdb/proc/libumem.so group=sys mode=0555
