@@ -18,7 +18,6 @@ esac
 #
 # these properties are available for customization
 #
-DRIVELIST=""
 SWAPSIZE="2g"
 ZFSARGS=""
 BFLAG=""
@@ -33,7 +32,6 @@ FIRSTBOOT_SCRIPT=""
 
 FSTYPE="UFS"
 DRIVE1=""
-DRIVE2=""
 PKGLOC="/.cdrom/pkgs"
 SMFREPODIR="/usr/lib/zap"
 ALTROOT="/a"
@@ -140,7 +138,6 @@ esac
 
 DRIVE1=$1
 shift
-DRIVELIST="$DRIVE1"
 
 if [ ! -e /dev/dsk/$DRIVE1 ]; then
     echo "ERROR: Unable to find device $DRIVE1"
@@ -296,10 +293,7 @@ fi
 #
 pkgadm sync -R ${ALTROOT} -q
 
-for DRIVE in $DRIVELIST
-do
-    /usr/sbin/installboot -F zfs /usr/platform/`uname -i`/lib/fs/zfs/bootblk /dev/rdsk/$DRIVE
-done
+/usr/sbin/installboot -F ufs /usr/platform/`uname -i`/lib/fs/ufs/bootblk /dev/rdsk/$DRIVE1
 
 echo "Configuring devices"
 ${ALTROOT}/usr/sbin/devfsadm -r ${ALTROOT}
