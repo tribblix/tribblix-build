@@ -36,8 +36,6 @@ esac
 case `uname -p` in
 i386)
 #
-# I make a dual 32/64-bit boot archive
-#
 # NB. sometimes need  -B acpi-user-options=2
 # VBox and OI151a5 and early tribblix builds needed it, at least
 #

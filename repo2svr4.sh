@@ -488,7 +488,6 @@ case $key in
 pkg.size*|pkg.csize*|reboot-needed|*zone*|elfarch|elfbits|chash|elfhash|original_name)
     # FIXME reboot, zone handling
     # FIXME should check on elfarch
-    # FIXME could filter on elfbits to make a 32-bit distro
     printf ""
     ;;
 path)
