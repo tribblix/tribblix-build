@@ -36,7 +36,7 @@ DOMAINNAME=""
 BEGIN_SCRIPT=""
 FINISH_SCRIPT=""
 FIRSTBOOT_SCRIPT=""
-NEWBE="tribblix-m20.3"
+NEWBE="tribblix-m20.5"
 NFLAG=""
 
 #
@@ -49,10 +49,18 @@ NFLAG=""
 #
 # future enhancements could allow a wider choice
 #
-IMGSRC="http://pkgs.tribblix.org/m20.3/platform/i86pc/boot_archive"
-#IMGSRC="http://10.0.2.2/m20/platform/i86pc/boot_archive"
+IMGSRC="http://pkgs.tribblix.org/m20.5/platform/i86pc/boot_archive"
 # m20 IMGSUM="6d5d683f74097e472c4249ffc3908a8c758b5cad"
-IMGSUM="76c8a6f752498bd729e618ed84ae0c90193c6132"
+# m20.3 IMGSUM="76c8a6f752498bd729e618ed84ae0c90193c6132"
+# m20lx.3 IMGSUM="e11a7fe8ef07d7adb94c58e548d24ac866d66e61"
+# m20.4 IMGSUM="b195b01a42b7b60c3fa4d7979eb823b93a80f0ac"
+# m20lx.4 IMGSUM="498a0148ad7f756983adbef85f0dd3c36aa991a5"
+# m20.5 IMGSUM="00aba6bad476264d7782f8326d7b527347ce1a3a"
+# m20lx.5 IMGSUM="723fbac375fa094cd239c0795c2ca642fd17769a"
+# m20.6 IMGSUM=""
+# m20lx.6 IMGSUM=""
+#
+IMGSUM="00aba6bad476264d7782f8326d7b527347ce1a3a"
 IMGTMP="/var/tmp/${NEWBE}.archive"
 
 FSTYPE="ZFS"

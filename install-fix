@@ -22,8 +22,8 @@ i386)
 	XARCH="i86"
 	;;
 sparc)
-	MRSIZE=150m
-	BASIZE=153600
+	MRSIZE=400m
+	BASIZE=409600
 	NBPI=20480
 	XARCH="sparcv7"
 	;;
@@ -54,16 +54,16 @@ i386)
 # VBox and OI151a5 and early tribblix builds needed it, at least
 #
 cat >> ${DESTDIR}/boot/grub/menu.lst << _EOF
-title Tribblix 0.20.5
+title Tribblix 0.20.6
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix
 module\$ /platform/i86pc/boot_archive
-title Tribblix 0.20.5 (ttya)
+title Tribblix 0.20.6 (ttya)
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B console=ttya,input-device=ttya,output-device=ttya
 module\$ /platform/i86pc/boot_archive
-title Tribblix 0.20.5 (remote ssh)
+title Tribblix 0.20.6 (remote ssh)
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B livessh=enable
 module\$ /platform/i86pc/boot_archive
-title Tribblix 0.20.5 debug
+title Tribblix 0.20.6 debug
 kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -k
 module\$ /platform/i86pc/boot_archive
 title Boot from hard disk

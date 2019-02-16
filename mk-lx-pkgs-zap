@@ -9,7 +9,7 @@ ZAPDIR=${DISTROOT}/pkgs
 THOME=/packages/localsrc/Tribblix
 OIPKGDIR=${THOME}/oi-pkgs-0.9
 OIREPODIR=${THOME}/repo-master/oi-151a9
-IPKGDIR=${THOME}/illumos-pkgs-m20lx.5
+IPKGDIR=${THOME}/illumos-pkgs-m20lx.6
 VARIANT=""
 OVDIR="overlays-m20lx"
 
@@ -19,7 +19,7 @@ OVDIR="overlays-m20lx"
 #
 RELVER="0.20"
 OIVER="0.9o"
-ILVER="${RELVER}lx.5"
+ILVER="${RELVER}lx.6"
 
 #
 # the one argument is a variant, which sets the destination directory

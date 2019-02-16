@@ -8,7 +8,7 @@ DISTROOT=/export/tribblix/dist
 ZAPDIR=${DISTROOT}/pkgs
 THOME=/packages/localsrc/Tribblix
 OXPKGDIR=${THOME}/opensxce-pkgs
-IPKGDIR=${THOME}/illumos-pkgs-m20.5.sparc
+IPKGDIR=${THOME}/illumos-pkgs-m20.6.sparc
 VARIANT=""
 OVDIR="overlays.sparc"
 
@@ -18,7 +18,7 @@ OVDIR="overlays.sparc"
 #
 RELVER="0.20"
 OXVER="2014"
-ILVER="${RELVER}.5"
+ILVER="${RELVER}.6"
 
 #
 # the one argument is a variant, which sets the destination directory
