@@ -33,18 +33,6 @@ sparc)
 	;;
 esac
 
-#
-# for 32-bit builds we need a smaller root archive
-# note that 32-bit is x86 only
-#
-case $1 in
-32)
-	MRSIZE=68m
-	NBPI=16384
-	XARCH="i86"
-	;;
-esac
-
 case `uname -p` in
 i386)
 #
