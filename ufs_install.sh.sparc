@@ -293,6 +293,8 @@ fi
 #
 pkgadm sync -R ${ALTROOT} -q
 
+#
+echo "Installing boot loader"
 /usr/sbin/installboot -F ufs /usr/platform/`uname -i`/lib/fs/ufs/bootblk /dev/rdsk/$DRIVE1
 
 echo "Configuring devices"
