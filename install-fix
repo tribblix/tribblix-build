@@ -33,33 +33,6 @@ sparc)
 	;;
 esac
 
-case `uname -p` in
-i386)
-#
-# NB. sometimes need  -B acpi-user-options=2
-# VBox and OI151a5 and early tribblix builds needed it, at least
-#
-cat >> ${DESTDIR}/boot/grub/menu.lst << _EOF
-title Tribblix 0.20.6
-kernel\$ /platform/i86pc/kernel/\$ISADIR/unix
-module\$ /platform/i86pc/boot_archive
-title Tribblix 0.20.6 (ttya)
-kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B console=ttya,input-device=ttya,output-device=ttya
-module\$ /platform/i86pc/boot_archive
-title Tribblix 0.20.6 (remote ssh)
-kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B livessh=enable
-module\$ /platform/i86pc/boot_archive
-title Tribblix 0.20.6 debug
-kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -k
-module\$ /platform/i86pc/boot_archive
-title Boot from hard disk
-rootnoverify (hd0)
-chainloader +1
-_EOF
-
-;;
-esac
-
 #
 # Add an unpackaged copy of mkisofs to the bootable media which we use to
 # optimize boot archive creation. The installers will remove this file from the

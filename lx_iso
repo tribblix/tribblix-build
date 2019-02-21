@@ -29,13 +29,6 @@ fi
 #
 grep -v '^set' /etc/system > ${DESTDIR}/etc/system
 #
-# and that menu.lst is blank (for install-fix to populate)
-#
-case `uname -p` in
-i386)
-	cp /dev/null ${DESTDIR}/boot/grub/menu.lst
-	;;
-esac
 echo "tribblix" > ${DESTDIR}/etc/nodename
 rm -f ${DESTDIR}/etc/svc/profile/generic.xml
 rm -f ${DESTDIR}/etc/svc/profile/platform.xml
