@@ -290,20 +290,11 @@ pkgadm sync -R ${ALTROOT} -q
 
 #
 echo "Installing boot loader"
-if [ -f ${ALTROOT}/boot/cdboot ]; then
-    /usr/sbin/installboot -f -m /boot/pmbr /boot/gptzfsboot /dev/rdsk/$DRIVE1
-else
-    /sbin/installgrub -fm /boot/grub/stage1 /boot/grub/stage2 /dev/rdsk/$DRIVE1
-fi
+/usr/sbin/installboot -f -m /boot/pmbr /boot/gptzfsboot /dev/rdsk/$DRIVE1
 
 echo "Configuring devices"
 ${ALTROOT}/usr/sbin/devfsadm -r ${ALTROOT}
 touch ${ALTROOT}/reconfigure
-
-echo "Setting up boot"
-/usr/bin/mkdir -p ${ALTROOT}/boot/grub/bootsign ${ALTROOT}/etc
-touch ${ALTROOT}/boot/grub/bootsign/tribblix_20.6
-echo "tribblix_20.6" > ${ALTROOT}/etc/bootsign
 
 #
 # copy any console settings to the running system
@@ -313,15 +304,6 @@ ICONSOLE=`/sbin/devprop console`
 if [ ! -z "$ICONSOLE" ]; then
   BCONSOLE=" -B console=${ICONSOLE},input-device=${ICONSOLE},output-device=${ICONSOLE}"
 fi
-
-/usr/bin/cat > ${ALTROOT}/boot/grub/menu.lst << _EOF
-default 0
-timeout 3
-title Tribblix 0.20.6
-findroot (tribblix_20.6,0,a)
-kernel\$ /platform/i86pc/kernel/\$ISADIR/unix${BCONSOLE}
-module\$ /platform/i86pc/\$ISADIR/boot_archive
-_EOF
 
 #
 # mount / at boot and enable swap

@@ -340,32 +340,11 @@ fi
 
 echo "Setting up boot"
 
-if [ -f ${ALTROOT}/boot/cdboot ]; then
 # new loader
 /usr/bin/cat > /${ROOTPOOL}/boot/menu.lst << _EOF
 title Tribblix 0.20.6
 bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 _EOF
-else
-#grub
-/usr/bin/mkdir -p /${ROOTPOOL}/boot/grub/bootsign /${ROOTPOOL}/etc
-touch /${ROOTPOOL}/boot/grub/bootsign/pool_${ROOTPOOL}
-echo "pool_${ROOTPOOL}" > /${ROOTPOOL}/etc/bootsign
-
-#
-# the real menu is under the root pool
-#
-/usr/bin/cat > /${ROOTPOOL}/boot/grub/menu.lst << _EOF
-default 0
-timeout 3
-title Tribblix 0.20.6
-findroot (pool_${ROOTPOOL},0,a)
-bootfs ${ROOTPOOL}/ROOT/${NEWBE}
-kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B \$ZFS-BOOTFS${BCONSOLE}
-module\$ /platform/i86pc/\$ISADIR/boot_archive
-_EOF
-cp /dev/null ${ALTROOT}/boot/grub/menu.lst
-fi
 
 #
 # set nodename if requested

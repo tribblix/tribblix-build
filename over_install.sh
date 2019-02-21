@@ -180,14 +180,14 @@ OVERLAYS="$OVERLAYS $*"
 
 #
 # use the existing pool; we assume everything was set up
-# correctly on that pool, but check that menu.lst is present
+# correctly on that pool, but check that something is present
 # as a sanity check
 #
 /usr/bin/mkdir -p ${ALTROOT}
 echo "Importing old root pool"
 /usr/sbin/zpool import ${ROOTPOOL}
-if [ ! -f /${ROOTPOOL}/boot/grub/menu.lst ]; then
-    echo "Import of old pool failed, cannot find menu.lst"
+if [ ! -d /${ROOTPOOL}/boot ]; then
+    echo "Import of old pool failed, cannot find boot there"
     exit 0
 fi
 
@@ -356,32 +356,11 @@ fi
 
 echo "Setting up boot"
 
-if [ -f ${ALTROOT}/boot/cdboot ]; then
 # new loader
 /usr/bin/cat > /${ROOTPOOL}/boot/menu.lst << _EOF
 title Tribblix 0.20.6
 bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 _EOF
-else
-#grub
-/usr/bin/mkdir -p /${ROOTPOOL}/boot/grub/bootsign /${ROOTPOOL}/etc
-touch /${ROOTPOOL}/boot/grub/bootsign/pool_${ROOTPOOL}
-echo "pool_${ROOTPOOL}" > /${ROOTPOOL}/etc/bootsign
-
-#
-# the real menu is under the root pool
-#
-/usr/bin/cat > /${ROOTPOOL}/boot/grub/menu.lst << _EOF
-default 0
-timeout 3
-title Tribblix 0.20.6
-findroot (pool_${ROOTPOOL},0,a)
-bootfs ${ROOTPOOL}/ROOT/${NEWBE}
-kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B \$ZFS-BOOTFS${BCONSOLE}
-module\$ /platform/i86pc/\$ISADIR/boot_archive
-_EOF
-cp /dev/null ${ALTROOT}/boot/grub/menu.lst
-fi
 
 #
 # set nodename if requested
@@ -562,7 +541,7 @@ echo "Updating boot archive"
 /usr/sbin/zfs set mountpoint=/ ${ROOTPOOL}/ROOT/${NEWBE}
 
 #
-# we need to install our version of grub to be sure we have one
+# we need to install our bootloader to be sure we have one
 # that is compatible
 # we overwrite the MBR if -B was passed
 #

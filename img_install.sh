@@ -415,6 +415,9 @@ fi
 
 echo "Setting up boot"
 
+#
+# everything new is loader, but legacy Xen on AWS will be pvgrub
+#
 case `/sbin/uname -i` in
     'i86xpv')
 	echo "Xen, assuming AWS"
@@ -431,33 +434,11 @@ _EOF
 
     '*')
 
-if [ -f ${ALTROOT}/boot/cdboot ]; then
 # new loader
 /usr/bin/cat > /${ROOTPOOL}/boot/menu.lst << _EOF
 title Tribblix 0.20.3
 bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 _EOF
-else
-#grub
-/usr/bin/mkdir -p /${ROOTPOOL}/boot/grub/bootsign /${ROOTPOOL}/etc
-touch /${ROOTPOOL}/boot/grub/bootsign/pool_${ROOTPOOL}
-echo "pool_${ROOTPOOL}" > /${ROOTPOOL}/etc/bootsign
-
-#
-# the real menu is under the root pool
-#
-/usr/bin/cat > /${ROOTPOOL}/boot/grub/menu.lst << _EOF
-default 0
-timeout 3
-title Tribblix 0.20.3
-findroot (pool_${ROOTPOOL},0,a)
-bootfs ${ROOTPOOL}/ROOT/${NEWBE}
-kernel\$ /platform/i86pc/kernel/\$ISADIR/unix -B \$ZFS-BOOTFS${BCONSOLE}
-module\$ /platform/i86pc/\$ISADIR/boot_archive
-_EOF
-cp /dev/null ${ALTROOT}/boot/grub/menu.lst
-fi
-
 	;;
 esac
 
@@ -645,12 +626,12 @@ echo "Updating boot archive"
 /usr/sbin/zfs set mountpoint=/ ${ROOTPOOL}/ROOT/${NEWBE}
 
 #
-# we need to install our version of grub to be sure we have one
+# we need to install our bootloader to be sure we have one
 # that is compatible
 # we overwrite the MBR if -B was passed
 #
 # don't touch the bootloader on i86xpv (xen) instances
-# as they might be custom (eg aws)
+# as they might be custom (eg aws pvgrub)
 #
 case `/sbin/uname -i` in
     'i86xpv')
