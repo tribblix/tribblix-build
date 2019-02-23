@@ -275,6 +275,7 @@ CMD_FRAG='${CMD} ${BFLAGS}'
 UCMD_FRAG='/usr/sbin/update_drv ${BFLAGS}'
 DNAME=""
 PERMS=""
+POLICY=""
 CLONEPERMS=""
 ALIASES=""
 CLASS=""
@@ -294,6 +295,12 @@ perms)
     else
 	PERMS="${PERMS},""'$value'"
     fi
+    ;;
+policy)
+    #
+    # there should only be one policy, and it's the whole string
+    #
+    POLICY="-p '$nval'"
     ;;
 alias)
     if [ "x${ALIASES}" = "x" ]; then
@@ -344,7 +351,7 @@ if [ "x${ALIASES}" != "x" ]; then
     ALIASES="${ALIASES}'"
 fi
 if [ "x${DNAME}" != "x" ]; then
-    echo "${CMD_FRAG} ${PERMS} ${ALIASES} ${CLASS} $DNAME" >> ${BDIR}/install/postinstall
+    echo "${CMD_FRAG} ${PERMS} ${POLICY} ${ALIASES} ${CLASS} $DNAME" >> ${BDIR}/install/postinstall
     echo "${CMD_FRAG} $DNAME" >> ${BDIR}/install/postremove
 fi
 if [ "x${CLONEPERMS}" != "x" ]; then
