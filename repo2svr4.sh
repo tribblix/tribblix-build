@@ -415,6 +415,9 @@ path)
 target)
     target=$value
     ;;
+facet*)
+    printf ""
+    ;;
 *)
     echo "unhandled link attribute $frag"
     ;;
