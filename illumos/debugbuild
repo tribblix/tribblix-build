@@ -1,0 +1,93 @@
+#!/bin/sh
+#
+# perform an illumos debug build
+# with -q, do a quick build (no shadows)
+#
+# assumes we're doing development of illumos-gate
+# won't work for illumos-omnios
+#
+
+THOME=${THOME:-/packages/localsrc/Tribblix}
+export THOME
+
+ILLSH=illumos.sh.debug
+ARCH=`uname -p`
+
+case $1 in
+    -q)
+	ILLSH=illumos.sh.quickdebug
+	;;
+esac
+
+#
+# allow override
+#
+if [ -f ../${ILLSH} ]; then
+    ILLSH="../${ILLSH}"
+else
+    ILLSH="${THOME}/tribblix-build/illumos/${ILLSH}"
+fi
+
+echo "Build using $ILLSH"
+
+if [ ! -f usr/src/tools/scripts/nightly.sh ]; then
+    echo "Cannot find nightly.sh, are you in a gate?"
+    exit 1
+fi
+
+if [ ! -f ../on-closed-bins.${ARCH}.tar.bz2 ]; then
+    echo "Cannot find closed-bins"
+    exit 1
+fi
+
+if [ ! -f ../on-closed-bins-nd.${ARCH}.tar.bz2 ]; then
+    echo "Cannot find closed-bins-nd"
+    exit 1
+fi
+
+if [ ! -f ${ILLSH} ]; then
+    echo "Cannot find ${ILLSH}"
+    exit 1
+fi
+
+if [ ! -f ${THOME}/tribblix-build/illumos/Makefile.auditrecord ]; then
+    echo "Cannot find auditrecord Makefile"
+    exit 1
+fi
+
+#
+# everything appears to be in place
+#
+echo "Unpacking closed-bins"
+bzcat ../on-closed-bins.${ARCH}.tar.bz2 | tar xf -
+echo "Unpacking closed-bins-nd"
+bzcat ../on-closed-bins-nd.${ARCH}.tar.bz2 | tar xf -
+echo "Copying files"
+# the newer builds use nightly in place
+#cp usr/src/tools/scripts/nightly.sh .
+#chmod +x nightly.sh
+cp ${ILLSH} illumos.sh
+
+#
+# changes to the gate
+#
+rm -f usr/src/cmd/auditrecord/Makefile
+cp ${THOME}/tribblix-build/illumos/Makefile.auditrecord usr/src/cmd/auditrecord/Makefile
+if [ ! -f usr/src/cmd/auditrecord/Makefile ]; then
+    echo "Oops, copying auditrecord Makefile failed"
+    exit 2
+fi
+for file in ${THOME}/tribblix-build/illumos/*.patch
+do
+    gpatch -p1 < $file
+done
+
+#
+# and kaboom
+#
+echo "Starting build"
+/bin/date
+time ksh93 usr/src/tools/scripts/nightly.sh illumos.sh
+/bin/date
+
+ls -l log/latest/mail_msg
