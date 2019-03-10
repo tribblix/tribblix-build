@@ -4,12 +4,14 @@
 # necessary for the shipped overlays
 #
 
+RELEASE=20.6
+
 DISTROOT=/export/tribblix/dist
 ZAPDIR=${DISTROOT}/pkgs
 THOME=/packages/localsrc/Tribblix
 TPKGDIR=${THOME}/pkgs
 EXTRAPKGDIR=${THOME}/repo-master/oi-151a9
-IPKGDIR=${THOME}/illumos-pkgs-m20.6/pkgs
+IPKGDIR=${THOME}/illumos-pkgs-m${RELEASE}/pkgs
 VARIANT=""
 OVDIR="overlays"
 
@@ -17,9 +19,8 @@ OVDIR="overlays"
 # Tribblix and illumos packages are explicitly versioned, we fake a version
 # based on the current release for OI/OpenSXCE
 #
-RELVER="0.20"
 EXTRAVER="0.9o"
-ILVER="${RELVER}.6"
+ILVER="0.${RELEASE}"
 
 #
 # the one argument is a variant, which sets the destination directory
