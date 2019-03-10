@@ -51,7 +51,7 @@ chmod 0700 ${DESTDIR}/var/crash/tribblix
 #
 case `uname -p` in
 i386)
-	OVSRC="${THOME}/overlays-m20lx"
+	OVSRC="${THOME}/overlays.lx"
 	;;
 sparc)
 	OVSRC="${THOME}/overlays.sparc"

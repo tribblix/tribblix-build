@@ -11,7 +11,7 @@ OIPKGDIR=${THOME}/oi-pkgs-0.9
 OIREPODIR=${THOME}/repo-master/oi-151a9
 IPKGDIR=${THOME}/illumos-pkgs-m20lx.6
 VARIANT=""
-OVDIR="overlays-m20lx"
+OVDIR="overlays.lx"
 
 #
 # Tribblix and illumos packages are explicitly versioned, we fake a version
