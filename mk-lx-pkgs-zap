@@ -7,9 +7,9 @@
 DISTROOT=/export/tribblix/dist
 ZAPDIR=${DISTROOT}/pkgs
 THOME=/packages/localsrc/Tribblix
-OIPKGDIR=${THOME}/oi-pkgs-0.9
-OIREPODIR=${THOME}/repo-master/oi-151a9
-IPKGDIR=${THOME}/illumos-pkgs-m20lx.6
+TPKGDIR=${THOME}/pkgs
+EXTRAPKGDIR=${THOME}/repo-master/oi-151a9
+IPKGDIR=${THOME}/illumos-pkgs-m20lx.6/pkgs
 VARIANT=""
 OVDIR="overlays.lx"
 
@@ -18,7 +18,7 @@ OVDIR="overlays.lx"
 # based on the current release for OI/OpenSXCE
 #
 RELVER="0.20"
-OIVER="0.9o"
+EXTRAVER="0.9o"
 ILVER="${RELVER}lx.6"
 
 #
@@ -51,7 +51,7 @@ do
 done
 
 #
-# we look in ${THOME}/pkgs, then ${IPKGDIR}/pkgs and ${OIPKGDIR}/pkgs
+# we look in ${TPKGDIR}, then ${IPKGDIR} and ${EXTRAPKGDIR}
 #
 #
 # verify first
@@ -65,11 +65,11 @@ do
   if [ -f ${PKGI} ]; then
       THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
   fi
-  if [ -f ${THOME}/pkgs/${ipkg}.${THISVER}.zap ]; then
+  if [ -f ${TPKGDIR}/${ipkg}.${THISVER}.zap ]; then
       echo "Installing $ipkg ${THISVER} from Tribblix"
-  elif [ -f ${IPKGDIR}/pkgs/${ipkg}.${ILVER}.zap ]; then
+  elif [ -f ${IPKGDIR}/${ipkg}.${ILVER}.zap ]; then
       echo "Installing $ipkg from Illumos"
-  elif [ -f ${OIPKGDIR}/pkgs/${ipkg}.${OIVER}.zap ]; then
+  elif [ -f ${EXTRAPKGDIR}/${ipkg}.${EXTRAVER}.zap ]; then
       echo "Installing $ipkg from OpenIndiana"
   else
       echo "ERROR: package $ipkg not found"
@@ -111,14 +111,14 @@ do
       if [ -f ${PKGI} ]; then
 	  THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
       fi
-      if [ -f ${THOME}/pkgs/${ipkg}.${THISVER}.zap ]; then
-	  cp ${THOME}/pkgs/${ipkg}.${THISVER}.zap $ZAPDIR
-      elif [ -f ${IPKGDIR}/pkgs/${ipkg}.${ILVER}.zap ]; then
-	  cp ${IPKGDIR}/pkgs/${ipkg}.${ILVER}.zap ${ZAPDIR}/${ipkg}.${ILVER}.zap
+      if [ -f ${TPKGDIR}/${ipkg}.${THISVER}.zap ]; then
+	  cp ${TPKGDIR}/${ipkg}.${THISVER}.zap $ZAPDIR
+      elif [ -f ${IPKGDIR}/${ipkg}.${ILVER}.zap ]; then
+	  cp ${IPKGDIR}/${ipkg}.${ILVER}.zap ${ZAPDIR}/${ipkg}.${ILVER}.zap
 	  THISVER=${ILVER}
       else
-	  cp ${OIPKGDIR}/pkgs/${ipkg}.${OIVER}.zap ${ZAPDIR}/${ipkg}.${OIVER}.zap
-	  THISVER=${OIVER}
+	  cp ${EXTRAPKGDIR}/${ipkg}.${EXTRAVER}.zap ${ZAPDIR}/${ipkg}.${EXTRAVER}.zap
+	  THISVER=${EXTRAVER}
       fi
       echo "${ipkg}|${THISVER}|"`${DISTROOT}/usr/lib/zap/pkgdepend ${ZAPDIR}/${ipkg}.${THISVER}.zap` >> ${ZAPDIR}/catalog
   fi
@@ -130,35 +130,35 @@ rm -f $TFILE
 # preload package catalogs and aliases
 #
 cd ${THOME}/build
-if [ -f ${THOME}/pkgs/catalog ]; then
-    cp ${THOME}/pkgs/catalog ${DISTROOT}/etc/zap/repositories/tribblix.catalog
+if [ -f ${TPKGDIR}/catalog ]; then
+    cp ${TPKGDIR}/catalog ${DISTROOT}/etc/zap/repositories/tribblix.catalog
 else
     ./create-catalog > ${DISTROOT}/etc/zap/repositories/tribblix.catalog
 fi
-if [ -f ${OIREPODIR}/catalog ]; then
-    cp ${OIREPODIR}/catalog ${DISTROOT}/etc/zap/repositories/oi.catalog
+if [ -f ${EXTRAPKGDIR}/catalog ]; then
+    cp ${EXTRAPKGDIR}/catalog ${DISTROOT}/etc/zap/repositories/oi.catalog
 else
     ./create-oi-catalog > ${DISTROOT}/etc/zap/repositories/oi.catalog
 fi
-if [ -f ${IPKGDIR}/pkgs/catalog ]; then
-    cp ${IPKGDIR}/pkgs/catalog ${DISTROOT}/etc/zap/repositories/illumos.catalog
+if [ -f ${IPKGDIR}/catalog ]; then
+    cp ${IPKGDIR}/catalog ${DISTROOT}/etc/zap/repositories/illumos.catalog
 else
-    ./create-illumos-catalog ${IPKGDIR}/pkgs > ${DISTROOT}/etc/zap/repositories/illumos.catalog
+    ./create-illumos-catalog ${IPKGDIR} > ${DISTROOT}/etc/zap/repositories/illumos.catalog
 fi
-if [ -f ${THOME}/pkgs/aliases ]; then
-    cp ${THOME}/pkgs/aliases ${DISTROOT}/etc/zap/repositories/tribblix.aliases
+if [ -f ${TPKGDIR}/aliases ]; then
+    cp ${TPKGDIR}/aliases ${DISTROOT}/etc/zap/repositories/tribblix.aliases
 else
     ./create-aliases > ${DISTROOT}/etc/zap/repositories/tribblix.aliases
 fi
-if [ -f ${OIREPODIR}/aliases ]; then
-    cp ${OIREPODIR}/aliases ${DISTROOT}/etc/zap/repositories/oi.aliases
+if [ -f ${EXTRAPKGDIR}/aliases ]; then
+    cp ${EXTRAPKGDIR}/aliases ${DISTROOT}/etc/zap/repositories/oi.aliases
 else
     ./create-oi-aliases > ${DISTROOT}/etc/zap/repositories/oi.aliases
 fi
-if [ -f ${IPKGDIR}/pkgs/aliases ]; then
-    cp ${IPKGDIR}/pkgs/aliases ${DISTROOT}/etc/zap/repositories/illumos.aliases
+if [ -f ${IPKGDIR}/aliases ]; then
+    cp ${IPKGDIR}/aliases ${DISTROOT}/etc/zap/repositories/illumos.aliases
 else
-    ./create-illumos-aliases ${IPKGDIR}/pkgs > ${DISTROOT}/etc/zap/repositories/illumos.aliases
+    ./create-illumos-aliases ${IPKGDIR} > ${DISTROOT}/etc/zap/repositories/illumos.aliases
 fi
 
 #

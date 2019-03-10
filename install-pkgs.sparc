@@ -12,7 +12,7 @@ FDEFAULT=${THOME}/tribblix-build/pkg.default
 INSTZAP=/usr/lib/zap/instzap
 
 ILVER="0.${RELEASE}"
-OXVER="2014"
+EXTRAVER="2014"
 
 #
 # this is the base install, plus we add TRIBsys-install-media-internal
@@ -73,7 +73,7 @@ do
       echo "Installing $mypkg from Tribblix"
   elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.zap ]; then
       echo "Installing $mypkg from Illumos"
-  elif [ -f ${PKGDIR}/${mypkg}.${OXVER}.zap ]; then
+  elif [ -f ${PKGDIR}/${mypkg}.${EXTRAVER}.zap ]; then
       echo "Installing $mypkg from OpenSXCE"
   else
       echo "ERROR: package $mypkg not found"
@@ -115,8 +115,8 @@ do
     $INSTZAP -R $DESTDIR ${TPKGDIR}/${mypkg}.${THISVER}.zap ${mypkg}
   elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.zap ]; then
     $INSTZAP -R $DESTDIR ${IPKGDIR}/${mypkg}.${ILVER}.zap ${mypkg}
-  elif [ -f ${PKGDIR}/${mypkg}.${OXVER}.zap ]; then
-    $INSTZAP -R $DESTDIR ${PKGDIR}/${mypkg}.${OXVER}.zap ${mypkg}
+  elif [ -f ${PKGDIR}/${mypkg}.${EXTRAVER}.zap ]; then
+    $INSTZAP -R $DESTDIR ${PKGDIR}/${mypkg}.${EXTRAVER}.zap ${mypkg}
   fi
 done
 
