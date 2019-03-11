@@ -1,6 +1,6 @@
 #!/bin/sh
 
-THOME=/packages/localsrc/Tribblix
+THOME=${THOME:-/packages/localsrc/Tribblix}
 
 TDIR=${THOME}/tribblix-build
 case `uname -p` in

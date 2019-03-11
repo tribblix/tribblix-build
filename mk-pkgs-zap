@@ -8,7 +8,7 @@ RELEASE=20.6
 
 DISTROOT=/export/tribblix/dist
 ZAPDIR=${DISTROOT}/pkgs
-THOME=/packages/localsrc/Tribblix
+THOME=${THOME:-/packages/localsrc/Tribblix}
 TPKGDIR=${THOME}/pkgs
 EXTRAPKGDIR=${THOME}/repo-master/oi-151a9
 IPKGDIR=${THOME}/illumos-pkgs-m${RELEASE}/pkgs

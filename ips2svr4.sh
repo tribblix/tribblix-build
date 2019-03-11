@@ -4,7 +4,7 @@
 #
 
 PKG_VERSION="0.9o"
-THOME=/packages/localsrc/Tribblix
+THOME=${THOME:-/packages/localsrc/Tribblix}
 DSTDIR=/var/tmp/created-pkgs
 DYNTRANS=""
 

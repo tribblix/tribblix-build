@@ -6,7 +6,7 @@
 # quicker to build the .pkg files there and do the zap conversion
 # elsewhere
 #
-THOME=/packages/localsrc/Tribblix
+THOME=${THOME:-/packages/localsrc/Tribblix}
 PKG2ZAP=${THOME}/tribblix-build/pkg2zap
 
 case $# in

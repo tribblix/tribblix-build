@@ -3,7 +3,7 @@
 # build a bootable iso
 #
 
-THOME=/packages/localsrc/Tribblix
+THOME=${THOME:-/packages/localsrc/Tribblix}
 TBHOME=${THOME}/tribblix-build
 DESTTOP=/export/tribblix
 DESTDIR=${DESTTOP}/dist
