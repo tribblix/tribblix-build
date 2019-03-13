@@ -134,7 +134,7 @@ cd ${THOME}/build
 if [ -f ${TPKGDIR}/catalog ]; then
     cp ${TPKGDIR}/catalog ${DISTROOT}/etc/zap/repositories/tribblix.catalog
 else
-    ./create-catalog > ${DISTROOT}/etc/zap/repositories/tribblix.catalog
+    ./create-catalog ${TPKGDIR} > ${DISTROOT}/etc/zap/repositories/tribblix.catalog
 fi
 if [ -f ${EXTRAPKGDIR}/catalog ]; then
     cp ${EXTRAPKGDIR}/catalog ${DISTROOT}/etc/zap/repositories/oi.catalog
@@ -149,7 +149,7 @@ fi
 if [ -f ${TPKGDIR}/aliases ]; then
     cp ${TPKGDIR}/aliases ${DISTROOT}/etc/zap/repositories/tribblix.aliases
 else
-    ./create-aliases > ${DISTROOT}/etc/zap/repositories/tribblix.aliases
+    ./create-aliases ${TPKGDIR} > ${DISTROOT}/etc/zap/repositories/tribblix.aliases
 fi
 if [ -f ${EXTRAPKGDIR}/aliases ]; then
     cp ${EXTRAPKGDIR}/aliases ${DISTROOT}/etc/zap/repositories/oi.aliases
