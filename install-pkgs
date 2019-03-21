@@ -1,6 +1,6 @@
 #!/bin/sh
 
-RELEASE=20.6
+RELEASE=20.7
 
 THOME=${THOME:-/packages/localsrc/Tribblix}
 RPKGDIR=${THOME}/release-repos/m${RELEASE}.`uname -p`

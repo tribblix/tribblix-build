@@ -1,6 +1,6 @@
 #!/bin/sh
 
-RELEASE="0m20lx.6"
+RELEASE="0m20lx.7"
 
 DESTDIR=/export/tribblix/dist
 
