@@ -8,8 +8,10 @@ ROOTPOOL="rpool"
 DRIVELIST=""
 SWAPSIZE="2g"
 ZFSARGS=""
+ZPOOLARGS=""
 COMPRESSARGS="-O compression=lz4"
 BFLAG=""
+GFLAG=""
 REBOOT="no"
 NODENAME=""
 TIMEZONE=""
@@ -107,13 +109,17 @@ fi
 #
 # interactive argument handling
 #
-while getopts "BCm:n:s:t:" opt; do
+while getopts "BCGm:n:s:t:" opt; do
     case $opt in
         B)
 	    BFLAG="-B"
 	    ;;
         C)
 	    COMPRESSARGS="-O compression=lz4"
+	    ;;
+        G)
+	    GFLAG="-G"
+	    ZPOOLARGS="-B"
 	    ;;
         m)
 	    ZFSARGS="mirror"
@@ -183,6 +189,14 @@ fi
 #
 # end interactive argument handling
 #
+
+#
+# cannot specify both -B and -G
+#
+if [ -n "${BFLAG}" -a -n "${GFLAG}" ]; then
+    echo "ERROR: specify only one of -B and -G"
+    exit 1
+fi
 
 #
 # if we have a drive list at this point, it must be from cardigan, 
@@ -261,11 +275,32 @@ done
 DRIVELIST="$FDRIVELIST"
 ;;
 esac
+#
+# if we were asked for GPT, normalize names
+#
+case $GFLAG in
+-G)
+FDRIVELIST=""
+for FDRIVE in $DRIVELIST
+do
+# normalize drive name, strip slice
+case $FDRIVE in
+*s?)
+    NDRIVE=`echo $FDRIVE | /usr/bin/sed 's:s.$::'`
+    ;;
+*)
+    NDRIVE="${FDRIVE}"
+esac
+    FDRIVELIST="$FDRIVELIST $NDRIVE"
+done
+DRIVELIST="$FDRIVELIST"
+;;
+esac
 
 #
 /usr/bin/mkdir -p ${ALTROOT}
 echo "Creating root pool"
-/usr/sbin/zpool create -f -o failmode=continue ${COMPRESSARGS} ${ROOTPOOL} $ZFSARGS $DRIVELIST
+/usr/sbin/zpool create -f ${ZPOOLARGS} -o failmode=continue ${COMPRESSARGS} ${ROOTPOOL} $ZFSARGS $DRIVELIST
 
 echo "Creating filesystems"
 /usr/sbin/zfs create -o mountpoint=legacy ${ROOTPOOL}/ROOT
