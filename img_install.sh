@@ -608,7 +608,7 @@ if [ -f /root/.ssh/authorized-keys ]; then
     /usr/bin/mkdir -p ${ALTROOT}/root/.ssh
     /usr/bin/chmod 0700 ${ALTROOT}/root/.ssh
     /usr/bin/cp -p /root/.ssh/authorized-keys ${ALTROOT}/root/.ssh
-    /usr/bin/sed -i 's:PermitRootLogin no:PermitRootLogin yes:' ${ALTROOT}//etc/ssh/sshd_config
+    /usr/bin/sed -i 's:PermitRootLogin no:PermitRootLogin without-password:' ${ALTROOT}/etc/ssh/sshd_config
 fi
 /usr/sbin/zfs set canmount=noauto ${OLDBE}
 
