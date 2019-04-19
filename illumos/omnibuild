@@ -134,6 +134,11 @@ tar cf ../mperl.tar `find usr/src/cmd/perl | grep Makefile`
 cd $HEREDIR
 tar xf ../mperl.tar
 cp ../illumos-gate/usr/src/pkg/manifests/runtime-perl-module-sun-solaris.mf usr/src/pkg/manifests/runtime-perl-module-sun-solaris.mf
+#
+# illumos-omnios uses dma by default, but we use sendmail
+# https://github.com/tribblix/build/issues/8
+#
+cp ../illumos-gate/usr/src/cmd/mailwrapper/mailer.conf usr/src/cmd/mailwrapper/mailer.conf
 
 #
 # and kaboom
