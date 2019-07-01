@@ -79,6 +79,11 @@ do
 done
 
 #
+# this probably isn't the right place to put this, but it's the easiest
+#
+rm -f ${DSTDIR}/pkgs/TRIBsvc-net-ssh-common.${PKG_VERSION}.pkg
+
+#
 # convert the SVR4 pkg to zap format
 # create an md5 checksum for the catalog
 # optionally sign if we have a signing passphrase
