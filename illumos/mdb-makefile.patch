@@ -1,7 +1,7 @@
---- a/usr/src/cmd/mdb/Makefile.common	Mon Sep 10 22:02:54 2018
-+++ b/usr/src/cmd/mdb/Makefile.common	Fri Jan 11 22:16:54 2019
-@@ -38,7 +38,6 @@
- 	libfksmbsrv \
+--- a/usr/src/cmd/mdb/Makefile.common	Thu May 30 21:01:57 2019
++++ b/usr/src/cmd/mdb/Makefile.common	Mon Jul  1 17:22:21 2019
+@@ -41,7 +41,6 @@
+ 	libmlsvc \
  	libnvpair \
  	libproc \
 -	libpython \
