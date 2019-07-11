@@ -41,6 +41,7 @@ shift $((OPTIND-1))
 # verify signing - the cert and key must exist
 # if they don't, exit early
 #
+FINDELF=${GATEDIR}/usr/src/tools/scripts/find_elf
 if [ -n "$SIGNCERT" ]; then
     if [ -r "${SIGNCERT}.key" -a -r "${SIGNCERT}.crt" ]; then
 	:
@@ -48,7 +49,10 @@ if [ -n "$SIGNCERT" ]; then
 	echo "Error: invalid cert specified"
 	exit 1
     fi
-    if [ ! -x "${GATEDIR}/usr/src/tools/scripts/find_elf" ]; then
+    if [ ! -x "${FINDELF}" ]; then
+	FINDELF="/opt/onbld/bin/find_elf"
+    fi
+    if [ ! -x "${FINDELF}" ]; then
 	echo "Cannot sign, find_elf missing"
 	exit 1
     fi
@@ -1285,7 +1289,7 @@ fi
 #
 if [ -n "$SIGNCERT" ]; then
     cd $BDIR
-    for exe in `${GATEDIR}/usr/src/tools/scripts/find_elf . | grep '^OBJECT' | /usr/bin/awk '{if ($3 == "EXEC" || $3 == "DYN") print $NF}'`
+    for exe in `${FINDELF} . | grep '^OBJECT' | /usr/bin/awk '{if ($3 == "EXEC" || $3 == "DYN") print $NF}'`
     do
 	/usr/bin/elfsign sign -k ${SIGNCERT}.key -c ${SIGNCERT}.crt -e $exe
     done
