@@ -9,11 +9,12 @@ PKG_VERSION="0.21lx.0"
 THOME=${THOME:-/packages/localsrc/Tribblix}
 GATEDIR=/export/home/ptribble/Illumos/omnitribblix
 DSTDIR=/var/tmp/omni-pkgs
+MYREPO="redist"
 
 #
 # locations and variables should be passed as arguments
 #
-while getopts "V:T:G:D:M:S:" opt; do
+while getopts "V:T:G:D:M:R:S:" opt; do
     case $opt in
         V)
 	    PKG_VERSION="$OPTARG"
@@ -26,6 +27,9 @@ while getopts "V:T:G:D:M:S:" opt; do
 	    ;;
         D)
 	    DSTDIR="$OPTARG"
+	    ;;
+        R)
+	    MYREPO="$OPTARG"
 	    ;;
         S)
 	    SIGNCERT="$OPTARG"
@@ -63,7 +67,11 @@ else
     exit 1
 fi
 
-REPODIR=${GATEDIR}/packages/`uname -p`/nightly-nd/repo.redist
+REPODIR=${GATEDIR}/packages/`uname -p`/nightly-nd/repo.${MYREPO}
+if [ ! -d ${REPODIR} ]; then
+    echo "Error: cannot find repo ${REPODIR}"
+    exit 1
+fi
 
 CMD=${THOME}/tribblix-build/repo2svr4.sh
 PNAME=${THOME}/tribblix-build/pkg_name.sh
@@ -76,9 +84,9 @@ for file in *
 do
     echo Packaging $file as `$PNAME $file`
     if [ -n "$SIGNCERT" ]; then
-	$CMD -T $THOME -V $PKG_VERSION -G $GATEDIR -D $DSTDIR -S $SIGNCERT $file `$PNAME $file`
+	$CMD -T $THOME -V $PKG_VERSION -G $GATEDIR -D $DSTDIR -R $MYREPO -S $SIGNCERT $file `$PNAME $file`
     else
-	$CMD -T $THOME -V $PKG_VERSION -G $GATEDIR -D $DSTDIR $file `$PNAME $file`
+	$CMD -T $THOME -V $PKG_VERSION -G $GATEDIR -D $DSTDIR -R $MYREPO $file `$PNAME $file`
     fi
 done
 

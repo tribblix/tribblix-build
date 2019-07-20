@@ -9,11 +9,12 @@ GATEDIR=/export/home/ptribble/Illumos/illumos-gate
 DSTDIR=/var/tmp/illumos-pkgs
 DYNTRANS=""
 SIGNCERT=""
+MYREPO="redist"
 
 #
 # locations and variables should be passed as arguments
 #
-while getopts "V:T:G:D:M:S:" opt; do
+while getopts "V:T:G:D:M:R:S:" opt; do
     case $opt in
         V)
 	    PKG_VERSION="$OPTARG"
@@ -29,6 +30,9 @@ while getopts "V:T:G:D:M:S:" opt; do
 	    ;;
         M)
 	    DYNTRANS="$OPTARG"
+	    ;;
+        R)
+	    MYREPO="$OPTARG"
 	    ;;
         S)
 	    SIGNCERT="$OPTARG"
@@ -1008,7 +1012,7 @@ esac
 #
 # these ought to be args
 #
-REPODIR=${GATEDIR}/packages/`uname -p`/nightly-nd/repo.redist
+REPODIR=${GATEDIR}/packages/`uname -p`/nightly-nd/repo.${MYREPO}
 PROTODIR=${GATEDIR}/proto/root_`uname -p`
 
 if [ ! -d "${REPODIR}" ]; then
