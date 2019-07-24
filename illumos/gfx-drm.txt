@@ -1,0 +1,54 @@
+Building gfx-drm
+
+1. Use a standard illumos-build zone (or instance). Need
+TRIBdiagnostic-scanpci installed, as we need headers from that. The
+ilumos-build overlay now contains it.
+
+2. Check out the repo
+
+git clone https://github.com/illumos/gfx-drm
+cd gfx-drm
+
+3. Edit myenv.sh
+
+sed -i s:DCFlnpr:Cnpr: myenv.sh
+echo "export SUPPRESSPKGDEP=true" >> myenv.sh
+
+4. To package, we need validate_pkg from somewhere
+
+sed -i s:@validate_pkg:/opt/onbld/bin/validate_pkg: usr/src/pkg/Makefile
+
+5. Tribblix doesn't ship the tests, so remove them
+
+rm usr/src/pkg/manifests/system-test-libdrm.mf
+
+6. Just run
+
+/usr/bin/ksh93 tools/bldenv myenv.sh "cd usr/src ; make setup"
+/usr/bin/ksh93 tools/bldenv myenv.sh "cd usr/src ; make install"
+/usr/bin/ksh93 tools/bldenv myenv.sh "cd usr/src/pkg ; make install"
+
+7. Convert the packages
+
+Must be run on an illumos-build zone, but can be run as a user,
+doesn't have to be root.
+
+${THOME}/tribblix-build/repo_all.sh \
+  -G /export/home/ptribble/Illumos/gfx-drm \
+  -D /var/tmp/gfx-pkgs \
+  -R drm \
+  -S /export/home/ptribble/f/elfcert >& /var/tmp/gfx.log
+
+OmniTribblix wants a different package version (with the lx in it), so
+we have to duplicate all the packages.
+
+${THOME}/tribblix-build/repo_all.sh \
+  -G /export/home/ptribble/Illumos/gfx-drm \
+  -D /var/tmp/omni-gfx-pkgs \
+  -V 0.21lx.0 \
+  -R drm \
+  -S /export/home/ptribble/f/elfcert >& /var/tmp/gfx.log
+
+8. The packages should be delivered by the illumos repo, so copy the
+packages (*.zap*) into the relevant illumos package directory so as to
+amalgamate them with the packages from a gate build.
