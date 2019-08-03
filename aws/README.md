@@ -15,7 +15,7 @@ xl create /home/ptribble/ami-m5.cfg
 
 Point vncviewer at the system, and install Tribblix:
 
-./live_install.sh -B c2t0d0 ec2-baseline
+./live_install.sh -G c2t0d0 ec2-baseline
 
 reboot and the instance exits.
 
