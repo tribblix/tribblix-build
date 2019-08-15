@@ -558,3 +558,11 @@ yes)
 	/usr/sbin/reboot -p
 	;;
 esac
+
+#
+# welcome
+#
+echo ""
+echo "Welcome to Tribblix"
+echo "Any feedback will be gratefully received at tribblix@gmail.com"
+echo ""
