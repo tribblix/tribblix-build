@@ -529,6 +529,7 @@ echo "Updating boot archive"
 #
 # remount zfs filesystem in the right place for next boot
 #
+echo "The mount error below is expected"
 /usr/sbin/zfs set mountpoint=/export ${ROOTPOOL}/export
 /usr/sbin/zfs set canmount=noauto ${ROOTPOOL}/ROOT/${NEWBE}
 /usr/sbin/zfs set mountpoint=/ ${ROOTPOOL}/ROOT/${NEWBE}
