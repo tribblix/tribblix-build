@@ -1290,28 +1290,33 @@ fi
 # sign elf objects if requested
 # find_elf only finds libraries and binaries, not kernel modules
 # so do those manually
+# elfsign requires the file to be writable
 #
 if [ -n "$SIGNCERT" ]; then
     cd $BDIR
     for exe in `${FINDELF} . | grep '^OBJECT' | /usr/bin/awk '{if ($3 == "EXEC" || $3 == "DYN") print $NF}'`
     do
+	chmod u+w $exe
 	/usr/bin/elfsign sign -k ${SIGNCERT}.key -c ${SIGNCERT}.crt -e $exe
     done
     if [ -d platform ]; then
 	for exe in `find platform -type f | grep -v '\.conf$'`	
 	do
+	    chmod u+w $exe
 	    /usr/bin/elfsign sign -k ${SIGNCERT}.key -c ${SIGNCERT}.crt -e $exe
 	done
     fi
     if [ -d kernel ]; then
 	for exe in `find kernel -type f | grep -v '\.conf$'`	
 	do
+	    chmod u+w $exe
 	    /usr/bin/elfsign sign -k ${SIGNCERT}.key -c ${SIGNCERT}.crt -e $exe
 	done
     fi
     if [ -d usr/kernel ]; then
 	for exe in `find usr/kernel -type f | grep -v '\.conf$'`	
 	do
+	    chmod u+w $exe
 	    /usr/bin/elfsign sign -k ${SIGNCERT}.key -c ${SIGNCERT}.crt -e $exe
 	done
     fi
