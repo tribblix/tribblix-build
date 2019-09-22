@@ -176,7 +176,7 @@ export BUILDPY3TOOLS='#'
 # Skip Java 8 builds on distributions that don't support it
 #export BLD_JAVA_8=
 #
-# Tribblix: replace the default whihc is to look for java under /usr/java
+# Tribblix: replace the default which is to look for java under /usr/java
 #
 export JAVA_ROOT=/usr/jdk/instances/jdk1.8.0
 export BLD_JAVA_8=
