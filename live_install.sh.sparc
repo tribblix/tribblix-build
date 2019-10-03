@@ -578,8 +578,10 @@ fi
 #
 # moved later, must be done after we change any files such as bootenv.rc
 #
+# cpio is default but isn't supported on sparc, so force hsfs
+#
 echo "Updating boot archive"
-/sbin/bootadm update-archive -R ${ALTROOT}
+/sbin/bootadm update-archive -R ${ALTROOT} -F hsfs
 
 #
 # remount zfs filesystem in the right place for next boot
