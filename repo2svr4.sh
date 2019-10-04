@@ -1206,6 +1206,63 @@ esac
 done
 }
 fi
+#
+# architecture-specific package transforms
+#
+if [ -f ${TRANSDIR}/${OUTPKG}.`uname -p` ]; then
+cat ${TRANSDIR}/${OUTPKG}.`uname -p` |
+{
+while read -r action pathname line ;
+do
+case $action in
+delete)
+    transform_delete $pathname
+    ;;
+linkdel)
+    transform_linkdel $pathname
+    ;;
+rmdir)
+    transform_rmdir $pathname
+    ;;
+rrmdir)
+    transform_rrmdir $pathname
+    ;;
+type)
+    transform_type $pathname $line
+    ;;
+depend)
+    transform_depend $pathname
+    ;;
+undepend)
+    transform_undepend $pathname
+    ;;
+add)
+    transform_add path=$pathname $line
+    ;;
+symlink)
+    transform_symlink path=$pathname $line
+    ;;
+mkdir)
+    transform_mkdir path=$pathname $line
+    ;;
+replace)
+    transform_replace $pathname
+    ;;
+rename)
+    transform_rename $pathname $line
+    ;;
+modify)
+    echo "DBG: gsed -i '$line' ${BDIR}/${pathname}"
+    gsed -i "$line" ${BDIR}/${pathname}
+    ;;
+*)
+    echo ...transform action $action not yet supported...
+    ;;
+esac
+
+done
+}
+fi
 
 #
 # dynamic transforms
