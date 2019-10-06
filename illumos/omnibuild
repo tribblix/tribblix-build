@@ -92,6 +92,25 @@ if [ ! -f ${THOME}/tribblix-build/illumos/Makefile.auditrecord ]; then
 fi
 
 #
+# environment sanity check
+#
+if [ ! -f ${THOME}/tribblix-build/illumos/check-environment.sh ]; then
+    echo "ERROR: cannot check enviromnent"
+    echo "Looking for ${THOME}/tribblix-build/illumos/check-environment.sh"
+    exit 1
+fi
+if [ ! -x ${THOME}/tribblix-build/illumos/check-environment.sh ]; then
+    echo "ERROR: cannot check enviromnent"
+    echo "${THOME}/tribblix-build/illumos/check-environment.sh is not executable"
+    exit 1
+fi
+${THOME}/tribblix-build/illumos/check-environment.sh
+if [ $? -ne 0 ]; then
+    echo "Environment check failed, aborting"
+    exit 1
+fi
+
+#
 # everything appears to be in place
 #
 echo "Unpacking closed-bins"
