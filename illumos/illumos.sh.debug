@@ -114,15 +114,17 @@ export ENABLE_SMATCH=1
 # contains your new defaults OR your .env file sets them.
 # These are how you would override for building on OmniOS r151028, for example.
 #export PERL_VERSION=5.28
-#export PERL_ARCH=i86pc-solaris-thread-multi-64int
+#export PERL_VARIANT=-thread-multi
 #export PERL_PKGVERS=
 
 #
-# Tribblix has perl 5.22 as the default
+# Tribblix has 32-bit perl 5.22 as the default
 #
+export PERL_VARIANT=-thread-multi
 export PERL_VERSION=5.22.0
-export PERL_ARCH=i86pc-solaris-thread-multi-64int
 export PERL_PKGVERS=-522
+#export BUILDPERL32='#'
+export BUILDPERL64='#'
 
 # If your distro uses certain versions of Python, make sure either
 # Makefile.master contains your new defaults OR your .env file sets them.
@@ -282,7 +284,7 @@ export MULTI_PROTO="no"
 # when the release slips (nah) or you move an environment file to a new
 # release
 #
-export VERSION="tribblix-m21.0"
+export VERSION="tribblix-m22.0"
 
 #
 # the RELEASE and RELEASE_DATE variables are set in Makefile.master;
