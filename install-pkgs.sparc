@@ -13,6 +13,14 @@ INSTZAP=/usr/lib/zap/instzap
 
 ILVER="0.${RELEASE}"
 EXTRAVER="2014"
+case $RELEASE in
+    *.*)
+	RELVER="$RELEASE"
+	;;
+    *)
+	RELVER="${RELEASE}.0"
+	;;
+esac
 
 #
 # this is the base install, plus we add TRIBsys-install-media-internal
@@ -45,15 +53,15 @@ fi
 #
 # and that the release packages exist
 #
-if [ ! -f "${RPKGDIR}/TRIBrelease-name.0.${RELEASE}.zap" ]; then
+if [ ! -f "${RPKGDIR}/TRIBrelease-name.0.${RELVER}.zap" ]; then
     echo "Cannot find release package"
     exit 1
 fi
-if [ ! -f "${RPKGDIR}/TRIBzap-upgrade.0.${RELEASE}.0.zap" ]; then
+if [ ! -f "${RPKGDIR}/TRIBzap-upgrade.0.${RELVER}.zap" ]; then
     echo "Cannot find zap upgrade package"
     exit 1
 fi
-if [ ! -f "${RPKGDIR}/TRIBzap.0.0.${RELEASE}.zap" ]; then
+if [ ! -f "${RPKGDIR}/TRIBzap.0.0.${RELVER}.zap" ]; then
     echo "Cannot find zap package"
     exit 1
 fi
@@ -124,9 +132,9 @@ done
 # now the release packages
 #
 echo "Installing release packages for $RELEASE"
-$INSTZAP -R $DESTDIR ${RPKGDIR}/TRIBrelease-name.0.${RELEASE}.zap TRIBrelease-name
-$INSTZAP -R $DESTDIR ${RPKGDIR}/TRIBzap-upgrade.0.${RELEASE}.0.zap TRIBzap-upgrade
-$INSTZAP -R $DESTDIR ${RPKGDIR}/TRIBzap.0.0.${RELEASE}.zap TRIBzap
+$INSTZAP -R $DESTDIR ${RPKGDIR}/TRIBrelease-name.0.${RELVER}.zap TRIBrelease-name
+$INSTZAP -R $DESTDIR ${RPKGDIR}/TRIBzap-upgrade.0.${RELVER}.zap TRIBzap-upgrade
+$INSTZAP -R $DESTDIR ${RPKGDIR}/TRIBzap.0.0.${RELVER}.zap TRIBzap
 
 #
 # need to mark the base-iso overlay as installed
