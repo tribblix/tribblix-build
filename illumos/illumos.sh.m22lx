@@ -286,7 +286,7 @@ export MULTI_PROTO="no"
 # when the release slips (nah) or you move an environment file to a new
 # release
 #
-export VERSION="tribblix-m22.0"
+export VERSION="omnitribblix-m22"
 
 #
 # the RELEASE and RELEASE_DATE variables are set in Makefile.master;

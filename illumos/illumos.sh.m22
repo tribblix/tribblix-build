@@ -92,7 +92,7 @@ export CODEMGR_WS="`git rev-parse --show-toplevel`"
 #
 # To disable shadow compilation, unset SHADOW_* or set them to the empty string.
 #
-# Tribblix debug/rti build is gcc7 primary, gcc4 secondary
+# Tribblix debug/rti build is gcc4 primary, gcc7 secondary, smatch
 # Tribblix production build (pre-1.0) is gcc4 only
 #
 export __GNUC=""
@@ -118,9 +118,6 @@ export SHADOW_CCCS=
 
 #
 # Tribblix has 32-bit perl 5.22 as the default
-#
-# 7661 is broken, you need
-# cd /usr/perl5/5.22.0/bin ; ln -s . i386
 #
 export PERL_VARIANT=-thread-multi
 export PERL_VERSION=5.22.0
@@ -286,7 +283,7 @@ export MULTI_PROTO="no"
 # when the release slips (nah) or you move an environment file to a new
 # release
 #
-export VERSION="omnitribblix-m22.0"
+export VERSION="tribblix-m22"
 
 #
 # the RELEASE and RELEASE_DATE variables are set in Makefile.master;
