@@ -54,8 +54,8 @@ if [ "X$ARCH" != "Xi386" ]; then
     exit 1
 fi
 
-if [ ! -f usr/src/tools/scripts/nightly.sh ]; then
-    echo "Cannot find nightly.sh, are you in a gate?"
+if [ ! -f usr/src/tools/scripts/nightly ]; then
+    echo "Cannot find nightly, are you in a gate?"
     exit 1
 fi
 
@@ -118,9 +118,6 @@ bzcat ../on-closed-bins.${ARCH}.tar.bz2 | tar xf -
 echo "Unpacking closed-bins-nd"
 bzcat ../on-closed-bins-nd.${ARCH}.tar.bz2 | tar xf -
 echo "Copying files"
-# the newer builds use nightly in place
-#cp usr/src/tools/scripts/nightly.sh .
-#chmod +x nightly.sh
 cp ${ILLSH} illumos.sh
 
 #
@@ -164,7 +161,7 @@ cp ../illumos-gate/usr/src/cmd/mailwrapper/mailer.conf usr/src/cmd/mailwrapper/m
 #
 echo "Starting build"
 /bin/date
-time ksh93 usr/src/tools/scripts/nightly.sh illumos.sh
+time usr/src/tools/scripts/nightly illumos.sh
 /bin/date
 
 ls -l log/latest/mail_msg
