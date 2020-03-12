@@ -81,11 +81,6 @@ if [ ! -f README.OmniOS ]; then
     echo "This doesn't look like OmniOS, use releasebuild instead"
     exit 1
 fi
-if [ ! -f ../illumos-gate/usr/src/lib/fm/libfmd_snmp/Makefile.com ]; then
-    echo "Cannot find a reference illumos-gate"
-    exit 1
-fi
-
 if [ ! -f ${THOME}/tribblix-build/illumos/Makefile.auditrecord ]; then
     echo "Cannot find auditrecord Makefile"
     exit 1
@@ -107,6 +102,18 @@ fi
 ${THOME}/tribblix-build/illumos/check-environment.sh
 if [ $? -ne 0 ]; then
     echo "Environment check failed, aborting"
+    exit 1
+fi
+
+#
+# we need a sibling vanilla gate to copy files from
+# conventionally, this would be the same as us but without
+# the lx in the name
+#
+VANILLAGATE=`echo $1 | sed s:lx::`
+VANILLAGATE="${VANILLAGATE}-gate"
+if [ ! -f ../${VANILLAGATE}/usr/src/tools/scripts/nightly ]; then
+    echo "Unable to find a sibling illumos gate (expecting ${VANILLAGATE})"
     exit 1
 fi
 
@@ -141,20 +148,24 @@ done
 # need to fix up libfmd_snmp because our snmp is different
 # need to reset perl to match our install
 #
-cp ../illumos-gate/usr/src/lib/libbe/common/libbe_priv.h usr/src/lib/libbe/common/libbe_priv.h
-cp ../illumos-gate/usr/src/lib/fm/libfmd_snmp/Makefile.com usr/src/lib/fm/libfmd_snmp/Makefile.com
+cp ../${VANILLAGATE}/usr/src/lib/libbe/common/libbe_priv.h usr/src/lib/libbe/common/libbe_priv.h
+cp ../${VANILLAGATE}/usr/src/lib/fm/libfmd_snmp/Makefile.com usr/src/lib/fm/libfmd_snmp/Makefile.com
 HEREDIR=`pwd`
-cd ../illumos-gate
+cd ../${VANILLAGATE}
 rm ../mperl.tar
 tar cf ../mperl.tar `find usr/src/cmd/perl | grep Makefile`
 cd $HEREDIR
 tar xf ../mperl.tar
-cp ../illumos-gate/usr/src/pkg/manifests/runtime-perl-module-sun-solaris.mf usr/src/pkg/manifests/runtime-perl-module-sun-solaris.mf
+cp ../${VANILLAGATE}/usr/src/pkg/manifests/runtime-perl-module-sun-solaris.mf usr/src/pkg/manifests/runtime-perl-module-sun-solaris.mf
+# omnios hardcodes the perl bitness in the Makefiles
+sed -i '/BUILDPERL32/d' usr/src/Makefile.master
+# fails ld guidance with gcc4
+sed -i 's:-lc ::' usr/src/lib/libidspace/Makefile.com
 #
 # illumos-omnios uses dma by default, but we use sendmail
 # https://github.com/tribblix/build/issues/8
 #
-cp ../illumos-gate/usr/src/cmd/mailwrapper/mailer.conf usr/src/cmd/mailwrapper/mailer.conf
+cp ../${VANILLAGATE}/usr/src/cmd/mailwrapper/mailer.conf usr/src/cmd/mailwrapper/mailer.conf
 
 #
 # and kaboom
