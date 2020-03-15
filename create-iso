@@ -23,6 +23,7 @@ esac
 
 #
 CDBOOT="boot/cdboot"
+UEFIBOOT="boot/efiboot.img"
 
 case `uname -p` in
 sparc)
@@ -36,11 +37,14 @@ sparc)
 
 	;;
 i386)
-	/usr/bin/mkisofs -o ${ISODIR}/${ISONAME} -b ${CDBOOT} \
+	/usr/bin/mkisofs -N -l -R -U -d -D -o ${ISODIR}/${ISONAME} \
+	-V "Tribblix${RELEASE}" \
+        -allow-multidot -no-iso-translate -cache-inodes \
 	-c .catalog -volset `cat ${DESTDIR}/.volsetid` \
-	-no-emul-boot -boot-load-size 4 -boot-info-table -N -l -R -U \
-        -allow-multidot -no-iso-translate -cache-inodes -d -D \
-	-V "Tribblix${RELEASE}" ${DESTDIR}
+	-b ${CDBOOT} -no-emul-boot -boot-load-size 4 -boot-info-table \
+	-eltorito-alt-boot -eltorito-platform efi \
+	-eltorito-boot ${UEFIBOOT} -no-emul-boot \
+	${DESTDIR}
 
 	;;
 esac
