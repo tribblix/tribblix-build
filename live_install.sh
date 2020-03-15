@@ -109,14 +109,20 @@ fi
 
 #
 # interactive argument handling
+# legacy -B now means the same as -G
+# -b is the old -B escape hatch
 #
-while getopts "BCGm:n:s:t:" opt; do
+while getopts "bBCGm:n:s:t:" opt; do
     case $opt in
-        B)
+        b)
 	    BFLAG="-B"
 	    ;;
         C)
 	    COMPRESSARGS="-O compression=lz4"
+	    ;;
+        B)
+	    GFLAG="-G"
+	    ZPOOLARGS="-B"
 	    ;;
         G)
 	    GFLAG="-G"
@@ -173,10 +179,10 @@ OVERLAYS="$OVERLAYS $*"
 #
 
 #
-# cannot specify both -B and -G
+# cannot specify both -b and -G
 #
 if [ -n "${BFLAG}" -a -n "${GFLAG}" ]; then
-    echo "ERROR: specify only one of -B and -G"
+    echo "ERROR: specify only one of -b and -G"
     exit 1
 fi
 
