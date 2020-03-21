@@ -69,7 +69,10 @@ fi
 
 REPODIR=${GATEDIR}/packages/`uname -p`/nightly-nd/repo.${MYREPO}
 if [ ! -d ${REPODIR} ]; then
-    echo "Error: cannot find repo ${REPODIR}"
+    REPODIR=${GATEDIR}/packages/`uname -p`/nightly/repo.${MYREPO}
+fi
+if [ ! -d ${REPODIR} ]; then
+    echo "Error: cannot find package repo in ${GATEDIR}"
     exit 1
 fi
 

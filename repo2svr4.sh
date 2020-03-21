@@ -1015,6 +1015,9 @@ esac
 REPODIR=${GATEDIR}/packages/`uname -p`/nightly-nd/repo.${MYREPO}
 PROTODIR=${GATEDIR}/proto/root_`uname -p`
 
+if [ ! -d ${REPODIR} ]; then
+    REPODIR=${GATEDIR}/packages/`uname -p`/nightly/repo.${MYREPO}
+fi
 if [ ! -d "${REPODIR}" ]; then
     echo "ERROR: Missing repo"
     exit 1
