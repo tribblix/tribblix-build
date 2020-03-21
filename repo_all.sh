@@ -10,12 +10,16 @@ THOME=${THOME:-/packages/localsrc/Tribblix}
 GATEDIR=/export/home/ptribble/Illumos/illumos-gate
 DSTDIR=/var/tmp/illumos-pkgs
 MYREPO="redist"
+QFLAG=""
 
 #
 # locations and variables should be passed as arguments
 #
-while getopts "V:T:G:D:M:R:S:" opt; do
+while getopts "QV:T:G:D:M:R:S:" opt; do
     case $opt in
+        Q)
+	    QFLAG="-Q"
+	    ;;
         V)
 	    PKG_VERSION="$OPTARG"
 	    ;;
@@ -87,11 +91,16 @@ for file in *
 do
     echo Packaging $file as `$PNAME $file`
     if [ -n "$SIGNCERT" ]; then
-	$CMD -T $THOME -V $PKG_VERSION -G $GATEDIR -D $DSTDIR -R $MYREPO -S $SIGNCERT $file `$PNAME $file`
+	$CMD ${QFLAG} -T $THOME -V $PKG_VERSION -G $GATEDIR -D $DSTDIR -R $MYREPO -S $SIGNCERT $file `$PNAME $file`
     else
-	$CMD -T $THOME -V $PKG_VERSION -G $GATEDIR -D $DSTDIR -R $MYREPO $file `$PNAME $file`
+	$CMD ${QFLAG} -T $THOME -V $PKG_VERSION -G $GATEDIR -D $DSTDIR -R $MYREPO $file `$PNAME $file`
     fi
 done
+
+if [ "x${QFLAG}" = "x-Q" ]; then
+    rm -fr ${DSTDIR}/quick/TRIBsvc-net-ssh-common
+    exit 0
+fi
 
 #
 # this probably isn't the right place to put this, but it's the easiest

@@ -10,12 +10,16 @@ DSTDIR=/var/tmp/illumos-pkgs
 DYNTRANS=""
 SIGNCERT=""
 MYREPO="redist"
+QUICKMODE=""
 
 #
 # locations and variables should be passed as arguments
 #
-while getopts "V:T:G:D:M:R:S:" opt; do
+while getopts "QV:T:G:D:M:R:S:" opt; do
     case $opt in
+        Q)
+	    QUICKMODE="Y"
+	    ;;
         V)
 	    PKG_VERSION="$OPTARG"
 	    ;;
@@ -1387,6 +1391,13 @@ fi
 #
 cd $BDIR
 ${PKGMK} -d $DSTDIR/tmp -f prototype -r `pwd` ${OUTPKG} > /dev/null
+if [ "x${QUICKMODE}" = "xY" ]; then
+    mkdir -p $DSTDIR/quick
+    mv ${DSTDIR}/tmp/${OUTPKG} $DSTDIR/quick
+    cd /
+    rm -fr $BDIR
+    exit 0
+fi
 ${PKGTRANS} -s $DSTDIR/tmp ${DSTDIR}/pkgs/${OUTPKG}.${PKG_VERSION}.pkg ${OUTPKG} > /dev/null
 if [ -f ${DSTDIR}/pkgs/${OUTPKG}.${PKG_VERSION}.pkg ]; then
     cd /
