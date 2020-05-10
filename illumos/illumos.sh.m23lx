@@ -92,7 +92,7 @@ export CODEMGR_WS="`git rev-parse --show-toplevel`"
 #
 # To disable shadow compilation, unset SHADOW_* or set them to the empty string.
 #
-# Tribblix debug/rti build is gcc7 primary, gcc4 secondary
+# Tribblix debug/rti build is gcc7 primary, gcc4 secondary, smatch
 # Tribblix production build (pre-1.0) is gcc4 only
 #
 export __GNUC=""
@@ -288,7 +288,7 @@ export MULTI_PROTO="no"
 #
 export VERSION="omnitribblix-m23"
 export BOOTBANNER1='Welcome to Tribblix, the retro ^o distribution'
-export BOOTBANNER2='^v | March 2020 | http://www.tribblix.org/'
+export BOOTBANNER2='^v | May 2020 | http://www.tribblix.org/'
 
 #
 # the RELEASE and RELEASE_DATE variables are set in Makefile.master;
