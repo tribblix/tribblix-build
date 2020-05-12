@@ -119,9 +119,6 @@ export SHADOW_CCCS=
 #
 # Tribblix has 32-bit perl 5.22 as the default
 #
-# 7661 is broken, you need
-# cd /usr/perl5/5.22.0/bin ; ln -s . i386
-#
 export PERL_VARIANT=-thread-multi
 export PERL_VERSION=5.22.0
 export PERL_PKGVERS=-522
@@ -288,7 +285,7 @@ export MULTI_PROTO="no"
 #
 export VERSION="tribblix-m23"
 export BOOTBANNER1='Welcome to Tribblix, the retro ^o distribution'
-export BOOTBANNER2='^v | March 2020 | http://www.tribblix.org/'
+export BOOTBANNER2='^v | May 2020 | http://www.tribblix.org/'
 
 #
 # the RELEASE and RELEASE_DATE variables are set in Makefile.master;
