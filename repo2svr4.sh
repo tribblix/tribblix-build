@@ -1038,6 +1038,14 @@ if [ ! -d "${PDIR}" ]; then
     exit 1
 fi
 
+#
+# skip packages marked as deleted
+#
+if [ -f ${TRANSDIR}/deleted/${OUTPKG} ]; then
+    echo "WARN: skipping ${OUTPKG}, marked as deleted"
+    exit 0
+fi
+
 MANIFEST=`find $PDIR -type f`
 if [ -z "$MANIFEST" ]; then
     bail_out
