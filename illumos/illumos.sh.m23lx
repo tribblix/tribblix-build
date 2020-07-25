@@ -43,7 +43,7 @@
 #       creates packages for PIT/RE (-p)
 #       checks for changes in ELF runpaths (-r)
 #       build and use this workspace's tools in $SRC/tools (-t)
-export NIGHTLY_OPTIONS='-nCprt'
+export NIGHTLY_OPTIONS='-nCprtL'
 
 #
 # Tribblix settings that aren't defined here at all
