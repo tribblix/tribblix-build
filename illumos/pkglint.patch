@@ -1,0 +1,13 @@
+diff --git a/usr/src/pkg/etc/pkglintrc b/usr/src/pkg/etc/pkglintrc
+index a7aa00e5e7..9698fedf73 100644
+--- a/usr/src/pkg/etc/pkglintrc
++++ b/usr/src/pkg/etc/pkglintrc
+@@ -21,6 +21,7 @@ pkglint.exclude = \
+ 	pkg.lint.pkglint_manifest.PkgManifestChecker.linted \
+ 	pkg.lint.pkglint_manifest.PkgManifestChecker.bogus_description \
+ 	pkg.lint.pkglint_manifest.PkgManifestChecker.naming \
+-	pkg.lint.pkglint_manifest.PkgManifestChecker.duplicate_deps
++	pkg.lint.pkglint_manifest.PkgManifestChecker.duplicate_deps \
++	pkg.lint.pkglint_manifest.PkgManifestChecker.missing_smf_fmri
+ 
+ pkglint.action005.1.missing-deps = \
