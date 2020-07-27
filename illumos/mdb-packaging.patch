@@ -1,6 +1,6 @@
 --- a/usr/src/pkg/manifests/developer-debug-mdb.mf	Sat May 11 16:52:20 2019
 +++ b/usr/src/pkg/manifests/developer-debug-mdb.mf	Mon Jul  1 16:35:04 2019
-@@ -213,8 +213,6 @@
+@@ -214,8 +214,6 @@
  file path=usr/lib/mdb/proc/$(ARCH64)/libcmdutils.so group=sys mode=0555
  file path=usr/lib/mdb/proc/$(ARCH64)/libnvpair.so group=sys mode=0555
  file path=usr/lib/mdb/proc/$(ARCH64)/libproc.so group=sys mode=0555
@@ -9,7 +9,7 @@
  file path=usr/lib/mdb/proc/$(ARCH64)/libsysevent.so group=sys mode=0555
  file path=usr/lib/mdb/proc/$(ARCH64)/libtopo.so group=sys mode=0555
  file path=usr/lib/mdb/proc/$(ARCH64)/libumem.so group=sys mode=0555
-@@ -228,7 +226,6 @@
+@@ -229,7 +227,6 @@
  file path=usr/lib/mdb/proc/libcmdutils.so group=sys mode=0555
  file path=usr/lib/mdb/proc/libnvpair.so group=sys mode=0555
  file path=usr/lib/mdb/proc/libproc.so group=sys mode=0555
