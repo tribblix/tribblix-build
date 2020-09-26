@@ -34,7 +34,7 @@ DOMAINNAME=""
 BEGIN_SCRIPT=""
 FINISH_SCRIPT=""
 FIRSTBOOT_SCRIPT=""
-NEWBE="tribblix-m23"
+NEWBE="tribblix-m23.1"
 NFLAG=""
 
 FSTYPE="ZFS"
@@ -358,7 +358,7 @@ echo "Setting up boot"
 
 # new loader
 /usr/bin/cat > /${ROOTPOOL}/boot/menu.lst << _EOF
-title Tribblix 0.23
+title Tribblix 0.23.1
 bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 _EOF
 
