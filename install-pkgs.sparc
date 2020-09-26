@@ -21,6 +21,7 @@ case $RELEASE in
 	RELVER="${RELEASE}.0"
 	;;
 esac
+URELVER="${RELEASE}.0"
 
 #
 # this is the base install, plus we add TRIBsys-install-media-internal
@@ -57,7 +58,7 @@ if [ ! -f "${RPKGDIR}/TRIBrelease-name.0.${RELVER}.zap" ]; then
     echo "Cannot find release package"
     exit 1
 fi
-if [ ! -f "${RPKGDIR}/TRIBzap-upgrade.0.${RELVER}.zap" ]; then
+if [ ! -f "${RPKGDIR}/TRIBzap-upgrade.0.${URELVER}.zap" ]; then
     echo "Cannot find zap upgrade package"
     exit 1
 fi
@@ -133,7 +134,7 @@ done
 #
 echo "Installing release packages for $RELEASE"
 $INSTZAP -R $DESTDIR ${RPKGDIR}/TRIBrelease-name.0.${RELVER}.zap TRIBrelease-name
-$INSTZAP -R $DESTDIR ${RPKGDIR}/TRIBzap-upgrade.0.${RELVER}.zap TRIBzap-upgrade
+$INSTZAP -R $DESTDIR ${RPKGDIR}/TRIBzap-upgrade.0.${URELVER}.zap TRIBzap-upgrade
 $INSTZAP -R $DESTDIR ${RPKGDIR}/TRIBzap.0.0.${RELVER}.zap TRIBzap
 
 #
