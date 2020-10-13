@@ -10,16 +10,13 @@ DISTROOT=/export/tribblix/dist
 ZAPDIR=${DISTROOT}/pkgs
 THOME=${THOME:-/packages/localsrc/Tribblix}
 TPKGDIR=${THOME}/pkgs
-EXTRAPKGDIR=${THOME}/repo-master/oi-151a9
 IPKGDIR=${THOME}/illumos-pkgs-m${RELEASE}/pkgs
 VARIANT=""
 OVDIR="overlays"
 
 #
-# Tribblix and illumos packages are explicitly versioned, we fake a version
-# based on the current release for OI/OpenSXCE
+# Tribblix and illumos packages are explicitly versioned
 #
-EXTRAVER="0.9o"
 ILVER="0.${RELEASE}"
 
 #
@@ -52,7 +49,7 @@ do
 done
 
 #
-# we look in ${TPKGDIR}, then ${IPKGDIR} and ${EXTRAPKGDIR}
+# we look in ${TPKGDIR}, then ${IPKGDIR}
 #
 #
 # verify first
@@ -70,8 +67,6 @@ do
       echo "Installing $ipkg ${THISVER} from Tribblix"
   elif [ -f ${IPKGDIR}/${ipkg}.${ILVER}.zap ]; then
       echo "Installing $ipkg from Illumos"
-  elif [ -f ${EXTRAPKGDIR}/${ipkg}.${EXTRAVER}.zap ]; then
-      echo "Installing $ipkg from OpenIndiana"
   else
       echo "ERROR: package $ipkg not found"
       VALID=no
@@ -117,9 +112,6 @@ do
       elif [ -f ${IPKGDIR}/${ipkg}.${ILVER}.zap ]; then
 	  cp ${IPKGDIR}/${ipkg}.${ILVER}.zap ${ZAPDIR}/${ipkg}.${ILVER}.zap
 	  THISVER=${ILVER}
-      else
-	  cp ${EXTRAPKGDIR}/${ipkg}.${EXTRAVER}.zap ${ZAPDIR}/${ipkg}.${EXTRAVER}.zap
-	  THISVER=${EXTRAVER}
       fi
       echo "${ipkg}|${THISVER}|"`${DISTROOT}/usr/lib/zap/pkgdepend ${ZAPDIR}/${ipkg}.${THISVER}.zap` >> ${ZAPDIR}/catalog
   fi
@@ -136,11 +128,6 @@ if [ -f ${TPKGDIR}/catalog ]; then
 else
     ./create-catalog ${TPKGDIR} > ${DISTROOT}/etc/zap/repositories/tribblix.catalog
 fi
-if [ -f ${EXTRAPKGDIR}/catalog ]; then
-    cp ${EXTRAPKGDIR}/catalog ${DISTROOT}/etc/zap/repositories/oi.catalog
-else
-    ./create-oi-catalog > ${DISTROOT}/etc/zap/repositories/oi.catalog
-fi
 if [ -f ${IPKGDIR}/catalog ]; then
     cp ${IPKGDIR}/catalog ${DISTROOT}/etc/zap/repositories/illumos.catalog
 else
@@ -150,11 +137,6 @@ if [ -f ${TPKGDIR}/aliases ]; then
     cp ${TPKGDIR}/aliases ${DISTROOT}/etc/zap/repositories/tribblix.aliases
 else
     ./create-aliases ${TPKGDIR} > ${DISTROOT}/etc/zap/repositories/tribblix.aliases
-fi
-if [ -f ${EXTRAPKGDIR}/aliases ]; then
-    cp ${EXTRAPKGDIR}/aliases ${DISTROOT}/etc/zap/repositories/oi.aliases
-else
-    ./create-oi-aliases > ${DISTROOT}/etc/zap/repositories/oi.aliases
 fi
 if [ -f ${IPKGDIR}/aliases ]; then
     cp ${IPKGDIR}/aliases ${DISTROOT}/etc/zap/repositories/illumos.aliases

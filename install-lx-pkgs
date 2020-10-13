@@ -5,14 +5,12 @@ RELEASE=23lx.1
 THOME=${THOME:-/packages/localsrc/Tribblix}
 RPKGDIR=${THOME}/release-repos/m${RELEASE}.`uname -p`
 TPKGDIR=${THOME}/pkgs
-EXTRAPKGDIR=${THOME}/repo-master/oi-151a9
 IPKGDIR=${THOME}/illumos-pkgs-m${RELEASE}/pkgs
 DESTDIR=/export/tribblix/dist
 FDEFAULT=${THOME}/tribblix-build/pkg.default
 INSTZAP=/usr/lib/zap/instzap
 
 ILVER="0.${RELEASE}"
-EXTRAVER="0.9o"
 case $RELEASE in
     *.*)
 	RELVER="$RELEASE"
@@ -82,8 +80,6 @@ do
       echo "Installing $mypkg from Tribblix"
   elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.zap ]; then
       echo "Installing $mypkg from Illumos"
-  elif [ -f ${EXTRAPKGDIR}/${mypkg}.${EXTRAVER}.zap ]; then
-      echo "Installing $mypkg from OpenIndiana"
   else
       echo "ERROR: package $mypkg not found"
       VALID=no
@@ -124,8 +120,6 @@ do
     $INSTZAP -R $DESTDIR ${TPKGDIR}/${mypkg}.${THISVER}.zap ${mypkg}
   elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.zap ]; then
     $INSTZAP -R $DESTDIR ${IPKGDIR}/${mypkg}.${ILVER}.zap ${mypkg}
-  elif [ -f ${EXTRAPKGDIR}/${mypkg}.${EXTRAVER}.zap ]; then
-    $INSTZAP -R $DESTDIR ${EXTRAPKGDIR}/${mypkg}.${EXTRAVER}.zap ${mypkg}
   fi
 done
 
