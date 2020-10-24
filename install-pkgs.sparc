@@ -45,6 +45,13 @@ case $# in
 esac
 
 #
+# check we have illumos packages, and a catalog
+#
+if [ ! -f ${IPKGDIR}/catalog ]; then
+    echo "ERROR: no illumos packages (or catalog)"
+    exit 1
+fi
+#
 # check we have a matching release repo
 #
 if [ ! -d "${RPKGDIR}" ]; then
