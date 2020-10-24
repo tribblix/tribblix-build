@@ -1,6 +1,6 @@
 #!/bin/sh
 
-RELEASE="0m23.1"
+RELEASE="0m23.2"
 
 DESTDIR=/export/tribblix/dist
 

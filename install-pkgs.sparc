@@ -1,6 +1,6 @@
 #!/bin/sh
 
-RELEASE=23.1
+RELEASE=23.2
 
 THOME=${THOME:-/packages/localsrc/Tribblix}
 RPKGDIR=${THOME}/release-repos/m${RELEASE}.`uname -p`
@@ -71,6 +71,7 @@ fi
 # first verify
 #
 VALID=yes
+ERRLIST=""
 for mypkg in `cat ${PKGLIST} | egrep -v '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$'` TRIBsys-install-media-internal
 do
   THISVER="XXX"
@@ -87,11 +88,13 @@ do
   else
       echo "ERROR: package $mypkg not found"
       VALID=no
+      ERRLIST="$ERRLIST $mypkg"
   fi
 done
 
 if [ "X$VALID" = "Xno" ]; then
     echo "ERROR: missing packages, install aborted"
+    echo "Missing: $ERRLIST"
     exit 1
 fi
 
