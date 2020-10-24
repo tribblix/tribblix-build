@@ -80,10 +80,12 @@ ERRLIST=""
 for mypkg in `cat ${PKGLIST} | egrep -v '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$'` TRIBsys-install-media-internal
 do
   THISVER="XXX"
+  ILVER="XXX"
   PKGI=${THOME}/build/${mypkg}/pkginfo
   if [ -f ${PKGI} ]; then
       THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
   fi
+  ILVER=`nawk -v V=${mypkg} -F'|' '{if ($1==V) print $2}' ${IPKGDIR}/catalog`
   if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.zap ]; then
       echo "Installing $mypkg from Tribblix"
   elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.zap ]; then
@@ -122,10 +124,12 @@ fi
 for mypkg in `cat ${PKGLIST} | egrep -v '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$'` TRIBsys-install-media-internal
 do
   THISVER="XXX"
+  ILVER="XXX"
   PKGI=${THOME}/build/${mypkg}/pkginfo
   if [ -f ${PKGI} ]; then
       THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
   fi
+  ILVER=`nawk -v V=${mypkg} -F'|' '{if ($1==V) print $2}' ${IPKGDIR}/catalog`
   if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.zap ]; then
     $INSTZAP -R $DESTDIR ${TPKGDIR}/${mypkg}.${THISVER}.zap ${mypkg}
   elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.zap ]; then

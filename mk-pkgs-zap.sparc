@@ -16,8 +16,8 @@ VARIANT=""
 OVDIR="overlays.sparc"
 
 #
-# Tribblix and illumos packages are explicitly versioned, we fake a version
-# based on the current release for OI/OpenSXCE
+# Tribblix and illumos packages are explicitly versioned
+# we fake a version based on the current release for OpenSXCE
 #
 EXTRAVER="2014"
 ILVER="0.${RELEASE}"
@@ -62,10 +62,12 @@ ERRLIST=""
 for ipkg in `cat ${TFILE}|sort|uniq|egrep -v '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$'`
 do
   THISVER="XXX"
+  ILVER="XXX"
   PKGI=${THOME}/build/${ipkg}/pkginfo
   if [ -f ${PKGI} ]; then
       THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
   fi
+  ILVER=`nawk -v V=${ipkg} -F'|' '{if ($1==V) print $2}' ${IPKGDIR}/catalog`
   if [ -f ${TPKGDIR}/${ipkg}.${THISVER}.zap ]; then
       echo "Installing $ipkg ${THISVER} from Tribblix"
   elif [ -f ${IPKGDIR}/${ipkg}.${ILVER}.zap ]; then
@@ -108,10 +110,12 @@ do
       echo "Skipping installed ${ipkg}"
   else
       THISVER="XXX"
+      ILVER="XXX"
       PKGI=${THOME}/build/${ipkg}/pkginfo
       if [ -f ${PKGI} ]; then
 	  THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
       fi
+      ILVER=`nawk -v V=${ipkg} -F'|' '{if ($1==V) print $2}' ${IPKGDIR}/catalog`
       if [ -f ${TPKGDIR}/${ipkg}.${THISVER}.zap ]; then
 	  cp ${TPKGDIR}/${ipkg}.${THISVER}.zap $ZAPDIR
       elif [ -f ${IPKGDIR}/${ipkg}.${ILVER}.zap ]; then
