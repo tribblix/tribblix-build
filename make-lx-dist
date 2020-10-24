@@ -20,7 +20,7 @@ i386)
 	;;
 esac
 
-if [ ! -d ${DESTDIR}/usr/bin/ls ]; then
+if [ ! -f ${DESTDIR}/usr/bin/ls ]; then
     echo "ERROR: Package install failed!"
     exit 1
 fi
@@ -31,7 +31,7 @@ i386)
 	;;
 esac
 
-if [ ! -d ${DESTDIR}/pkgs/catalog ]; then
+if [ ! -f ${DESTDIR}/pkgs/catalog ]; then
     echo "ERROR: Extra packages failed!"
     exit 1
 fi
