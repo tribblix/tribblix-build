@@ -446,6 +446,8 @@ restart_fmri)
 esac
 done
 echo "s none ${dirpath}=${target}" >> ${BDIR}/prototype
+# create the symlink so that rrmdir works
+ln -s ${target} ${BDIR}/${dirpath}
 }
 
 #
