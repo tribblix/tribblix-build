@@ -329,7 +329,7 @@ class)
     fi
     ;;
 *zone*)
-    printf ""
+    :
     ;;
 clone_perms)
     CLONEPERMS="'$value'"
@@ -385,7 +385,7 @@ do
 case $key in
 *zone*)
     # FIXME zone handling
-    printf ""
+    :
     ;;
 path)
     dirpath=$value
@@ -400,7 +400,7 @@ group)
     group=$value
     ;;
 facet*)
-    printf ""
+    :
     ;;
 *)
     echo "unhandled dir attributes $frag"
@@ -426,7 +426,7 @@ do
 case $key in
 *zone*|reboot-needed)
     # FIXME zone handling
-    printf ""
+    :
     ;;
 path)
     dirpath=$value
@@ -435,7 +435,10 @@ target)
     target=$value
     ;;
 facet*)
-    printf ""
+    :
+    ;;
+restart_fmri)
+    :
     ;;
 *)
     echo "unhandled link attribute $frag"
@@ -459,7 +462,7 @@ do
 case $key in
 *zone*)
     # FIXME zone handling
-    printf ""
+    :
     ;;
 path)
     dirpath=$value
@@ -510,7 +513,7 @@ case $key in
 pkg.size*|pkg.csize*|reboot-needed|*zone*|elfarch|elfbits|chash|elfhash|original_name)
     # FIXME reboot, zone handling
     # FIXME should check on elfarch
-    printf ""
+    :
     ;;
 path)
     filepath=$value
@@ -530,7 +533,10 @@ timestamp)
     TSTAMP=`echo $value | /usr/bin/awk -FT '{printf("%s%.4s",$1,$2)}'`
     ;;
 facet*)
-    printf ""
+    :
+    ;;
+pkg.content-hash)
+    :
     ;;
 restart_fmri)
     touch ${BDIR}/restart_fmri_list
@@ -665,10 +671,10 @@ case $name in
   echo "IPS_CONSOLIDATION=$value" >> ${BDIR}/pkginfo
   ;;
 'variant.arch'|'variant.opensolaris.zone'|'opensolaris.smf.fmri'|'org.opensolaris.smf.fmri'|'opensolaris.arc_url')
-  printf ""
+  :
   ;;
 'info.repository_changeset'|'info.maintainer_url'|'info.repository_url'|'info.defect_tracker.url'|'info.source_url'|'info.upstream_url'|'info.upstream')
-  printf ""
+  :
   ;;
 *)
   echo "Unhandled set directive $name"
@@ -702,7 +708,7 @@ pkg*)
     pkg_vers=`echo $pkg_str | awk -F@ '{print $2}'`
 case $pkg_name in
 *incorporation)
-    printf ""
+    :
     ;;
 *)
     svr4_name=`$PNAME $pkg_name`
@@ -712,7 +718,7 @@ case $pkg_name in
 esac
     ;;
 *consolidation*)
-    printf ""
+    :
     ;;
 *)
     svr4_name=`$PNAME $fmri`
