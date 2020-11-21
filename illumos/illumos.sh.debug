@@ -141,13 +141,14 @@ export BUILDPERL64='#'
 #export BUILDPY3='#'
 
 #
-# Tribblix uses python2.7
+# Tribblix uses python3.7
 #
 #
 # we don't build python artefacts, but still need the tools
 #
-export PYTHON_VERSION="2.7"
-export PYTHON_PKGVERS="-27"
+export PYTHON3_VERSION=3.7
+export PYTHON3_PKGVERS=-37
+export PYTHON3_SUFFIX=m
 #
 # don't build python artefacts, we would throw them away anyway
 #
@@ -156,8 +157,8 @@ export BUILDPY3='#'
 #
 # build tools against python2
 #
-export BUILDPY2TOOLS=''
-export BUILDPY3TOOLS='#'
+export BUILDPY2TOOLS='#'
+export BUILDPY3TOOLS=''
 
 # Set console color scheme either by build type:
 #
@@ -284,9 +285,9 @@ export MULTI_PROTO="no"
 # when the release slips (nah) or you move an environment file to a new
 # release
 #
-export VERSION="tribblix-m23"
+export VERSION="tribblix-m24"
 export BOOTBANNER1='Welcome to Tribblix, the retro ^o distribution'
-export BOOTBANNER2='^v | June 2020 | http://www.tribblix.org/'
+export BOOTBANNER2='^v | December 2020 | http://www.tribblix.org/'
 
 #
 # the RELEASE and RELEASE_DATE variables are set in Makefile.master;
