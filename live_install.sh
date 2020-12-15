@@ -234,7 +234,7 @@ fi
 #
 if [ -z "$DRIVELIST" ]; then
     echo "ERROR: no installation drives specified or found"
-    echo "Usage: $0 [-B] [ -m device ] device [overlay ... ]"
+    echo "Usage: $0 [-G] [-n hostname] [-t timezone] [-m mirror_device] device [overlay ... ]"
     exit 1
 fi
 
@@ -456,7 +456,7 @@ echo "Setting up boot"
 
 # new loader
 /usr/bin/cat > /${ROOTPOOL}/boot/menu.lst << _EOF
-title Tribblix 0.23.3
+title Tribblix 0.24
 bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 _EOF
 

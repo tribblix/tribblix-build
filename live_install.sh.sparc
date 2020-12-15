@@ -229,7 +229,7 @@ fi
 #
 if [ -z "$DRIVELIST" ]; then
     echo "ERROR: no installation drives specified or found"
-    echo "Usage: $0 [-B] [ -m device ] device [overlay ... ]"
+    echo "Usage: $0 [-B] [-n hostname] [-t timezone] [-m mirror_device] device [overlay ... ]"
     exit 1
 fi
 
