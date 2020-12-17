@@ -108,14 +108,20 @@ fi
 
 #
 # interactive argument handling
+# legacy -B now means the same as -G
+# -b is the old -B escape hatch
 #
-while getopts "BCGm:n:s:t:" opt; do
+while getopts "bBCGm:n:s:t:" opt; do
     case $opt in
-        B)
+        b)
 	    BFLAG="-B"
 	    ;;
         C)
 	    COMPRESSARGS="-O compression=lz4"
+	    ;;
+        B)
+	    GFLAG="-G"
+	    ZPOOLARGS="-B"
 	    ;;
         G)
 	    GFLAG="-G"
@@ -191,10 +197,10 @@ fi
 #
 
 #
-# cannot specify both -B and -G
+# cannot specify both -b and -G
 #
 if [ -n "${BFLAG}" -a -n "${GFLAG}" ]; then
-    echo "ERROR: specify only one of -B and -G"
+    echo "ERROR: specify only one of -b and -G"
     exit 1
 fi
 
@@ -246,7 +252,7 @@ fi
 #
 if [ -z "$DRIVELIST" ]; then
     echo "ERROR: no installation drives specified or found"
-    echo "Usage: $0 [-B] [ -m device ] device [overlay ... ]"
+    echo "Usage: $0 [-G] [-n hostname] [-t timezone] [-m mirror_device] device image_file"
     exit 1
 fi
 
@@ -405,6 +411,11 @@ if [ -n "$TIMEZONE" ]; then
 fi
 
 #
+# enable swap
+#
+/bin/echo "/dev/zvol/dsk/${ROOTPOOL}/swap\t-\t-\tswap\t-\tno\t-" >> ${ALTROOT}/etc/vfstab
+
+#
 # if root has no password set, set it to a blank one
 # Note: a blank password is not the same as a blank field in shadow
 # this taken from Kayak
@@ -413,11 +424,6 @@ chmod u+w ${ALTROOT}/etc/shadow
 ROOTPW='$5$kr1VgdIt$OUiUAyZCDogH/uaxH71rMeQxvpDEY2yX.x0ZQRnmeb9'
 sed -i -e 's%^root::%root:'$ROOTPW':%' ${ALTROOT}/etc/shadow
 chmod u-w ${ALTROOT}/etc/shadow
-
-#
-# enable swap
-#
-/bin/echo "/dev/zvol/dsk/${ROOTPOOL}/swap\t-\t-\tswap\t-\tno\t-" >> ${ALTROOT}/etc/vfstab
 
 #
 # if specified, run a finish script
