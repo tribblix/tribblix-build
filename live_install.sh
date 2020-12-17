@@ -7,6 +7,7 @@
 ROOTPOOL="rpool"
 DRIVELIST=""
 SWAPSIZE="2g"
+DUMPSIZE="2g"
 ZFSARGS=""
 ZPOOLARGS=""
 COMPRESSARGS="-O compression=lz4"
@@ -297,7 +298,7 @@ echo "Creating filesystems"
 /usr/sbin/zfs create -o mountpoint=${ALTROOT}/export ${ROOTPOOL}/export
 /usr/sbin/zfs create ${ROOTPOOL}/export/home
 /usr/sbin/zfs create -V ${SWAPSIZE} -b 4k ${ROOTPOOL}/swap
-/usr/sbin/zfs create -V ${SWAPSIZE} ${ROOTPOOL}/dump
+/usr/sbin/zfs create -V ${DUMPSIZE} ${ROOTPOOL}/dump
 
 #
 # this gives the BE a UUID, necessary for 'beadm list -H'
