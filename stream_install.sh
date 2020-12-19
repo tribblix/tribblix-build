@@ -7,7 +7,7 @@
 ROOTPOOL="rpool"
 DRIVELIST=""
 SWAPSIZE="2g"
-DUMPSIZE="2g"
+DUMPSIZE=""
 ZFSARGS=""
 ZPOOLARGS=""
 COMPRESSARGS="-O compression=lz4"
@@ -314,7 +314,15 @@ echo "Creating filesystems"
 /usr/sbin/zfs create -o mountpoint=${ALTROOT} ${ROOTPOOL}/ROOT/${NEWBE}
 /usr/sbin/zpool set bootfs=${ROOTPOOL}/ROOT/${NEWBE} ${ROOTPOOL}
 /usr/sbin/zfs create -V ${SWAPSIZE} -b 4k ${ROOTPOOL}/swap
-/usr/sbin/zfs create -V ${DUMPSIZE} ${ROOTPOOL}/dump
+#
+# only create dump device if DUMPSIZE has a value
+# configure it now as well, so that the configuration will
+# be copied to the installed system
+#
+if [ -n "${DUMPSIZE}" ]; then
+    /usr/sbin/zfs create -V ${DUMPSIZE} ${ROOTPOOL}/dump
+    /usr/sbin/dumpadm -c kernel -d /dev/zvol/dsk/${ROOTPOOL}/dump -y
+fi
 
 #
 # this gives the BE a UUID, necessary for 'beadm list -H'
