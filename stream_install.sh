@@ -358,8 +358,28 @@ case $IMAGEFILE in
     *.zfs.xz)
 	${XZCAT} -d -c $IMAGEFILE | /usr/sbin/zfs recv -F $MYDSET
 	;;
+    *.tar)
+	cd $ALTROOT
+	cat $IMAGEFILE | /usr/sbin/tar xf -
+	cd
+	;;
+    *.tar.gz)
+	cd $ALTROOT
+	${GZCAT} $IMAGEFILE | /usr/sbin/tar xf -
+	cd
+	;;
+    *.tar.bz2)
+	cd $ALTROOT
+	${BZCAT} $IMAGEFILE | /usr/sbin/tar xf -
+	cd
+	;;
+    *.tar.xz)
+	cd $ALTROOT
+	${XZCAT} -d -c $IMAGEFILE | /usr/sbin/tar xf -
+	cd
+	;;
     *)
-	echo "Unrecognized file format $ISOFILE"
+	echo "Unrecognized file format $IMAGEFILE"
 	exit 1
 	;;
 esac
@@ -367,7 +387,7 @@ esac
 #
 # create export later, as mounting it blocks the zfs recv above
 #
-ls /a
+ls ${ALTROOT}
 /usr/sbin/zfs create -o mountpoint=${ALTROOT}/export ${ROOTPOOL}/export
 /usr/sbin/zfs create ${ROOTPOOL}/export/home
 
