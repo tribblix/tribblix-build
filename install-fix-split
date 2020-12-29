@@ -82,6 +82,10 @@ i386)
 cat >> ${DESTDIR}/etc/system << _EOF
 set pcplusmp:apic_kmdb_on_nmi=1
 _EOF
+#
+# create the uefi boot block
+#
+${THOME}/tribblix-build/uefi.sh ${DESTDIR}
 ;;
 esac
 
