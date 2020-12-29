@@ -166,13 +166,11 @@ if [ ! -f platform/i86pc/boot_archive ]; then
   exit 2
 fi
 #
-# only fail if both 32-bit and 64-bit kernels are missing
+# we need the kernel
 #
-if [ ! -f platform/i86pc/kernel/unix ]; then
-  if [ ! -f platform/i86pc/kernel/amd64/unix ]; then
-    echo "Unable to find the kernel"
-    exit 2
-  fi
+if [ ! -f platform/i86pc/kernel/amd64/unix ]; then
+  echo "Unable to find the kernel"
+  exit 2
 fi
 
 #
@@ -194,14 +192,8 @@ $DEBUG mkdir -p ${TFTPBOOT}/$TFTPDIR/platform/i86pc/kernel/amd64
 $DEBUG cp boot/grub/pxegrub ${TFTPBOOT}/$TFTPDIR
 $DEBUG cp platform/i86pc/boot_archive ${TFTPBOOT}/$TFTPDIR/platform/i86pc
 chmod a+r ${TFTPBOOT}/$TFTPDIR/platform/i86pc/boot_archive
-if [ -f platform/i86pc/kernel/unix ]; then
-  $DEBUG cp platform/i86pc/kernel/unix ${TFTPBOOT}/$TFTPDIR/platform/i86pc/kernel
-  chmod a+rx ${TFTPBOOT}/$TFTPDIR/platform/i86pc/kernel/unix
-fi
-if [ -f platform/i86pc/kernel/amd64/unix ]; then
-  $DEBUG cp platform/i86pc/kernel/amd64/unix ${TFTPBOOT}/$TFTPDIR/platform/i86pc/kernel/amd64
-  chmod a+rx ${TFTPBOOT}/$TFTPDIR/platform/i86pc/kernel/amd64/unix
-fi
+$DEBUG cp platform/i86pc/kernel/amd64/unix ${TFTPBOOT}/$TFTPDIR/platform/i86pc/kernel/amd64
+chmod a+rx ${TFTPBOOT}/$TFTPDIR/platform/i86pc/kernel/amd64/unix
 
 #
 # we copy the add-pxe-client script to the tftp location
