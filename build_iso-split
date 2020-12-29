@@ -106,16 +106,14 @@ esac
 chmod 755 ${DESTDIR}/tools/*
 
 #
-# create the zlib files
+# create the zlib file
 #
 echo "Creating solaris.zlib"
 ${TBHOME}/mk-solaris-zlib $*
-rm -f ${DESTDIR}/solarismisc.zlib
 sync
 
 #
-# shuffle pieces out of the way to save space on the iso
-# /usr comes from solaris.zlib, the others are in the ramdisk already
+# shuffle pieces out of the way to avoid duplication on the iso
 #
 mkdir -p ${DESTTOP}/save
 mv ${DESTDIR}/bin ${DESTTOP}/save
