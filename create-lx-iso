@@ -44,7 +44,7 @@ i386)
 	-b ${CDBOOT} -no-emul-boot -boot-load-size 4 -boot-info-table \
 	-eltorito-alt-boot -eltorito-platform efi \
 	-eltorito-boot ${UEFIBOOT} -no-emul-boot \
-        ${DESTDIR}
+	${DESTDIR}
 
 	;;
 esac
