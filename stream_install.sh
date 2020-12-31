@@ -313,7 +313,13 @@ echo "Creating filesystems"
 /usr/sbin/zfs create -o mountpoint=legacy ${ROOTPOOL}/ROOT
 /usr/sbin/zfs create -o mountpoint=${ALTROOT} ${ROOTPOOL}/ROOT/${NEWBE}
 /usr/sbin/zpool set bootfs=${ROOTPOOL}/ROOT/${NEWBE} ${ROOTPOOL}
-/usr/sbin/zfs create -V ${SWAPSIZE} -b 4k ${ROOTPOOL}/swap
+#
+# create swap area unless it's been explicitly disabled by setting
+# SWAPSIZE to the empty string
+#
+if [ -n "${SWAPSIZE}" ]; then
+    /usr/sbin/zfs create -V ${SWAPSIZE} -b 4k ${ROOTPOOL}/swap
+fi
 #
 # only create dump device if DUMPSIZE has a value
 # configure it now as well, so that the configuration will
@@ -442,7 +448,9 @@ fi
 #
 # enable swap
 #
-/bin/echo "/dev/zvol/dsk/${ROOTPOOL}/swap\t-\t-\tswap\t-\tno\t-" >> ${ALTROOT}/etc/vfstab
+if [ -n "${SWAPSIZE}" ]; then
+    /bin/echo "/dev/zvol/dsk/${ROOTPOOL}/swap\t-\t-\tswap\t-\tno\t-" >> ${ALTROOT}/etc/vfstab
+fi
 
 #
 # if root has no password set, set it to a blank one
