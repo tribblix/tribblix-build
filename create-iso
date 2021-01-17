@@ -2,6 +2,7 @@
 
 RELEASE="0m24"
 
+THOME=${THOME:-/packages/localsrc/Tribblix}
 DESTDIR=/export/tribblix/dist
 
 ISODIR=/var/tmp
@@ -45,6 +46,8 @@ i386)
 	-eltorito-alt-boot -eltorito-platform efi \
 	-eltorito-boot ${UEFIBOOT} -no-emul-boot \
 	${DESTDIR}
+
+	${THOME}/tribblix-build/hybridize-iso ${ISODIR}/${ISONAME} ${DESTDIR}
 
 	;;
 esac
