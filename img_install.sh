@@ -301,6 +301,16 @@ cd dev
 cd /
 
 #
+# the man pages might be compressed to save space
+#
+if [ -f ${ALTROOT}/usr/share/liveman.tar.bz2 ] ; then
+    cd ${ALTROOT}/usr/share
+    bzcat liveman.tar.bz2 | tar xf -
+    rm -f liveman.tar.bz2
+    cd /
+fi
+
+#
 # delete mkisofs from the installed image, we have an unpackaged copy
 # on the bootable /usr which we use to optimize boot archive creation
 #

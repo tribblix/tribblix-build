@@ -17,7 +17,7 @@ esac
 #
 case `uname -p` in
 i386)
-	MRSIZE=272m
+	MRSIZE=250m
 	NBPI=8192
 	XARCH="i86"
 	;;
@@ -115,6 +115,17 @@ cd ${DESTDIR}
 #
 rm -f ${DESTDIR}/boot/solaris.xpm
 rm -f ${DESTDIR}/boot/splashimage.xpm
+
+#
+# compress the man pages, to make the root archive smaller
+#
+if [ ! -f ${DESTDIR}/usr/share/liveman.tar.bz2 ]; then
+    cd ${DESTDIR}/usr/share
+    tar cf liveman.tar man
+    pbzip2 liveman.tar
+    rm -fr man
+    cd ${DESTDIR}
+fi
 
 #
 # This is based on the joyent list; the live-media method scripts call
