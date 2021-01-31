@@ -1,6 +1,6 @@
 #!/bin/sh
 
-RELEASE="0m24lx"
+RELEASE="0m24lx.1"
 
 THOME=${THOME:-/packages/localsrc/Tribblix}
 DESTDIR=/export/tribblix/dist
