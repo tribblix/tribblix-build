@@ -1,0 +1,30 @@
+diff --git a/usr/src/lib/brand/shared/brand/Makefile.com b/usr/src/lib/brand/shared/brand/Makefile.com
+index 0d5afe31f6..37e4c3d024 100644
+--- a/usr/src/lib/brand/shared/brand/Makefile.com
++++ b/usr/src/lib/brand/shared/brand/Makefile.com
+@@ -54,6 +54,10 @@ i386_AS		= $(amd64_AS)
+ CPPFLAGS +=	-D_REENTRANT -U_ASM -I. -I../sys
+ CFLAGS +=	$(CCVERBOSE)
+ ASFLAGS =	-P $(ASFLAGS_$(CURTYPE)) -D_ASM -I. -I../sys
++#
++# Disable stack protection as this code might be running in an s10 context.
++#
++STACKPROTECT = none
+ 
+ # intentional code after abort()
+ SMOFF += unreachable
+diff --git a/usr/src/lib/brand/solaris10/s10_brand/Makefile.com b/usr/src/lib/brand/solaris10/s10_brand/Makefile.com
+index d4c5e5f683..40a30276c7 100644
+--- a/usr/src/lib/brand/solaris10/s10_brand/Makefile.com
++++ b/usr/src/lib/brand/solaris10/s10_brand/Makefile.com
+@@ -83,6 +83,10 @@ CSTD=	$(CSTD_GNU99)
+ DYNFLAGS +=	$(DYNFLAGS_$(CLASS))
+ DYNFLAGS +=	$(BLOCAL) $(ZNOVERSION) -Wl,-e_start
+ LDLIBS +=	-lmapmalloc -lc
++#
++# Disable stack protection as we're running in an s10 context.
++#
++STACKPROTECT = none
+ 
+ CERRWARN +=	$(CNOWARN_UNINIT)
+ 
