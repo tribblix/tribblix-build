@@ -7,7 +7,7 @@ THOME=${THOME:-/packages/localsrc/Tribblix}
 TBHOME=${THOME}/tribblix-build
 DESTTOP=/export/tribblix
 DESTDIR=${DESTTOP}/dist
-TRIBVER="OmniTribblix 0.24lx.1"
+TRIBVER="OmniTribblix 0.25lx"
 
 case $# in
 1)
