@@ -98,14 +98,8 @@ do
 done
 
 if [ "x${QFLAG}" = "x-Q" ]; then
-    rm -fr ${DSTDIR}/quick/TRIBsvc-net-ssh-common
     exit 0
 fi
-
-#
-# this probably isn't the right place to put this, but it's the easiest
-#
-rm -f ${DSTDIR}/pkgs/TRIBsvc-net-ssh-common.${PKG_VERSION}.pkg
 
 #
 # convert the SVR4 pkg to zap format
