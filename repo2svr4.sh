@@ -13,6 +13,11 @@ MYREPO="redist"
 QUICKMODE=""
 
 #
+# find_elf can't find the right elfedit
+#
+export PATH=/usr/bin:/usr/sbin:/sbin:/usr/gnu/bin
+
+#
 # locations and variables should be passed as arguments
 #
 while getopts "QV:T:G:D:M:R:S:" opt; do
