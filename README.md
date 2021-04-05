@@ -2,7 +2,7 @@ Tribblix Build
 ==============
 
 These are the scripts to build a Tribblix image. It's assumed that
-you've created all the SVR4 packages already.
+you've created all the SVR4 packages already, see ips2svr4 below.
 
 The first step is to create a distribution area. It's named
 /export/tribblix by default, and ought to contain a 'dist' directory
@@ -59,26 +59,20 @@ filesystem.)
 ips2svr4
 ========
 
-Conversion scripts for taking IPS packages (either from an installed
-system or from the repo created from an Illumos build) and creating an
-equivalent SVR4 package.
+Conversion scripts for creating SVR4 packages from an IPS repo created by
+an Illumos build.
 
 pkg_name.sh - an ugly way to translate IPS package names to SVR4 names
 
-ips2svr4.sh - script to convert a package from an installed system
-
 repo2svr4.sh - script to convert a package from an Illumos build
 
-repo_all.sh, mk_all.sh - wrappers to create all packages
+repo_all.sh - wrapper to create all packages
+
+repo_one.sh - wrapper to create a specific package
 
 These also depend on the tribblix-transforms repo on github, which
 applies a number of modifications at the packaging stage (rather than
 having to fix the illumos build).
-
-These have my own build locations hardcoded, which will need fixing -
-search for "ptribble", "/packages", and "/var/tmp" in the scripts and
-put in whatever makes sense for your own system.
-
 
 Known issues
 ============
