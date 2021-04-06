@@ -3,11 +3,13 @@
 # build a bootable iso
 #
 
+RELEASE=25lx
+
 THOME=${THOME:-/packages/localsrc/Tribblix}
 TBHOME=${THOME}/tribblix-build
 DESTTOP=/export/tribblix
 DESTDIR=${DESTTOP}/dist
-TRIBVER="OmniTribblix 0.25lx"
+TRIBVER="OmniTribblix 0.${RELEASE}"
 
 case $# in
 1)
@@ -136,7 +138,7 @@ sync
 #
 # actually build the iso
 #
-${TBHOME}/create-iso -R 0m25lx -N omnitribblix $*
+${TBHOME}/create-iso -R 0m${RELEASE} -N omnitribblix $*
 
 #
 # shuffle the files back so the image area is still valid
