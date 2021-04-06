@@ -1,16 +1,40 @@
 #!/bin/sh
 
-RELEASE="0m25"
-
 THOME=${THOME:-/packages/localsrc/Tribblix}
-DESTDIR=/export/tribblix/dist
 
+DESTDIR=/export/tribblix/dist
 ISODIR=/var/tmp
-ISOROOT="tribblix"
+ISOROOT="tribtest"
+RELEASE="beta"
+
+#
+# flags
+# -D destdir -> DESTDIR
+# -I isodir -> ISODIR
+# -N iso root name -> ISOROOT
+# -R release string -> RELEASE
+#
+while getopts "D:I:N:R:" opt; do
+    case $opt in
+        D)
+	    DESTDIR="$OPTARG"
+	    ;;
+        I)
+	    ISODIR="$OPTARG"
+	    ;;
+        N)
+	    ISOROOT="$OPTARG"
+	    ;;
+        R)
+	    RELEASE="$OPTARG"
+	    ;;
+    esac
+done
+shift $((OPTIND-1))
 
 case `uname -p` in
 sparc)
-	ISOROOT="tribblix-sparc"
+	ISOROOT="${ISOROOT}-sparc"
 	;;
 esac
 
@@ -21,6 +45,9 @@ case $# in
 	ISONAME=${ISOROOT}-${RELEASE}-${1}.iso
 	;;
 esac
+
+echo $ISONAME
+exit 0
 
 #
 CDBOOT="boot/cdboot"

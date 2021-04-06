@@ -136,7 +136,7 @@ sync
 #
 # actually build the iso
 #
-${TBHOME}/create-iso $*
+${TBHOME}/create-iso -R 0m25 -N tribblix $*
 
 #
 # shuffle the files back so the image area is still valid
