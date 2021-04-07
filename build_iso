@@ -3,13 +3,52 @@
 # build a bootable iso
 #
 
-RELEASE=25
-
 THOME=${THOME:-/packages/localsrc/Tribblix}
-TBHOME=${THOME}/tribblix-build
+
+RELEASE=25
+TRIBNAME="Tribblix"
+TRIBSTYLE=""
+TRIBTYPE=""
+ISOROOT="tribblix"
 DESTTOP=/export/tribblix
+OVSUFFIX=""
+
+#
+# flags
+# -D desttop -> DESTTOP
+# -R release string -> RELEASE
+# -S style (empty or split) -> TRIBSTYLE
+# -T type (empty or lx) -> TRIBTYPE
+#
+while getopts "D:R:S:T:" opt; do
+    case $opt in
+        D)
+	    DESTTOP="$OPTARG"
+	    ;;
+        R)
+	    RELEASE="$OPTARG"
+	    ;;
+        S)
+	    TRIBSTYLE="$OPTARG"
+	    ;;
+        T)
+	    TRIBTYPE="$OPTARG"
+	    ;;
+    esac
+done
+shift $((OPTIND-1))
+
+case $TRIBTYPE in
+    lx)
+	TRIBNAME="OmniTribblix"
+	ISOROOT="omnitribblix"
+	OVSUFFIX=".lx"
+	;;
+esac
+
+TBHOME=${THOME}/tribblix-build
 DESTDIR=${DESTTOP}/dist
-TRIBVER="Tribblix 0.${RELEASE}"
+TRIBVER="${TRIBNAME} 0.${RELEASE}"
 
 case $# in
 1)
@@ -53,7 +92,7 @@ chmod 0700 ${DESTDIR}/var/crash/tribblix
 #
 case `uname -p` in
 i386)
-	OVSRC="${THOME}/overlays"
+	OVSRC="${THOME}/overlays${OVSUFFIX}"
 	;;
 sparc)
 	OVSRC="${THOME}/overlays.sparc"
@@ -89,7 +128,14 @@ chmod a+x ${DESTDIR}/root/ufs_install.sh
 cp ${TBHOME}/S99auto_install ${DESTDIR}/etc/rc2.d
 chmod 755 ${DESTDIR}/etc/rc2.d/S99auto_install
 echo "Fixing image"
-${TBHOME}/install-fix $*
+case $TRIBSTYLE in
+split)
+	${TBHOME}/install-fix-split $*
+	;;
+*)
+	${TBHOME}/install-fix $*
+	;;
+esac
 
 #
 # copy support tools
@@ -107,6 +153,15 @@ sparc)
 esac
 chmod 755 ${DESTDIR}/tools/*
 
+#
+# create the zlib file if building a split-style image
+#
+case $TRIBSTYLE in
+split)
+	echo "Creating solaris.zlib"
+	${TBHOME}/mk-solaris-zlib $*
+	;;
+esac
 sync
 
 #
@@ -138,7 +193,7 @@ sync
 #
 # actually build the iso
 #
-${TBHOME}/create-iso -R 0m${RELEASE} -N tribblix $*
+${TBHOME}/create-iso -R 0m${RELEASE} -N ${ISOROOT} $*
 
 #
 # shuffle the files back so the image area is still valid

@@ -2,6 +2,7 @@
 
 THOME=${THOME:-/packages/localsrc/Tribblix}
 DESTDIR=/export/tribblix/dist
+RELEASE=25lx
 
 case $# in
     1)
@@ -36,4 +37,4 @@ if [ ! -f ${DESTDIR}/pkgs/catalog ]; then
     exit 1
 fi
 
-$TDIR/lx_iso $*
+$TDIR/build_iso -T lx -R ${RELEASE} $*
