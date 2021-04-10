@@ -46,9 +46,6 @@ case $# in
 	;;
 esac
 
-echo $ISONAME
-exit 0
-
 #
 CDBOOT="boot/cdboot"
 UEFIBOOT="boot/efiboot.img"
