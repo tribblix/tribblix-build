@@ -1,0 +1,223 @@
+#!/bin/sh
+#
+# this builds the gates (vanilla and lx) for a release
+#
+# currently x86
+#
+
+THOME=${THOME:-/packages/localsrc/Tribblix}
+export THOME
+ARCH=`uname -p`
+BUILDHOME=${BUILDHOME:-${HOME}/Illumos}
+REFHOME=${REFHOME:-${HOME}/Illumos-reference}
+
+#
+# allow specification of the build and reference areas
+#
+while getopts "D:R:" opt; do
+    case $opt in
+	D)
+	    BUILDHOME="$OPTARG"
+	    ;;
+	R)
+	    REFHOME="$OPTARG"
+	    ;;
+    esac
+done
+shift $((OPTIND-1))
+
+#
+# just supply the name of the intended release we want to build
+#
+case $# in
+    1)
+	NGATE="$1"
+	;;
+    *)
+	echo "Usage: $0 release-name"
+	exit 1
+	;;
+esac
+
+#
+# this shouldn't happen, as this script comes from there
+#
+if [ ! -d ${THOME}/tribblix-build ]; then
+    echo "Unable to find tribblix-build"
+    exit 1
+fi
+
+#
+# sanity check
+#
+if [ ! -f ${THOME}/tribblix-build/illumos/check-environment.sh ]; then
+    echo "ERROR: cannot check enviromnent"
+    echo "Looking for ${THOME}/tribblix-build/illumos/check-environment.sh"
+    exit 1
+fi
+if [ ! -x ${THOME}/tribblix-build/illumos/check-environment.sh ]; then
+    echo "ERROR: cannot check enviromnent"
+    echo "${THOME}/tribblix-build/illumos/check-environment.sh is not executable"
+    exit 1
+fi
+${THOME}/tribblix-build/illumos/check-environment.sh
+if [ $? -ne 0 ]; then
+    echo "Environment check failed, aborting"
+    exit 1
+fi
+
+#
+# the assumption here is that we have a reference area with copies
+# of the gate repos already checked out, and we're going to build
+# in a certain location
+#
+if [ ! -d ${REFHOME} ]; then
+    echo "Missing reference gate parent"
+    echo "  You should fix by"
+    echo "mkdir -p ${REFHOME}"
+    exit 1
+fi
+if [ ! -d ${REFHOME}/illumos-gate ]; then
+    echo "Missing reference illumos-gate"
+    echo "  you should fix by"
+    echo "cd ${REFHOME}"
+    echo "git clone https://github.com/illumos/illumos-gate"
+    exit 1
+fi
+if [ ! -d ${REFHOME}/illumos-omnios ]; then
+    echo "Missing reference illumos-omnios"
+    echo "  you should fix by"
+    echo "cd ${REFHOME}"
+    echo "git clone https://github.com/omniosorg/illumos-omnios"
+    exit 1
+fi
+#
+# fail rather than accept a typo
+#
+if [ ! -d ${BUILDHOME} ]; then
+    echo "Missing build area"
+    echo "  You should fix by"
+    echo "mkdir -p ${BUILDHOME}"
+    exit 1
+fi
+
+#
+# the version used in filenames for the LX variant has the lx in the middle
+#
+case $NGATE in
+    *.*)
+	LXGATE=${NGATE/./lx.}
+	;;
+    *)
+	LXGATE=${NGATE}lx
+	;;
+esac
+
+#
+# check we don't already have the desired version present
+#
+if [ -d ${BUILDHOME}/${NGATE}-gate ]; then
+    echo "${NGATE}-gate already exists"
+    exit 1
+fi
+if [ -d ${BUILDHOME}/${LXGATE}-gate ]; then
+    echo "${LXGATE}-gate already exists"
+    exit 1
+fi
+
+#
+# we need env files matching this intended release
+# if they don't already exist, create them from a template
+#
+if [ ! -f ${THOME}/tribblix-build/illumos/illumos.sh.${NGATE} ]; then
+    if [ ! -f ${BUILDHOME}/illumos.sh.${NGATE} ]; then
+	${THOME}/tribblix-build/illumos/create-env.sh -d ${BUILDHOME} $NGATE
+    fi
+    if [ ! -f ${BUILDHOME}/illumos.sh.${NGATE} ]; then
+	echo "Missing env file, you need to create one called"
+	echo "${THOME}/tribblix-build/illumos/illumos.sh.${NGATE}"
+	echo "or ${BUILDHOME}/illumos.sh.${NGATE}"
+	exit 1
+    fi
+fi
+if [ ! -f ${THOME}/tribblix-build/illumos/illumos.sh.${LXGATE} ]; then
+    if [ ! -f ${BUILDHOME}/illumos.sh.${LXGATE} ]; then
+	${THOME}/tribblix-build/illumos/create-env.sh -d ${BUILDHOME} $NGATE
+    fi
+    if [ ! -f ${BUILDHOME}/illumos.sh.${LXGATE} ]; then
+	echo "Missing env file, you need to create one called"
+	echo "${THOME}/tribblix-build/illumos/illumos.sh.${LXGATE}"
+	echo "or ${BUILDHOME}/illumos.sh.${LXGATE}"
+	exit 1
+    fi
+fi
+
+#
+# need the closed bins
+# try and download from http://www.tribblix.org/illumos-build/
+# FIXME: or ship them in the illumos-build overlay
+#
+TDL="http://www.tribblix.org/illumos-build/"
+if [ ! -f ${BUILDHOME}/on-closed-bins.${ARCH}.tar.bz2 ]; then
+    echo "Cannot find closed-bins, attempting to download"
+    wget -O ${BUILDHOME}/on-closed-bins.${ARCH}.tar.bz2 ${TDL}/on-closed-bins.${ARCH}.tar.bz2
+fi
+if [ ! -f ${BUILDHOME}/on-closed-bins-nd.${ARCH}.tar.bz2 ]; then
+    echo "Cannot find closed-bins-nd, attempting to download"
+    wget -O ${BUILDHOME}/on-closed-bins-nd.${ARCH}.tar.bz2 ${TDL}/${BUILDHOME}/on-closed-bins-nd.${ARCH}.tar.bz2
+fi
+if [ ! -f ${BUILDHOME}/on-closed-bins.${ARCH}.tar.bz2 ]; then
+    echo "Still cannot find closed-bins"
+    exit 1
+fi
+if [ ! -f ${BUILDHOME}/on-closed-bins-nd.${ARCH}.tar.bz2 ]; then
+    echo "Still cannot find closed-bins-nd"
+    exit 1
+fi
+
+cd ${BUILDHOME}
+
+#
+# we also need gfx-drm
+#
+if [ ! -d gfx-drm ]; then
+    echo "Building gfx-drm"
+    git clone https://github.com/illumos/gfx-drm
+    cd gfx-drm
+    sed -i s:DCFlnpr:Cnpr: myenv.sh
+    echo "export SUPPRESSPKGDEP=true" >> myenv.sh
+    echo "export GNUC_ROOT=/opt/gcc/7.3.0" >> myenv.sh
+    sed -i s:@validate_pkg:/opt/onbld/bin/validate_pkg: usr/src/pkg/Makefile
+    rm usr/src/pkg/manifests/system-test-libdrm.mf
+    sed -i '/drm-tests/d' usr/src/cmd/Makefile
+    mv usr/src/cmd/drm-tests usr/src/cmd/drm-tests.not
+    /usr/bin/ksh93 tools/bldenv myenv.sh "cd usr/src ; make setup"
+    /usr/bin/ksh93 tools/bldenv myenv.sh "cd usr/src ; make install"
+    /usr/bin/ksh93 tools/bldenv myenv.sh "cd usr/src/pkg ; make install"
+    echo "Done building gfx-drm"
+fi
+
+#
+# if we've got this far then we have a decent chance of success
+#
+cd ${BUILDHOME}
+echo "Checking out illumos-gate"
+git clone ${REFHOME}/illumos-gate ${NGATE}-gate
+
+echo "Checking out illumos-omnios"
+git clone ${REFHOME}/illumos-omnios ${LXGATE}-gate
+echo "Fixing illumos-omnios"
+cd ${LXGATE}-gate
+git revert --no-edit 3cb7d45669f9143c833d58e902f8880804a51791
+git revert --no-edit 6b8791159f33fb8479bb3c5a19e624dff6ed35bf
+cd ..
+
+echo "Building illumos-gate"
+cd ${BUILDHOME}/${NGATE}-gate
+echo ${THOME}/tribblix-build/illumos/releasebuild ${NGATE}
+cd ..
+
+echo "Building illumos-omnios"
+cd ${BUILDHOME}/${LXGATE}-gate
+echo ${THOME}/tribblix-build/illumos/omnibuild ${LXGATE}
+cd ..
