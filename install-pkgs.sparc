@@ -85,7 +85,11 @@ do
   ILVER="XXX"
   PKGI=${THOME}/build/${mypkg}/pkginfo
   if [ -f ${PKGI} ]; then
-      THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
+      if [ -f ${THOME}/build/${mypkg}/version.sparc ]; then
+	  THISVER=`cat ${THOME}/build/${mypkg}/version.sparc`
+      else
+	  THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
+      fi
   fi
   ILVER=`nawk -v V=${mypkg} -F'|' '{if ($1==V) print $2}' ${IPKGDIR}/catalog`
   if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.zap ]; then
@@ -131,7 +135,11 @@ do
   ILVER="XXX"
   PKGI=${THOME}/build/${mypkg}/pkginfo
   if [ -f ${PKGI} ]; then
-      THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
+      if [ -f ${THOME}/build/${mypkg}/version.sparc ]; then
+	  THISVER=`cat ${THOME}/build/${mypkg}/version.sparc`
+      else
+	  THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
+      fi
   fi
   ILVER=`nawk -v V=${mypkg} -F'|' '{if ($1==V) print $2}' ${IPKGDIR}/catalog`
   if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.zap ]; then
