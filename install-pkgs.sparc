@@ -3,7 +3,7 @@
 RELEASE=25
 
 THOME=${THOME:-/packages/localsrc/Tribblix}
-RPKGDIR=${THOME}/release-repos/m${RELEASE}.`uname -p`
+RPKGDIR=${THOME}/release-repos/m${RELEASE}.sparc
 TPKGDIR=${THOME}/pkgs.sparc
 EXTRAPKGDIR=${THOME}/opensxce-pkgs/pkgs
 IPKGDIR=${THOME}/illumos-pkgs-m${RELEASE}.sparc/pkgs

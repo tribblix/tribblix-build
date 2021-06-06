@@ -3,7 +3,7 @@
 RELEASE=25
 
 THOME=${THOME:-/packages/localsrc/Tribblix}
-RPKGDIR=${THOME}/release-repos/m${RELEASE}.`uname -p`
+RPKGDIR=${THOME}/release-repos/m${RELEASE}.i386
 TPKGDIR=${THOME}/pkgs
 IPKGDIR=${THOME}/illumos-pkgs-m${RELEASE}/pkgs
 DESTDIR=/export/tribblix/dist
