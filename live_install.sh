@@ -113,7 +113,7 @@ fi
 # legacy -B now means the same as -G
 # -b is the old -B escape hatch
 #
-while getopts "bBCGm:n:s:t:" opt; do
+while getopts "bBCGm:n:s:t:z:Z:" opt; do
     case $opt in
         b)
 	    BFLAG="-B"
@@ -141,6 +141,14 @@ while getopts "bBCGm:n:s:t:" opt; do
 	    ;;
         t)
 	    TIMEZONE="$OPTARG"
+	    ;;
+        z)
+	    ZFSARGS="raidz1"
+	    DRIVELIST="$OPTARG"
+	    ;;
+        Z)
+	    ZFSARGS="raidz2"
+	    DRIVELIST="$OPTARG"
 	    ;;
     esac
 done
@@ -188,7 +196,7 @@ if [ -n "${BFLAG}" -a -n "${GFLAG}" ]; then
 fi
 
 #
-# if we have a drive list at this point, it must be from cardigan, 
+# if we have a drive list at this point, it must be from cardigan or raidz, 
 # so check the list for validity
 #
 if [ -n "$DRIVELIST" ]; then
