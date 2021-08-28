@@ -469,6 +469,16 @@ fi
 pkgadm sync -R ${ALTROOT} -q
 
 #
+# if there are filelists on the ISO, copy them across
+#
+if [ -f ${PKGLOC}/illumos.filelist.bz2 ]; then
+    cp ${PKGLOC}/illumos.filelist.bz2 ${ALTROOT}/etc/zap/repositories
+fi
+if [ -f ${PKGLOC}/tribblix.filelist.bz2 ]; then
+    cp ${PKGLOC}/tribblix.filelist.bz2 ${ALTROOT}/etc/zap/repositories
+fi
+
+#
 echo "Installing boot loader"
 /sbin/bootadm install-bootloader -f -M -P ${ROOTPOOL}
 
