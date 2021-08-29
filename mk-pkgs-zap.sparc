@@ -169,6 +169,21 @@ else
     ./create-illumos-aliases ${IPKGDIR} > ${DISTROOT}/etc/zap/repositories/illumos.aliases
 fi
 touch ${DISTROOT}/etc/zap/repositories/opensxce.aliases
+#
+# and filelists
+#
+if [ -f ${TPKGDIR}/filelist.bz2 ]; then
+    cp ${TPKGDIR}/filelist.bz2 ${DISTROOT}/etc/zap/repositories/tribblix.filelist.bz2
+else
+    ./create-file-list ${TPKGDIR}
+    cp ${TPKGDIR}/filelist.bz2 ${DISTROOT}/etc/zap/repositories/tribblix.filelist.bz2
+fi
+if [ -f ${IPKGDIR}/filelist.bz2 ]; then
+    cp ${IPKGDIR}/filelist.bz2 ${DISTROOT}/etc/zap/repositories/illumos.filelist.bz2
+else
+    ./create-file-list ${IPKGDIR}
+    cp ${IPKGDIR}/filelist.bz2 ${DISTROOT}/etc/zap/repositories/illumos.filelist.bz2
+fi
 
 #
 # preload overlay catalog
