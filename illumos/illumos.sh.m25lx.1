@@ -43,8 +43,7 @@
 #       creates packages for PIT/RE (-p)
 #       checks for changes in ELF runpaths (-r)
 #       build and use this workspace's tools in $SRC/tools (-t)
-#	Tribblix enables findunref
-export NIGHTLY_OPTIONS='-fFnCDAprt'
+export NIGHTLY_OPTIONS='-nCprtL'
 
 #
 # Tribblix settings that aren't defined here at all
@@ -100,11 +99,11 @@ export __GNUC=""
 export GNUC_ROOT=/opt/gcc/7.3.0
 export PRIMARY_CC=gcc7,/opt/gcc/7.3.0/bin/gcc,gnu
 export PRIMARY_CCC=gcc7,/opt/gcc/7.3.0/bin/g++,gnu
-export SHADOW_CCS=gcc4,/opt/gcc/4.4.4/bin/gcc,gnu
-export SHADOW_CCCS=gcc4,/opt/gcc/4.4.4/bin/g++,gnu
+export SHADOW_CCS=
+export SHADOW_CCCS=
 
 # uncomment to enable smatch
-export ENABLE_SMATCH=1
+#export ENABLE_SMATCH=1
 
 # Comment this out to disable support for SMB printing, i.e. if you
 # don't want to bother providing the CUPS headers this needs.
@@ -119,6 +118,9 @@ export ENABLE_SMATCH=1
 
 #
 # Tribblix has 32-bit perl 5.22 as the default
+#
+# 7661 is broken, you need
+# cd /usr/perl5/5.22.0/bin ; ln -s . i386
 #
 export PERL_VARIANT=-thread-multi
 export PERL_VERSION=5.22.0
@@ -155,7 +157,7 @@ export PYTHON3_SUFFIX=m
 export BUILDPY2='#'
 export BUILDPY3='#'
 #
-# build tools against python3
+# build tools against python2
 #
 export BUILDPY2TOOLS='#'
 export BUILDPY3TOOLS=''
@@ -183,6 +185,7 @@ export BUILDPY3TOOLS=''
 #
 export JAVA_ROOT=/usr/jdk/instances/jdk1.8.0
 export BLD_JAVA_8=
+export BLD_JAVA_11='#'
 
 # POST_NIGHTLY can be any command to be run at the end of nightly.  See
 # nightly(1) for interactions between environment variables and this command.
@@ -285,7 +288,7 @@ export MULTI_PROTO="no"
 # when the release slips (nah) or you move an environment file to a new
 # release
 #
-export VERSION="tribblix-m25.1"
+export VERSION="omnitribblix-m25.1"
 export BOOTBANNER1='Welcome to Tribblix, the retro ^o distribution'
 export BOOTBANNER2='^v | September 2021 | http://www.tribblix.org/'
 
