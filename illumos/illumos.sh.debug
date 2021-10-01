@@ -100,8 +100,8 @@ export __GNUC=""
 export GNUC_ROOT=/opt/gcc/7.3.0
 export PRIMARY_CC=gcc7,/opt/gcc/7.3.0/bin/gcc,gnu
 export PRIMARY_CCC=gcc7,/opt/gcc/7.3.0/bin/g++,gnu
-export SHADOW_CCS=gcc4,/opt/gcc/4.4.4/bin/gcc,gnu
-export SHADOW_CCCS=gcc4,/opt/gcc/4.4.4/bin/g++,gnu
+export SHADOW_CCS=gcc10,/opt/gcc/10.3.0/bin/gcc,gnu
+export SHADOW_CCCS=gcc10,/opt/gcc/10.3.0/bin/g++,gnu
 
 # uncomment to enable smatch
 export ENABLE_SMATCH=1
