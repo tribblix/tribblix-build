@@ -499,7 +499,7 @@ echo "Setting up boot"
 
 # new loader
 /usr/bin/cat > /${ROOTPOOL}/boot/menu.lst << _EOF
-title Tribblix 0.25
+title Tribblix 0.25.1
 bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 _EOF
 

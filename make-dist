@@ -2,7 +2,7 @@
 
 THOME=${THOME:-/packages/localsrc/Tribblix}
 DESTDIR=/export/tribblix/dist
-RELEASE=25
+RELEASE=25.1
 
 case $# in
     1)
