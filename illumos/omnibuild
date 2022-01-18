@@ -158,7 +158,7 @@ rm ../mperl.tar
 tar cf ../mperl.tar `find usr/src/cmd/perl | grep Makefile`
 cd $HEREDIR
 tar xf ../mperl.tar
-cp ../${VANILLAGATE}/usr/src/pkg/manifests/runtime-perl-module-sun-solaris.mf usr/src/pkg/manifests/runtime-perl-module-sun-solaris.mf
+cp ../${VANILLAGATE}/usr/src/pkg/manifests/runtime-perl-module-sun-solaris.p5m usr/src/pkg/manifests/runtime-perl-module-sun-solaris.p5m
 # omnios hardcodes the perl bitness in the Makefiles
 sed -i '/BUILDPERL32/d' usr/src/Makefile.master
 # fails ld guidance with gcc4
