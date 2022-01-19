@@ -4,7 +4,7 @@
 # necessary for the shipped overlays
 #
 
-RELEASE=25.1
+RELEASE=25.3
 
 DISTROOT=/export/tribblix/dist
 ZAPDIR=${DISTROOT}/pkgs

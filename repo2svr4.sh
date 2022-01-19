@@ -3,7 +3,7 @@
 # convert an ips package to svr4, from an on-disk repo
 #
 
-PKG_VERSION="0.25.1"
+PKG_VERSION="0.25.3"
 THOME=${THOME:-/packages/localsrc/Tribblix}
 GATEDIR=/export/home/ptribble/Illumos/illumos-gate
 DSTDIR=/var/tmp/illumos-pkgs
@@ -452,6 +452,11 @@ esac
 done
 echo "s none ${dirpath}=${target}" >> ${BDIR}/prototype
 # create the symlink so that rrmdir works
+# the directory containing the symlink must exist
+tdir=${dirpath%/*}
+if [ ! -d ${BDIR}/${tdir} ]; then
+    mkdir -p ${BDIR}/${tdir}
+fi
 ln -s ${target} ${BDIR}/${dirpath}
 }
 
