@@ -22,10 +22,11 @@
 # Copyright 2015 Nexenta Systems, Inc.  All rights reserved.
 # Copyright 2012 Joshua M. Clulow <josh@sysmgr.org>
 # Copyright 2015, OmniTI Computer Consulting, Inc. All rights reserved.
-# Copyright 2018 OmniOS Community Edition (OmniOSce) Association.
-# Copyright 2019, Joyent, Inc.
+# Copyright 2016 RackTop Systems.
+# Copyright 2019 OmniOS Community Edition (OmniOSce) Association.
+# Copyright 2020 Joyent, Inc.
 #
-# - This file is sourced by "bldenv.sh" and "nightly.sh" and should not
+# - This file is sourced by "bldenv" and "nightly" and should not
 #   be executed directly.
 # - This script is only interpreted by ksh93 and explicitly allows the
 #   use of ksh93 language extensions.
@@ -102,7 +103,7 @@ export PRIMARY_CCC=gcc7,/opt/gcc/7.3.0/bin/g++,gnu
 export SHADOW_CCS=
 export SHADOW_CCCS=
 
-# uncomment to enable smatch
+# comment to disable smatch
 #export ENABLE_SMATCH=1
 
 # Comment this out to disable support for SMB printing, i.e. if you
@@ -175,8 +176,8 @@ export BUILDPY3TOOLS=''
 # Set if your distribution has different package versioning
 #export PKGVERS_BRANCH=2018.0.0.17900
 
-# Skip Java 8 builds on distributions that don't support it
-#export BLD_JAVA_8=
+# Skip Java 11 builds on distributions that don't support it
+#export BLD_JAVA_11=
 #
 # Tribblix: replace the default which is to look for java under /usr/java
 #
@@ -340,7 +341,7 @@ export SPRO_VROOT="$SPRO_ROOT"
 # if the 'N' option is not specified, is to run this test.
 #CHECK_PATHS='y'
 
-if [[ "$ENABLE_SMATCH" = "1" ]]; then
+if [[ "$ENABLE_SMATCH" == "1" ]]; then
 	SMATCHBIN=$CODEMGR_WS/usr/src/tools/proto/root_$MACH-nd/opt/onbld/bin/$MACH/smatch
 	export SHADOW_CCS="$SHADOW_CCS smatch,$SMATCHBIN,smatch"
 fi
