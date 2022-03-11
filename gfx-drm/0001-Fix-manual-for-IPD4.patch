@@ -1,0 +1,218 @@
+From 3b18596b7c9631a3cf5387da48b3b1961621e163 Mon Sep 17 00:00:00 2001
+From: Peter Tribble <peter.tribble@gmail.com>
+Date: Fri, 11 Mar 2022 19:58:44 +0000
+Subject: [PATCH] Fix manual for IPD4
+
+---
+ usr/src/Targetdirs                             |  6 +++---
+ usr/src/man/Makefile                           |  6 +++---
+ usr/src/man/{man7 => man4}/Makefile            | 18 +++++++++---------
+ usr/src/man/{man7d => man4d}/Makefile          |  4 ++--
+ usr/src/man/{man7d/i915.7d => man4d/i915.4d}   |  2 +-
+ usr/src/man/{man7i => man4i}/Makefile          |  4 ++--
+ .../agpgart_io.7i => man4i/agpgart_io.4i}      |  2 +-
+ .../pkg/manifests/driver-graphics-agpgart.mf   |  4 ++--
+ usr/src/pkg/manifests/driver-graphics-drm.mf   |  6 +++---
+ 9 files changed, 26 insertions(+), 26 deletions(-)
+ rename usr/src/man/{man7 => man4}/Makefile (84%)
+ rename usr/src/man/{man7d => man4d}/Makefile (94%)
+ rename usr/src/man/{man7d/i915.7d => man4d/i915.4d} (94%)
+ rename usr/src/man/{man7i => man4i}/Makefile (93%)
+ rename usr/src/man/{man7i/agpgart_io.7i => man4i/agpgart_io.4i} (99%)
+
+diff --git a/usr/src/Targetdirs b/usr/src/Targetdirs
+index 3f77caef47c96d280a54db354166ebbac3ab9ee7..7588d1117c65bd45b7f127eb66c3bd019b964462 100644
+--- a/usr/src/Targetdirs
++++ b/usr/src/Targetdirs
+@@ -257,9 +257,9 @@ DIRS= \
+ 	/usr/share/man \
+ 	/usr/share/man/man1 \
+ 	/usr/share/man/man3x \
+-	/usr/share/man/man7 \
+-	/usr/share/man/man7d \
+-	/usr/share/man/man7i \
++	/usr/share/man/man4 \
++	/usr/share/man/man4d \
++	/usr/share/man/man4i \
+ 	/usr/share/src \
+ 	/usr/snadm \
+ 	/usr/snadm/lib \
+diff --git a/usr/src/man/Makefile b/usr/src/man/Makefile
+index 74517d31c3e1d649e15c580f56360eb0c911a422..f9e8252d27d698ae3240827841eec44fe35232f2 100644
+--- a/usr/src/man/Makefile
++++ b/usr/src/man/Makefile
+@@ -16,9 +16,9 @@
+ SUBDIRS=	man1		\
+ 		man3		\
+ 		man3x		\
+-		man7		\
+-		man7d		\
+-		man7i
++		man4		\
++		man4d		\
++		man4i
+ 
+ .PARALLEL: $(SUBDIRS)
+ 
+diff --git a/usr/src/man/man7/Makefile b/usr/src/man/man4/Makefile
+similarity index 84%
+rename from usr/src/man/man7/Makefile
+rename to usr/src/man/man4/Makefile
+index 7307459f312ce3e0a3faafe7b0839040b1911a89..086961a84d2215e66b129b66da8a629c1a72fac0 100644
+--- a/usr/src/man/man7/Makefile
++++ b/usr/src/man/man4/Makefile
+@@ -15,19 +15,19 @@
+ 
+ include		$(SRC)/Makefile.master
+ 
+-MANSECT= 	7
++MANSECT= 	4
+ 
+ # generated man pages
+ GENMANS= \
+-	drm.7 \
+-	drm-kms.7 \
+-	drm-memory.7
++	drm.4 \
++	drm-kms.4 \
++	drm-memory.4
+ 
+-LINKSRC= drm-memory.7
++LINKSRC= drm-memory.4
+ GENLINKS= \
+-	drm-mm.7 \
+-	drm-gem.7 \
+-	drm-ttm.7
++	drm-mm.4 \
++	drm-gem.4 \
++	drm-ttm.4
+ 
+ MANFILES= $(GENMANS)
+ 
+@@ -42,7 +42,7 @@ ROOTGENLINKS=	$(GENLINKS:%=$(ROOTMAN)/man$(MANSECT)/%)
+ 
+ install:	$(ROOTMANFILES) $(ROOTMANLINKS) $(ROOTGENLINKS)
+ 
+-$(ROOTMAN)/man7/%.7 : $(LIBDRM_CMN_DIR)/man/%.xml
++$(ROOTMAN)/man4/%.4 : $(LIBDRM_CMN_DIR)/man/%.xml
+ 	$(XSLTPROC_PROCESS_MAN)
+ 
+ 
+diff --git a/usr/src/man/man7d/Makefile b/usr/src/man/man4d/Makefile
+similarity index 94%
+rename from usr/src/man/man7d/Makefile
+rename to usr/src/man/man4d/Makefile
+index 0b9bcbe5d8c8beb2d4849551ca221527399d8d2d..7c96b63084d9e64d419737e94e568c6efed65b90 100644
+--- a/usr/src/man/man7d/Makefile
++++ b/usr/src/man/man4d/Makefile
+@@ -15,9 +15,9 @@
+ 
+ include		$(SRC)/Makefile.master
+ 
+-MANSECT= 	7d
++MANSECT= 	4d
+ 
+-MANFILES= 	i915.7d
++MANFILES= 	i915.4d
+ 
+ MANLINKS=
+ 
+diff --git a/usr/src/man/man7d/i915.7d b/usr/src/man/man4d/i915.4d
+similarity index 94%
+rename from usr/src/man/man7d/i915.7d
+rename to usr/src/man/man4d/i915.4d
+index 54b5b7e4557a0612307d9cd0bb114d276e6039c9..d6b29788316987a97ff7a6c75f8d2472ccbb415e 100644
+--- a/usr/src/man/man7d/i915.7d
++++ b/usr/src/man/man4d/i915.4d
+@@ -1,6 +1,6 @@
+ '\" te
+ .\" Copyright (c) 2009, 2015, Oracle and/or its affiliates. All rights reserved.
+-.TH i915 7D "15 Dec 2015" "SunOS 5.12" "Device Drivers & /dev files"
++.TH i915 4D "15 Dec 2015" "SunOS 5.12" "Device Drivers & /dev files"
+ .SH NAME
+ i915 \- DRI-compliant kernel driver providing graphic hardware acceleration support
+ .SH DESCRIPTION
+diff --git a/usr/src/man/man7i/Makefile b/usr/src/man/man4i/Makefile
+similarity index 93%
+rename from usr/src/man/man7i/Makefile
+rename to usr/src/man/man4i/Makefile
+index fee86adedea70dad2ff8836a499986dc521130af..99314642ada4fededeccb1010bd042507e652990 100644
+--- a/usr/src/man/man7i/Makefile
++++ b/usr/src/man/man4i/Makefile
+@@ -15,9 +15,9 @@
+ 
+ include		$(SRC)/Makefile.master
+ 
+-MANSECT= 	7i
++MANSECT= 	4i
+ 
+-MANFILES= 	agpgart_io.7i
++MANFILES= 	agpgart_io.4i
+ 
+ MANLINKS=
+ 
+diff --git a/usr/src/man/man7i/agpgart_io.7i b/usr/src/man/man4i/agpgart_io.4i
+similarity index 99%
+rename from usr/src/man/man7i/agpgart_io.7i
+rename to usr/src/man/man4i/agpgart_io.4i
+index e0470bb2f0bc836a24f4ba74d4807adda9f36640..1f60f63201c0e607d14639a204244eea4b5fb5d5 100644
+--- a/usr/src/man/man7i/agpgart_io.7i
++++ b/usr/src/man/man4i/agpgart_io.4i
+@@ -3,7 +3,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH AGPGART_IO 7I "Sep 10, 2013"
++.TH AGPGART_IO 4I "Sep 10, 2013"
+ .SH NAME
+ agpgart_io \- Solaris agpgart driver I/O control operations
+ .SH SYNOPSIS
+diff --git a/usr/src/pkg/manifests/driver-graphics-agpgart.mf b/usr/src/pkg/manifests/driver-graphics-agpgart.mf
+index 353e1660bcae800125cc7b8e81281e6306324850..c28db8211f2e43d94e100933f233f45aa1d06c8f 100644
+--- a/usr/src/pkg/manifests/driver-graphics-agpgart.mf
++++ b/usr/src/pkg/manifests/driver-graphics-agpgart.mf
+@@ -42,7 +42,7 @@ dir path=kernel/drv/$(ARCH64) group=sys
+ dir path=kernel/misc group=sys
+ dir path=kernel/misc/$(ARCH64) group=sys
+ dir path=usr/share/man
+-dir path=usr/share/man/man7i
++dir path=usr/share/man/man4i
+ driver name=agpgart perms="* 0644 root sys"
+ # Note: The authoritative list of PCI IDs for this driver is
+ # the array gsm_modes[] in agptarget.c (INTEL_BR_810 etc.).
+@@ -90,7 +90,7 @@ file path=kernel/drv/$(ARCH64)/agpgart group=sys mode=0755
+ file path=kernel/drv/$(ARCH64)/agptarget group=sys mode=0755
+ file path=kernel/drv/agpgart.conf group=sys mode=0644
+ file path=kernel/misc/$(ARCH64)/agpmaster group=sys mode=0755
+-file path=usr/share/man/man7i/agpgart_io.7i
++file path=usr/share/man/man4i/agpgart_io.4i
+ legacy pkg=SUNWagp desc="AGP GART driver for x86 workstations" \
+     name="AGP GART Driver"
+ license cr_Sun license=cr_Sun
+diff --git a/usr/src/pkg/manifests/driver-graphics-drm.mf b/usr/src/pkg/manifests/driver-graphics-drm.mf
+index b10812ce389e04a5fd5ed7d1a236edd71e2245b9..e0331143ff7fdf8ea4e5de16811564c805bd97c4 100644
+--- a/usr/src/pkg/manifests/driver-graphics-drm.mf
++++ b/usr/src/pkg/manifests/driver-graphics-drm.mf
+@@ -53,7 +53,7 @@ dir path=usr/lib/mdb/kvm group=sys
+ dir path=usr/lib/mdb/kvm/$(ARCH64) group=sys
+ dir path=usr/share
+ dir path=usr/share/man
+-dir path=usr/share/man/man7d
++dir path=usr/share/man/man4d
+ # Note: The authoritative list of supported PCI IDs supported by
+ # the i915 driver is in: i915_drv.c:pciidlist[]
+ # This list was generated by: uts/intel/io/i915/Make-PCI-ID-list.awk
+@@ -174,8 +174,8 @@ file path=kernel/kmdb/$(ARCH64)/i915 group=sys mode=0555
+ file path=kernel/misc/$(ARCH64)/drm group=sys mode=0755
+ file path=usr/lib/devfsadm/linkmod/SUNW_drm_link_i386.so group=sys mode=0755
+ file path=usr/lib/mdb/kvm/$(ARCH64)/i915.so group=sys mode=0555
+-file path=usr/share/man/man7d/i915.7d
+-#file path=usr/share/man/man7d/radeon.7d
++file path=usr/share/man/man4d/i915.4d
++#file path=usr/share/man/man4d/radeon.4d
+ legacy pkg=SUNWdrmr desc="Direct Rendering Manager kernel drivers and modules" \
+     name="DRM Kernel Drivers, (Root)"
+ license usr/src/uts/common/io/drm/LICENSE_DRM \
+-- 
+2.34.1
+
