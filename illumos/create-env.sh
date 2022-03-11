@@ -95,3 +95,9 @@ esac
 #
 cat $TFILE | sed -e s:@iyear@:${IYEAR}:g -e s:@imonth@:${IMONTH}:g -e s:@irelease@:${IRELEASE}:g -e s:@iname@:tribblix: > ${DESTDIR}/illumos.sh.${IRELEASE}
 cat $TFILE | sed -e s:@iyear@:${IYEAR}:g -e s:@imonth@:${IMONTH}:g -e s:@irelease@:${IRELEASE}:g -e s:@iname@:omnitribblix: > ${DESTDIR}/illumos.sh.${LRELEASE}
+
+#
+# and tell the user what we've done
+#
+echo "Created illumos.sh.${IRELEASE} and illumos.sh.${LRELEASE}"
+echo "in ${DESTDIR}"
