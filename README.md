@@ -73,14 +73,14 @@ zap create-zone -z illumos-build -t whole -i 172.xxx.xxx.xxx \
 then check out illumos-gate and illumos-omnios, with the following
 naming scheme (so they're siblings with similar names)
 
-m25.1-gate
-m25lx.1-gate
+m26-gate
+m26lx-gate
 
-cd /path/to/m25.1-gate
-${THOME}/tribblix-build/illumos/releasebuild m25.1
+cd /path/to/m26-gate
+${THOME}/tribblix-build/illumos/releasebuild m26
 
-cd /path/to/m25lx.1-gate
-${THOME}/tribblix-build/illumos/omnibuild m25lx.1
+cd /path/to/m26lx-gate
+${THOME}/tribblix-build/illumos/omnibuild m26lx
 
 The argument to releasebuild and omnibuild is used to pick an
 illumos.sh env file (with the given name as the suffix) out of
@@ -116,14 +116,14 @@ The certificate (not the key, obviously) needs to end up in the
 /etc/crypto/certs directory (with any name) in order for elfsign
 to be able to verify signed binaries.
 
-Then, to build packages from a gate build called m25.1-gate, with package
-version 0.25.1, ending up in /var/tmp/m25.1-pkgs and signed with the above
+Then, to build packages from a gate build called m26-gate, with package
+version 0.26.0, ending up in /var/tmp/m26-pkgs and signed with the above
 
 /path/to/tribblix-build/repo_all.sh \
-  -G /path/to/my/builds/m25.1-gate \
-  -V "0.25.1" \
-  -D /var/tmp/m25.1-pkgs \
-  -S /path/to/elfcert >& /var/tmp/m25.1.log
+  -G /path/to/my/builds/m26-gate \
+  -V "0.26.0" \
+  -D /var/tmp/m26-pkgs \
+  -S /path/to/elfcert >& /var/tmp/m26.log
 
 
 Known issues
