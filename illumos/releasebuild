@@ -123,6 +123,13 @@ do
 done
 
 #
+# Specific fixes for an illumos-gate build
+# don't compile or ship pyzfs.pyc, the Makefile is for python2
+#
+cp ${THOME}/tribblix-build/illumos/Makefile.pyzfs usr/src/cmd/pyzfs/Makefile
+sed -i 's:file path=usr/lib/zfs/pyzfs.pyc:#file path=usr/lib/zfs/pyzfs.pyc:' usr/src/pkg/manifests/system-file-system-zfs.p5m
+
+#
 # and kaboom
 #
 echo "Starting build"
