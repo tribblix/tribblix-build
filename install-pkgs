@@ -1,6 +1,6 @@
 #!/bin/sh
 
-RELEASE=26
+RELEASE=27
 
 THOME=${THOME:-/packages/localsrc/Tribblix}
 RPKGDIR=${THOME}/release-repos/m${RELEASE}.i386
