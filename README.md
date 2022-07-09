@@ -86,6 +86,8 @@ The argument to releasebuild and omnibuild is used to pick an
 illumos.sh env file (with the given name as the suffix) out of
 the illumos directory in this repo.
 
+You'll also need to build and package gfx-drm; see the notes and scripts
+in the gfx-drm directory.
 
 ips2svr4
 ========

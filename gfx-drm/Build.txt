@@ -1,0 +1,68 @@
+Building gfx-drm
+
+1. Use a standard illumos-build zone (or instance). Need
+TRIBdiagnostic-scanpci installed, as we need headers from that. The
+illumos-build overlay now contains it.
+
+2. Check out the repo
+
+git clone https://github.com/illumos/gfx-drm
+cd gfx-drm
+gpatch -p1 < ${THOME}/tribblix-build/gfx-drm/0001-Fix-manual-for-IPD4.patch
+
+3. Edit myenv.sh
+
+sed -i s:DCFlnpr:Cnpr: myenv.sh
+echo "export SUPPRESSPKGDEP=true" >> myenv.sh
+echo "export GNUC_ROOT=/opt/gcc/7.3.0" >> myenv.sh
+
+4. To package, we need a working validate_pkg from somewhere
+
+sed -i s:@validate_pkg:/opt/onbld/bin/validate_pkg: usr/src/pkg/Makefile
+
+or
+
+sed -i s:@validate_pkg:/export/home/ptribble/Illumos/testpkg-gate/usr/src/tools/scripts/validate_pkg: usr/src/pkg/Makefile
+
+5. Tribblix doesn't ship the tests (and they don't build anyway), so
+remove them
+
+rm usr/src/pkg/manifests/system-test-libdrm.mf
+sed -i '/drm-tests/d' usr/src/cmd/Makefile
+mv usr/src/cmd/drm-tests usr/src/cmd/drm-tests.not
+
+5a. The fetch thing is broken beyond useability
+cp ${THOME}/oi-userland/tools/userland-fetch usr/src/tools
+sed -i 's:2.7:3:' usr/src/Makefile.master
+
+6. Just run
+
+/usr/bin/ksh93 tools/bldenv myenv.sh "cd usr/src ; make setup"
+/usr/bin/ksh93 tools/bldenv myenv.sh "cd usr/src ; make install"
+/usr/bin/ksh93 tools/bldenv myenv.sh "cd usr/src/pkg ; make install"
+
+7. Convert the packages
+
+Must be run on an illumos-build zone, but can be run as a user,
+doesn't have to be root.
+
+${THOME}/tribblix-build/repo_all.sh \
+  -G /export/home/ptribble/Illumos/gfx-drm \
+  -D /var/tmp/gfx-pkgs \
+  -V 0.27 \
+  -R drm \
+  -S /export/home/ptribble/f/elfcert >& /var/tmp/gfx.log
+
+OmniTribblix wants a different package version (with the lx in it), so
+we have to duplicate all the packages.
+
+${THOME}/tribblix-build/repo_all.sh \
+  -G /export/home/ptribble/Illumos/gfx-drm \
+  -D /var/tmp/omni-gfx-pkgs \
+  -V 0.27lx \
+  -R drm \
+  -S /export/home/ptribble/f/elfcert >& /var/tmp/omni-gfx.log
+
+8. The packages should be delivered by the illumos repo, so copy the
+packages (*.zap*) into the relevant illumos package directory so as to
+amalgamate them with the packages from a gate build.
