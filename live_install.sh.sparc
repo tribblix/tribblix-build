@@ -111,7 +111,7 @@ fi
 #
 # interactive argument handling
 #
-while getopts "BCGm:n:s:t:z:Z:" opt; do
+while getopts "BCd:Gm:n:s:t:z:Z:" opt; do
     case $opt in
         B)
 	    BFLAG="-B"
@@ -119,6 +119,9 @@ while getopts "BCGm:n:s:t:z:Z:" opt; do
         C)
 	    # not yet supported on sparc COMPRESSARGS="-O compression=lz4"
 	    COMPRESSARGS=""
+	    ;;
+        d)
+	    DUMPSIZE="$OPTARG"
 	    ;;
         G)
 	    GFLAG="-G"
