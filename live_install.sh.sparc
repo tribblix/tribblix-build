@@ -111,7 +111,7 @@ fi
 #
 # interactive argument handling
 #
-while getopts "BCd:Gm:n:s:t:z:Z:" opt; do
+while getopts "BCd:Gm:n:P:s:t:z:Z:" opt; do
     case $opt in
         B)
 	    BFLAG="-B"
@@ -133,6 +133,9 @@ while getopts "BCd:Gm:n:s:t:z:Z:" opt; do
 	    ;;
         n)
 	    NODENAME="$OPTARG"
+	    ;;
+        P)
+	    ROOTPOOL="$OPTARG"
 	    ;;
         s)
 	    SWAPSIZE="$OPTARG"

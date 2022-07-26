@@ -112,7 +112,7 @@ fi
 # legacy -B now means the same as -G
 # -b is the old -B escape hatch
 #
-while getopts "bBCd:Gm:n:s:t:z:Z:" opt; do
+while getopts "bBCd:Gm:n:P:s:t:z:Z:" opt; do
     case $opt in
         b)
 	    BFLAG="-B"
@@ -137,6 +137,9 @@ while getopts "bBCd:Gm:n:s:t:z:Z:" opt; do
 	    ;;
         n)
 	    NODENAME="$OPTARG"
+	    ;;
+        P)
+	    ROOTPOOL="$OPTARG"
 	    ;;
         s)
 	    SWAPSIZE="$OPTARG"
