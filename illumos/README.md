@@ -35,10 +35,6 @@ The zone brand patch won't apply on illumos-omnios, so I just copy a patched
 usr/src/lib/libbe/common/libbe_priv.h from my illumos-gate into the
 omnitribblix build.
 
-s10-brand-ssp.patch
-Removes stack-smashing protection from the S10 brand; it won't work there
-as some code is run in an S10 context.
-
 GFX-DRM
 
 The gfx-drm pieces now live in a separate github repo. These need to be
