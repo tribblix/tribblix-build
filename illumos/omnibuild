@@ -142,6 +142,14 @@ do
 done
 
 #
+# Specific fixes for an illumos-gate build
+# Disable pysolaris pylibbe pyzfs
+#
+sed -i 's:^SUBDIRS= py3:SUBDIRS=:' usr/src/lib/py*/Makefile
+rm -f usr/src/pkg/manifests/system-library-python-*-3.p5m
+sed -i '/$(PYTHON3_DIRS)/d' usr/src/Targetdirs
+
+#
 # Specific fixes for an illumos-omnios build
 #
 # use default branding for motd

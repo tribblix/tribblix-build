@@ -124,10 +124,11 @@ done
 
 #
 # Specific fixes for an illumos-gate build
-# don't compile or ship pyzfs.pyc, the Makefile is for python2
+# Disable pysolaris pylibbe pyzfs
 #
-cp ${THOME}/tribblix-build/illumos/Makefile.pyzfs usr/src/cmd/pyzfs/Makefile
-sed -i 's:file path=usr/lib/zfs/pyzfs.pyc:#file path=usr/lib/zfs/pyzfs.pyc:' usr/src/pkg/manifests/system-file-system-zfs.p5m
+sed -i 's:^SUBDIRS= py3:SUBDIRS=:' usr/src/lib/py*/Makefile
+rm -f usr/src/pkg/manifests/system-library-python-*-3.p5m
+sed -i '/$(PYTHON3_DIRS)/d' usr/src/Targetdirs
 
 #
 # and kaboom

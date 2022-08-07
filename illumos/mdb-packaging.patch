@@ -1,21 +1,13 @@
 diff --git a/usr/src/pkg/manifests/developer-debug-mdb.p5m b/usr/src/pkg/manifests/developer-debug-mdb.p5m
-index 63c7982c3c..fc183c1642 100644
+index 5614b7c27f..d398997fb3 100644
 --- a/usr/src/pkg/manifests/developer-debug-mdb.p5m
 +++ b/usr/src/pkg/manifests/developer-debug-mdb.p5m
-@@ -200,8 +200,6 @@ file path=usr/lib/mdb/proc/$(ARCH64)/libc.so group=sys mode=0555
+@@ -158,8 +158,6 @@ file path=usr/lib/mdb/proc/$(ARCH64)/libavl.so group=sys mode=0555
  file path=usr/lib/mdb/proc/$(ARCH64)/libc.so group=sys mode=0555
  file path=usr/lib/mdb/proc/$(ARCH64)/libnvpair.so group=sys mode=0555
  file path=usr/lib/mdb/proc/$(ARCH64)/libproc.so group=sys mode=0555
--file path=usr/lib/mdb/proc/$(ARCH64)/libpython$(PYTHON_VERSION).so group=sys \
+-file path=usr/lib/mdb/proc/$(ARCH64)/libpython$(PYTHON3_VERSION).so group=sys \
 -    mode=0555
  $(i386_ONLY)file path=usr/lib/mdb/proc/$(ARCH64)/libsmbios.so group=sys \
      mode=0555
  file path=usr/lib/mdb/proc/$(ARCH64)/libsysevent.so group=sys mode=0555
-@@ -216,7 +214,6 @@ file path=usr/lib/mdb/proc/libc.so group=sys mode=0555
- file path=usr/lib/mdb/proc/libc.so group=sys mode=0555
- file path=usr/lib/mdb/proc/libnvpair.so group=sys mode=0555
- file path=usr/lib/mdb/proc/libproc.so group=sys mode=0555
--file path=usr/lib/mdb/proc/libpython$(PYTHON_VERSION).so group=sys mode=0555
- $(i386_ONLY)file path=usr/lib/mdb/proc/libsmbios.so group=sys mode=0555
- file path=usr/lib/mdb/proc/libsysevent.so group=sys mode=0555
- file path=usr/lib/mdb/proc/libtopo.so group=sys mode=0555

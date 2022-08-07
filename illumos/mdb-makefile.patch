@@ -1,10 +1,17 @@
---- a/usr/src/cmd/mdb/Makefile.common	Thu May 30 21:01:57 2019
-+++ b/usr/src/cmd/mdb/Makefile.common	Mon Jul  1 17:22:21 2019
-@@ -40,7 +40,6 @@
- 	libmlsvc \
- 	libnvpair \
- 	libproc \
--	libpython \
- 	libsysevent \
- 	libtopo \
- 	libumem \
+diff --git a/usr/src/cmd/mdb/Makefile.common b/usr/src/cmd/mdb/Makefile.common
+index 99013197f9..e10b762909 100644
+--- a/usr/src/cmd/mdb/Makefile.common
++++ b/usr/src/cmd/mdb/Makefile.common
+@@ -50,12 +50,6 @@ COMMON_MODULES_PROC = \
+ 	mdb_ds \
+ 	mdb_test
+ 
+-#
+-# MDB modules used for debugging user processes which are only 64-bit
+-#
+-COMMON_MODULES_PROC_64BIT = \
+-	libpython
+-
+ #
+ # MDB modules used for debugging user processes which are only 32-bit
+ #
