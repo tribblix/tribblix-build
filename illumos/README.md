@@ -40,9 +40,3 @@ GFX-DRM
 The gfx-drm pieces now live in a separate github repo. These need to be
 built separately and then combined with the bits you created from the
 gate builds. See gfx-drm.txt for details.
-
-
-Patches no longer required:
-
-0003-5709-Add-binary-compatibility-with-Solaris-10-update.patch
-has been integrated into the gate.
