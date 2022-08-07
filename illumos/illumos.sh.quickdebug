@@ -22,10 +22,11 @@
 # Copyright 2015 Nexenta Systems, Inc.  All rights reserved.
 # Copyright 2012 Joshua M. Clulow <josh@sysmgr.org>
 # Copyright 2015, OmniTI Computer Consulting, Inc. All rights reserved.
-# Copyright 2018 OmniOS Community Edition (OmniOSce) Association.
-# Copyright 2019, Joyent, Inc.
+# Copyright 2016 RackTop Systems.
+# Copyright 2019 OmniOS Community Edition (OmniOSce) Association.
+# Copyright 2020 Joyent, Inc.
 #
-# - This file is sourced by "bldenv.sh" and "nightly.sh" and should not
+# - This file is sourced by "bldenv" and "nightly" and should not
 #   be executed directly.
 # - This script is only interpreted by ksh93 and explicitly allows the
 #   use of ksh93 language extensions.
@@ -117,13 +118,13 @@ export SHADOW_CCCS=
 #export PERL_PKGVERS=
 
 #
-# Tribblix has 32-bit perl 5.22 as the default
+# Tribblix now has 64-bit perl 5.34
 #
 export PERL_VARIANT=-thread-multi
-export PERL_VERSION=5.22.0
-export PERL_PKGVERS=-522
-#export BUILDPERL32='#'
-export BUILDPERL64='#'
+export PERL_VERSION=5.34
+export PERL_PKGVERS=-534
+export BUILDPERL32='#'
+#export BUILDPERL64='#'
 
 # If your distro uses certain versions of Python, make sure either
 # Makefile.master contains your new defaults OR your .env file sets them.
@@ -134,30 +135,19 @@ export BUILDPERL64='#'
 #export PYTHON3_PKGVERS=-35
 #export PYTHON3_SUFFIX=m
 
-# To disable building with either Python2 or Python 3 (or both), uncomment
-# these lines:
-#export BUILDPY2='#'
-#export BUILDPY3='#'
-
 #
-# Tribblix uses python3.7
+# Tribblix uses python3.9
 #
 #
 # we don't build python artefacts, but still need the tools
 #
-export PYTHON3_VERSION=3.7
-export PYTHON3_PKGVERS=-37
-export PYTHON3_SUFFIX=m
+export PYTHON3_VERSION=3.9
+export PYTHON3_PKGVERS=-39
+export PYTHON3_SUFFIX=
 #
 # don't build python artefacts, we would throw them away anyway
 #
-export BUILDPY2='#'
-export BUILDPY3='#'
-#
-# build tools against python3
-#
-export BUILDPY2TOOLS='#'
-export BUILDPY3TOOLS=''
+export BUILDPY3b='#'
 
 # Set console color scheme either by build type:
 #
@@ -175,13 +165,14 @@ export BUILDPY3TOOLS=''
 # Set if your distribution has different package versioning
 #export PKGVERS_BRANCH=2018.0.0.17900
 
-# Skip Java 8 builds on distributions that don't support it
-#export BLD_JAVA_8=
+# Skip Java 11 builds on distributions that don't support it
+#export BLD_JAVA_11=
 #
 # Tribblix: replace the default which is to look for java under /usr/java
 #
-export JAVA_ROOT=/usr/jdk/instances/jdk1.8.0
-export BLD_JAVA_8=
+export JAVA_ROOT=/usr/jdk/instances/jdk11
+export BLD_JAVA_8='#'
+export BLD_JAVA_11=
 
 # POST_NIGHTLY can be any command to be run at the end of nightly.  See
 # nightly(1) for interactions between environment variables and this command.
@@ -284,9 +275,9 @@ export MULTI_PROTO="no"
 # when the release slips (nah) or you move an environment file to a new
 # release
 #
-export VERSION="tribblix-m25.1"
+export VERSION="tribblix-m28"
 export BOOTBANNER1='Welcome to Tribblix, the retro ^o distribution'
-export BOOTBANNER2='^v | October 2021 | http://www.tribblix.org/'
+export BOOTBANNER2='^v | August 2022 | http://www.tribblix.org/'
 
 #
 # the RELEASE and RELEASE_DATE variables are set in Makefile.master;
@@ -340,7 +331,7 @@ export SPRO_VROOT="$SPRO_ROOT"
 # if the 'N' option is not specified, is to run this test.
 #CHECK_PATHS='y'
 
-if [[ "$ENABLE_SMATCH" = "1" ]]; then
+if [[ "$ENABLE_SMATCH" == "1" ]]; then
 	SMATCHBIN=$CODEMGR_WS/usr/src/tools/proto/root_$MACH-nd/opt/onbld/bin/$MACH/smatch
 	export SHADOW_CCS="$SHADOW_CCS smatch,$SMATCHBIN,smatch"
 fi

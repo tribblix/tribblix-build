@@ -50,6 +50,14 @@ if [ ! -f ${ILLSH} ]; then
     exit 1
 fi
 
+#
+# variant check
+#
+if [ -f README.OmniOS ]; then
+    echo "This looks like OmniOS, use omnibuild instead"
+    exit 1
+fi
+
 if [ ! -f ${THOME}/tribblix-build/illumos/Makefile.auditrecord ]; then
     echo "Cannot find auditrecord Makefile"
     exit 1
@@ -97,6 +105,14 @@ for file in ${THOME}/tribblix-build/illumos/*.patch
 do
     gpatch -p1 < $file
 done
+
+#
+# Specific fixes for an illumos-gate build
+# Disable pysolaris pylibbe pyzfs
+#
+sed -i 's:^SUBDIRS= py3:SUBDIRS=:' usr/src/lib/py*/Makefile
+rm -f usr/src/pkg/manifests/system-library-python-*-3.p5m
+sed -i '/$(PYTHON3_DIRS)/d' usr/src/Targetdirs
 
 #
 # and kaboom

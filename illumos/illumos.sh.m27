@@ -155,7 +155,7 @@ export PYTHON3_SUFFIX=
 export BUILDPY2='#'
 export BUILDPY3='#'
 #
-# build tools against python2
+# build tools against python3
 #
 export BUILDPY2TOOLS='#'
 export BUILDPY3TOOLS=''
