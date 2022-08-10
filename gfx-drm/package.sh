@@ -3,7 +3,7 @@
 # package the gfx-drm build
 #
 
-PKG_VERSION="0.27"
+PKG_VERSION="0.28"
 THOME=${THOME:-/packages/localsrc/Tribblix}
 GATE="${HOME}/Illumos/gfx-drm"
 DESTTOP="/var/tmp"
@@ -63,10 +63,10 @@ ${THOME}/tribblix-build/repo_all.sh \
   -D ${DESTTOP}/gfx-pkgs \
   -V ${PKG_VERSION} \
   -R drm \
-  -S ${SIGNCERT} >& /var/tmp/gfx.log
+  -S ${SIGNCERT} > /var/tmp/gfx.log 2>&1
 ${THOME}/tribblix-build/repo_all.sh \
   -G ${GATE} \
   -D ${DESTTOP}/omni-gfx-pkgs \
   -V ${PKG_VERSION}lx \
   -R drm \
-  -S ${SIGNCERT} >& /var/tmp/omni-gfx.log
+  -S ${SIGNCERT} > /var/tmp/omni-gfx.log 2>&1

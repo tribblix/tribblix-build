@@ -22,7 +22,7 @@ sed -i s:@validate_pkg:/opt/onbld/bin/validate_pkg: usr/src/pkg/Makefile
 
 or
 
-sed -i s:@validate_pkg:/export/home/ptribble/Illumos/testpkg-gate/usr/src/tools/scripts/validate_pkg: usr/src/pkg/Makefile
+sed -i s:@validate_pkg:${HOME}/Illumos/testpkg-gate/usr/src/tools/scripts/validate_pkg: usr/src/pkg/Makefile
 
 5. Tribblix doesn't ship the tests (and they don't build anyway), so
 remove them
@@ -32,7 +32,7 @@ sed -i '/drm-tests/d' usr/src/cmd/Makefile
 mv usr/src/cmd/drm-tests usr/src/cmd/drm-tests.not
 
 5a. The fetch thing is broken beyond useability
-cp ${THOME}/oi-userland/tools/userland-fetch usr/src/tools
+cp ${THOME}/tribblix-build/gfx-drm/userland-fetch usr/src/tools
 sed -i 's:2.7:3:' usr/src/Makefile.master
 
 6. Just run
@@ -47,21 +47,21 @@ Must be run on an illumos-build zone, but can be run as a user,
 doesn't have to be root.
 
 ${THOME}/tribblix-build/repo_all.sh \
-  -G /export/home/ptribble/Illumos/gfx-drm \
+  -G ${HOME}/Illumos/gfx-drm \
   -D /var/tmp/gfx-pkgs \
-  -V 0.27 \
+  -V 0.28 \
   -R drm \
-  -S /export/home/ptribble/f/elfcert >& /var/tmp/gfx.log
+  -S ${HOME}/f/elfcert >& /var/tmp/gfx.log
 
 OmniTribblix wants a different package version (with the lx in it), so
 we have to duplicate all the packages.
 
 ${THOME}/tribblix-build/repo_all.sh \
-  -G /export/home/ptribble/Illumos/gfx-drm \
+  -G ${HOME}/Illumos/gfx-drm \
   -D /var/tmp/omni-gfx-pkgs \
-  -V 0.27lx \
+  -V 0.28lx \
   -R drm \
-  -S /export/home/ptribble/f/elfcert >& /var/tmp/omni-gfx.log
+  -S ${HOME}/f/elfcert >& /var/tmp/omni-gfx.log
 
 8. The packages should be delivered by the illumos repo, so copy the
 packages (*.zap*) into the relevant illumos package directory so as to
