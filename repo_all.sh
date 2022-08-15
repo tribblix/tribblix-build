@@ -55,6 +55,9 @@ if [ -n "$SIGNCERT" ]; then
 	exit 1
     fi
     if [ ! -x "${FINDELF}" ]; then
+	FINDELF="${GATEDIR}/usr/src/tools/find_elf/find_elf"
+    fi
+    if [ ! -x "${FINDELF}" ]; then
 	FINDELF="/opt/onbld/bin/find_elf"
     fi
     if [ ! -x "${FINDELF}" ]; then
