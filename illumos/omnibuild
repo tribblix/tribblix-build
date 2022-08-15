@@ -138,7 +138,11 @@ if [ ! -f usr/src/cmd/auditrecord/Makefile ]; then
 fi
 for file in ${THOME}/tribblix-build/illumos/*.patch
 do
-    gpatch -p1 < $file
+    if [ -f ${file}.lx ]; then
+	gpatch -p1 < ${file}.lx
+    else
+	gpatch -p1 < $file
+    fi
 done
 
 #
@@ -153,12 +157,10 @@ sed -i '/$(PYTHON3_DIRS)/d' usr/src/Targetdirs
 # Specific fixes for an illumos-omnios build
 #
 # use default branding for motd
-# the libbe patch will have failed, just copy a vanilla gate file
 # need to fix up libfmd_snmp because our snmp is different
 # need to reset perl to match our install
 #
 cp ../${VANILLAGATE}/usr/src/cmd/Adm/sun/Makefile usr/src/cmd/Adm/sun/Makefile
-cp ../${VANILLAGATE}/usr/src/lib/libbe/common/libbe_priv.h usr/src/lib/libbe/common/libbe_priv.h
 cp ../${VANILLAGATE}/usr/src/lib/fm/libfmd_snmp/Makefile.com usr/src/lib/fm/libfmd_snmp/Makefile.com
 HEREDIR=`pwd`
 cd ../${VANILLAGATE}
