@@ -36,31 +36,10 @@ DOMAINNAME=""
 BEGIN_SCRIPT=""
 FINISH_SCRIPT=""
 FIRSTBOOT_SCRIPT=""
-NEWBE="tribblix-m28"
+RELEASE="m28"
+DLHOST="https://pkgs.tribblix.org"
 NFLAG=""
 
-#
-# this is where to get the image from
-# it's assumed to be an uncompressed boot archive
-# as used for my ipxe deployments
-#
-# the checksum serves to ensure that we bail early if the image is
-# in any way faulty
-#
-# future enhancements could allow a wider choice
-#
-IMGSRC="https://pkgs.tribblix.org/m28/platform/i86pc/boot_archive"
-# m26 IMGSUM="b1ac2fa7e86d9cf00c58af3d2e35436a286c62ce"
-# m26lx IMGSUM="ce8f1971845a082a01e87e92608552693e4caace"
-# m27 IMGSUM="799690416e6f2d65afd48f2c1c32bbc5f4f72e07"
-# m27lx IMGSUM="5f4fcddc24221ca8a09c142f5ad4d1e4b0802272"
-# m28 IMGSUM="20396ed15f160036ecd3b6ac1f6f01564aea6a17"
-# m28lx IMGSUM="933aad39c7a9f1a0358dfe027973d12f9bcfeefb"
-#
-IMGSUM="20396ed15f160036ecd3b6ac1f6f01564aea6a17"
-IMGTMP="/var/tmp/${NEWBE}.archive"
-
-FSTYPE="ZFS"
 PKGLOC="/.cdrom/pkgs"
 # this will be relocated to the image later
 SMFREPODIR="/usr/lib/zap"
@@ -147,7 +126,7 @@ fi
 #
 # interactive argument handling
 #
-while getopts "BNn:t:" opt; do
+while getopts "BNn:r:t:" opt; do
     case $opt in
         B)
 	    BFLAG="-M"
@@ -158,6 +137,9 @@ while getopts "BNn:t:" opt; do
         n)
 	    NODENAME="$OPTARG"
 	    ;;
+        r)
+	    RELEASE="$OPTARG"
+	    ;;
         t)
 	    TIMEZONE="$OPTARG"
 	    ;;
@@ -166,12 +148,43 @@ done
 shift $((OPTIND-1))
 
 #
+# now we know which release is requested, map that to an image
+#
+NEWBE="tribblix-${RELEASE}"
+IMGTMP="/var/tmp/${NEWBE}.archive"
+IMGSRC="${DLHOST}/${RELEASE}/platform/i86pc/boot_archive"
+case $RELEASE in
+    m26)
+	IMGSUM="b1ac2fa7e86d9cf00c58af3d2e35436a286c62ce"
+	;;
+    m26lx)
+	IMGSUM="ce8f1971845a082a01e87e92608552693e4caace"
+	;;
+    m27)
+	IMGSUM="799690416e6f2d65afd48f2c1c32bbc5f4f72e07"
+	;;
+    m27lx)
+	IMGSUM="5f4fcddc24221ca8a09c142f5ad4d1e4b0802272"
+	;;
+    m28)
+	IMGSUM="20396ed15f160036ecd3b6ac1f6f01564aea6a17"
+	;;
+    m28lx)
+	IMGSUM="933aad39c7a9f1a0358dfe027973d12f9bcfeefb"
+	;;
+    *)
+	echo "Unrecognised release"
+	exit 1
+	;;
+esac
+
+#
 # the first remaining argument is a pool to install to
 #
 case $# in
 0)
 	echo "ERROR: You must specify an existing pool to install to"
-	echo "Usage: $0 [-B] [-N] old_pool [overlay ... ]"
+	echo "Usage: $0 [-B] [-N] [-r release] old_pool [overlay ... ]"
 	echo "  with -B, replace mbr"
 	echo "  with -N, don't transfer anything from old system"
 	exit 1
@@ -434,7 +447,7 @@ echo "Setting up boot"
 
 # new loader
 /usr/bin/cat > /${ROOTPOOL}/boot/menu.lst << _EOF
-title Tribblix 0.28
+title Tribblix ${RELEASE}
 bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 _EOF
 
