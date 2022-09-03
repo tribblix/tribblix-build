@@ -432,32 +432,11 @@ fi
 
 echo "Setting up boot"
 
-#
-# everything new is loader, but legacy Xen on AWS will be pvgrub
-#
-case `/sbin/uname -i` in
-    'i86xpv')
-	echo "Xen, assuming AWS"
-/usr/bin/cat > /${ROOTPOOL}/boot/grub/menu.lst << _EOF
-default 0
-timeout 3
-title Tribblix 0.28
-findroot (pool_${ROOTPOOL},1,a)
-bootfs ${ROOTPOOL}/ROOT/${NEWBE}
-kernel\$ /platform/i86pc/kernel/amd64/unix -B \$ZFS-BOOTFS
-module\$ /platform/i86pc/amd64/boot_archive
-_EOF
-	;;
-
-    '*')
-
 # new loader
 /usr/bin/cat > /${ROOTPOOL}/boot/menu.lst << _EOF
 title Tribblix 0.28
 bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 _EOF
-	;;
-esac
 
 #
 # set nodename if requested
@@ -648,17 +627,7 @@ echo "The mount error below is expected"
 # that is compatible
 # we overwrite the MBR if -B was passed
 #
-# don't touch the bootloader on i86xpv (xen) instances
-# as they might be custom (eg aws pvgrub)
-#
-case `/sbin/uname -i` in
-    'i86xpv')
-	echo "Xen, skipping bootloader"
-	;;
-    *)
-	/sbin/bootadm install-bootloader ${BFLAG} -f -P ${ROOTPOOL}
-	;;
-esac
+/sbin/bootadm install-bootloader ${BFLAG} -f -P ${ROOTPOOL}
 
 #
 # if specified, reboot
