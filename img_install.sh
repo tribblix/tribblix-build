@@ -36,7 +36,7 @@ DOMAINNAME=""
 BEGIN_SCRIPT=""
 FINISH_SCRIPT=""
 FIRSTBOOT_SCRIPT=""
-NEWBE="tribblix-m26"
+NEWBE="tribblix-m28"
 NFLAG=""
 
 #
@@ -49,34 +49,15 @@ NFLAG=""
 #
 # future enhancements could allow a wider choice
 #
-IMGSRC="http://pkgs.tribblix.org/m26/platform/i86pc/boot_archive"
-# m20 IMGSUM="6d5d683f74097e472c4249ffc3908a8c758b5cad"
-# m20.3 IMGSUM="76c8a6f752498bd729e618ed84ae0c90193c6132"
-# m20lx.3 IMGSUM="e11a7fe8ef07d7adb94c58e548d24ac866d66e61"
-# m20.4 IMGSUM="b195b01a42b7b60c3fa4d7979eb823b93a80f0ac"
-# m20lx.4 IMGSUM="498a0148ad7f756983adbef85f0dd3c36aa991a5"
-# m20.5 IMGSUM="00aba6bad476264d7782f8326d7b527347ce1a3a"
-# m20lx.5 IMGSUM="723fbac375fa094cd239c0795c2ca642fd17769a"
-# m20.6 IMGSUM="b560b20e2eee18172b1051a99d68a12fcfef1150"
-# m20lx.6 IMGSUM="9efadc96d05d1271f5c0c08c1f427a96b62d2051"
-# m21.0 IMGSUM="a23a69acf0805502710af6f65f8be720e75ec410"
-# m21lx.0 IMGSUM="fdc459aff35f19197bf67c0249329dd0d2e9121a"
-# m22 IMGSUM="3cc4b07fac3a21a13b76abe752d150e9247989bd"
-# m22lx IMGSUM="6871253ff72e9c4b510dba8bad686d3ccc954102"
-# m24 IMGSUM="6e802df86d49ce41e6fee456cffc517ea1ed8ce9"
-# m24lx IMGSUM="ba745222079e652700412b8e7015de34cbe9d475"
-# m24.1 IMGSUM="ecb5da2c3e2b2bfc08418dc29bd8d47aa47e6fd8"
-# m24lx.1 IMGSUM="bee2f2648d37406bd0a1f904a511256aed2c96ae"
-# m25 IMGSUM="44824d252629d8f9774f2a47c74a6c4fac2494cf"
-# m25lx IMGSUM="526f2df71c694bb099e11f326e2c19870c0e1b34"
-# m25.1 IMGSUM="74000fd29f1800e6b5cab9a92263f6a4064a961d"
-# m25lx.1 IMGSUM="064afa9fb60594a5e84d6ce0af689a66d8c88576"
-# m25.3 IMGSUM="9792d0d4efb385e40b85bc50f3abb7e52d8934b7"
-# m25lx.3 IMGSUM="f1f6ea94e4dc60f42e7520f8b96a6de134c64e5e"
+IMGSRC="https://pkgs.tribblix.org/m28/platform/i86pc/boot_archive"
 # m26 IMGSUM="b1ac2fa7e86d9cf00c58af3d2e35436a286c62ce"
 # m26lx IMGSUM="ce8f1971845a082a01e87e92608552693e4caace"
+# m27 IMGSUM="799690416e6f2d65afd48f2c1c32bbc5f4f72e07"
+# m27lx IMGSUM="5f4fcddc24221ca8a09c142f5ad4d1e4b0802272"
+# m28 IMGSUM="20396ed15f160036ecd3b6ac1f6f01564aea6a17"
+# m28lx IMGSUM="933aad39c7a9f1a0358dfe027973d12f9bcfeefb"
 #
-IMGSUM="b1ac2fa7e86d9cf00c58af3d2e35436a286c62ce"
+IMGSUM="20396ed15f160036ecd3b6ac1f6f01564aea6a17"
 IMGTMP="/var/tmp/${NEWBE}.archive"
 
 FSTYPE="ZFS"
@@ -460,7 +441,7 @@ case `/sbin/uname -i` in
 /usr/bin/cat > /${ROOTPOOL}/boot/grub/menu.lst << _EOF
 default 0
 timeout 3
-title Tribblix 0.22
+title Tribblix 0.28
 findroot (pool_${ROOTPOOL},1,a)
 bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 kernel\$ /platform/i86pc/kernel/amd64/unix -B \$ZFS-BOOTFS
@@ -472,7 +453,7 @@ _EOF
 
 # new loader
 /usr/bin/cat > /${ROOTPOOL}/boot/menu.lst << _EOF
-title Tribblix 0.22
+title Tribblix 0.28
 bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 _EOF
 	;;
