@@ -3,14 +3,42 @@
 RELEASE=28
 
 THOME=${THOME:-/packages/localsrc/Tribblix}
+DESTDIR=/export/tribblix/dist
+FDEFAULT=${THOME}/tribblix-build/pkg.default
+INSTZAP=/usr/lib/zap/instzap
+DRYRUN=""
+ECHO="echo"
+
+#
+# flags
+# -D desttop -> DESTTOP
+# -N -> no install, dry run
+# -Q -> quiet, less output
+# -R release string -> RELEASE
+#
+while getopts "D:NQR:" opt; do
+    case $opt in
+        D)
+	    DESTTOP="$OPTARG"
+	    DESTDIR=${DESTTOP}/dist
+	    ;;
+        N)
+	    DRYRUN=y
+	    ;;
+        Q)
+	    ECHO="true"
+	    ;;
+        R)
+	    RELEASE="$OPTARG"
+	    ;;
+    esac
+done
+shift $((OPTIND-1))
+
 RPKGDIR=${THOME}/release-repos/m${RELEASE}.sparc
 TPKGDIR=${THOME}/pkgs.sparc
 EXTRAPKGDIR=${THOME}/opensxce-pkgs/pkgs
 IPKGDIR=${THOME}/illumos-pkgs-m${RELEASE}.sparc/pkgs
-DESTDIR=/export/tribblix/dist
-FDEFAULT=${THOME}/tribblix-build/pkg.default
-INSTZAP=/usr/lib/zap/instzap
-
 ILVER="0.${RELEASE}"
 EXTRAVER="2014"
 case $RELEASE in
@@ -93,11 +121,11 @@ do
   fi
   ILVER=`nawk -v V=${mypkg} -F'|' '{if ($1==V) print $2}' ${IPKGDIR}/catalog`
   if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.zap ]; then
-      echo "Installing $mypkg from Tribblix"
+      $ECHO "Installing $mypkg from Tribblix"
   elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.zap ]; then
-      echo "Installing $mypkg from Illumos"
+      $ECHO "Installing $mypkg from Illumos"
   elif [ -f ${EXTRAPKGDIR}/${mypkg}.${EXTRAVER}.zap ]; then
-      echo "Installing $mypkg from OpenSXCE"
+      $ECHO "Installing $mypkg from OpenSXCE"
   else
       echo "ERROR: package $mypkg not found"
       VALID=no
@@ -119,6 +147,10 @@ fi
 if [ ! -x ${INSTZAP} ]; then
     echo "No installer $INSTZAP, install aborted"
     exit 1
+fi
+
+if [ -n "${DRYRUN}" ]; then
+    exit 0
 fi
 
 #

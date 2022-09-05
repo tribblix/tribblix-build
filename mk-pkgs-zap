@@ -9,15 +9,44 @@ RELEASE=28
 DISTROOT=/export/tribblix/dist
 ZAPDIR=${DISTROOT}/pkgs
 THOME=${THOME:-/packages/localsrc/Tribblix}
-TPKGDIR=${THOME}/pkgs
-IPKGDIR=${THOME}/illumos-pkgs-m${RELEASE}/pkgs
 VARIANT=""
 OVDIR="overlays"
+DRYRUN=""
+ECHO="echo"
+
+#
+# flags
+# -D desttop -> DESTTOP
+# -N -> no install, dry run
+# -Q -> quiet, less output
+# -R release string -> RELEASE
+#
+while getopts "D:NQR:" opt; do
+    case $opt in
+        D)
+	    DESTTOP="$OPTARG"
+	    DISTROOT=${DESTTOP}/dist
+	    ZAPDIR=${DISTROOT}/pkgs
+	    ;;
+        N)
+	    DRYRUN=y
+	    ;;
+        Q)
+	    ECHO="true"
+	    ;;
+        R)
+	    RELEASE="$OPTARG"
+	    ;;
+    esac
+done
+shift $((OPTIND-1))
 
 #
 # Tribblix and illumos packages are explicitly versioned
 #
 ILVER="0.${RELEASE}"
+TPKGDIR=${THOME}/pkgs
+IPKGDIR=${THOME}/illumos-pkgs-m${RELEASE}/pkgs
 
 #
 # the one argument is a variant, which sets the destination directory
@@ -66,9 +95,9 @@ do
   fi
   ILVER=`nawk -v V=${ipkg} -F'|' '{if ($1==V) print $2}' ${IPKGDIR}/catalog`
   if [ -f ${TPKGDIR}/${ipkg}.${THISVER}.zap ]; then
-      echo "Installing $ipkg ${THISVER} from Tribblix"
+      $ECHO "Installing $ipkg ${THISVER} from Tribblix"
   elif [ -f ${IPKGDIR}/${ipkg}.${ILVER}.zap ]; then
-      echo "Installing $ipkg from Illumos"
+      $ECHO "Installing $ipkg from Illumos"
   else
       echo "ERROR: package $ipkg not found"
       VALID=no
@@ -80,6 +109,11 @@ if [ "X$VALID" = "Xno" ]; then
     echo "Missing: $ERRLIST"
     rm -f $TFILE
     exit 1
+fi
+
+if [ -n "${DRYRUN}" ]; then
+    rm -f $TFILE
+    exit 0
 fi
 
 #
