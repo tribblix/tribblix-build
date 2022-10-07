@@ -454,9 +454,7 @@ fi
 # set timezone if requested
 #
 if [ -n "$TIMEZONE" ]; then
-    mv ${ALTROOT}/etc/default/init ${ALTROOT}/etc/default/init.pre
-    cat ${ALTROOT}/etc/default/init.pre | /usr/bin/sed s:PST8PDT:${TIMEZONE}: > ${ALTROOT}/etc/default/init
-    rm ${ALTROOT}/etc/default/init.pre
+    /usr/bin/sed -i s:PST8PDT:${TIMEZONE}: ${ALTROOT}/etc/default/init
 fi
 
 #
