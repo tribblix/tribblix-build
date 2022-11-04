@@ -8,6 +8,7 @@ FDEFAULT=${THOME}/tribblix-build/pkg.default
 INSTZAP=/usr/lib/zap/instzap
 DRYRUN=""
 ECHO="echo"
+OVLIST="base-iso"
 
 #
 # flags
@@ -35,6 +36,7 @@ while getopts "D:NQR:" opt; do
 done
 shift $((OPTIND-1))
 
+OVDIR=${THOME}/overlays.sparc
 RPKGDIR=${THOME}/release-repos/m${RELEASE}.sparc
 TPKGDIR=${THOME}/pkgs.sparc
 EXTRAPKGDIR=${THOME}/opensxce-pkgs/pkgs
@@ -52,20 +54,26 @@ esac
 URELVER="${RELEASE}.0"
 
 #
-# this is the base install, plus we add TRIBsys-install-media-internal
-# to the iso
-#
-PKGLIST=${THOME}/overlays.sparc/base-iso.pkgs
-
-#
 # the one argument is a variant, which sets the destination directory
-#
-# if there's a named variant of base-iso.pkgs then use that, but normally
-# we use the default
 #
 case $# in
 1)
 	DESTDIR=${DESTDIR}.$1
+	;;
+esac
+
+#
+# this is the starting install, plus we add TRIBsys-install-media-internal
+# to the iso
+#
+PKGLIST=${OVDIR}/${OVLIST}.pkgs
+
+#
+# if there's a named variant of the overlay then use that, but normally
+# we use the default
+#
+case $# in
+1)
 	if [ -f ${PKGLIST}.$1 ]; then
 	    PKGLIST=${PKGLIST}.$1
 	fi
@@ -192,10 +200,13 @@ $INSTZAP -R $DESTDIR ${RPKGDIR}/TRIBzap-upgrade.0.${URELVER}.zap TRIBzap-upgrade
 $INSTZAP -R $DESTDIR ${RPKGDIR}/TRIBzap.0.0.${RELVER}.zap TRIBzap
 
 #
-# need to mark the base-iso overlay as installed
+# need to mark the designated overlay(s) as installed
 #
 mkdir -p ${DESTDIR}/var/sadm/overlays/installed
-touch ${DESTDIR}/var/sadm/overlays/installed/base-iso
+for OVL in $OVLIST
+do
+    touch ${DESTDIR}/var/sadm/overlays/installed/${OVL}
+done
 
 #
 # close pkgserv to stop it holding files open
