@@ -14,10 +14,11 @@ OVLIST="base-iso"
 # flags
 # -D desttop -> DESTTOP
 # -N -> no install, dry run
+# -O overlay -> install additional overlay
 # -Q -> quiet, less output
 # -R release string -> RELEASE
 #
-while getopts "D:NQR:" opt; do
+while getopts "D:NO:QR:" opt; do
     case $opt in
         D)
 	    DESTTOP="$OPTARG"
@@ -25,6 +26,9 @@ while getopts "D:NQR:" opt; do
 	    ;;
         N)
 	    DRYRUN=y
+	    ;;
+        O)
+	    OVLIST="${OVLIST} $OPTARG"
 	    ;;
         Q)
 	    ECHO="true"
@@ -64,19 +68,39 @@ esac
 # this is the starting install, plus we add TRIBsys-install-media-internal
 # to the iso
 #
-PKGLIST=${OVDIR}/${OVLIST}.pkgs
+PKGLIST=""
 
 #
 # if there's a named variant of the overlay then use that, but normally
 # we use the default
 #
+for OVL in $OVLIST
+do
 case $# in
 1)
-	if [ -f ${PKGLIST}.$1 ]; then
-	    PKGLIST=${PKGLIST}.$1
+	if [ -f ${OVDIR}/${OVL}.pkgs.$1 ]; then
+	    PKGLIST="${PKGLIST} ${OVDIR}/${OVL}.pkgs.$1"
+	elif [ -f ${OVDIR}/${OVL}.pkgs ]; then
+	    PKGLIST="${PKGLIST} ${OVDIR}/${OVL}.pkgs"
+	else
+	    echo "Missing overlay $OVL"
+	    exit 1
 	fi
 	;;
+0)
+	if [ -f ${OVDIR}/${OVL}.pkgs ]; then
+	    PKGLIST="${PKGLIST} ${OVDIR}/${OVL}.pkgs"
+	else
+	    echo "Missing overlay $OVL"
+	    exit 1
+	fi
+	;;
+*)
+	echo "Too many arguments"
+	exit 1
+	;;
 esac
+done
 
 #
 # check we have illumos packages, and a catalog
