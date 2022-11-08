@@ -1,8 +1,42 @@
 #!/bin/sh
 
 THOME=${THOME:-/packages/localsrc/Tribblix}
-DESTDIR=/export/tribblix/dist
+DESTTOP=/export/tribblix
+DESTDIR=${DESTTOP}/dist
 RELEASE=28
+NFLAG=""
+QFLAG=""
+OVFLAG=""
+
+#
+# flags
+# -D desttop -> DESTTOP
+# -N -> no install, dry run
+# -O overlay -> install additional overlay
+# -Q -> quiet, less output
+# -R release string -> RELEASE
+#
+while getopts "D:NO:QR:" opt; do
+    case $opt in
+        D)
+	    DESTTOP="$OPTARG"
+	    DESTDIR=${DESTTOP}/dist
+	    ;;
+        N)
+	    NFLAG="-N"
+	    ;;
+        O)
+	    OVFLAG="${OVFLAG} -O $OPTARG"
+	    ;;
+        Q)
+	    QFLAG="-Q"
+	    ;;
+        R)
+	    RELEASE="$OPTARG"
+	    ;;
+    esac
+done
+shift $((OPTIND-1))
 
 case $# in
     1)
@@ -13,10 +47,10 @@ esac
 TDIR=${THOME}/tribblix-build
 case `uname -p` in
 sparc)
-	$TDIR/install-pkgs.sparc $*
+	$TDIR/install-pkgs.sparc -D $DESTTOP $NFLAG $OVFLAG $QFLAG -R $RELEASE $*
 	;;
 i386)
-	$TDIR/install-pkgs $*
+	$TDIR/install-pkgs -D $DESTTOP $NFLAG $OVFLAG $QFLAG -R $RELEASE $*
 	;;
 *)
 	echo "ERROR: unrecognized architecture"
@@ -24,23 +58,30 @@ i386)
 	;;
 esac
 
-if [ ! -f ${DESTDIR}/usr/bin/ls ]; then
-    echo "ERROR: Package install failed!"
-    exit 1
+if [ -z "${NFLAG}" ]; then
+    if [ ! -f ${DESTDIR}/usr/bin/ls ]; then
+	echo "ERROR: Package install failed!"
+	exit 1
+    fi
 fi
 
 case `uname -p` in
 sparc)
-	$TDIR/mk-pkgs-zap.sparc $*
+	$TDIR/mk-pkgs-zap.sparc -D $DESTTOP $NFLAG $QFLAG -R $RELEASE $*
 	;;
 i386)
-	$TDIR/mk-pkgs-zap $*
+	$TDIR/mk-pkgs-zap -D $DESTTOP $NFLAG $QFLAG -R $RELEASE $*
 	;;
 esac
+
+if [ -n "${NFLAG}" ]; then
+    echo "Dry run finished"
+    exit 0
+fi
 
 if [ ! -f ${DESTDIR}/pkgs/catalog ]; then
     echo "ERROR: Extra packages failed!"
     exit 1
 fi
 
-$TDIR/build_iso -R ${RELEASE} $*
+$TDIR/build_iso -D $DESTTOP -R ${RELEASE} $*
