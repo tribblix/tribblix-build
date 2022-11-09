@@ -38,6 +38,11 @@ while getopts "D:R:S:T:" opt; do
 done
 shift $((OPTIND-1))
 
+if [ ! -x /usr/bin/mkisofs ]; then
+    echo "ERROR: $0 needs /usr/bin/mkisofs installed"
+    exit 1
+fi
+
 case $TRIBTYPE in
     lx)
 	TRIBNAME="OmniTribblix"
