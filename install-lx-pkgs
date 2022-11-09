@@ -106,7 +106,7 @@ done
 # check we have illumos packages, and a catalog
 #
 if [ ! -f ${IPKGDIR}/catalog ]; then
-    echo "ERROR: no illumos packages (or catalog)"
+    echo "ERROR: no illumos packages (or catalog) for release $RELEASE"
     exit 1
 fi
 #

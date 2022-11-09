@@ -52,6 +52,14 @@ EXTRAPKGDIR=${THOME}/opensxce-pkgs/pkgs
 IPKGDIR=${THOME}/illumos-pkgs-m${RELEASE}.sparc/pkgs
 
 #
+# check we have illumos packages, and a catalog
+#
+if [ ! -f ${IPKGDIR}/catalog ]; then
+    echo "ERROR: no illumos packages (or catalog) for release $RELEASE"
+    exit 1
+fi
+
+#
 # the one argument is a variant, which sets the destination directory
 #
 # if there's a variant overlays.iso, then use that
