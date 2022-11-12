@@ -38,6 +38,16 @@ while getopts "D:NO:QR:" opt; do
 done
 shift $((OPTIND-1))
 
+case $RELEASE in
+    *lx*)
+	:
+	;;
+    *)
+	echo "ERROR: use make-dist for vanilla tribblix."
+	exit 1
+	;;
+esac
+
 case $# in
     1)
 	DESTDIR="${DESTDIR}.$1"
