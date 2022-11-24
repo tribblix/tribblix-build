@@ -34,7 +34,7 @@ else
 fi
 
 #
-# if this looks like an omnitribblix release, say so
+# check the release name matches this script variant
 #
 case $1 in
 *lx*)
