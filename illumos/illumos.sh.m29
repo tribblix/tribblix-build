@@ -274,7 +274,7 @@ export MULTI_PROTO="no"
 #
 export VERSION="tribblix-m29"
 export BOOTBANNER1='Welcome to Tribblix, the retro ^o distribution'
-export BOOTBANNER2='^v | November 2022 | http://www.tribblix.org/'
+export BOOTBANNER2='^v | December 2022 | http://www.tribblix.org/'
 
 #
 # the RELEASE and RELEASE_DATE variables are set in Makefile.master;
