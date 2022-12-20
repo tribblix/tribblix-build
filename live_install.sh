@@ -437,9 +437,7 @@ echo "Deleting live package"
 # use a prebuilt repository if available
 #
 /usr/bin/rm ${ALTROOT}/etc/svc/repository.db
-if [ -f ${SMFREPODIR}/repository-installed.db ]; then
-    /usr/bin/cp -p ${SMFREPODIR}/repository-installed.db ${ALTROOT}/etc/svc/repository.db
-elif [ -f ${SMFREPODIR}/repository-installed.db.gz ]; then
+if [ -f ${SMFREPODIR}/repository-installed.db.gz ]; then
     /usr/bin/cp -p ${SMFREPODIR}/repository-installed.db.gz ${ALTROOT}/etc/svc/repository.db.gz
     /usr/bin/gunzip ${ALTROOT}/etc/svc/repository.db.gz
 else
