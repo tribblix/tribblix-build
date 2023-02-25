@@ -15,7 +15,7 @@
 # FIXME needs progress feedback
 #
 umask 022
-DEBUG=""
+DEBUG="echo"
 
 usage() {
   echo "Usage: $0 -t tftp_dir -h htdocs_dir -u http_url"
@@ -137,7 +137,7 @@ esac
 # FIXME need to resolve the path to the script
 #
 # we're in the ISO, so need to check we have
-#  grub
+#  loader
 #  platform
 #  pkgs
 #
@@ -153,8 +153,8 @@ if [ ! -d boot ]; then
   echo "Unable to find the iso boot directory"
   exit 2
 fi
-if [ ! -f boot/grub/pxegrub ]; then
-  echo "Unable to find pxegrub"
+if [ ! -f boot/pxeboot ]; then
+  echo "Unable to find pxeboot"
   exit 2
 fi
 #
@@ -188,12 +188,17 @@ if [ -f solaris.zlib ]; then
     $DEBUG cp solaris.zlib $HTDOCS
 fi
 echo "Copying files to tftp server"
+# kernel and miniroot
 $DEBUG mkdir -p ${TFTPBOOT}/$TFTPDIR/platform/i86pc/kernel/amd64
-$DEBUG cp boot/grub/pxegrub ${TFTPBOOT}/$TFTPDIR
 $DEBUG cp platform/i86pc/boot_archive ${TFTPBOOT}/$TFTPDIR/platform/i86pc
 chmod a+r ${TFTPBOOT}/$TFTPDIR/platform/i86pc/boot_archive
 $DEBUG cp platform/i86pc/kernel/amd64/unix ${TFTPBOOT}/$TFTPDIR/platform/i86pc/kernel/amd64
 chmod a+rx ${TFTPBOOT}/$TFTPDIR/platform/i86pc/kernel/amd64/unix
+# boot loader
+$DEBUG cp boot/pxeboot ${TFTPBOOT}/$TFTPDIR
+$DEBUG cp boot/loader.* ${TFTPBOOT}/$TFTPDIR
+$DEBUG cp -r boot/defaults ${TFTPBOOT}/$TFTPDIR
+$DEBUG cp -r boot/forth ${TFTPBOOT}/$TFTPDIR
 
 #
 # we copy the add-pxe-client script to the tftp location

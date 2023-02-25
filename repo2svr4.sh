@@ -3,7 +3,7 @@
 # convert an ips package to svr4, from an on-disk repo
 #
 
-PKG_VERSION="0.28"
+PKG_VERSION="0.29"
 THOME=${THOME:-/packages/localsrc/Tribblix}
 GATEDIR=/export/home/ptribble/Illumos/illumos-gate
 DSTDIR=/var/tmp/illumos-pkgs
@@ -67,6 +67,9 @@ if [ -n "$SIGNCERT" ]; then
     fi
     if [ ! -x "${FINDELF}" ]; then
 	FINDELF="/opt/onbld/bin/find_elf"
+    fi
+    if [ ! -x "${FINDELF}" ]; then
+	FINDELF="/opt/onbld/bin/`uname -p`/find_elf"
     fi
     if [ ! -x "${FINDELF}" ]; then
 	echo "Cannot sign, find_elf missing"

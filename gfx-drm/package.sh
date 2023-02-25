@@ -3,7 +3,7 @@
 # package the gfx-drm build
 #
 
-PKG_VERSION="0.28"
+PKG_VERSION="0.29"
 THOME=${THOME:-/packages/localsrc/Tribblix}
 GATE="${HOME}/Illumos/gfx-drm"
 DESTTOP="/var/tmp"

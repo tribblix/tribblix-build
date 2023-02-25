@@ -128,12 +128,12 @@ TFTPBOOT=`grep '^tftpboot=' $CARDIGAN_CFG | /bin/sed s:tftpboot=::`
 TFTPLOC=`echo $TFTPDIR | /bin/sed s:${TFTPBOOT}::`
 
 #
-# create a link to pxegrub
+# create a link to pxeboot
 #
 /bin/rm -f ${TFTPBOOT}/01${REAL_MAC}
-ln ${TFTPDIR}/pxegrub ${TFTPBOOT}/01${REAL_MAC}
+ln ${TFTPDIR}/pxeboot ${TFTPBOOT}/01${REAL_MAC}
 /bin/rm -f ${TFTPBOOT}/nbp.01${REAL_MAC}
-ln ${TFTPDIR}/pxegrub ${TFTPBOOT}/nbp.01${REAL_MAC}
+ln ${TFTPDIR}/pxeboot ${TFTPBOOT}/nbp.01${REAL_MAC}
 
 #
 # create menu.lst in /tftpboot for that ID
