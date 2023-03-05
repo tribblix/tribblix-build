@@ -2,7 +2,7 @@ diff --git a/usr/src/cmd/mdb/Makefile.common b/usr/src/cmd/mdb/Makefile.common
 index 99013197f9..e10b762909 100644
 --- a/usr/src/cmd/mdb/Makefile.common
 +++ b/usr/src/cmd/mdb/Makefile.common
-@@ -50,12 +50,6 @@ COMMON_MODULES_PROC = \
+@@ -51,12 +51,6 @@ COMMON_MODULES_PROC = \
  	mdb_ds \
  	mdb_test
  
