@@ -117,7 +117,7 @@ if [ ! -f usr/src/cmd/auditrecord/Makefile ]; then
     echo "Oops, copying auditrecord Makefile failed"
     exit 2
 fi
-for file in ${THOME}/tribblix-build/illumos/*.patch
+for file in ${THOME}/tribblix-build/illumos/${ARCH}/*.patch
 do
     gpatch -p1 < $file
 done
