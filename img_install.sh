@@ -154,23 +154,17 @@ NEWBE="tribblix-${RELEASE}"
 IMGTMP="/var/tmp/${NEWBE}.archive"
 IMGSRC="${DLHOST}/${RELEASE}/platform/i86pc/boot_archive"
 case $RELEASE in
-    m26)
-	IMGSUM="b1ac2fa7e86d9cf00c58af3d2e35436a286c62ce"
-	;;
-    m26lx)
-	IMGSUM="ce8f1971845a082a01e87e92608552693e4caace"
-	;;
-    m27)
-	IMGSUM="799690416e6f2d65afd48f2c1c32bbc5f4f72e07"
-	;;
-    m27lx)
-	IMGSUM="5f4fcddc24221ca8a09c142f5ad4d1e4b0802272"
-	;;
     m28)
 	IMGSUM="20396ed15f160036ecd3b6ac1f6f01564aea6a17"
 	;;
     m28lx)
 	IMGSUM="933aad39c7a9f1a0358dfe027973d12f9bcfeefb"
+	;;
+    m29)
+	IMGSUM="a9874ab4137db1df6a2e4001e5fd5c9fd5bb0d2d"
+	;;
+    m29lx)
+	IMGSUM="ce588ec9f0ea715a08d78855971a3906721a0619"
 	;;
     *)
 	echo "Unrecognised release"
