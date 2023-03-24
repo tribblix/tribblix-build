@@ -111,7 +111,7 @@ fi
 #
 # interactive argument handling
 #
-while getopts "BCd:Gm:n:P:s:t:z:Z:" opt; do
+while getopts "BCd:E:Gm:n:P:s:t:z:Z:" opt; do
     case $opt in
         B)
 	    BFLAG="-B"
@@ -122,6 +122,9 @@ while getopts "BCd:Gm:n:P:s:t:z:Z:" opt; do
 	    ;;
         d)
 	    DUMPSIZE="$OPTARG"
+	    ;;
+        E)
+	    NEWBE="$OPTARG"
 	    ;;
         G)
 	    GFLAG="-G"

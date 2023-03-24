@@ -123,10 +123,13 @@ fi
 #
 # interactive argument handling
 #
-while getopts "BNn:t:" opt; do
+while getopts "BE:Nn:t:" opt; do
     case $opt in
         B)
 	    BFLAG="-M"
+	    ;;
+        E)
+	    NEWBE="$OPTARG"
 	    ;;
         N)
 	    NFLAG="no"
