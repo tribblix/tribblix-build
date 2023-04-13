@@ -186,7 +186,7 @@ if [ ! -d gfx-drm ]; then
     cd gfx-drm
     sed -i s:DCFlnpr:Cnpr: myenv.sh
     echo "export SUPPRESSPKGDEP=true" >> myenv.sh
-    echo "export GNUC_ROOT=/opt/gcc/7.3.0" >> myenv.sh
+    echo "export GNUC_ROOT=/opt/gcc/7.5.0" >> myenv.sh
     sed -i s:@validate_pkg:/opt/onbld/bin/validate_pkg: usr/src/pkg/Makefile
     rm usr/src/pkg/manifests/system-test-libdrm.mf
     sed -i '/drm-tests/d' usr/src/cmd/Makefile

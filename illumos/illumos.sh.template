@@ -97,9 +97,9 @@ export CODEMGR_WS="`git rev-parse --show-toplevel`"
 # Tribblix production build on x86 is gcc7
 #
 export __GNUC=""
-export GNUC_ROOT=/opt/gcc/7.3.0
-export PRIMARY_CC=gcc7,/opt/gcc/7.3.0/bin/gcc,gnu
-export PRIMARY_CCC=gcc7,/opt/gcc/7.3.0/bin/g++,gnu
+export GNUC_ROOT=/opt/gcc/7.5.0
+export PRIMARY_CC=gcc7,/opt/gcc/7.5.0/bin/gcc,gnu
+export PRIMARY_CCC=gcc7,/opt/gcc/7.5.0/bin/g++,gnu
 export SHADOW_CCS=
 export SHADOW_CCCS=
 
