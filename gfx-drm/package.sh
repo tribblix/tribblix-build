@@ -53,7 +53,6 @@ if [ ! -f "${SIGNCERT}.crt" ]; then
     usage
 fi
 
-
 #
 # package for the variants separately as the package version
 # is different
@@ -64,9 +63,16 @@ ${THOME}/tribblix-build/repo_all.sh \
   -V ${PKG_VERSION} \
   -R drm \
   -S ${SIGNCERT} > /var/tmp/gfx.log 2>&1
-${THOME}/tribblix-build/repo_all.sh \
+#
+# don't need lx on sparc
+#
+case `uname -p` in
+i386)
+  ${THOME}/tribblix-build/repo_all.sh \
   -G ${GATE} \
   -D ${DESTTOP}/omni-gfx-pkgs \
   -V ${PKG_VERSION}lx \
   -R drm \
   -S ${SIGNCERT} > /var/tmp/omni-gfx.log 2>&1
+  ;;
+esac
