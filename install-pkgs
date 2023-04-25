@@ -173,6 +173,10 @@ if [ ! -x ${INSTZAP} ]; then
     exit 1
 fi
 
+if [ ! -f "${RPKGDIR}/catalog" ]; then
+    echo "WARN: Cannot find release catalog"
+fi
+
 if [ -n "${DRYRUN}" ]; then
     exit 0
 fi
@@ -208,6 +212,9 @@ echo "Installing release packages for $RELEASE"
 $INSTZAP -R $DESTDIR ${RPKGDIR}/TRIBrelease-name.0.${RELVER}.zap TRIBrelease-name
 $INSTZAP -R $DESTDIR ${RPKGDIR}/TRIBzap-upgrade.0.${URELVER}.zap TRIBzap-upgrade
 $INSTZAP -R $DESTDIR ${RPKGDIR}/TRIBzap.0.0.${RELVER}.zap TRIBzap
+if [ -f "${RPKGDIR}/catalog" ]; then
+    cp ${RPKGDIR}/catalog ${DESTDIR}/etc/zap/repositories/release.catalog
+fi
 
 #
 # need to mark the designated overlay(s) as installed
