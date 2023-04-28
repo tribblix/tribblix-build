@@ -26,7 +26,7 @@ fi
 git clone https://github.com/illumos/gfx-drm
 cd gfx-drm
 gpatch -p1 < ${THOME}/tribblix-build/gfx-drm/0001-Fix-manual-for-IPD4.patch
-gpatch -p1 < ${THOME}/tribblix-build/gfx-drm/sparc-makefile.patch
+gpatch -p1 < ${THOME}/tribblix-build/gfx-drm/sparc-fixes.patch
 #
 # set the build env
 #

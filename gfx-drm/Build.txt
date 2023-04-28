@@ -10,11 +10,17 @@ git clone https://github.com/illumos/gfx-drm
 cd gfx-drm
 gpatch -p1 < ${THOME}/tribblix-build/gfx-drm/0001-Fix-manual-for-IPD4.patch
 
+If you're on SPARC you'll need additional patches, at least
+
+gpatch -p1 < ${THOME}/tribblix-build/gfx-drm/sparc-fixes.patch
+
 3. Edit myenv.sh
 
 sed -i s:DCFlnpr:Cnpr: myenv.sh
 echo "export SUPPRESSPKGDEP=true" >> myenv.sh
 echo "export GNUC_ROOT=/opt/gcc/7.5.0" >> myenv.sh
+
+(adjust the gcc version and location as necessary)
 
 4. To package, we need a working validate_pkg from somewhere
 
