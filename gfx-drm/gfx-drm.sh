@@ -32,7 +32,7 @@ gpatch -p1 < ${THOME}/tribblix-build/gfx-drm/sparc-makefile.patch
 #
 sed -i s:DCFlnpr:Cnpr: myenv.sh
 echo "export SUPPRESSPKGDEP=true" >> myenv.sh
-echo "export GNUC_ROOT=/opt/gcc/7.3.0" >> myenv.sh
+echo "export GNUC_ROOT=/opt/gcc/7.5.0" >> myenv.sh
 #
 # need validate_pkg for the packaging to work
 #
