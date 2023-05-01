@@ -73,14 +73,14 @@ zap create-zone -z illumos-build -t whole -i 172.xxx.xxx.xxx \
 then check out illumos-gate and illumos-omnios, with the following
 naming scheme (so they're siblings with similar names)
 
-m29-gate
-m29lx-gate
+m30-gate
+m30lx-gate
 
-cd /path/to/m29-gate
-${THOME}/tribblix-build/illumos/releasebuild m29
+cd /path/to/m30-gate
+${THOME}/tribblix-build/illumos/releasebuild m30
 
-cd /path/to/m29lx-gate
-${THOME}/tribblix-build/illumos/omnibuild m29lx
+cd /path/to/m30lx-gate
+${THOME}/tribblix-build/illumos/omnibuild m30lx
 
 The argument to releasebuild and omnibuild is used to pick an
 illumos.sh env file (with the given name as the suffix) out of
@@ -118,14 +118,14 @@ The certificate (not the key, obviously) needs to end up in the
 /etc/crypto/certs directory (with any name) in order for elfsign
 to be able to verify signed binaries.
 
-Then, to build packages from a gate build called m29-gate, with package
-version 0.29.0, ending up in /var/tmp/m29-pkgs and signed with the above
+Then, to build packages from a gate build called m30-gate, with package
+version 0.30.0, ending up in /var/tmp/m30-pkgs and signed with the above
 
 /path/to/tribblix-build/repo_all.sh \
-  -G /path/to/my/builds/m29-gate \
-  -V "0.29.0" \
-  -D /var/tmp/m29-pkgs \
-  -S /path/to/elfcert >& /var/tmp/m29.log
+  -G /path/to/my/builds/m30-gate \
+  -V "0.30.0" \
+  -D /var/tmp/m30-pkgs \
+  -S /path/to/elfcert >& /var/tmp/m30.log
 
 
 Known issues
