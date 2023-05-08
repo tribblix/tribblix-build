@@ -167,6 +167,63 @@ index e0470bb2f0bc836a24f4ba74d4807adda9f36640..1f60f63201c0e607d14639a204244eea
  .SH NAME
  agpgart_io \- Solaris agpgart driver I/O control operations
  .SH SYNOPSIS
+@@ -43,7 +43,7 @@
+ specific AGP  systems. To determine if a system is supported, run an
+ \fBopen\fR(2) system  call on the AGP_DEVICE node. (Note that  \fBopen\fR(2)
+ fails if a system is not supported). After the AGP_DEVICE is opened, you can
+-use \fBkstat\fR(1M) to  read the system architecture  type.
++use \fBkstat\fR(8) to  read the system architecture  type.
+ .sp
+ .LP
+ In addition to AGP system support, the \fBagpgart\fR ioctls can also be used on
+@@ -198,8 +198,8 @@
+                 from the maximum locked memory a process
+                 can have. The latter  is subject
+                 to the memory resource limit imposed
+-                by the  resource_controls(5) for each
+-                project(4)):
++                by the  resource_controls(7) for each
++                project(5)):
+ 
+                   project.max-device-locked-memory
+ 
+@@ -883,7 +883,7 @@
+ .sp
+ .ne 2
+ .na
+-\fB\fB/platform/i86pc/kernel/drv/agpgart\fR\fR
++\fB\fB/kernel/drv/amd64/agpgart\fR\fR
+ .ad
+ .sp .6
+ .RS 4n
+@@ -893,7 +893,7 @@
+ .sp
+ .ne 2
+ .na
+-\fB\fB/platform/i86pc/kernel/drv/agpgart.conf\fR\fR
++\fB\fB/kernel/drv/agpgart.conf\fR\fR
+ .ad
+ .sp .6
+ .RS 4n
+@@ -903,7 +903,7 @@
+ .SH ATTRIBUTES
+ .sp
+ .LP
+-See \fBattributes\fR(5) for descriptions of the following attributes:
++See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+ .sp
+@@ -921,6 +921,6 @@
+ .SH SEE ALSO
+ .sp
+ .LP
+-\fBprctl\fR(1), \fBkstat\fR(1M), \fBclose\fR(2), \fBioctl\fR(2), \fBopen\fR(2),
+-\fBmmap\fR(2), \fBproject\fR(4), \fBprivileges\fR(5), \fBattributes\fR(5),
+-\fBresource_controls\fR(5)
++\fBprctl\fR(1), \fBkstat\fR(8), \fBclose\fR(2), \fBioctl\fR(2), \fBopen\fR(2),
++\fBmmap\fR(2), \fBproject\fR(5), \fBprivileges\fR(7), \fBattributes\fR(7),
++\fBresource_controls\fR(7)
 diff --git a/usr/src/pkg/manifests/driver-graphics-agpgart.mf b/usr/src/pkg/manifests/driver-graphics-agpgart.mf
 index 353e1660bcae800125cc7b8e81281e6306324850..c28db8211f2e43d94e100933f233f45aa1d06c8f 100644
 --- a/usr/src/pkg/manifests/driver-graphics-agpgart.mf
