@@ -45,7 +45,7 @@
 #       creates packages for PIT/RE (-p)
 #       checks for changes in ELF runpaths (-r)
 #       build and use this workspace's tools in $SRC/tools (-t)
-export NIGHTLY_OPTIONS='-FnCDAprt'
+export NIGHTLY_OPTIONS='-nCprtL'
 
 #
 # Tribblix settings that aren't defined here at all
@@ -92,7 +92,7 @@ export CODEMGR_WS="`git rev-parse --show-toplevel`"
 # To disable shadow compilation, unset SHADOW_* or set them to the empty string.
 #
 # Tribblix debug/rti build is gcc10 primary, gcc7 secondary, smatch
-# Tribblix production build on x86 is gcc7
+# Tribblix production build on x86 is gcc10
 #
 export GNUC_ROOT=/opt/gcc/10.4.0
 export PRIMARY_CC=gcc10,/opt/gcc/10.4.0/bin/gcc,gnu
