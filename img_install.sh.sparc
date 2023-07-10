@@ -33,7 +33,7 @@ DOMAINNAME=""
 BEGIN_SCRIPT=""
 FINISH_SCRIPT=""
 FIRSTBOOT_SCRIPT=""
-RELEASE="m26"
+RELEASE="m27"
 DLHOST="https://pkgs.tribblix.org"
 NFLAG=""
 
