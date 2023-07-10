@@ -1,6 +1,6 @@
 #!/bin/sh
 
-RELEASE=30lx
+RELEASE=31lx
 
 THOME=${THOME:-/packages/localsrc/Tribblix}
 DESTDIR=/export/tribblix/dist

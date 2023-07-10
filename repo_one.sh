@@ -5,7 +5,7 @@
 #
 # these ought to be args
 #
-PKG_VERSION="0.30"
+PKG_VERSION="0.31"
 THOME=${THOME:-/packages/localsrc/Tribblix}
 GATEDIR=/export/home/ptribble/Illumos/illumos-gate
 DSTDIR=/var/tmp/illumos-pkgs
