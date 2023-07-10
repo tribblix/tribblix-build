@@ -36,7 +36,7 @@ DOMAINNAME=""
 BEGIN_SCRIPT=""
 FINISH_SCRIPT=""
 FIRSTBOOT_SCRIPT=""
-RELEASE="m29"
+RELEASE="m30"
 DLHOST="https://pkgs.tribblix.org"
 NFLAG=""
 
@@ -165,6 +165,12 @@ case $RELEASE in
 	;;
     m29lx)
 	IMGSUM="ce588ec9f0ea715a08d78855971a3906721a0619"
+	;;
+    m30)
+	IMGSUM="328d858dc6d782f7db163167ebc75f450b7fd90f"
+	;;
+    m30lx)
+	IMGSUM="8b0e79aa14293315317b20d108a6ae5309e73f90"
 	;;
     *)
 	echo "Unrecognised release"
