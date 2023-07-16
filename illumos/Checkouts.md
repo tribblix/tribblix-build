@@ -1,6 +1,11 @@
 These are the commit ids for illumos-gate or illumos-omnios
 for a given release.
 
+In the case of SPARC, if there was a SPARC release before m26 and it's not
+listed  separately here then it would have been built form the same commit
+as x86. As of the SPARC m26 release and later, the commits diverge and will
+be noted separately below.
+
 m19:
 d2c5b266b717b923ea0e28b925ddb8e66dd98b42
 
@@ -132,6 +137,9 @@ m26lx
 [revert 3cb7d45669f9143c833d58e902f8880804a51791]
 [revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
 
+m26.sparc
+0f2a8434f3b6c1825df77e8037c61c0f6fb6b300
+
 m27
 feea3b2dd6c0c3b59dfb1ab0f992b01906567d90
 
@@ -153,5 +161,21 @@ b31f5cf7caf42b613fba3556b30879385cb2348d
 
 m29lx
 5aa3b4ddad73798e0d3913a88321a88094ab4b6a
+[revert 3cb7d45669f9143c833d58e902f8880804a51791]
+[revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
+
+m30
+676abcb77c26296424298b37b96d2bce39ab25e5
+
+m30lx
+74687e92b447cd6befd51c24ce473347076ff0bf
+[revert 3cb7d45669f9143c833d58e902f8880804a51791]
+[revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
+
+m31
+c9e18197f22f294cba480e7cd9142f9e60674d7b
+
+m31lx
+6bc59909601e83fee93db91ea00e793226fbb138
 [revert 3cb7d45669f9143c833d58e902f8880804a51791]
 [revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
