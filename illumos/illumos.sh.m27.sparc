@@ -142,6 +142,8 @@ export PYTHON3_SUFFIX=
 #
 # don't build python artefacts, we would throw them away anyway
 #
+export BUILDPY2='#'
+export BUILDPY3='#'
 export BUILDPY3b='#'
 
 # Set console color scheme either by build type:
