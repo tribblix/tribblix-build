@@ -145,6 +145,11 @@ export PYTHON3_SUFFIX=
 export BUILDPY2='#'
 export BUILDPY3='#'
 export BUILDPY3b='#'
+#
+# build tools against python3
+#
+export BUILDPY2TOOLS='#'
+export BUILDPY3TOOLS=''
 
 # Set console color scheme either by build type:
 #
