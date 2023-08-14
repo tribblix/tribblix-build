@@ -37,7 +37,7 @@ rm usr/src/pkg/manifests/system-test-libdrm.mf
 sed -i '/drm-tests/d' usr/src/cmd/Makefile
 mv usr/src/cmd/drm-tests usr/src/cmd/drm-tests.not
 
-5a. The fetch thing is broken beyond useability
+5a. The fetch thing is broken beyond usability
 cp ${THOME}/tribblix-build/gfx-drm/userland-fetch usr/src/tools
 sed -i 's:2.7:3:' usr/src/Makefile.master
 

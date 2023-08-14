@@ -188,7 +188,7 @@ function maxjobs
 	(( maxjobs=ncpu + 2 ))
 
 	# Throttle number of parallel jobs launched by dmake to a value which
-	# gurantees that all jobs have enough memory. This was added to avoid
+	# guarantees that all jobs have enough memory. This was added to avoid
 	# excessive paging/swapping in cases of virtual machine installations
 	# which have lots of CPUs but not enough memory assigned to handle
 	# that many parallel jobs

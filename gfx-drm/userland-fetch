@@ -24,7 +24,7 @@
 #
 # userland-fetch - a file download utility
 #
-#  A simple program similiar to wget(1), but handles local file copy, ignores
+#  A simple program similar to wget(1), but handles local file copy, ignores
 #  directories, and verifies file hashes.
 #
 
@@ -180,7 +180,7 @@ def download(url, filename=None, user_agent_arg=None, quiet=None):
             print("Can't open url %s: server answered with code which we couldn't understand " % (url))
         return None
 
-    # 3xx, 4xx and 5xx (f|ht)tp codes designate unsuccessfull action
+    # 3xx, 4xx and 5xx (f|ht)tp codes designate unsuccessful action
     if src.getcode() and (3 <= int(src.getcode() / 100) <= 5):
         if not quiet:
             print("Error code: " + str(src.getcode()))

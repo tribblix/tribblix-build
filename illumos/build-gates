@@ -51,12 +51,12 @@ fi
 # sanity check
 #
 if [ ! -f ${THOME}/tribblix-build/illumos/check-environment.sh ]; then
-    echo "ERROR: cannot check enviromnent"
+    echo "ERROR: cannot check environment"
     echo "Looking for ${THOME}/tribblix-build/illumos/check-environment.sh"
     exit 1
 fi
 if [ ! -x ${THOME}/tribblix-build/illumos/check-environment.sh ]; then
-    echo "ERROR: cannot check enviromnent"
+    echo "ERROR: cannot check environment"
     echo "${THOME}/tribblix-build/illumos/check-environment.sh is not executable"
     exit 1
 fi

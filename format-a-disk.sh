@@ -60,7 +60,7 @@ case $BFLAG in
 -B)
 	FDISKDEV=${DISKDEV%s2}p0
 	if [ ! -e $FDISKDEV ]; then
-	    echo "Eror: unable to find disk device $FDISKDEV"
+	    echo "Error: unable to find disk device $FDISKDEV"
 	    exit 1
 	fi
 	echo "Allocating whole disk $FDISKDEV to Solaris"
