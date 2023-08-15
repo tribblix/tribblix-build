@@ -121,6 +121,18 @@ PNAME=${THOME}/tribblix-build/pkg_name.sh
 TRANSDIR=${THOME}/tribblix-transforms
 
 #
+# used for noisaexec
+#
+case `uname -p` in
+sparc)
+  ARCH64="sparcv9"
+  ;;
+i386)
+  ARCH64="amd64"
+  ;;
+esac
+
+#
 # global flags
 #
 # contains a legacy action
@@ -1023,6 +1035,69 @@ fi
 echo "d none ${filepath} ${mode} ${owner} ${group}" >> ${BDIR}/prototype
 }
 
+#
+# transform to replace an isaexec'ed binary by the real thing
+# this is a 3-stage process
+# 1. remove the link to isaexec
+# 2. hoist the actual binary up out of the 64-bit subdirectory
+# 3. put a 64-bit symlink in place
+# it checks that the real binary does not exist, as that implies
+# something has changed to not make the binary managed by isaexec
+#
+# this process does nothing to any 32-bit file; removing that is a
+# separate operation, in case you still want to ship the file
+#
+transform_noisaexec() {
+    filepath=$1
+    echo "DBG: handling noisaexec $filepath"
+    if [ -f "${filepath}" ]; then
+	echo "WARN: path $filepath already exists, cannot noisaexec"
+	return
+    fi
+    filedir=${filepath%/*}
+    filename=${filepath##*/}
+    isafile=${filedir}/${ARCH64}/${filename}
+    if [ ! -f "${isafile}" ]; then
+	echo "WARN: path $isafile does not exist, cannot noisaexec"
+	return
+    fi
+    echo transform_linkdel $filepath
+    transform_linkdel $filepath
+    echo transform_rename $isafile $filepath
+    transform_rename $isafile $filepath
+    echo transform_symlink path=$isafile target=../$filename
+    transform_symlink path=$isafile target=../$filename
+}
+
+#
+# a variant where the thing we're execing is a link, so it won't exist
+# for checking, and we have to recreate the link
+#
+transform_noisaexeclink() {
+    xfilepath=$1
+    linkspec=$2
+    echo "DBG: handling noisaexec $filepath"
+    if [ -f "${filepath}" ]; then
+	echo "WARN: path $filepath already exists, cannot noisaexeclink"
+	return
+    fi
+    filedir=${xfilepath%/*}
+    filename=${xfilepath##*/}
+    isafile=${filedir}/${ARCH64}/${filename}
+    if [ -f "${isafile}" ]; then
+	echo "WARN: path $isafile exists, cannot noisaexeclink"
+	return
+    fi
+    echo transform_linkdel $xfilepath
+    transform_linkdel $xfilepath
+    echo transform_linkdel $isafile
+    transform_linkdel $isafile
+    echo restoring link $xfilepath $linkspec
+    handle_hardlink path=$xfilepath $linkspec
+    echo transform_symlink path=$isafile target=../$filename
+    transform_symlink path=$isafile target=../$filename
+}
+
 case $# in
 2)
     INPKG=$1
@@ -1233,6 +1308,12 @@ replace)
 rename)
     transform_rename $pathname $line
     ;;
+noisaexec)
+    transform_noisaexec $pathname
+    ;;
+noisaexeclink)
+    transform_noisaexeclink $pathname $line
+    ;;
 modify)
     echo "DBG: gsed -i '$line' ${BDIR}/${pathname}"
     gsed -i "$line" ${BDIR}/${pathname}
@@ -1289,6 +1370,12 @@ replace)
     ;;
 rename)
     transform_rename $pathname $line
+    ;;
+noisaexec)
+    transform_noisaexec $pathname
+    ;;
+noisaexeclink)
+    transform_noisaexeclink $pathname $line
     ;;
 modify)
     echo "DBG: gsed -i '$line' ${BDIR}/${pathname}"
@@ -1347,6 +1434,12 @@ replace)
     ;;
 rename)
     transform_rename $pathname $line
+    ;;
+noisaexec)
+    transform_noisaexec $pathname
+    ;;
+noisaexeclink)
+    transform_noisaexeclink $pathname $line
     ;;
 modify)
     echo "DBG: gsed -i '$line' ${BDIR}/${pathname}"
