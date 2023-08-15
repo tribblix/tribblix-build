@@ -55,6 +55,7 @@ export ONNV_BUILDNUM=152
 # this must be suppressed on a non-IPS distro
 #
 export SUPPRESSPKGDEP=true
+export PKGDEP_INCORP=
 #
 # it expects to find gld gobjcopy gas in $(GNU_ROOT)/bin
 # Tribblix has symlinks in /usr/sfw which is where the gate used to look
