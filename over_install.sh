@@ -24,7 +24,6 @@
 # these properties are available for customization
 #
 ROOTPOOL="rpool"
-SWAPSIZE="2g"
 BFLAG=""
 REBOOT="no"
 OVERLAYS=""

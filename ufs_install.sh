@@ -18,9 +18,6 @@ esac
 #
 # these properties are available for customization
 #
-SWAPSIZE="2g"
-ZFSARGS=""
-BFLAG=""
 REBOOT="no"
 OVERLAYS=""
 NODENAME=""

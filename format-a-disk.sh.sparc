@@ -5,7 +5,6 @@
 
 PRTVTOC=/usr/sbin/prtvtoc
 FMTHARD=/usr/sbin/fmthard
-FDISK=/sbin/fdisk
 
 TFILE=/tmp/prtvtoc-input.$$
 OFILE=/tmp/prtvtoc-output.$$
@@ -13,7 +12,6 @@ OFILE=/tmp/prtvtoc-output.$$
 case $# in
 2)
 	# -B accepted but ignored for compatibility with x86
-	BFLAG=$1
 	DISKDEV=$2
 	;;
 1)
