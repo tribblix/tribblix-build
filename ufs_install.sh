@@ -315,15 +315,6 @@ ${ALTROOT}/usr/sbin/devfsadm -r ${ALTROOT}
 touch ${ALTROOT}/reconfigure
 
 #
-# copy any console settings to the running system
-#
-BCONSOLE=""
-ICONSOLE=`/sbin/devprop console`
-if [ ! -z "$ICONSOLE" ]; then
-  BCONSOLE=" -B console=${ICONSOLE},input-device=${ICONSOLE},output-device=${ICONSOLE}"
-fi
-
-#
 # mount / at boot and enable swap
 #
 /bin/echo "/dev/dsk/$DRIVE1\t/dev/rdsk/$DRIVE1\t/\tufs\t1\tno\tlogging" >> ${ALTROOT}/etc/vfstab

@@ -366,15 +366,6 @@ echo "Configuring devices"
 ${ALTROOT}/usr/sbin/devfsadm -r ${ALTROOT}
 touch ${ALTROOT}/reconfigure
 
-#
-# copy any console settings to the running system
-#
-BCONSOLE=""
-ICONSOLE=`/sbin/devprop console`
-if [ ! -z "$ICONSOLE" ]; then
-  BCONSOLE=",console=${ICONSOLE},input-device=${ICONSOLE},output-device=${ICONSOLE}"
-fi
-
 echo "Setting up boot"
 
 # new loader
