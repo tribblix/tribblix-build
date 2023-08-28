@@ -333,7 +333,7 @@ fi
 # need to put the device path of the root slice into bootenv.rc so
 # the boot can find it
 #
-BOOTDEV=`/bin/ls -l /dev/dsk/$DRIVE1 | awk '{print $NF}' | sed s:../../devices::'`
+BOOTDEV=`/bin/ls -l /dev/dsk/$DRIVE1 | awk '{print $NF}' | sed 's:../../devices::'`
 echo "setprop bootpath '$BOOTDEV'" >> ${ALTROOT}/boot/solaris/bootenv.rc
 
 #
