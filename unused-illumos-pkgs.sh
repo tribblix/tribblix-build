@@ -1,10 +1,13 @@
-#!/bin/sh
+#!/bin/ksh
 #
 # create a report of illumos packages. They're either
 #  - LIVE installed on the live image
-#  - PKGS pkgs shipped on the iso
-#  - UNUSED not on the iso at all
-# FIXME: report if they're in some other overlay 
+#  - MEDIAPKGS pkgs shipped on the iso
+#  - OVERLAY listed in an overlay
+#  - UNUSED not used anywhere at all
+#
+# naming such that if you pipe the output to sort then you get
+# the status listed in a sensible preference order
 #
 
 usage() {
@@ -31,21 +34,21 @@ fi
 #
 CATALOG="${TARGET}/etc/zap/repositories/illumos.catalog"
 if [ ! -f "$CATALOG" ]; then
-    echo "ERROR: $TARGET doesn't look like a build area"
+    echo "ERROR: $TARGET doesn't look like a distribution area"
     usage
 fi
 PKGS="${TARGET}/pkgs"
 PDIR="${TARGET}/var/sadm/pkg"
 OVDIR="${TARGET}/var/sadm/overlays"
 
-cat $CATALOG | awk -F'|' '{print $1,$2}' | while read pkg ver
+awk -F'|' '{print $1,$2}' "$CATALOG" | while read -r pkg ver
 do
-    if [ -d ${PDIR}/$pkg ]; then
+    if [ -d "${PDIR}/$pkg" ]; then
 	echo "LIVE $pkg"
-    elif [ -f ${PKGS}/${pkg}.${ver}.zap ]; then
-	echo "PKGS $pkg"
+    elif [ -f "${PKGS}/${pkg}.${ver}.zap" ]; then
+	echo "MEDIAPKGS $pkg"
     else
-	INOVL=`cat ${OVDIR}/*.pkgs | grep '^'$pkg'$'`
+	INOVL=$(grep -h '^'$pkg'$' ${OVDIR}/*.pkgs)
 	if [ -n "$INOVL" ]; then
 	    echo "OVERLAY $pkg"
 	else
