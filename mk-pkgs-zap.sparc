@@ -96,7 +96,7 @@ done
 #
 VALID=yes
 ERRLIST=""
-for ipkg in `cat ${TFILE}|sort|uniq|egrep -v '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$'`
+for ipkg in `sort -u ${TFILE}|egrep -v '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$'`
 do
   THISVER="XXX"
   ILVER="XXX"
@@ -150,7 +150,7 @@ chmod 644 ${ZAPDIR}/catalog
 #
 # use pre-existing zap files
 #
-for ipkg in `cat ${TFILE}|sort|uniq|egrep -v '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$'`
+for ipkg in `sort -u ${TFILE}|egrep -v '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$'`
 do
   if [ -f ${DISTROOT}/var/sadm/pkg/${ipkg}/pkginfo ]; then
       echo "Skipping installed ${ipkg}"

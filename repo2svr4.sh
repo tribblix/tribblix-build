@@ -289,8 +289,8 @@ EOF
 cat >> ${BDIR}/install/postremove <<EOF
 if [ "\${BASEDIR}" = "/" ]; then
 EOF
-/usr/bin/cat ${BDIR}/restart_fmri_list | /usr/bin/sort | /usr/bin/uniq | /usr/bin/awk '{print "/usr/sbin/svcadm restart "$1}' >> ${BDIR}/install/postinstall
-/usr/bin/cat ${BDIR}/restart_fmri_list | /usr/bin/sort | /usr/bin/uniq | /usr/bin/awk '{print "/usr/sbin/svcadm restart "$1}' >> ${BDIR}/install/postremove
+sort -u ${BDIR}/restart_fmri_list | /usr/bin/awk '{print "/usr/sbin/svcadm restart "$1}' >> ${BDIR}/install/postinstall
+sort -u ${BDIR}/restart_fmri_list | /usr/bin/awk '{print "/usr/sbin/svcadm restart "$1}' >> ${BDIR}/install/postremove
 echo "fi" >> ${BDIR}/install/postinstall
 echo "fi" >> ${BDIR}/install/postremove
 /usr/bin/rm ${BDIR}/restart_fmri_list
