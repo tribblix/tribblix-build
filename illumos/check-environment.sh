@@ -20,7 +20,7 @@ fi
 #
 # check for installed overlays
 # we need develop and illumos-build
-# we need java or java8
+# we need java or java11
 #
 ODIR=/var/sadm/overlays/installed/
 if [ ! -f ${ODIR}/develop ]; then
@@ -36,10 +36,10 @@ if [ ! -f ${ODIR}/illumos-build ]; then
     STATUS=1
 fi
 if [ ! -f ${ODIR}/java ]; then
-    if [ ! -f ${ODIR}/java8 ]; then
-	echo "ERROR: the java or java8 overlay must be installed"
+    if [ ! -f ${ODIR}/java11 ]; then
+	echo "ERROR: the java or java11 overlay must be installed"
 	echo "As root, run the command"
-	echo "zap install-overlay java8"
+	echo "zap install-overlay java11"
 	STATUS=1
     fi
 fi
