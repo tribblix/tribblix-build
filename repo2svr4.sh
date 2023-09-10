@@ -1144,6 +1144,10 @@ if [ -f ${TRANSDIR}/deleted/${OUTPKG} ]; then
     echo "WARN: skipping ${OUTPKG}, marked as deleted"
     exit 0
 fi
+if [ -f ${TRANSDIR}/deleted/${OUTPKG}.`uname -p` ]; then
+    echo "WARN: skipping ${OUTPKG}, marked as deleted"
+    exit 0
+fi
 
 MANIFEST=`find $PDIR -type f`
 if [ -z "$MANIFEST" ]; then
