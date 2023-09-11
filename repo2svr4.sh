@@ -871,6 +871,10 @@ filepath=$1
 /usr/bin/mv ${BDIR}/prototype ${BDIR}/prototype.transform
 cat ${BDIR}/prototype.transform | grep -v " ${filepath}=" > ${BDIR}/prototype
 /usr/bin/rm ${BDIR}/prototype.transform
+# delete the symlink so that the directory is empty for rmdir and rrmdir
+if [ -h ${BDIR}/${filepath} ]; then
+    /usr/bin/rm -f ${BDIR}/${filepath}
+fi
 }
 
 #
