@@ -171,6 +171,12 @@ case $RELEASE in
     m30lx)
 	IMGSUM="8b0e79aa14293315317b20d108a6ae5309e73f90"
 	;;
+    m31)
+	IMGSUM="30bc450a3aea01eb50c8fa5625fa69231a5c427a"
+	;;
+    m31lx)
+	IMGSUM="fba19239806ed28e87f0251ebd677d7d5362369a"
+	;;
     *)
 	echo "Unrecognised release"
 	exit 1

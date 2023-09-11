@@ -5,7 +5,7 @@
 
 THOME=${THOME:-/packages/localsrc/Tribblix}
 
-RELEASE=31
+RELEASE=32
 TRIBNAME="Tribblix"
 TRIBSTYLE=""
 TRIBTYPE=""
