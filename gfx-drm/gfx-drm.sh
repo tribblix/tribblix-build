@@ -35,6 +35,7 @@ echo "export SUPPRESSPKGDEP=true" >> myenv.sh
 case $(uname -p) in
     sparc)
 	echo "export GNUC_ROOT=/usr/versions/gcc-7" >> myenv.sh
+	gpatch -p1 < ${THOME}/tribblix-build/gfx-drm/sparc-packaging.patch
 	;;
     *)
 	echo "export GNUC_ROOT=/opt/gcc/7.5.0" >> myenv.sh
