@@ -34,7 +34,7 @@ sed -i s:DCFlnpr:Cnpr: myenv.sh
 echo "export SUPPRESSPKGDEP=true" >> myenv.sh
 case $(uname -p) in
     sparc)
-	echo "export GNUC_ROOT=/opt/gcc/7.3.0" >> myenv.sh
+	echo "export GNUC_ROOT=/usr/versions/gcc-7" >> myenv.sh
 	;;
     *)
 	echo "export GNUC_ROOT=/opt/gcc/7.5.0" >> myenv.sh
