@@ -10,7 +10,7 @@ if [ ! -f /opt/onbld/bin/validate_pkg ]; then
     echo "Is the illumos-build overlay installed?"
     exit 1
 fi
-if [ ! -f ${THOME}/tribblix-build/gfx-drm/0001-Fix-manual-for-IPD4.patch ]; then
+if [ ! -f "${THOME}/tribblix-build/gfx-drm/0001-Fix-manual-for-IPD4.patch" ]; then
     echo "Unable to find the required patch"
     echo "Is the tribblix-build repo checked out?"
     exit 1
@@ -24,9 +24,9 @@ if [ -d gfx-drm ]; then
 fi
 
 git clone https://github.com/illumos/gfx-drm
-cd gfx-drm
-gpatch -p1 < ${THOME}/tribblix-build/gfx-drm/0001-Fix-manual-for-IPD4.patch
-gpatch -p1 < ${THOME}/tribblix-build/gfx-drm/sparc-fixes.patch
+cd gfx-drm || exit
+gpatch -p1 < "${THOME}/tribblix-build/gfx-drm/0001-Fix-manual-for-IPD4.patch"
+gpatch -p1 < "${THOME}/tribblix-build/gfx-drm/sparc-fixes.patch"
 #
 # set the build env
 #
@@ -35,7 +35,7 @@ echo "export SUPPRESSPKGDEP=true" >> myenv.sh
 case $(uname -p) in
     sparc)
 	echo "export GNUC_ROOT=/usr/versions/gcc-7" >> myenv.sh
-	gpatch -p1 < ${THOME}/tribblix-build/gfx-drm/sparc-packaging.patch
+	gpatch -p1 < "${THOME}/tribblix-build/gfx-drm/sparc-packaging.patch"
 	;;
     *)
 	echo "export GNUC_ROOT=/opt/gcc/7.5.0" >> myenv.sh
@@ -55,7 +55,7 @@ mv usr/src/cmd/drm-tests usr/src/cmd/drm-tests.not
 # need a newer fetch
 # (originally from oi-userland)
 #
-cp ${THOME}/tribblix-build/gfx-drm/userland-fetch usr/src/tools
+cp "${THOME}/tribblix-build/gfx-drm/userland-fetch" usr/src/tools
 sed -i 's:2.7:3:' usr/src/Makefile.master
 
 #
@@ -68,4 +68,4 @@ sed -i 's:2.7:3:' usr/src/Makefile.master
 #
 # and package it
 #
-${THOME}/tribblix-build/gfx-drm/package.sh
+"${THOME}/tribblix-build/gfx-drm/package.sh"
