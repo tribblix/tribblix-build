@@ -1,0 +1,313 @@
+In a Studio build, it would read the .il.cpp files; gcc does not.
+
+Issue #15040 tidied the rules away, but they never worked anyway.
+
+Th simple fix as adopted here is to simply append the assembler fragments
+to the existing assembler file, which means we don't need to modify any
+rules to get them built successfully.
+
+Ideally we would also remove the .il.cpp files, but leaving them is harmless
+as they're not used at all.
+
+Depending on which commit you're building, the files may be .S (the old
+name) or .s (the new name).
+
+diff --git a/usr/src/uts/sun4u/opl/ml/drmach_asm.s b/usr/src/uts/sun4u/opl/ml/drmach_asm.s
+index 620d051e84..74b9752239 100644
+--- a/usr/src/uts/sun4u/opl/ml/drmach_asm.s
++++ b/usr/src/uts/sun4u/opl/ml/drmach_asm.s
+@@ -47,6 +47,13 @@
+ #include <sys/drmach.h>
+ #include <sys/sbd_ioctl.h>
+ 
++/*
++ * From drmach.il.cpp
++ */
++#include <sys/sun4asi.h>
++#include <sys/machparam.h>
++#include <sys/opl_olympus_regs.h>
++
+ /*
+  * turn off speculative mode to prevent unwanted memory access
+  * when we are in the FMEM loops
+@@ -465,3 +472,96 @@
+ 	retl
+ 	 nop
+ 	SET_SIZE(drmach_flush)
++
++/*
++ * From drmach.il.cpp
++ */
++/*
++ * Bcopy routine used by DR to copy
++ * between physical addresses.
++ * Borrowed from Starfire DR 2.6.
++ */
++	ENTRY_NP(bcopy32_il)
++	.register %g2, #scratch
++	.register %g3, #scratch
++	rdpr	%pstate, %g0
++	ldxa	[%o0]ASI_MEM, %o2
++	add	%o0, 8, %o0
++	ldxa	[%o0]ASI_MEM, %o3
++	add	%o0, 8, %o0
++	ldxa	[%o0]ASI_MEM, %g1
++	add	%o0, 8, %o0
++	ldxa	[%o0]ASI_MEM, %g2
++
++	stxa	%o2, [%o1]ASI_MEM
++	add	%o1, 8, %o1
++	stxa	%o3, [%o1]ASI_MEM
++	add	%o1, 8, %o1
++	stxa	%g1, [%o1]ASI_MEM
++	add	%o1, 8, %o1
++	stxa	%g2, [%o1]ASI_MEM
++
++	retl
++	nop
++	SET_SIZE(bcopy32_il)
++
++	ENTRY_NP(flush_cache_il)
++	rdpr	%pstate, %o3
++	andn	%o3, PSTATE_IE, %o4
++	wrpr	%g0, %o4, %pstate
++	mov	ASI_L2_CTRL_U2_FLUSH, %o4
++	mov	ASI_L2_CTRL_RW_ADDR, %o5
++	stxa	%o4, [%o5]ASI_L2_CTRL
++	! retl
++	wrpr	%g0, %o3, %pstate	! restore earlier pstate
++	SET_SIZE(flush_cache_il)
++
++	ENTRY_NP(drmach_get_stick_il)
++	retl
++	rd	STICK, %o0
++	SET_SIZE(drmach_get_stick_il)
++
++	ENTRY_NP(membar_sync_il)
++	retl
++	membar #Sync
++	SET_SIZE(membar_sync_il)
++/*
++ * flush_instr_mem:
++ *	Flush 1 page of the I-$ starting at vaddr
++ * 	%o0 vaddr
++ *
++ * SPARC64-VI maintains consistency of the on-chip Instruction Cache with
++ * the stores from all processors so that a FLUSH instruction is only needed
++ * to ensure pipeline is consistent. This means a single flush is sufficient at
++ * the end of a sequence of stores that updates the instruction stream to
++ * ensure correct operation.
++ */
++
++	ENTRY_NP(flush_instr_mem_il)
++	flush	%o0			! address irrelevant
++	retl
++	 nop
++	SET_SIZE(flush_instr_mem_il)
++
++/*
++ * drmach-sleep_il:
++ *
++ * busy loop wait can affect performance of the sibling strand
++ * the sleep instruction can be used to avoid that.
++ */
++
++	ENTRY_NP(drmach_sleep_il)
++.word	0x81b01060
++	retl
++	 nop
++	SET_SIZE(drmach_sleep_il)
++
++/*
++ * flush_windows_il:
++ *
++ */
++
++	ENTRY_NP(flush_windows_il)
++	retl
++	 flushw
++	SET_SIZE(flush_windows_il)
+diff --git a/usr/src/uts/sun4u/serengeti/ml/sbdp_asm.s b/usr/src/uts/sun4u/serengeti/ml/sbdp_asm.s
+index 04cc949310..a7321719f8 100644
+--- a/usr/src/uts/sun4u/serengeti/ml/sbdp_asm.s
++++ b/usr/src/uts/sun4u/serengeti/ml/sbdp_asm.s
+@@ -50,6 +50,12 @@
+ #include <sys/cheetahregs.h>
+ #include <sys/cheetahasm.h>
+ 
++/*
++ * from sdbp.il.cpp
++ */
++#include <sys/sun4asi.h>
++#include <sys/machparam.h>
++
+ /*
+  * Invalidating the E$ tags is only needed on Cheetah following
+  * the manual displacement flush.  The internal flush ASI used by
+@@ -281,3 +287,166 @@ sbdp_shutdown_asm_end:
+         wrpr    %g0, %o4, %pstate       ! restore earlier pstate register value
+         SET_SIZE(stdmcdecode)
+ 
++/*
++ * from sdbp.il.cpp
++ */
++
++/*
++ * Bcopy routine used by DR to copy
++ * between physical addresses. 
++ * Borrowed from Starfire DR 2.6.
++ */
++	ENTRY_NP(bcopy32_il)
++	.register %g2, #scratch
++	.register %g3, #scratch
++        rdpr    %pstate, %o4
++        andn    %o4, PSTATE_IE | PSTATE_AM, %g3		! clear IE, AM bits
++        wrpr    %g0, %g3, %pstate
++
++        ldxa    [%o0]ASI_MEM, %o2
++	add	%o0, 8, %o0
++        ldxa    [%o0]ASI_MEM, %o3
++	add	%o0, 8, %o0
++        ldxa    [%o0]ASI_MEM, %g1
++	add	%o0, 8, %o0
++        ldxa    [%o0]ASI_MEM, %g2
++
++	stxa    %o2, [%o1]ASI_MEM
++	add	%o1, 8, %o1
++	stxa    %o3, [%o1]ASI_MEM
++	add	%o1, 8, %o1
++	stxa    %g1, [%o1]ASI_MEM
++	add	%o1, 8, %o1
++	stxa    %g2, [%o1]ASI_MEM
++
++	stxa	%g0, [%o1]ASI_DC_INVAL	/* flush line from dcache */
++	membar	#Sync
++
++	retl
++        wrpr    %g0, %o4, %pstate       ! restore earlier pstate register value
++	SET_SIZE(bcopy32_il)
++
++	ENTRY_NP(flush_ecache_il)
++	rdpr	%pstate, %o3
++	andn	%o3, PSTATE_IE | PSTATE_AM, %o4
++	wrpr	%g0, %o4, %pstate	! clear AM to access 64 bit physaddr
++	GET_CPU_IMPL(%o4)
++	cmp	%o4, PANTHER_IMPL
++	bne	%xcc, 3f
++	  nop
++	! Panther needs to flush L2 before L3.
++	!
++	! We need to free up a temp reg for the L2 flush macro (register usage
++	! convention for inlines allows %o0-%o5, %f0-%f31 as temporaries.)
++	! Since physaddr is only used for Cheetah, Panther can use %o0 for
++	! the L2 flush.
++	PN_L2_FLUSHALL(%o0, %o4, %o5)
++3:
++	ECACHE_FLUSHALL(%o1, %o2, %o0, %o4)
++	wrpr	%g0, %o3, %pstate	! restore earlier pstate
++	SET_SIZE(flush_ecache_il)
++
++	ENTRY_NP(stphysio_il)
++	rdpr	%pstate, %o2		/* read PSTATE reg */
++	andn	%o2, PSTATE_IE | PSTATE_AM, %o3
++	wrpr	%g0, %o3, %pstate
++	stwa	%o1, [%o0]ASI_IO        /* store value via bypass ASI */
++	retl
++	wrpr	%g0, %o2, %pstate		/* restore the PSTATE */
++	SET_SIZE(stphysio_il)
++
++	!
++	! load value at physical address in I/O space
++	!
++	! u_int   ldphysio_il(uint64_t physaddr)
++	!
++	ENTRY_NP(ldphysio_il)
++	rdpr	%pstate, %o2		/* read PSTATE reg */
++	andn	%o2, PSTATE_IE | PSTATE_AM, %o3
++	wrpr	%g0, %o3, %pstate
++	lduwa	[%o0]ASI_IO, %o0	/* load value via bypass ASI */
++	retl
++	wrpr	%g0, %o2, %pstate	/* restore pstate */
++	SET_SIZE(ldphysio_il)
++
++        !
++        ! Load long word value at physical address
++        !
++        ! uint64_t lddphys_il(uint64_t physaddr)
++        !
++        ENTRY_NP(lddphys_il)
++        rdpr    %pstate, %o4
++        andn    %o4, PSTATE_IE | PSTATE_AM, %o5
++        wrpr    %o5, 0, %pstate
++        ldxa    [%o0]ASI_MEM, %o0
++        retl
++        wrpr    %g0, %o4, %pstate       /* restore earlier pstate register value */
++        SET_SIZE(lddphys_il)
++
++        !
++        ! Load long word value from designated asi.
++        !
++        ! uint64_t ldxasi_il(uint64_t physaddr, uint_t asi)
++        !
++        ENTRY_NP(ldxasi_il)
++        rdpr    %pstate, %o4
++        andn    %o4, PSTATE_IE | PSTATE_AM, %o5
++        wrpr    %o5, 0, %pstate
++	wr	%o1, 0, %asi
++        ldxa    [%o0]%asi, %o0
++        retl
++        wrpr    %g0, %o4, %pstate       /* restore earlier pstate register value */
++        SET_SIZE(ldxasi_il)
++
++/*
++ * Argument to sbdp_exec_script_il is a pointer to:
++ *
++ * typedef struct {
++ *	uint64_t	masr_addr;
++ *	uint64_t	masr;
++ *	uint_t	asi;
++ *	uint_t		_filler;
++ * } sbdp_rename_script_t;
++ */
++	ENTRY_NP(sbdp_exec_script_il)
++	mov	%o0, %o2
++
++	rdpr	%pstate, %o4		/* read PSTATE reg */
++	andn	%o4, PSTATE_IE | PSTATE_AM, %o1
++	wrpr	%g0, %o1, %pstate
++
++	membar #Sync
++
++0:					/* cache script */
++	ldx	[%o2], %o1
++	ldx	[%o2 + 16], %o1
++	cmp	%g0, %o1
++	bnz,pt	%xcc, 0b
++	add	%o2, 24, %o2
++
++	b	2f			/* cache it */
++	nop
++1:
++	ldx	[%o0], %o1
++	brz,pn	%o1, 5f
++	ld	[%o0 + 16], %o2
++	wr	%o2, 0, %asi
++	b	3f
++	nop
++2:
++	b	4f			/* cache it */
++	nop
++3:
++	ldx	[%o0 + 8], %o2
++	stxa	%o2, [%o1]%asi
++	membar	#Sync
++	add	%o0, 24, %o0
++	b	1b
++	ldxa	[%o1]%asi, %g0	/* read back to insure written */
++4:
++	b	1b			/* caching done */
++	nop
++5:	
++	retl
++	wrpr	%g0, %o4, %pstate	/* restore the PSTATE */
++	SET_SIZE(sbdp_exec_script_il)
