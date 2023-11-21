@@ -47,14 +47,14 @@ if [ ! -d ${DESTDIR}/jack ]; then
    mkdir ${DESTDIR}/jack
    chown 123:10 ${DESTDIR}/jack
 fi
-if /usr/xpg4/bin/grep -q jack ${DESTDIR}/etc/passwd
+if /usr/bin/grep -q jack ${DESTDIR}/etc/passwd
 then
   printf ""
 else
   echo 'jack:x:123:10:Tribblix Jack:/jack:/bin/bash' >> ${DESTDIR}/etc/passwd
   echo 'jack:$5$robNc/Vf$orrY6BIeUzrqk/IyZFuvf.4Pw2XzysreXiTqq//7mu3:15634::::::' >> ${DESTDIR}/etc/shadow
 fi
-if /usr/xpg4/bin/grep -q jack ${DESTDIR}/etc/user_attr
+if /usr/bin/grep -q jack ${DESTDIR}/etc/user_attr
 then
   printf ""
 else
