@@ -5,7 +5,7 @@
 # note, no slice or fdisk partition, just the bare device
 #
 
-RELEASE="0m32"
+RELEASE="0m33"
 
 DESTDIR=/export/tribblix/dist
 
