@@ -397,6 +397,7 @@ echo "Installing overlays" | tee $LOGFILE
 /usr/bin/date | tee -a $LOGFILE
 TMPDIR=/tmp
 export TMPDIR
+echo "${ALTROOT}/var/zap/cache" > /etc/zap/cache_dir
 if [ -d ${PKGLOC} ]; then
     for overlay in base $OVERLAYS
     do
@@ -405,7 +406,6 @@ if [ -d ${PKGLOC} ]; then
     done
 else
     echo "No local packages found, trying to install overlays from the network"
-    echo "${ALTROOT}/var/zap/cache" > /etc/zap/cache_dir
     /usr/lib/zap/install-overlay -R ${ALTROOT} base | tee -a $LOGFILE
     # only try other overlays if base worked, to minimize wasteage
     if [ -f ${ALTROOT}/var/sadm/overlays/installed/base ]; then
