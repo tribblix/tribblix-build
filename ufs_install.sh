@@ -234,13 +234,13 @@ else
 	    /usr/lib/zap/install-overlay -R ${ALTROOT} $overlay | tee -a $LOGFILE
 	done
     else
-	echo "Ignoring overlay installation"
+	echo "Ignoring overlay installation due to failure" | tee -a $LOGFILE
     fi
 fi
 echo "Overlay installation complete" | tee -a $LOGFILE
 /usr/bin/date | tee -a $LOGFILE
 
-echo "Deleting live package"
+echo "Deleting live package" | tee -a $LOGFILE
 /usr/bin/zap uninstall -R ${ALTROOT} TRIBsys-install-media-internal
 
 #
