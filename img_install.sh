@@ -353,11 +353,13 @@ if [ -d ${PKGLOC} ]; then
     done
 else
     echo "No local packages found, trying to install overlays from the network"
+    echo "Installing base overlay" | tee -a $LOGFILE
     /usr/lib/zap/install-overlay -R ${ALTROOT} base | tee -a $LOGFILE
     # only try other overlays if base worked, to minimize wasteage
     if [ -f ${ALTROOT}/var/sadm/overlays/installed/base ]; then
 	for overlay in $OVERLAYS
 	do
+	    echo "Installing $overlay overlay" | tee -a $LOGFILE
 	    /usr/lib/zap/install-overlay -R ${ALTROOT} $overlay | tee -a $LOGFILE
 	done
     else
