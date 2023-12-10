@@ -175,7 +175,7 @@ do
 	  cp ${EXTRAPKGDIR}/${ipkg}.${EXTRAVER}.zap ${ZAPDIR}/${ipkg}.${EXTRAVER}.zap
 	  THISVER=${EXTRAVER}
       fi
-      echo "${ipkg}|${THISVER}|"`${DISTROOT}/usr/lib/zap/pkgdepend ${ZAPDIR}/${ipkg}.${THISVER}.zap` >> ${ZAPDIR}/catalog
+      echo "${ipkg}|${THISVER}|"`unzip -p ${ZAPDIR}/${ipkg}.${THISVER}.zap ${ipkg}/install/depend 2>/dev/null | /usr/bin/awk '{if ($1 == "P") print $2}'` >> ${ZAPDIR}/catalog
   fi
 done
 

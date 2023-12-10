@@ -49,6 +49,14 @@ TPKGDIR=${THOME}/pkgs
 IPKGDIR=${THOME}/illumos-pkgs-m${RELEASE}/pkgs
 
 #
+# check we have illumos packages, and a catalog
+#
+if [ ! -f ${IPKGDIR}/catalog ]; then
+    echo "ERROR: no illumos packages (or catalog) for release $RELEASE"
+    exit 1
+fi
+
+#
 # the one argument is a variant, which sets the destination directory
 #
 # if there's a variant overlays.iso, then use that
@@ -151,7 +159,7 @@ do
 	  cp ${IPKGDIR}/${ipkg}.${ILVER}.zap ${ZAPDIR}/${ipkg}.${ILVER}.zap
 	  THISVER=${ILVER}
       fi
-      echo "${ipkg}|${THISVER}|"`${DISTROOT}/usr/lib/zap/pkgdepend ${ZAPDIR}/${ipkg}.${THISVER}.zap` >> ${ZAPDIR}/catalog
+      echo "${ipkg}|${THISVER}|"`unzip -p ${ZAPDIR}/${ipkg}.${THISVER}.zap ${ipkg}/install/depend 2>/dev/null | /usr/bin/awk '{if ($1 == "P") print $2}'` >> ${ZAPDIR}/catalog
   fi
 done
 
