@@ -316,14 +316,13 @@ echo "Installing overlays" | tee $LOGFILE
 /usr/bin/date | tee -a $LOGFILE
 TMPDIR=/tmp
 export TMPDIR
-PKGMEDIA=`/sbin/devprop install_pkgs`
 if [ -d ${PKGLOC} ]; then
     for overlay in base $OVERLAYS
     do
 	echo "Installing $overlay overlay" | tee -a $LOGFILE
 	/usr/lib/zap/install-overlay -R ${ALTROOT} -s ${PKGLOC} $overlay | tee -a $LOGFILE
     done
-elif [ -z "$PKGMEDIA" ]; then
+else
     echo "No local packages found, trying to install overlays from the network"
     echo "${ALTROOT}/var/zap/cache" > /etc/zap/cache_dir
     /usr/lib/zap/install-overlay -R ${ALTROOT} base | tee -a $LOGFILE
@@ -336,18 +335,6 @@ elif [ -z "$PKGMEDIA" ]; then
     else
 	echo "Ignoring overlay installation"
     fi
-else
-    echo "${ALTROOT}/var/zap/cache" > /etc/zap/cache_dir
-    echo "5 cdrom" >> /etc/zap/repo.list
-    echo "NAME=cdrom" > /etc/zap/repositories/cdrom.repo
-    echo "DESC=Tribblix packages from CD image" >> /etc/zap/repositories/cdrom.repo
-    echo "URL=${PKGMEDIA}" >> /etc/zap/repositories/cdrom.repo
-    /usr/lib/zap/refresh-catalog cdrom
-    for overlay in base $OVERLAYS
-    do
-	echo "Installing $overlay overlay" | tee -a $LOGFILE
-	/usr/lib/zap/install-overlay -R ${ALTROOT} $overlay | tee -a $LOGFILE
-    done
 fi
 echo "Overlay installation complete" | tee -a $LOGFILE
 /usr/bin/date | tee -a $LOGFILE
