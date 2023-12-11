@@ -145,7 +145,7 @@ do
   if [ -f ${PKGI} ]; then
       THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
   fi
-  ILVER=`nawk -v V=${mypkg} -F'|' '{if ($1==V) print $2}' ${IPKGDIR}/catalog`
+  ILVER=`awk -v V=${mypkg} -F'|' '{if ($1==V) print $2}' ${IPKGDIR}/catalog`
   if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.zap ]; then
       $ECHO "Installing $mypkg from Tribblix"
   elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.zap ]; then
@@ -197,7 +197,7 @@ do
   if [ -f ${PKGI} ]; then
       THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
   fi
-  ILVER=`nawk -v V=${mypkg} -F'|' '{if ($1==V) print $2}' ${IPKGDIR}/catalog`
+  ILVER=`awk -v V=${mypkg} -F'|' '{if ($1==V) print $2}' ${IPKGDIR}/catalog`
   if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.zap ]; then
     $INSTZAP -R $DESTDIR ${TPKGDIR}/${mypkg}.${THISVER}.zap ${mypkg}
   elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.zap ]; then

@@ -108,7 +108,7 @@ do
 	  THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
       fi
   fi
-  ILVER=`nawk -v V=${ipkg} -F'|' '{if ($1==V) print $2}' ${IPKGDIR}/catalog`
+  ILVER=`awk -v V=${ipkg} -F'|' '{if ($1==V) print $2}' ${IPKGDIR}/catalog`
   if [ -f ${TPKGDIR}/${ipkg}.${THISVER}.zap ]; then
       $ECHO "Installing $ipkg ${THISVER} from Tribblix"
   elif [ -f ${IPKGDIR}/${ipkg}.${ILVER}.zap ]; then
@@ -165,7 +165,7 @@ do
 	      THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
 	  fi
       fi
-      ILVER=`nawk -v V=${ipkg} -F'|' '{if ($1==V) print $2}' ${IPKGDIR}/catalog`
+      ILVER=`awk -v V=${ipkg} -F'|' '{if ($1==V) print $2}' ${IPKGDIR}/catalog`
       if [ -f ${TPKGDIR}/${ipkg}.${THISVER}.zap ]; then
 	  cp ${TPKGDIR}/${ipkg}.${THISVER}.zap $ZAPDIR
       elif [ -f ${IPKGDIR}/${ipkg}.${ILVER}.zap ]; then

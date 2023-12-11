@@ -487,7 +487,7 @@ fi
 #
 KLAYOUT=`/usr/bin/kbd -l | /usr/bin/awk -F'[= ]' '{if ($1 == "layout") print $2}'`
 if [ -n "${KLAYOUT}" ]; then
-  NLAYOUT=`/usr/bin/nawk -v ntyp=${KLAYOUT} -F= '{if ($2 == ntyp) print $1}' /usr/share/lib/keytables/type_6/kbd_layouts`
+  NLAYOUT=`/usr/bin/awk -v ntyp=${KLAYOUT} -F= '{if ($2 == ntyp) print $1}' /usr/share/lib/keytables/type_6/kbd_layouts`
   if [ -n "${NLAYOUT}" ]; then
     /usr/bin/grep -v keyboard-layout ${ALTROOT}/boot/solaris/bootenv.rc > ${ALTROOT}/boot/solaris/bootenv.rc.tmp
     echo "setprop keyboard-layout ${NLAYOUT}" >> ${ALTROOT}/boot/solaris/bootenv.rc.tmp
