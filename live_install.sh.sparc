@@ -600,7 +600,7 @@ fi
 #
 # copy selected keyboard type to installed system
 #
-KLAYOUT=`/usr/bin/kbd -l | /usr/bin/grep layout= | /usr/bin/awk -F= '{print $2}' | /usr/bin/awk '{print $1}'`
+KLAYOUT=`/usr/bin/kbd -l | /usr/bin/awk -F'[= ]' '{if ($1 == "layout") print $2}'`
 if [ -n "${KLAYOUT}" ]; then
   NLAYOUT=`/usr/bin/nawk -v ntyp=${KLAYOUT} -F= '{if ($2 == ntyp) print $1}' /usr/share/lib/keytables/type_6/kbd_layouts`
   if [ -n "${NLAYOUT}" ]; then
