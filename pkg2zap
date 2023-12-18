@@ -30,6 +30,20 @@ case $# in
 	;;
 esac
 
+#
+# Default locations
+#
+THOME=${THOME:-/packages/localsrc/Tribblix}
+BUILD="${THOME}/build"
+
+#
+# sanity check
+#
+if [ ! -d $BUILD ]; then
+   echo "ERROR: unable to find build directory $BUILD"
+   exit 1
+fi
+
 if [ ! -f "$FPKG" ]; then
    echo "ERROR: input file not found"
    exit 1
@@ -48,13 +62,18 @@ mkdir -p $TDIR
 pkgtrans $FPKG $TDIR all
 cd $TDIR
 BPKG=${FPKG##*/}
+# 7z gives us an extra 2-3% reduction in file size
 #zip -9 -q -r ${ODIR}/${BPKG%.pkg}.zap *
 7za a -tzip -mx=9 -mfb=256 ${ODIR}/${BPKG%.pkg}.zap *
 chmod a+r ${ODIR}/${BPKG%.pkg}.zap
+cd /
+# pregenerate the md5 checksum ready for catalog creation
+openssl md5 ${ODIR}/${BPKG%.pkg}.zap | /usr/bin/awk '{print $NF}' > ${ODIR}/${BPKG%.pkg}.zap.md5
+# sign the zap file
+${BUILD}/sign-file ${ODIR}/${BPKG%.pkg}.zap
 
 #
 # clean up
 #
-cd /
 rm -fr $TDIR
 ls -lsh ${ODIR}/${BPKG%.pkg}.zap

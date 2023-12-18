@@ -126,21 +126,8 @@ fi
 
 #
 # convert the SVR4 pkg to zap format
-# create an md5 checksum for the catalog
-# optionally sign if we have a signing passphrase
 #
 for file in ${DSTDIR}/pkgs/*.pkg
 do
     $PKG2ZAP $file ${DSTDIR}/pkgs
-    openssl md5 ${file%.pkg}.zap | /usr/bin/awk '{print $NF}' > ${file%.pkg}.zap.md5
-    if [ -f ${HOME}/Tribblix/Sign.phrase ]; then
-	echo ""
-	echo "Signing package."
-	echo ""
-	gpg --detach-sign --no-secmem-warning --passphrase-file ${HOME}/Tribblix/Sign.phrase ${file%.pkg}.zap
-	if [ -f ${file%.pkg}.zap.sig ]; then
-	    echo "Package signed successfully."
-	    echo ""
-	fi
-    fi
 done
