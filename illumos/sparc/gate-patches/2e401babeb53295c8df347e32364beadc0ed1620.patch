@@ -1,0 +1,30 @@
+From 2e401babeb53295c8df347e32364beadc0ed1620 Mon Sep 17 00:00:00 2001
+From: Mark Adler <fork@madler.net>
+Date: Sat, 30 Jul 2022 15:51:11 -0700
+Subject: [PATCH] 14917 zlib: Fix a bug when getting a gzip header extra field
+ with inflate(). Reviewed-by: Toomas Soome <tsoome@me.com> Reviewed by: Gordon
+ Ross <Gordon.W.Ross@gmail.com> Approved by: Dan McDonald <danmcd@mnx.io>
+
+---
+ usr/src/contrib/zlib/inflate.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/usr/src/contrib/zlib/inflate.c b/usr/src/contrib/zlib/inflate.c
+index baf5bb872e..9ad66f2287 100644
+--- a/usr/src/contrib/zlib/inflate.c
++++ b/usr/src/contrib/zlib/inflate.c
+@@ -744,8 +744,9 @@ int ZEXPORT inflate(z_streamp strm, int flush)
+                 if (copy > have) copy = have;
+                 if (copy) {
+                     if (state->head != Z_NULL &&
+-                        state->head->extra != Z_NULL) {
+-                        len = state->head->extra_len - state->length;
++                        state->head->extra != Z_NULL &&
++                        (len = state->head->extra_len - state->length) <
++                            state->head->extra_max) {
+                         zmemcpy(state->head->extra + len, next,
+                                 len + copy > state->head->extra_max ?
+                                 state->head->extra_max - len : copy);
+-- 
+2.42.0
+

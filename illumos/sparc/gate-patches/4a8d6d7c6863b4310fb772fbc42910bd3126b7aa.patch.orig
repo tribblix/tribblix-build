@@ -1,0 +1,1354 @@
+From 4a8d6d7c6863b4310fb772fbc42910bd3126b7aa Mon Sep 17 00:00:00 2001
+From: Peter Tribble <peter.tribble@gmail.com>
+Date: Mon, 20 Feb 2023 20:15:32 +0000
+Subject: [PATCH] 15401 Spelling mistakes in section 3c of the manual Reviewed
+ by: Robert Mustacchi <rm@fingolfin.org> Reviewed by: Toomas Soome
+ <tsoome@me.com> Approved by: Dan McDonald <danmcd@mnx.io>
+
+---
+ usr/src/man/man3c/_stack_grow.3c        | 17 ++---------------
+ usr/src/man/man3c/atomic_inc.3c         | 19 +++----------------
+ usr/src/man/man3c/c16rtomb.3c           |  6 +++---
+ usr/src/man/man3c/call_once.3c          |  4 ++--
+ usr/src/man/man3c/ctime.3c              | 23 ++---------------------
+ usr/src/man/man3c/dladdr.3c             | 17 ++---------------
+ usr/src/man/man3c/dlinfo.3c             | 20 ++++----------------
+ usr/src/man/man3c/dup2.3c               | 10 ++--------
+ usr/src/man/man3c/epoll_create.3c       |  4 ++--
+ usr/src/man/man3c/fmemopen.3c           |  4 ++--
+ usr/src/man/man3c/madvise.3c            |  4 ++--
+ usr/src/man/man3c/makecontext.3c        | 20 ++------------------
+ usr/src/man/man3c/mbrlen.3c             | 14 +++-----------
+ usr/src/man/man3c/mkstemp.3c            | 17 ++---------------
+ usr/src/man/man3c/mktime.3c             | 13 ++-----------
+ usr/src/man/man3c/pfmt.3c               |  4 ++--
+ usr/src/man/man3c/port_create.3c        | 12 +++---------
+ usr/src/man/man3c/pthread_mutex_init.3c |  3 +--
+ usr/src/man/man3c/rwlock.3c             | 17 ++---------------
+ usr/src/man/man3c/setcat.3c             | 14 ++------------
+ usr/src/man/man3c/signalfd.3c           |  4 ++--
+ usr/src/man/man3c/stdio.3c              |  4 ++--
+ usr/src/man/man3c/timerfd_create.3c     |  4 ++--
+ usr/src/man/man3c/wcscasecmp.3c         |  4 ++--
+ usr/src/man/man9f/atomic_inc.9f         | 21 +++------------------
+ 25 files changed, 56 insertions(+), 223 deletions(-)
+
+diff --git a/usr/src/man/man3c/_stack_grow.3c b/usr/src/man/man3c/_stack_grow.3c
+index 2b24429718..af757f0078 100644
+--- a/usr/src/man/man3c/_stack_grow.3c
++++ b/usr/src/man/man3c/_stack_grow.3c
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH _STACK_GROW 3C "Jul 18, 2002"
++.TH _STACK_GROW 3C "February 17, 2023"
+ .SH NAME
+ _stack_grow \- express an intention to extend the stack
+ .SH SYNOPSIS
+-.LP
+ .nf
+ #include <ucontext.h>
+ 
+@@ -15,11 +14,9 @@ _stack_grow \- express an intention to extend the stack
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fB_stack_grow()\fR function indicates to the system that the stack is
+ about to be extended to the address specified by \fIaddr\fR. If extending the
+-stack to this address would violate the stack boundaries as retreived by
++stack to this address would violate the stack boundaries as retrieved by
+ \fBstack_getbounds\fR(3C), a \fBSIGSEGV\fR is raised.
+ .sp
+ .LP
+@@ -37,17 +34,11 @@ Developer's Guide.
+ This function has no effect if the specified address, \fIaddr\fR, is within the
+ bounds of the current stack.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ If the \fB_stack_grow()\fR function  succeeds and does not detect a stack
+ violation, it returns \fIaddr\fR.
+ .SH ERRORS
+-.sp
+-.LP
+ No errors are defined.
+ .SH USAGE
+-.sp
+-.LP
+ The \fB_stack_grow()\fR function does not actually adjust the stack pointer
+ register. The caller is responsible for manipulating the stack pointer register
+ once \fB_stack_grow()\fR returns.
+@@ -58,8 +49,6 @@ compilation environment prior to executing code that modifies the stack
+ pointer. It can also be used by hand-written assembly routines to allocate
+ stack-based storage safely.
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -76,8 +65,6 @@ MT-Level	Async-Signal-Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR stack_getbounds (3C),
+ .BR stack_inbounds (3C),
+ .BR stack_violation (3C),
+diff --git a/usr/src/man/man3c/atomic_inc.3c b/usr/src/man/man3c/atomic_inc.3c
+index 185a0e0da2..fdf91e515f 100644
+--- a/usr/src/man/man3c/atomic_inc.3c
++++ b/usr/src/man/man3c/atomic_inc.3c
+@@ -3,16 +3,15 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH ATOMIC_INC 3C "May 13, 2005"
++.TH ATOMIC_INC 3C "February 17, 2023"
+ .SH NAME
+ atomic_inc, atomic_inc_8, atomic_inc_uchar, atomic_inc_16, atomic_inc_ushort,
+ atomic_inc_32, atomic_inc_uint, atomic_inc_ulong, atomic_inc_64,
+ atomic_inc_ptr, atomic_inc_8_nv, atomic_inc_uchar_nv, atomic_inc_16_nv,
+ atomic_inc_ushort_nv, atomic_inc_32_nv, atomic_inc_uint_nv,
+-atomic_inc_ulong_nv, atomic_inc_64_nv, atomic_inc_ptr_nv \- atomic inrement
++atomic_inc_ulong_nv, atomic_inc_64_nv, atomic_inc_ptr_nv \- atomic increment
+ operations
+ .SH SYNOPSIS
+-.LP
+ .nf
+ #include <atomic.h>
+ 
+@@ -105,22 +104,14 @@ operations
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+-These functions enable the inrementing (by one) of the value stored in
++These functions enable the incrementing (by one) of the value stored in
+ \fItarget\fR to occur in an atomic manner.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ The *\fB_nv()\fR variants of these functions return the new value of
+ \fItarget\fR.
+ .SH ERRORS
+-.sp
+-.LP
+ No errors are defined.
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -137,8 +128,6 @@ MT-Level	MT-Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR atomic_add (3C),
+ .BR atomic_and (3C),
+ .BR atomic_bits (3C),
+@@ -150,8 +139,6 @@ MT-Level	MT-Safe
+ .BR attributes (7),
+ .BR atomic_ops (9F)
+ .SH NOTES
+-.sp
+-.LP
+ The *\fB_nv()\fR variants are substantially more expensive on some platforms
+ than the versions that do not return values. Do not use them unless you need to
+ know the new value \fBatomically\fR.
+diff --git a/usr/src/man/man3c/c16rtomb.3c b/usr/src/man/man3c/c16rtomb.3c
+index 0875bddcf4..6689ae856c 100644
+--- a/usr/src/man/man3c/c16rtomb.3c
++++ b/usr/src/man/man3c/c16rtomb.3c
+@@ -11,7 +11,7 @@
+ .\"
+ .\" Copyright 2020 Robert Mustacchi
+ .\"
+-.Dd April 23, 2020
++.Dd February 17, 2023
+ .Dt C16RTOMB 3C
+ .Os
+ .Sh NAME
+@@ -153,7 +153,7 @@ or
+ and an internal buffer
+ .Pq buf
+ will be used to write out the results of the
+-converstion.
++conversion.
+ In other words, the functions would be called as:
+ .Bd -literal -offset indent
+ c16rtomb(buf, L'\\0', ps)
+@@ -175,7 +175,7 @@ will not encode the Unicode value 0x20ac into the ISO 8859-15 value
+ Regardless of the locale, the characters returned will be encoded as
+ though the code point were the corresponding value in Unicode.
+ This means that when using UTF-16, if the corresponding code point were
+-in the range for surorgate pairs, then the
++in the range for surrogate pairs, then the
+ .Fn c16rtomb
+ function will expect to receive that code point in that fashion.
+ .Pp
+diff --git a/usr/src/man/man3c/call_once.3c b/usr/src/man/man3c/call_once.3c
+index 3ac8739c29..830a407565 100644
+--- a/usr/src/man/man3c/call_once.3c
++++ b/usr/src/man/man3c/call_once.3c
+@@ -11,7 +11,7 @@
+ .\"
+ .\" Copyright 2016 Joyent, Inc.
+ .\"
+-.Dd "Jan 11, 2015"
++.Dd "February 17, 2023"
+ .Dt CALL_ONCE 3C
+ .Os
+ .Sh NAME
+@@ -32,7 +32,7 @@ function is used to ensure that an operation occurs only once, even
+ across multiple threads.
+ Each instance of a properly initialized
+ .Ft once_flag
+-can be pased to the
++can be passed to the
+ .Ft call_once
+ function; however, only a single caller will successfully execute the
+ specified function,
+diff --git a/usr/src/man/man3c/ctime.3c b/usr/src/man/man3c/ctime.3c
+index 62bc15c83b..7a910289fe 100644
+--- a/usr/src/man/man3c/ctime.3c
++++ b/usr/src/man/man3c/ctime.3c
+@@ -44,12 +44,11 @@
+ .\" Copyright (c) 2001, The IEEE and The Open Group.  All Rights Reserved.
+ .\" Copyright (c) 2005, Sun Microsystems, Inc.  All Rights Reserved.
+ .\"
+-.TH CTIME 3C "May 27, 2005"
++.TH CTIME 3C "February 17, 2023"
+ .SH NAME
+ ctime, ctime_r, localtime, localtime_r, gmtime, gmtime_r, asctime, asctime_r,
+ tzset \- convert date and time to string
+ .SH SYNOPSIS
+-.LP
+ .nf
+ #include <time.h>
+ 
+@@ -104,7 +103,6 @@ extern char *tzname[2];
+ .fi
+ 
+ .SS "Standard conforming"
+-.LP
+ .nf
+ cc [ \fIflag\fR... ] \fIfile\fR... \fB-D_POSIX_PTHREAD_SEMANTICS\fR [ \fIlibrary\fR... ]
+ 
+@@ -117,8 +115,6 @@ cc [ \fIflag\fR... ] \fIfile\fR... \fB-D_POSIX_PTHREAD_SEMANTICS\fR [ \fIlibrary
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBctime()\fR function converts the time pointed to by \fIclock\fR,
+ representing the time in seconds since the Epoch (00:00:00 UTC, January 1,
+ 1970), to local time in the form of a 26-character string, as shown below. Time
+@@ -236,8 +232,6 @@ Note that in most installations, \fBTZ\fR is set to the correct value by
+ default when the user logs on, using the local \fB/etc/default/init\fR file
+ (see \fBTIMEZONE\fR(5)).
+ .SH RETURN VALUES
+-.sp
+-.LP
+ Upon successful completion, the \fBgmtime()\fR and \fBlocaltime()\fR functions
+ return a pointer to a \fBstruct tm\fR. If an error is detected, \fBgmtime()\fR
+ and \fBlocaltime()\fR return a null pointer.
+@@ -248,8 +242,6 @@ functions return the address of the structure pointed to by the \fIres\fR
+ argument. If an error is detected, \fBgmtime_r()\fR and \fBlocaltime_r()\fR
+ return a null pointer and set \fBerrno\fR to indicate the error.
+ .SH ERRORS
+-.sp
+-.LP
+ The \fBctime_r()\fR and \fBasctime_r()\fR functions will fail if:
+ .sp
+ .ne 2
+@@ -275,17 +267,14 @@ The result cannot be represented.
+ .RE
+ 
+ .SH USAGE
+-.sp
+-.LP
+ These functions do not support localized date and time formats. The
+ \fBstrftime\fR(3C) function can be used when localization is required.
+ .sp
+ .LP
+ The \fBlocaltime()\fR, \fBlocaltime_r()\fR, \fBgmtime()\fR, \fBgmtime_r()\fR,
+ \fBctime()\fR, and \fBctime_r()\fR functions assume Gregorian dates. Times
+-before the adoption of the Gregorian calendar will not match historial records.
++before the adoption of the Gregorian calendar will not match historical records.
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRExamples of the \fBtzset()\fR function.
+ .sp
+ .LP
+@@ -342,8 +331,6 @@ functions also update these external variables as if they had called
+ value that they are converting.
+ 
+ .SH BUGS
+-.sp
+-.LP
+ The \fBzoneinfo\fR timezone data files do not transition past Tue Jan 19
+ 03:14:07 2038 UTC.  Therefore for 64-bit applications using \fBzoneinfo\fR
+ timezones, calculations beyond this date might not use the correct offset from
+@@ -351,8 +338,6 @@ standard time, and could return incorrect values. This affects the 64-bit
+ version of \fBlocaltime()\fR, \fBlocaltime_r()\fR, \fBctime()\fR, and
+ \fBctime_r()\fR.
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -384,8 +369,6 @@ variables are not MT-Safe to access. They are modified by the \fBtzset()\fR
+ function in an MT-Safe manner. The \fBmktime()\fR, \fBlocaltime_r()\fR, and
+ \fBctime_r()\fR functions call \fBtzset()\fR.
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR time (2),
+ .BR Intro (3),
+ .BR getenv (3C),
+@@ -399,8 +382,6 @@ function in an MT-Safe manner. The \fBmktime()\fR, \fBlocaltime_r()\fR, and
+ .BR environ (7),
+ .BR standards (7)
+ .SH NOTES
+-.sp
+-.LP
+ When compiling multithreaded programs, see \fBIntro\fR(3).
+ .sp
+ .LP
+diff --git a/usr/src/man/man3c/dladdr.3c b/usr/src/man/man3c/dladdr.3c
+index 118cddbfca..d909ded387 100644
+--- a/usr/src/man/man3c/dladdr.3c
++++ b/usr/src/man/man3c/dladdr.3c
+@@ -4,11 +4,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH DLADDR 3C "Feb 4, 2009"
++.TH DLADDR 3C "February 17, 2023"
+ .SH NAME
+ dladdr, dladdr1 \- translate address to symbolic information
+ .SH SYNOPSIS
+-.LP
+ .nf
+ #include <dlfcn.h>
+ 
+@@ -21,8 +20,6 @@ dladdr, dladdr1 \- translate address to symbolic information
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBdladdr()\fR and \fBdladdr1()\fR functions determine if the specified
+ \fIaddress\fR is located within one of the mapped objects that make up the
+ current applications address space. An address is deemed to fall within a
+@@ -104,7 +101,7 @@ information found in an ELF symbol can only be properly interpreted by the
+ runtime linker. However, there are two fields that contain information useful
+ to the caller of \fBdladdr1()\fR: The \fBst_size\fR field contains the size of
+ the referenced item. The \fBst_info\fR field provides symbol type and binding
+-attributes. See the \fILinker and Libraries Guild\fR for more information.
++attributes. See the \fILinker and Libraries Guide\fR for more information.
+ .RE
+ 
+ .sp
+@@ -119,21 +116,15 @@ to a \fBLink_map\fR pointer as defined in <\fBsys/link.h\fR> (\fBLink_map
+ .RE
+ 
+ .SH RETURN VALUES
+-.sp
+-.LP
+ If the specified \fIaddress\fR cannot be matched to a mapped object, a \fB0\fR
+ is returned. Otherwise, a non-zero return is made and the associated
+ \fBDl_info_t\fR elements are filled.
+ .SH USAGE
+-.sp
+-.LP
+ The \fBdladdr()\fR and \fBdladdr1()\fR functions are one of a family of
+ functions that give the user direct access to the dynamic linking facilities.
+ These facilities are available to dynamically-linked processes only. See
+ \fILinker and Libraries Guide\fR.
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -148,8 +139,6 @@ MT-Level	MT-Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR ld (1),
+ .BR dlclose (3C),
+ .BR dldump (3C),
+@@ -161,8 +150,6 @@ MT-Level	MT-Safe
+ .LP
+ \fILinker and Libraries Guide\fR
+ .SH NOTES
+-.sp
+-.LP
+ The \fBDl_info_t\fR pointer elements point to addresses within the mapped
+ objects. These pointers can become invalid if objects are removed prior to
+ these elements use. See \fBdlclose\fR(3C).
+diff --git a/usr/src/man/man3c/dlinfo.3c b/usr/src/man/man3c/dlinfo.3c
+index 9260b380af..6004a8785f 100644
+--- a/usr/src/man/man3c/dlinfo.3c
++++ b/usr/src/man/man3c/dlinfo.3c
+@@ -4,11 +4,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH DLINFO 3C "Feb 4, 2009"
++.TH DLINFO 3C "February 17, 2023"
+ .SH NAME
+ dlinfo \- dynamic load information
+ .SH SYNOPSIS
+-.LP
+ .nf
+ #include <dlfcn.h>
+ #include <link.h>
+@@ -19,8 +18,6 @@ dlinfo \- dynamic load information
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBdlinfo()\fR function sets or extracts information from the runtime
+ linker \fBld.so.1\fR(1). This function is loosely modeled after the
+ \fBioctl\fR(2) function. The \fIrequest\fR argument and a third argument of
+@@ -238,7 +235,7 @@ uses.
+ To obtain the complete mapping information for an object, a
+ \fBmmapobj_result_t\fR array for \fBRTLD_DI_MMAPCNT\fR entries must be
+ provided. This array is assigned to the \fBdlm_maps\fR member, and the number
+-of entries available in the arry are assigned to the \fBdlm_acnt\fR member.
++of entries available in the array are assigned to the \fBdlm_acnt\fR member.
+ This initialized structure is then passed to a \fBRTLD_DI_MMAPS\fR request. See
+ \fBEXAMPLES\fR.
+ .RE
+@@ -258,7 +255,7 @@ previous \fBRTLD_DI_MMAPCNT\fR request.
+ Segment mapping information is provided in an array of \fBmmapobj_result_t\fR
+ structures that originate from the \fBmmapobj\fR(2) of the associated object.
+ The \fBdlm_acnt\fR member, typically initialized from a previous
+-\fBRTLD_DI_MMAPCNT\fR request, indicates the number of enteries in a
++\fBRTLD_DI_MMAPCNT\fR request, indicates the number of entries in a
+ \fBmmapobj_result_t\fR array. This array is assigned to the \fBdlm_maps\fR
+ member. This initialized structure is then passed to a \fBRTLD_DI_MMAPS\fR
+ request, where the segment mapping information is copied to the
+@@ -358,8 +355,6 @@ variable \fBLD_SIGNAL\fR. See \fBld.so.1\fR(1).
+ .RE
+ 
+ .SH RETURN VALUES
+-.sp
+-.LP
+ The \fBdlinfo()\fR function returns \(mi1 if the \fIrequest\fR is invalid, the
+ parameter \fIp\fR is \fINULL\fR, or the \fBDl_serinfo_t\fR structure is
+ uninitialized for a \fBRTLD_DI_SERINFO\fR request. \fBdlinfo()\fR also returns
+@@ -367,7 +362,6 @@ uninitialized for a \fBRTLD_DI_SERINFO\fR request. \fBdlinfo()\fR also returns
+ \fBdlopen()\fR, or is not the special handle \fBRTLD_SELF\fR. Detailed
+ diagnostic information is available with \fBdlerror\fR(3C).
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRUse \fBdlinfo()\fR to obtain library search paths.
+ .sp
+ .LP
+@@ -390,7 +384,7 @@ search paths that would be used to locate a simple filename with
+     info->dls_size = _info.dls_size;
+     info->dls_cnt = _info.dls_cnt;
+ 
+-    /* obtain sarch path information */
++    /* obtain search path information */
+     dlinfo(RTLD_SELF, RTLD_DI_SERINFO, info);
+ 
+     path = &info->dls_serpath[0];
+@@ -431,14 +425,10 @@ mapping information. For simplicity, error checking has been omitted
+ .in -2
+ 
+ .SH USAGE
+-.sp
+-.LP
+ The \fBdlinfo()\fR function is one of a family of functions that give the user
+ direct access to the dynamic linking facilities. These facilities are available
+ to dynamically-linked processes only. See the \fILinker and Libraries Guide\fR.
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -455,8 +445,6 @@ MT-Level	MT-Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR ld (1),
+ .BR ld.so.1 (1),
+ .BR exec (2),
+diff --git a/usr/src/man/man3c/dup2.3c b/usr/src/man/man3c/dup2.3c
+index ae84087a49..46363c75c7 100644
+--- a/usr/src/man/man3c/dup2.3c
++++ b/usr/src/man/man3c/dup2.3c
+@@ -5,11 +5,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH DUP2 3C "Feb 04, 2020"
++.TH DUP2 3C "February 17, 2023"
+ .SH NAME
+ dup2, dup3 \- duplicate an open file descriptor
+ .SH SYNOPSIS
+-.LP
+ .nf
+ #include <unistd.h>
+ 
+@@ -22,7 +21,6 @@ dup2, dup3 \- duplicate an open file descriptor
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBdup2()\fR function causes the file descriptor \fIfildes2\fR to refer to
+ the same file as \fIfildes\fR. The \fIfildes\fR argument is a file descriptor
+ referring to an open file, and \fIfildes2\fR is a non-negative integer less
+@@ -37,19 +35,17 @@ The \fBdup2()\fR function is equivalent to  \fBfcntl\fR(\fIfildes\fR,
+ \fBF_DUP2FD\fR, \fIfildes2\fR).
+ .sp
+ .LP
+-Ths \fBdup3()\fR function works similarly to the \fBdup2()\fR function with
++The \fBdup3()\fR function works similarly to the \fBdup2()\fR function with
+ two exceptions.  If \fIfildes\fR and \fIfildes2\fR point to the same file
+ descriptor, -1 is returned and errno set to \fBEINVAL\fR.  If \fIflags\fR
+ is \fBO_CLOEXEC\fR, then \fIfiledes2\fR will have the \fBFD_CLOEXEC\fR flag
+ set causing the file descriptor to be closed during any future call of
+ \fBexec\fR(2).
+ .SH RETURN VALUES
+-.LP
+ Upon successful completion a non-negative integer representing the file
+ descriptor is returned. Otherwise, \fB\(mi1\fR is returned and \fBerrno\fR is
+ set to indicate the error.
+ .SH ERRORS
+-.LP
+ The \fBdup2()\fR and \fBdup3()\fR functions will fail if:
+ .sp
+ .ne 2
+@@ -102,7 +98,6 @@ Additionally, the \fBdup3()\fR function will fail if:
+ .RE
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -119,7 +114,6 @@ MT-Level	Async-Signal-Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ .BR close (2),
+ .BR creat (2),
+ .BR exec (2),
+diff --git a/usr/src/man/man3c/epoll_create.3c b/usr/src/man/man3c/epoll_create.3c
+index fa594bdc36..a0e8101e1d 100644
+--- a/usr/src/man/man3c/epoll_create.3c
++++ b/usr/src/man/man3c/epoll_create.3c
+@@ -8,7 +8,7 @@
+ .\"  A full copy of the text of the CDDL should have accompanied this
+ .\"  source.  A copy of the CDDL is also available via the Internet at
+ .\"  http://www.illumos.org/license/CDDL.
+-.TH EPOLL_CREATE 3C "April 9, 2016"
++.TH EPOLL_CREATE 3C "February 17, 2023"
+ .SH NAME
+ epoll_create, epoll_create1 \- create an epoll instance
+ .SH SYNOPSIS
+@@ -31,7 +31,7 @@ represented as file descriptors, and should be closed via \fBclose\fR(2).
+ 
+ The only difference between the two functions is their signature;
+ \fBepoll_create()\fR takes a size argument that
+-is vestigal and is only meaningful in as much as it must be greater than
++is vestigial and is only meaningful in as much as it must be greater than
+ zero, while \fBepoll_create1()\fR takes a flags argument that can have
+ any of the following values:
+ 
+diff --git a/usr/src/man/man3c/fmemopen.3c b/usr/src/man/man3c/fmemopen.3c
+index 20145e5617..6a0299c34d 100644
+--- a/usr/src/man/man3c/fmemopen.3c
++++ b/usr/src/man/man3c/fmemopen.3c
+@@ -11,7 +11,7 @@
+ .\"
+ .\" Copyright 2020 Robert Mustacchi
+ .\"
+-.Dd March 25, 2020
++.Dd February 17, 2023
+ .Dt FMEMOPEN 3C
+ .Os
+ .Sh NAME
+@@ -75,7 +75,7 @@ argument accepts all the same values as
+ The resulting stream behaves in a similar way to a stream backed by a
+ file.
+ The stream can be read and written to.
+-The stream is seekeable and can either be byte or wide-character
++The stream is seekable and can either be byte or wide-character
+ oriented.
+ A NUL byte has no special meaning when reading.
+ .Pp
+diff --git a/usr/src/man/man3c/madvise.3c b/usr/src/man/man3c/madvise.3c
+index dd523a2c0c..b465566dce 100644
+--- a/usr/src/man/man3c/madvise.3c
++++ b/usr/src/man/man3c/madvise.3c
+@@ -17,7 +17,7 @@
+ .\" fields enclosed by brackets "[]" replaced with your own identifying
+ .\" information: Portions Copyright [yyyy] [name of copyright owner]
+ .\"
+-.Dd March 13, 2022
++.Dd February 17, 2023
+ .Dt MADVISE 3C
+ .Os
+ .Sh NAME
+@@ -27,7 +27,7 @@
+ .In sys/types.h
+ .In sys/mman.h
+ .Ft int
+-.Fo madviase
++.Fo madvise
+ .Fa "void *addr"
+ .Fa "size_t len"
+ .Fa "int advice"
+diff --git a/usr/src/man/man3c/makecontext.3c b/usr/src/man/man3c/makecontext.3c
+index 1dc62e330b..9dd873e992 100644
+--- a/usr/src/man/man3c/makecontext.3c
++++ b/usr/src/man/man3c/makecontext.3c
+@@ -44,11 +44,10 @@
+ .\" Portions Copyright (c) 1992, X/Open Company Limited.  All Rights Reserved.
+ .\" Copyright (c) 2004, Sun Microsystems, Inc.  All Rights Reserved.
+ .\"
+-.TH MAKECONTEXT 3C "Mar 8, 2004"
++.TH MAKECONTEXT 3C "February 17, 2023"
+ .SH NAME
+ makecontext, swapcontext \- manipulate user contexts
+ .SH SYNOPSIS
+-.LP
+ .nf
+ #include <ucontext.h>
+ 
+@@ -62,8 +61,6 @@ makecontext, swapcontext \- manipulate user contexts
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBmakecontext()\fR function modifies the context specified by \fIucp\fR,
+ which has been initialized using \fBgetcontext\fR(2). When this context is
+ resumed using \fBswapcontext()\fR or \fBsetcontext\fR(2), execution continues
+@@ -94,13 +91,9 @@ structure pointed to by \fIucp\fR.
+ If the \fIucp\fR or \fIoucp\fR argument points to an invalid address, the
+ behavior is undefined and \fBerrno\fR may be set to \fBEFAULT\fR.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ On successful completion, \fBswapcontext()\fR returns \fB0\fR. Otherwise,
+ \fB\(mi1\fR is returned and \fBerrno\fR is set to indicate the error.
+ .SH ERRORS
+-.sp
+-.LP
+ The \fBswapcontext()\fR function will fail if:
+ .sp
+ .ne 2
+@@ -125,7 +118,6 @@ The \fIucp\fR or \fIoucp\fR argument points to an invalid address.
+ .RE
+ 
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRAlternate execution context on a stack whose memory was
+ allocated using \fBmmap()\fR.
+ .sp
+@@ -169,15 +161,11 @@ main(int argc, char **argv)
+ .in -2
+ 
+ .SH USAGE
+-.sp
+-.LP
+ These functions are useful for implementing user-level context switching
+ between multiple threads of control within a process (co-processing). More
+ effective multiple threads of control can be obtained by using native support
+ for multithreading. See \fBthreads\fR(7).
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -194,8 +182,6 @@ MT-Level	MT-Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR getcontext (2),
+ .BR mmap (2),
+ .BR sigaction (2),
+@@ -206,8 +192,6 @@ MT-Level	MT-Safe
+ .BR standards (7),
+ .BR threads (7)
+ .SH NOTES
+-.sp
+-.LP
+ The semantics of the \fBuc_stack\fR member of the \fBucontext_t\fR structure
+ have changed as they apply to inputs to \fBmakecontext()\fR. Prior to Solaris
+ 10, the \fBss_sp\fR member of the \fBuc_stack\fR structure represented the high
+@@ -223,7 +207,7 @@ releases to access this behavior is obsolete.
+ .LP
+ Binary compatibility has been preserved with releases prior to Solaris 10.
+ Before recompiling, applications that use \fBmakecontext()\fR must be updated
+-to reflect this behavior change. The example below demonstates a typical change
++to reflect this behavior change. The example below demonstrates a typical change
+ that must be applied:
+ .sp
+ .in +2
+diff --git a/usr/src/man/man3c/mbrlen.3c b/usr/src/man/man3c/mbrlen.3c
+index c1a6260ef1..174fbde09d 100644
+--- a/usr/src/man/man3c/mbrlen.3c
++++ b/usr/src/man/man3c/mbrlen.3c
+@@ -44,11 +44,10 @@
+ .\" Portions Copyright (c) 2003, Sun Microsystems, Inc.  All Rights Reserved.
+ .\" Copyright 2014 Garrett D'Amore <garrett@damore.org>
+ .\"
+-.TH MBRLEN 3C "Jun 21, 2014"
++.TH MBRLEN 3C "February 17, 2023"
+ .SH NAME
+ mbrlen, mbrlen_l \- get number of bytes in a character (restartable)
+ .SH SYNOPSIS
+-.LP
+ .nf
+ #include <wchar.h>
+ 
+@@ -63,7 +62,6 @@ mbrlen, mbrlen_l \- get number of bytes in a character (restartable)
+     \fBlocale_t\fR \fIloc\fR);
+ .fi
+ .SH DESCRIPTION
+-.LP
+ If \fIs\fR is not a null pointer,  \fBmbrlen()\fR and \fBmbrlen_l()\fR determine
+ the number of bytes constituting the character pointed to by \fIs\fR.
+ The call
+@@ -84,14 +82,13 @@ functions use their own
+ internal \fBmbstate_t\fR object, which is initialized at program startup to the
+ initial conversion state.   Otherwise, the  \fBmbstate_t\fR object pointed to
+ by \fIps\fR is used to completely describe the current conversion state of the
+-associated character sequence. The implemenation will behave as if no function
++associated character sequence. The implementation will behave as if no function
+ defined in the Reference Manual calls \fBmbrlen()\fR.
+ .LP
+ The behavior of \fBmbrlen()\fR is affected by the \fBLC_CTYPE\fR category of the
+ current locale.  See \fBenviron\fR(7). The behavior of \fBmbrlen_l()\fR does not
+-use the current enivronment and instead uses the locale specified by \fBloc\fR.
++use the current environment and instead uses the locale specified by \fBloc\fR.
+ .SH RETURN VALUES
+-.LP
+ The \fBmbrlen()\fR and \fBmbrlen_l()\fR functions return the first of the
+ following that applies:
+ .sp
+@@ -139,7 +136,6 @@ is stored in \fBerrno\fR and the conversion state is undefined.
+ .RE
+ 
+ .SH ERRORS
+-.LP
+ The \fBmbrlen()\fR and \fBmbrlen_l()\fR functions may fail if:
+ .sp
+ .ne 2
+@@ -161,7 +157,6 @@ Invalid character sequence is detected.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .TS
+ box;
+@@ -181,7 +176,6 @@ function is Standard.  The
+ .B mbrlen_l()
+ function is Uncommitted.
+ .SH SEE ALSO
+-.LP
+ .BR mbrtowc (3C),
+ .BR mbsinit (3C),
+ .BR newlocale (3C),
+@@ -190,8 +184,6 @@ function is Uncommitted.
+ .BR environ (7),
+ .BR standards (7)
+ .SH NOTES
+-.sp
+-.LP
+ If \fIps\fR is not a null pointer, \fBmbrlen()\fR uses the \fBmbstate_t\fR
+ object pointed to by \fIps\fR and the function can be used safely in
+ multithreaded applications, as long as \fBsetlocale\fR(3C) is not being called
+diff --git a/usr/src/man/man3c/mkstemp.3c b/usr/src/man/man3c/mkstemp.3c
+index d1a5e51d8d..a22b22d583 100644
+--- a/usr/src/man/man3c/mkstemp.3c
++++ b/usr/src/man/man3c/mkstemp.3c
+@@ -44,12 +44,11 @@
+ .\" Portions Copyright (c) 2006, Sun Microsystems, Inc.  All Rights Reserved.
+ .\" Copyright (c) 2013, OmniTI Computer Consulting, Inc. All rights reserved.
+ .\"
+-.TH MKSTEMP 3C "Apr 19, 2013"
++.TH MKSTEMP 3C "February 17, 2023"
+ .SH NAME
+ mkstemp, mkstemps, mkostemp, mkostemps, mkdtemp \- make a unique file name from a template and open
+ the file
+ .SH SYNOPSIS
+-.LP
+ .nf
+ #include <stdlib.h>
+ 
+@@ -77,8 +76,6 @@ the file
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBmkstemp()\fR function replaces the contents of the string pointed to by
+ \fItemplate\fR by a unique file name, and returns a file descriptor for the
+ file open for reading and writing. The function thus prevents any possible race
+@@ -96,7 +93,7 @@ specifies the length of the suffix string.
+ .sp
+ .LP
+ The \fBmkostemp()\fR and \fBmkostemps\fR are like their \fBmkstemp()\fR and
+-\fBmkstemps()\fR couterparts except that the \fIflags\fR argument is present
++\fBmkstemps()\fR counterparts except that the \fIflags\fR argument is present
+ and used to supplement (as a bitwise inclusive-OR) flags to internal
+ \fBopen()\fR calls.  (e.g. \fBO_SYNC\fR, \fBO_APPEND\fR, and \fBO_CLOEXEC\fR).
+ .sp
+@@ -105,13 +102,9 @@ The \fBmkdtemp()\fR function makes the same replacement to the template as in
+ \fBmktemp\fR(3C) and creates the template directory using \fBmkdir\fR(2),
+ passing a \fImode\fR argument of 0700.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ Upon successful completion, \fBmkstemp()\fR returns an open file descriptor.
+ Otherwise \(mi1 is returned if no suitable file could be created.
+ .SH ERRORS
+-.sp
+-.LP
+ The \fBmkstemp()\fR, \fBmkstemps()\fR, and \fBmkdtemp()\fR functions can set
+ \fBerrno\fR to the same values as \fBlstat\fR(2).
+ .sp
+@@ -123,8 +116,6 @@ same values as \fBopen\fR(2).
+ The \fBmkdtemp()\fR function can set \fBerrno\fR to the same values as
+ \fBmkdir\fR(2).
+ .SH USAGE
+-.sp
+-.LP
+ It is possible to run out of letters.
+ .sp
+ .LP
+@@ -142,8 +133,6 @@ will be removed by the application before the application terminates.
+ The \fBmkstemp()\fR function has a transitional interface for 64-bit file
+ offsets. See \fBlf64\fR(7).
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -162,8 +151,6 @@ Interface Stability	See below.
+ The \fBmkstemp()\fR function is Standard. The \fBmkstemps()\fR and
+ \fBmkdtemp()\fR functions are Stable.
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR getpid (2),
+ .BR lstat (2),
+ .BR mkdir (2),
+diff --git a/usr/src/man/man3c/mktime.3c b/usr/src/man/man3c/mktime.3c
+index 326bb2f701..5a79164c09 100644
+--- a/usr/src/man/man3c/mktime.3c
++++ b/usr/src/man/man3c/mktime.3c
+@@ -45,11 +45,10 @@
+ .\" Copyright (c) 2003, Sun Microsystems, Inc.  All Rights Reserved.
+ .\" Copyright 2016 Joyent, Inc.
+ .\"
+-.TH MKTIME 3C "Mar 14, 2016"
++.TH MKTIME 3C "February 17, 2023"
+ .SH NAME
+ mktime, timegm \- convert a tm structure to a calendar time
+ .SH SYNOPSIS
+-.LP
+ .nf
+ #include <time.h>
+ 
+@@ -61,7 +60,6 @@ mktime, timegm \- convert a tm structure to a calendar time
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBmktime()\fR function converts the time represented by the \fBtm\fR
+ structure pointed to by \fItimeptr\fR into a calendar time  (the number of
+ seconds since 00:00:00 UTC, January 1, 1970).
+@@ -127,14 +125,12 @@ except that the \fBtimegm()\fR function ignores both the current time
+ zone and the \fBtm_isdst\fR member and operates as though the time zone
+ were set to UTC.
+ .SH RETURN VALUES
+-.LP
+ If the calendar time can be represented in an object of type
+ \fBtime_t\fR, the \fBmktime()\fR and \fBtimegm()\fR functions return the
+ specified calendar time without changing \fBerrno\fR. If the calendar
+ time cannot be represented, the function returns the value
+ (\fBtime_t\fR)\(mi1 and sets \fBerrno\fR to indicate the error.
+ .SH ERRORS
+-.LP
+ The \fBmktime()\fR and \fBtimegm()\fR functions will fail if:
+ .sp
+ .ne 2
+@@ -148,7 +144,6 @@ to the standards specify a different value.
+ .RE
+ 
+ .SH USAGE
+-.LP
+ The \fBmktime()\fR and \fBtimegm()\fR functions are MT-Safe in
+ multithreaded applications, as long as no user-defined function directly
+ modifies one of the following variables: \fBtimezone\fR, \fBaltzone\fR,
+@@ -164,9 +159,8 @@ determine whether or not an error actually occurred.
+ .LP
+ The \fBmktime()\fR and \fBtimegm()\fR functions assume Gregorian dates.
+ Times before the adoption of the Gregorian calendar will not match
+-historial records.
++historical records.
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRSample code using \fBmktime()\fR.
+ .sp
+ .LP
+@@ -197,14 +191,12 @@ printf("%s\en", wday[time_str.tm_wday]);
+ .in -2
+ 
+ .SH BUGS
+-.LP
+ The \fBzoneinfo\fR timezone data files do not transition past Tue Jan 19
+ 03:14:07 2038 UTC.  Therefore for 64-bit applications using \fBzoneinfo\fR
+ timezones, calculations beyond this date may not use the correct offset from
+ standard time, and could return incorrect values. This affects the 64-bit
+ versions of \fBmktime()\fR and \fBtimegm()\fR.
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -221,7 +213,6 @@ MT-Level	MT-Safe with exceptions
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ .BR ctime (3C),
+ .BR getenv (3C),
+ .BR TIMEZONE (5),
+diff --git a/usr/src/man/man3c/pfmt.3c b/usr/src/man/man3c/pfmt.3c
+index 4823473b7d..9482f41282 100644
+--- a/usr/src/man/man3c/pfmt.3c
++++ b/usr/src/man/man3c/pfmt.3c
+@@ -3,7 +3,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PFMT 3C "Dec 29, 1996"
++.TH PFMT 3C "February 17, 2023"
+ .SH NAME
+ pfmt \- display error message in standard format
+ .SH SYNOPSIS
+@@ -61,7 +61,7 @@ this case, the \fBformat\fR argument has the following structure:
+ .LP
+ The \fBpfmt()\fR will output \fBMessage not found!!\en\fR as format string if
+ \fIcatalog\fR is not a valid catalog name, if no catalog is specified (either
+-explicitely or with \fBsetcat()\fR), if \fImsgnum\fR is not a valid number, or
++explicitly or with \fBsetcat()\fR), if \fImsgnum\fR is not a valid number, or
+ if no message could be retrieved from the message databases and \fIdefmsg\fR
+ was omitted.
+ .sp
+diff --git a/usr/src/man/man3c/port_create.3c b/usr/src/man/man3c/port_create.3c
+index 6c340c2ad2..e010f365e1 100644
+--- a/usr/src/man/man3c/port_create.3c
++++ b/usr/src/man/man3c/port_create.3c
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PORT_CREATE 3C "April 9, 2016"
++.TH PORT_CREATE 3C "February 17, 2023"
+ .SH NAME
+ port_create \- create a port
+ .SH SYNOPSIS
+-.LP
+ .nf
+ #include <port.h>
+ 
+@@ -15,7 +14,6 @@ port_create \- create a port
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBport_create()\fR function establishes a queue that multiplexes events
+ from disjoint sources.  Each source has a corresponding object type and
+ source-specific mechanism for associating an object with a port.
+@@ -71,7 +69,7 @@ generated by \fBport_send\fR(3C) or \fBport_sendn\fR(3C).
+ .sp
+ .LP
+ \fBPORT_SOURCE_ALERT\fR events indicate that the port itself is in alert mode.
+-The mode of the port is changed with \fBport_alert\fR(3C).The
++The mode of the port is changed with \fBport_alert\fR(3C). The
+ \fBport_create()\fR function returns a file descriptor that represents a newly
+ created port. The \fBclose\fR(2) function destroys the port and frees all
+ allocated resources.
+@@ -100,16 +98,14 @@ If a port is exported to other processes, the port is destroyed on last close.
+ .LP
+ \fBPORT_SOURCE_USER\fR and \fBPORT_SOURCE_ALERT\fR events can be distributed
+ across processes. \fBPORT_SOURCE_FD\fR events can only be shared between
+-processes when child processes inherit opened file decriptors from the parent
++processes when child processes inherit opened file descriptors from the parent
+ process. See \fBfork\fR(2). \fBPORT_SOURCE_TIMER\fR and \fBPORT_SOURCE_AIO\fR
+ cannot be shared between processes.
+ .SH RETURN VALUES
+-.LP
+ Upon successful completion, the \fBport_create()\fR function returns a
+ non-negative value, the port identifier. Otherwise, \(mi1 is returned and errno
+ is set to indicate the error.
+ .SH ERRORS
+-.LP
+ The \fBport_create()\fR function will fail if:
+ .sp
+ .ne 2
+@@ -133,7 +129,6 @@ The process has too many open descriptors.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -152,7 +147,6 @@ MT-Level	Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ .BR close (2),
+ .BR exit (2),
+ .BR fork (2),
+diff --git a/usr/src/man/man3c/pthread_mutex_init.3c b/usr/src/man/man3c/pthread_mutex_init.3c
+index 2c34ddbe3a..e51e673d82 100644
+--- a/usr/src/man/man3c/pthread_mutex_init.3c
++++ b/usr/src/man/man3c/pthread_mutex_init.3c
+@@ -45,7 +45,7 @@
+ .\" Copyright (c) 2008, Sun Microsystems, Inc.  All Rights Reserved.
+ .\" Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
+ .\"
+-.Dd February 18, 2022
++.Dd February 17, 2023
+ .Dt PTHREAD_MUTEX_INIT 3C
+ .Os
+ .Sh NAME
+@@ -216,7 +216,6 @@ is invalid.
+ .Sh SEE ALSO
+ .Xr pthread_cond_timedwait 3C ,
+ .Xr pthread_cond_wait 3C ,
+-.Xr pthread_muteattr_init 3C ,
+ .Xr pthread_mutex_lock 3C ,
+ .Xr pthread_mutexattr_init 3C ,
+ .Xr pthread_mutexattr_setrobust 3C ,
+diff --git a/usr/src/man/man3c/rwlock.3c b/usr/src/man/man3c/rwlock.3c
+index 23db83a0b0..5221c0736e 100644
+--- a/usr/src/man/man3c/rwlock.3c
++++ b/usr/src/man/man3c/rwlock.3c
+@@ -3,12 +3,11 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH RWLOCK 3C "Dec 19, 2013"
++.TH RWLOCK 3C "February 17, 2023"
+ .SH NAME
+ rwlock, rwlock_init, rwlock_destroy, rw_rdlock, rw_wrlock, rw_tryrdlock,
+ rw_trywrlock, rw_unlock \- multiple readers, single writer locks
+ .SH SYNOPSIS
+-.LP
+ .nf
+ cc -mt [ \fIflag\fR... ] \fIfile\fR...[ \fIlibrary\fR... ]
+ 
+@@ -48,8 +47,6 @@ cc -mt [ \fIflag\fR... ] \fIfile\fR...[ \fIlibrary\fR... ]
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ Many threads can have simultaneous read-only access to data, while only one
+ thread can have write access at any given time. Multiple read access with
+ single write access is controlled by locks, which are generally used to protect
+@@ -80,7 +77,7 @@ The \fItype\fR argument can be one of the following:
+ The readers/writer lock can synchronize threads in this process and other
+ processes. The readers/writer lock should be initialized by only one process.
+ \fIarg\fR is ignored. A readers/writer lock initialized with this type, must be
+-allocated in memory shared between processses, i.e. either in Sys V shared
++allocated in memory shared between processes, i.e. either in Sys V shared
+ memory (see \fBshmop\fR(2)) or in memory mapped to a file (see \fBmmap\fR(2)).
+ It is illegal to initialize the object this way and to not allocate it in such
+ shared memory.
+@@ -183,13 +180,9 @@ waiting threads. If the calling thread does not hold the lock for either
+ reading or writing, no error status is returned, and the program's behavior is
+ unknown.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ If successful, these functions return \fB0\fR. Otherwise, a non-zero value is
+ returned to indicate the error.
+ .SH ERRORS
+-.sp
+-.LP
+ The \fBrwlock_init()\fR function will fail if:
+ .sp
+ .ne 2
+@@ -225,8 +218,6 @@ These functions may fail if:
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -241,13 +232,9 @@ MT-Level	MT-Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR mmap (2),
+ .BR attributes (7)
+ .SH NOTES
+-.sp
+-.LP
+ These interfaces also available by way of:
+ .sp
+ .LP
+diff --git a/usr/src/man/man3c/setcat.3c b/usr/src/man/man3c/setcat.3c
+index 416be6cb0b..206fbbd94f 100644
+--- a/usr/src/man/man3c/setcat.3c
++++ b/usr/src/man/man3c/setcat.3c
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH SETCAT 3C "Dec 29, 1996"
++.TH SETCAT 3C "February 17, 2023"
+ .SH NAME
+ setcat \- define default catalog
+ .SH SYNOPSIS
+-.LP
+ .nf
+ #include <pfmt.h>
+ 
+@@ -15,8 +14,6 @@ setcat \- define default catalog
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBsetcat()\fR function defines the default message catalog to be used by
+ subsequent calls to \fBgettxt\fR(3C), \fBlfmt\fR(3C), or \fBpfmt\fR(3C) that do
+ not explicitly specify a message catalog.
+@@ -38,15 +35,12 @@ as an argument will cancel the default catalog.
+ .LP
+ If no default catalog is specified, or if \fIcatalog\fR is an invalid catalog
+ name, subsequent calls to \fBgettxt\fR(3C), \fBlfmt\fR(3C), or \fBpfmt\fR(3C)
+-that do not explicitely specify a catalog name will use \fBMessage not
++that do not explicitly specify a catalog name will use \fBMessage not
+ found!!\en\fR as default string.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ Upon successful completion, \fBsetcat()\fR returns a pointer to the catalog
+ name.  Otherwise, it returns a null pointer.
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRExample of \fBsetcat()\fR function.
+ .sp
+ .in +2
+@@ -57,8 +51,6 @@ name.  Otherwise, it returns a null pointer.
+ .in -2
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -73,8 +65,6 @@ MT-Level	MT-Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR gettxt (3C),
+ .BR lfmt (3C),
+ .BR pfmt (3C),
+diff --git a/usr/src/man/man3c/signalfd.3c b/usr/src/man/man3c/signalfd.3c
+index 0137c18c38..55e9a3b05e 100644
+--- a/usr/src/man/man3c/signalfd.3c
++++ b/usr/src/man/man3c/signalfd.3c
+@@ -10,7 +10,7 @@
+ .\"
+ .\"  Copyright 2016, Joyent, Inc.
+ .\"
+-.Dd "May 05, 2016"
++.Dd "February 17, 2023"
+ .Dt SIGNALFD 3C
+ .Os
+ .Sh NAME
+@@ -123,7 +123,7 @@ and
+ .Fa POLLRDNORM
+ will be set.
+ .It Sy close(2)
+-Closes the desriptor.
++Closes the descriptor.
+ .El
+ .Pp
+ The
+diff --git a/usr/src/man/man3c/stdio.3c b/usr/src/man/man3c/stdio.3c
+index 541b0e3c20..88c4f859e0 100644
+--- a/usr/src/man/man3c/stdio.3c
++++ b/usr/src/man/man3c/stdio.3c
+@@ -4,7 +4,7 @@
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+ .\" Copyright 2020 Robert Mustacchi
+-.TH STDIO 3C "March 25, 2020"
++.TH STDIO 3C "February 17, 2023"
+ .SH NAME
+ stdio, stdin, stdout, stderr \- standard buffered input/output package
+ .SH SYNOPSIS
+@@ -314,7 +314,7 @@ will print everything out together, blocking other threads that might want to
+ write to the same file between calls to \fBfprintf()\fR.
+ .sp
+ .LP
+-An unlocked interface is available in case performace is an issue.  For
++An unlocked interface is available in case performance is an issue.  For
+ example:
+ .sp
+ .in +2
+diff --git a/usr/src/man/man3c/timerfd_create.3c b/usr/src/man/man3c/timerfd_create.3c
+index b453f90e16..796267885b 100644
+--- a/usr/src/man/man3c/timerfd_create.3c
++++ b/usr/src/man/man3c/timerfd_create.3c
+@@ -11,7 +11,7 @@
+ .\"
+ .\" Copyright (c) 2015, Joyent, Inc. All Rights Reserved.
+ .\"
+-.Dd March 26, 2017
++.Dd February 17, 2023
+ .Dt TIMERFD 3C
+ .Os
+ .Sh NAME
+@@ -31,7 +31,7 @@
+ .Fa "int fd"
+ .Fa "int flags"
+ .Fa "const struct itimerspec *restrict value"
+-.Fa "struct itimterspec *restrict ovalue"
++.Fa "struct itimerspec *restrict ovalue"
+ .Fc
+ .Ft int
+ .Fo timerfd_gettime
+diff --git a/usr/src/man/man3c/wcscasecmp.3c b/usr/src/man/man3c/wcscasecmp.3c
+index 34972ee3ff..072ee1a9fe 100644
+--- a/usr/src/man/man3c/wcscasecmp.3c
++++ b/usr/src/man/man3c/wcscasecmp.3c
+@@ -11,7 +11,7 @@
+ .\"
+ .\" Copyright 2014 Garrett D'Amore <garrett@damore.org>
+ .\"
+-.Dd "April 9, 2016"
++.Dd "February 17, 2023"
+ .Dt WCSCASECMP 3C
+ .Os
+ .Sh NAME
+@@ -113,7 +113,7 @@ and
+ functions are the wide-character equivalents of the
+ .Fn strcasecmp ,
+ .Fn strncasecmp ,
+-.Fn strcasemp_l ,
++.Fn strcasecmp_l ,
+ and
+ .Fn strncasecmp_l
+ functions, respectively.
+diff --git a/usr/src/man/man9f/atomic_inc.9f b/usr/src/man/man9f/atomic_inc.9f
+index 126fdadaf6..fecbd3e5b0 100644
+--- a/usr/src/man/man9f/atomic_inc.9f
++++ b/usr/src/man/man9f/atomic_inc.9f
+@@ -4,16 +4,15 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH ATOMIC_INC 9F "Jan 16, 2006"
++.TH ATOMIC_INC 9F "February 17, 2023"
+ .SH NAME
+ atomic_inc, atomic_inc_8, atomic_inc_uchar, atomic_inc_16, atomic_inc_ushort,
+ atomic_inc_32, atomic_inc_uint, atomic_inc_ulong, atomic_inc_64,
+ atomic_inc_ptr, atomic_inc_8_nv, atomic_inc_uchar_nv, atomic_inc_16_nv,
+ atomic_inc_ushort_nv, atomic_inc_32_nv, atomic_inc_uint_nv,
+-atomic_inc_ulong_nv, atomic_inc_64_nv, atomic_inc_ptr_nv \- atomic inrement
++atomic_inc_ulong_nv, atomic_inc_64_nv, atomic_inc_ptr_nv \- atomic increment
+ operations
+ .SH SYNOPSIS
+-.LP
+ .nf
+ #include <sys/atomic.h>
+ 
+@@ -106,26 +105,16 @@ operations
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+-These functions enable the inrementing (by one) of the value stored in
++These functions enable the incrementing (by one) of the value stored in
+ \fItarget\fR to occur in an atomic manner.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ The *\fB_nv()\fR variants of these functions return the new value of
+ \fItarget\fR.
+ .SH ERRORS
+-.sp
+-.LP
+ No errors are defined.
+ .SH CONTEXT
+-.sp
+-.LP
+ These functions can be called from user, interrupt, or kernel context.
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -140,8 +129,6 @@ Interface Stability	Committed
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR atomic_ops (3C),
+ .BR attributes (7),
+ .BR atomic_add (9F),
+@@ -153,8 +140,6 @@ Interface Stability	Committed
+ .BR atomic_swap (9F),
+ .BR membar_ops (9F)
+ .SH NOTES
+-.sp
+-.LP
+ The *\fB_nv()\fR variants are substantially more expensive on some platforms
+ than the versions that do not return values. Do not use them unless you need to
+ know the new value \fBatomically\fR.
+-- 
+2.43.0
+

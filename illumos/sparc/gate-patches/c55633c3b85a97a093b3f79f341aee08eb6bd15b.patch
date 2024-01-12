@@ -1,0 +1,1101 @@
+From c55633c3b85a97a093b3f79f341aee08eb6bd15b Mon Sep 17 00:00:00 2001
+From: Peter Tribble <peter.tribble@gmail.com>
+Date: Sun, 15 May 2022 18:56:02 +0100
+Subject: [PATCH] 14605 More incorrect cross-references in the manual Reviewed
+ by: Andy Fiddaman <andy@omnios.org> Reviewed by: Richard Lowe
+ <richlowe@richlowe.net> Reviewed by: Yuri Pankov <ypankov@tintri.com>
+ Approved by: Dan McDonald <danmcd@mnx.io>
+
+---
+ usr/src/man/man1/mandoc.1                     | 10 +++----
+ usr/src/man/man1/zonestat.1                   |  4 +--
+ usr/src/man/man3nsl/gethostbyname.3nsl        |  6 ++--
+ usr/src/man/man3proc/Pupanic.3proc            |  4 +--
+ usr/src/man/man3socket/getaddrinfo.3socket    | 14 ++--------
+ .../man/man3socket/getipnodebyname.3socket    | 11 ++------
+ usr/src/man/man3socket/getnetbyname.3socket   | 28 ++++---------------
+ usr/src/man/man4d/bnxe.4d                     |  4 +--
+ usr/src/man/man4fs/hsfs.4fs                   | 10 +++----
+ usr/src/man/man4p/inet6.4p                    | 15 +++-------
+ usr/src/man/man5/gateways.5                   | 14 ++++------
+ usr/src/man/man5/hosts.5                      | 13 +++------
+ usr/src/man/man5/networks.5                   | 11 ++------
+ usr/src/man/man5/overlay_files.5              |  8 +++---
+ usr/src/man/man7/mdoc.7                       |  6 ++--
+ usr/src/man/man7/overlay.7                    |  4 +--
+ usr/src/man/man8/fmthard.8                    |  4 +--
+ usr/src/man/man8/in.routed.8                  | 16 ++---------
+ usr/src/man/man8/ipaddrsel.8                  | 15 ++--------
+ usr/src/man/man8/zonestatd.8                  |  4 +--
+ usr/src/man/man8/zpool.8                      |  4 +--
+ usr/src/man/man8/ztest.8                      |  4 +--
+ 22 files changed, 69 insertions(+), 140 deletions(-)
+
+diff --git a/usr/src/man/man1/mandoc.1 b/usr/src/man/man1/mandoc.1
+index f3ed8b4e92..7dbaa30661 100644
+--- a/usr/src/man/man1/mandoc.1
++++ b/usr/src/man/man1/mandoc.1
+@@ -15,7 +15,7 @@
+ .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ .\"
+-.Dd $Mdocdate: August 14 2021 $
++.Dd March 30, 2022
+ .Dt MANDOC 1
+ .Os
+ .Sh NAME
+@@ -858,7 +858,7 @@ macro, of the
+ .Fl Ios
+ command line option, or, if neither are present, in the return value
+ of the
+-.Xr uname 3
++.Xr uname 2
+ function.
+ .Ss Conventions for base system manuals
+ .Bl -ohang
+@@ -1147,7 +1147,7 @@ The date given in a
+ or
+ .Ic \&TH
+ macro is more than a day ahead of the current system
+-.Xr time 3 .
++.Xr time 2 .
+ .It Sy "missing Os macro, using \(dq\(dq"
+ .Pq mdoc
+ The default or current system is not shown in this case.
+@@ -2106,12 +2106,12 @@ The request is ignored including all its arguments.
+ The first call to
+ .Ic \&Nm ,
+ or any call in the NAME section, lacks the required argument.
+-.It Sy "uname(3) system call failed, using UNKNOWN"
++.It Sy "uname(2) system call failed, using UNKNOWN"
+ .Pq mdoc
+ The
+ .Ic \&Os
+ macro is called without arguments, and the
+-.Xr uname 3
++.Xr uname 2
+ system call failed.
+ As a workaround,
+ .Nm
+diff --git a/usr/src/man/man1/zonestat.1 b/usr/src/man/man1/zonestat.1
+index 2f448ca45e..59e86dd24c 100644
+--- a/usr/src/man/man1/zonestat.1
++++ b/usr/src/man/man1/zonestat.1
+@@ -11,7 +11,7 @@
+ .\" Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+ .\" Copyright 2019 OmniOS Community Edition (OmniOSce) Association.
+ .\"
+-.Dd December 29, 2021
++.Dd March 30, 2022
+ .Dt ZONESTAT 1
+ .Os
+ .Sh NAME
+@@ -471,6 +471,7 @@ zones, will be reported as used by
+ .Em system .
+ .Sh SEE ALSO
+ .Xr date 1 ,
++.Xr prctl 1 ,
+ .Xr libzonestat 3lib ,
+ .Xr timezone 5 ,
+ .Xr privileges 7 ,
+@@ -478,7 +479,6 @@ zones, will be reported as used by
+ .Xr zones 7 ,
+ .Xr pooladm 8 ,
+ .Xr poolcfg 8 ,
+-.Xr prctl 8 ,
+ .Xr rcapadm 8 ,
+ .Xr zoneadm 8 ,
+ .Xr zonecfg 8 ,
+diff --git a/usr/src/man/man3nsl/gethostbyname.3nsl b/usr/src/man/man3nsl/gethostbyname.3nsl
+index a53c6edf51..885847600d 100644
+--- a/usr/src/man/man3nsl/gethostbyname.3nsl
++++ b/usr/src/man/man3nsl/gethostbyname.3nsl
+@@ -44,7 +44,7 @@
+ .\" Portions Copyright (c) 1992, X/Open Company Limited. All Rights Reserved
+ .\" Copyright (c) 2008, Sun Microsystems, Inc. All Rights Reserved.
+ .\"
+-.TH GETHOSTBYNAME 3NSL "June 18, 2021"
++.TH GETHOSTBYNAME 3NSL "March 30, 2022"
+ .SH NAME
+ gethostbyname, gethostbyname_r, gethostbyaddr, gethostbyaddr_r, gethostent,
+ gethostent_r, sethostent, endhostent \- get network host entry
+@@ -366,9 +366,9 @@ T}
+ .BR Intro (2),
+ .BR Intro (3),
+ .BR byteorder (3C),
++.BR inet (3C),
+ .BR netdb.h (3HEAD),
+ .BR netdir (3NSL),
+-.BR inet (3SOCKET),
+ .BR hosts (5),
+ .BR netconfig (5),
+ .BR nss (5),
+@@ -430,6 +430,6 @@ for the Internet address family (type \fBAF_INET\fR).
+ .sp
+ .LP
+ The form for an address of type \fBAF_INET\fR is a \fBstruct in_addr\fR defined
+-in <\fBnetinet/in.h\fR>. The functions described in \fBinet\fR(3SOCKET), and
++in <\fBnetinet/in.h\fR>. The functions described in \fBinet\fR(3C), and
+ illustrated in the \fBEXAMPLES\fR section, are helpful in constructing and
+ manipulating addresses in this form.
+diff --git a/usr/src/man/man3proc/Pupanic.3proc b/usr/src/man/man3proc/Pupanic.3proc
+index fcf709e9f6..ce0e886ec3 100644
+--- a/usr/src/man/man3proc/Pupanic.3proc
++++ b/usr/src/man/man3proc/Pupanic.3proc
+@@ -11,7 +11,7 @@
+ .\"
+ .\" Copyright 2020 Oxide Comptuer Company
+ .\"
+-.Dd October 31, 2020
++.Dd March 30, 2022
+ .Dt PUPANIC 3PROC
+ .Os
+ .Sh NAME
+@@ -98,6 +98,6 @@ See
+ in
+ .Xr libproc 3LIB .
+ .Sh SEE ALSO
+-.Xr upanic 3C ,
++.Xr upanic 2 ,
+ .Xr libproc 3LIB ,
+ .Xr core 5
+diff --git a/usr/src/man/man3socket/getaddrinfo.3socket b/usr/src/man/man3socket/getaddrinfo.3socket
+index fa14f040f8..87920be09b 100644
+--- a/usr/src/man/man3socket/getaddrinfo.3socket
++++ b/usr/src/man/man3socket/getaddrinfo.3socket
+@@ -3,12 +3,11 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+ .\"  See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with
+ .\" the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH GETADDRINFO 3SOCKET "Feb 25, 2017"
++.TH GETADDRINFO 3SOCKET "March 30, 2022"
+ .SH NAME
+ getaddrinfo, getnameinfo, freeaddrinfo, gai_strerror \- translate between node
+ name and address
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBcc\fR [ \fIflag\fR\&.\|.\|. ] \fIfile\fR \&.\|.\|. \fB-lsocket\fR \fB -lnsl \fR [ \fIlibrary\fR \&.\|.\|. ]
+ #include <sys/socket.h>
+@@ -36,7 +35,6 @@ name and address
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ These functions perform translations from node name to address and from address
+ to node name in a protocol-independent manner.
+ .sp
+@@ -277,7 +275,7 @@ hosts.
+ If the flag bit \fBNI_NUMERICHOST\fR is set, or if the host's name cannot be
+ located in the name service, the numeric form of the host's address is returned
+ instead of its name, for example, by calling \fBinet_ntop()\fR (see
+-\fBinet\fR(3SOCKET)) instead of \fBgetipnodebyname\fR(3SOCKET). If the flag bit
++\fBinet\fR(3C)) instead of \fBgetipnodebyname\fR(3SOCKET). If the flag bit
+ \fBNI_NAMEREQD\fR is set, an error is returned if the host's name cannot be
+ located in the name service database.
+ .sp
+@@ -298,7 +296,6 @@ TCP.
+ These \fBNI_\fR* flags are defined in <\fBnetdb.h\fR> along with the \fBAI_\fR*
+ flags already defined for \fBgetaddrinfo()\fR.
+ .SH RETURN VALUES
+-.LP
+ For \fBgetaddrinfo()\fR, if the query is successful, a pointer to a linked list
+ of one or more \fBaddrinfo\fR structures is returned by the fourth argument and
+ the function returns \fB0\fR. The order of the addresses returned in the fourth
+@@ -312,7 +309,6 @@ pointer to a string containing an error message appropriate for the \fBEAI_\fR*
+ errors is returned. If \fIerrcode\fR is not one of the \fBEAI_\fR* values, a
+ pointer to a string indicating an unknown error is returned.
+ .SS "Address Ordering"
+-.LP
+ AF_INET6 addresses returned by the fourth argument of \fBgetaddrinfo()\fR are
+ ordered according to the algorithm described in \fIRFC 3484, Default Address
+ Selection for Internet Protocol version 6 (IPv6)\fR. The addresses are ordered
+@@ -372,7 +368,6 @@ T}
+ .TE
+ 
+ .SH ERRORS
+-.LP
+ The following names are the error values returned by \fBgetaddrinfo()\fR and
+ are defined in <\fBnetdb.h\fR>:
+ .sp
+@@ -511,7 +506,6 @@ configuration file for the name service switch
+ .RE
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(7) for description of the following attributes:
+ .sp
+ 
+@@ -530,12 +524,11 @@ Standard	See \fBstandards\fR(7).
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ .BR htonl (3C),
++.BR inet (3C),
+ .BR netdb.h (3HEAD),
+ .BR gethostbyname (3NSL),
+ .BR getipnodebyname (3SOCKET),
+-.BR inet (3SOCKET),
+ .BR sockaddr (3SOCKET),
+ .BR socket (3SOCKET),
+ .BR inet6 (4P),
+@@ -549,5 +542,4 @@ Standard	See \fBstandards\fR(7).
+ Draves, R. \fIRFC 3484, Default Address Selection for Internet Protocol version
+ 6 (IPv6)\fR. Network Working Group. February 2003.
+ .SH NOTES
+-.LP
+ IPv4-mapped addresses are not recommended.
+diff --git a/usr/src/man/man3socket/getipnodebyname.3socket b/usr/src/man/man3socket/getipnodebyname.3socket
+index cc1418254b..d5fde341b0 100644
+--- a/usr/src/man/man3socket/getipnodebyname.3socket
++++ b/usr/src/man/man3socket/getipnodebyname.3socket
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH GETIPNODEBYNAME 3SOCKET "Sep 10, 2013"
++.TH GETIPNODEBYNAME 3SOCKET "March 30, 2022"
+ .SH NAME
+ getipnodebyname, getipnodebyaddr, freehostent \- get IP node entry
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBcc\fR [ \fIflag\fR... ] \fIfile\fR... \fB-lsocket\fR \fB -lnsl \fR [ \fIlibrary\fR... ]
+ #include <sys/socket.h>
+@@ -92,7 +91,6 @@ Pointer to \fBhostent\fR structure
+ .RE
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBgetipnodebyname()\fR function searches the \fBipnodes\fR database from
+ the beginning. The function finds the first \fBh_name\fR member that matches
+ the hostname specified by \fIname\fR. The function takes an \fIaf\fR argument
+@@ -308,7 +306,6 @@ terminated by a \fINULL\fR pointer.
+ .RE
+ 
+ .SH RETURN VALUES
+-.LP
+ Upon successful completion, \fBgetipnodebyname()\fR and \fBgetipnodebyaddr()\fR
+ return a \fBhostent\fR structure. Otherwise they return \fINULL\fR.
+ .sp
+@@ -423,7 +420,6 @@ This structure, and the information pointed to by this structure, are
+ dynamically allocated by \fBgetipnodebyname()\fR and \fBgetipnodebyaddr()\fR.
+ The \fBfreehostent()\fR function frees this memory.
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRGetting the Canonical Name, Aliases, and Internet IP Addresses
+ for a Given Hostname
+ .sp
+@@ -486,7 +482,6 @@ hostname.
+ .in -2
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -503,17 +498,15 @@ MT-Level	Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ .BR htonl (3C),
++.BR inet (3C),
+ .BR netdb.h (3HEAD),
+ .BR gethostbyname (3NSL),
+ .BR getaddrinfo (3SOCKET),
+-.BR inet (3SOCKET),
+ .BR hosts (5),
+ .BR nsswitch.conf (5),
+ .BR attributes (7)
+ .SH NOTES
+-.LP
+ No enumeration functions are provided for IPv6. Existing enumeration functions
+ such as \fBsethostent\fR(3NSL) do not work in combination with the
+ \fBgetipnodebyname()\fR and \fBgetipnodebyaddr()\fR functions.
+diff --git a/usr/src/man/man3socket/getnetbyname.3socket b/usr/src/man/man3socket/getnetbyname.3socket
+index c2d4fdfbe3..208e256e78 100644
+--- a/usr/src/man/man3socket/getnetbyname.3socket
++++ b/usr/src/man/man3socket/getnetbyname.3socket
+@@ -2,12 +2,11 @@
+ .\" Copyright (C) 2004, Sun Microsystems, Inc. All Rights Reserved.
+ .\" Copyright 1989 AT&T
+ .\" Copyright (c) 1983 Regents of the University of California.  All rights reserved.  The Berkeley software License Agreement  specifies the terms and conditions for redistribution.
+-.TH GETNETBYNAME 3SOCKET "Nov 4, 2004"
++.TH GETNETBYNAME 3SOCKET "March 30, 2022"
+ .SH NAME
+ getnetbyname, getnetbyname_r, getnetbyaddr, getnetbyaddr_r, getnetent,
+ getnetent_r, setnetent, endnetent \- get network entry
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBcc\fR [ \fIflag\fR ... ] \fIfile\fR ... \fB-lsocket\fR \fB -lnsl \fR [ \fIlibrary\fR ... ]
+ #include <netdb.h>
+@@ -54,8 +53,6 @@ getnetent_r, setnetent, endnetent \- get network entry
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ These functions are used to obtain entries for networks. An entry may come from
+ any of the sources for \fBnetworks\fR specified in the \fB/etc/nsswitch.conf\fR
+ file. See \fBnsswitch.conf\fR(5).
+@@ -72,7 +69,7 @@ address. This should be one of the address families defined in
+ .sp
+ .LP
+ Network numbers and local address parts are returned as machine format integer
+-values, that is, in host byte order. See also \fBinet\fR(3SOCKET).
++values, that is, in host byte order. See also \fBinet\fR(3C).
+ .sp
+ .LP
+ The \fBnetent.n_net\fR member in the \fBnetent\fR structure pointed to by the
+@@ -142,8 +139,6 @@ resources it was using. It is still allowed, but possibly less efficient, for
+ the process to call more network entry retrieval functions after calling
+ \fBendnetent()\fR.
+ .SS "Reentrant Interfaces"
+-.sp
+-.LP
+ The functions \fBgetnetbyname()\fR, \fBgetnetbyaddr()\fR, and \fBgetnetent()\fR
+ use static storage that is reused in each call, making these routines unsafe
+ for use in multi-threaded applications.
+@@ -184,8 +179,6 @@ Like their non-reentrant counterparts, \fBgetnetbyname_r()\fR and
+ \fBgetnetbyaddr_r()\fR leave the enumeration position in an indeterminate
+ state.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ Network entries are represented by the \fBstruct netent\fR structure defined in
+ \fB<netdb.h>\fR\&.
+ .sp
+@@ -213,15 +206,12 @@ equal to the \fIresult\fR pointer that was supplied by the caller.
+ The functions \fBsetnetent()\fR and \fBendnetent()\fR return \fB0\fR on
+ success.
+ .SH ERRORS
+-.sp
+-.LP
+ The reentrant functions \fBgetnetbyname_r()\fR, \fBgetnetbyaddr_r\fR and
+ \fBgetnetent_r()\fR will return \fBNULL\fR and set \fIerrno\fR to \fBERANGE\fR
+ if the length of the buffer supplied by caller is not large enough to store the
+ result. See \fBIntro\fR(2) for the proper usage and interpretation of
+ \fIerrno\fR in multi-threaded applications.
+ .SH FILES
+-.sp
+ .ne 2
+ .na
+ \fB\fB/etc/networks\fR\fR
+@@ -240,8 +230,6 @@ configuration file for the name service switch
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -256,13 +244,11 @@ MT-Level	MT-Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR Intro (2),
+ .BR Intro (3),
++.BR byteorder (3C),
++.BR inet (3C),
+ .BR netdb.h (3HEAD),
+-.BR byteorder (3SOCKET),
+-.BR inet (3SOCKET),
+ .BR networks (5),
+ .BR nsswitch.conf (5),
+ .BR attributes (7)
+@@ -272,17 +258,13 @@ Fuller, V., Li, T., Yu, J., and Varadhan, K. \fIRFC 1519, Classless
+ Inter-Domain Routing (CIDR): an Address Assignment and Aggregation Strategy\fR.
+ Network Working Group. September 1993.
+ .SH WARNINGS
+-.sp
+-.LP
+ The reentrant interfaces \fBgetnetbyname_r()\fR, \fBgetnetbyaddr_r()\fR, and
+ \fBgetnetent_r()\fR are included in this release on an uncommitted basis only,
+ and are subject to change or removal in future minor releases.
+ .SH NOTES
+-.sp
+-.LP
+ The current implementation of these functions only return or accept network
+ numbers for the Internet address family (type \fBAF_INET\fR). The functions
+-described in \fBinet\fR(3SOCKET) may be helpful in constructing and
++described in \fBinet\fR(3C) may be helpful in constructing and
+ manipulating addresses and network numbers in this form.
+ .sp
+ .LP
+diff --git a/usr/src/man/man4d/bnxe.4d b/usr/src/man/man4d/bnxe.4d
+index fb91ba4806..57b96c4e2d 100644
+--- a/usr/src/man/man4d/bnxe.4d
++++ b/usr/src/man/man4d/bnxe.4d
+@@ -11,7 +11,7 @@
+ .\"
+ .\" Copyright (c) 2014 QLogic Corporation. All Rights Reserved
+ .\"
+-.TH BNXE 4D "Jan 10, 2020"
++.TH BNXE 4D "March 22, 2022"
+ .SH NAME
+ bnxe \- QLogic NetXtreme II 10 Gigabit Ethernet Device Driver
+ 
+@@ -138,7 +138,7 @@ Device driver (SPARC)
+ .RE
+ 
+ .SH SEE ALSO
+-.BR gld (4P),
++.BR gld (4D),
+ .BR driver.conf (5),
+ .BR dladm (8),
+ .BR ifconfig (8),
+diff --git a/usr/src/man/man4fs/hsfs.4fs b/usr/src/man/man4fs/hsfs.4fs
+index 9d0eb57c1e..f662f0248c 100644
+--- a/usr/src/man/man4fs/hsfs.4fs
++++ b/usr/src/man/man4fs/hsfs.4fs
+@@ -17,7 +17,7 @@
+ .\" fields enclosed by brackets "[]" replaced with your own identifying
+ .\" information: Portions Copyright [yyyy] [name of copyright owner]
+ .\"
+-.Dd November 1, 2006
++.Dd March 30, 2022
+ .Dt HSFS 4FS
+ .Os
+ .Sh NAME
+@@ -127,10 +127,10 @@ See
+ .Pp
+ If the CD-ROM contains Rock Ridge, ISO 9660 version 2 or Joliet extensions, the
+ file names and directory names may contain any character supported under
+-.Xr UFS 4FS .
++.Xr ufs 4FS .
+ The names may also be upper and/or lower case and are case sensitive.
+ File name lengths can be as long as those of
+-.Xr UFS 4FS .
++.Xr ufs 4FS .
+ .Pp
+ Files accessed through
+ .Nm
+@@ -142,7 +142,7 @@ grants execute permission to the directory, allowing it to be searched.
+ .Pp
+ With Rock Ridge extensions, files and directories can have any permissions that
+ are supported on a
+-.Xr UFS 4FS
++.Xr ufs 4FS
+ file system.
+ However, under all write permissions, the file system is read-only, with
+ .Er EROFS
+@@ -180,7 +180,7 @@ It will be listed as
+ The specific reason appears on the following line.
+ You might be attempting to mount a CD-ROM containing a different file system,
+ such as
+-.Xr UFS 4FS
++.Xr ufs 4FS
+ .It "hsfs: Warning: the file system... contains a file [with an] unsupported"
+ type"
+ The
+diff --git a/usr/src/man/man4p/inet6.4p b/usr/src/man/man4p/inet6.4p
+index 7c3bf0e24d..880c6bdbc3 100644
+--- a/usr/src/man/man4p/inet6.4p
++++ b/usr/src/man/man4p/inet6.4p
+@@ -3,18 +3,16 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH INET6 4P "Oct 3, 2002"
++.TH INET6 4P "March 30, 2022"
+ .SH NAME
+ inet6 \- Internet protocol family for Internet Protocol version 6
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fB#include <sys/types.h>
+ #include <netinet/in.h>\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBinet6\fR protocol family implements a collection of protocols that are
+ centered around the Internet Protocol version 6 (\fBIPv6\fR) and share a common
+ address format. The \fBinet6\fR protocol family can be accessed using the
+@@ -23,7 +21,6 @@ and \fBSOCK_RAW\fR socket types, or the Transport Level Interface (\fBTLI\fR),
+ where it supports  the connectionless (\fBT_CLTS\fR) and connection oriented
+ (\fBT_COTS_ORD\fR) service types.
+ .SH PROTOCOLS
+-.LP
+ The Internet protocol family for \fBIPv6\fR included the Internet Protocol
+ Version 6 (\fBIPv6\fR), the Neighbor Discovery Protocol (\fBNDP\fR), the
+ Internet Control Message Protocol (\fBICMPv6\fR), the Transmission Control
+@@ -160,7 +157,6 @@ The last 64 bits are the interface \fBID\fR. This will most often be the
+ hardware address of the link in \fBIEEE EUI-64\fR format.
+ .RE
+ .SH ADDRESSING
+-.LP
+ \fBIPv6\fR addresses are sixteen byte quantities, stored in network byte order.
+ The socket \fBAPI\fR uses the \fBsockaddr_in6\fR structure when passing
+ \fBIPv6\fR addresses between an application and the kernel. The
+@@ -168,7 +164,7 @@ The socket \fBAPI\fR uses the \fBsockaddr_in6\fR structure when passing
+ .sp
+ .in +2
+ .nf
+-sa_familty_t     sin6_family;
++sa_family_t      sin6_family;
+ in_port_t        sin6_port;
+ uint32_t         sin6_flowinfo;
+ struct in6_addr  sin6_addr;
+@@ -180,7 +176,7 @@ uint32_t         __sin6_src_id;
+ .sp
+ .LP
+ Library routines are provided to  manipulate  structures of this form. See
+-\fBinet\fR(3SOCKET).
++\fBinet\fR(3C).
+ .sp
+ .LP
+ The \fBsin6_addr\fR field of the \fBsockaddr_in6\fR structure specifies a local
+@@ -239,7 +235,6 @@ In addition, the same port may be bound by two separate sockets if one is an
+ numbers. These semantics apply when Internet family protocols are used using
+ the \fBTLI\fR.
+ .SH SOURCE ADDRESS SELECTION
+-.LP
+ IPv6 source address selection is done on a per destination basis, and utilizes
+ a list of rules from which the best source address is selected from candidate
+ addresses. The candidate set comprises a set of local addresses assigned on the
+@@ -369,8 +364,8 @@ If SB ^ D < SA ^ D, then prefer SB.
+ Applications can override this algorithm by calling  \fBbind\fR(3SOCKET) and
+ specifying an address.
+ .SH SEE ALSO
+-.LP
+ .BR ioctl (2),
++.BR inet (3C),
+ .BR bind (3SOCKET),
+ .BR connect (3SOCKET),
+ .BR getipnodebyaddr (3SOCKET),
+@@ -378,7 +373,6 @@ specifying an address.
+ .BR getprotobyname (3SOCKET),
+ .BR getservbyname (3SOCKET),
+ .BR getsockopt (3SOCKET),
+-.BR inet (3SOCKET),
+ .BR send (3SOCKET),
+ .BR sockaddr (3SOCKET),
+ .BR icmp6 (4P),
+@@ -407,7 +401,6 @@ Society.  February 2003.
+ Narten, T., and Draves, R. \fIRFC 3041, Privacy Extensions for Stateless
+ Address Autoconfiguration in IPv6.\fR The Internet Society.  January 2001.
+ .SH NOTES
+-.LP
+ The \fBIPv6\fR support is subject to change as the Internet protocols develop.
+ Users should not depend on details of the current implementation, but rather
+ the services exported.
+diff --git a/usr/src/man/man5/gateways.5 b/usr/src/man/man5/gateways.5
+index c5564eadeb..1b40b36efc 100644
+--- a/usr/src/man/man5/gateways.5
++++ b/usr/src/man/man5/gateways.5
+@@ -3,19 +3,16 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+ .\"  See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with
+ .\" the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH GATEWAYS 5 "May 20, 2009"
++.TH GATEWAYS 5 "March 30, 2022"
+ .SH NAME
+ gateways \- configuration file for /usr/sbin/in.routed IPv4 network routing
+ daemon
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fB/etc/gateways\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fB/etc/gateways\fR file is used by the routing daemon,
+ \fBin.routed\fR(8). When the daemon starts, it reads \fB/etc/gateways\fR to
+ find such distant gateways that cannot be located using only information from a
+@@ -60,7 +57,7 @@ The parameters in the lines shown above are described as follows:
+ .sp .6
+ .RS 4n
+ Name of the destination network or host. It can be a symbolic network name or
+-an Internet address specified in \fBdot\fR notation (see \fBinet\fR(3SOCKET)).
++an Internet address specified in \fBdot\fR notation (see \fBinet\fR(3C)).
+ If it is a name, then it must either be defined in \fB/etc/networks\fR or
+ \fB/etc/hosts\fR, or a naming service must have been started before
+ \fBin.routed\fR(8).
+@@ -492,9 +489,10 @@ used to set a broadcast type advertisement on a point-to-point link.
+ .RE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+-\fBin.routed\fR(8), \fBroute\fR(8), \fBrtquery\fR(8), \fBinet\fR(3SOCKET),
++.BR inet (3C),
++.BR in.routed (8),
++.BR route (8),
++.BR rtquery (8)
+ .sp
+ .LP
+ \fIInternet Transport Protocols, XSIS 028112, Xerox System Integration
+diff --git a/usr/src/man/man5/hosts.5 b/usr/src/man/man5/hosts.5
+index 65b3b85518..7f024148b8 100644
+--- a/usr/src/man/man5/hosts.5
++++ b/usr/src/man/man5/hosts.5
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH HOSTS 5 "Feb 25, 2017"
++.TH HOSTS 5 "March 30, 2022"
+ .SH NAME
+ hosts \- host name database
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fB/etc/inet/hosts\fR
+ .fi
+@@ -23,7 +22,6 @@ hosts \- host name database
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBhosts\fR file is a local database that associates the names of hosts
+ with their Internet Protocol (IP) addresses. An IP address can be in either
+ IPv4 or IPv6 format. The \fBhosts\fR file can be used in conjunction with, or
+@@ -76,7 +74,7 @@ Network addresses are written in one of two ways:
+ .el o
+ The conventional "decimal dot" notation and interpreted using the
+ \fBinet_addr\fR routine from the Internet address manipulation library,
+-\fBinet\fR(3SOCKET).
++\fBinet\fR(3C).
+ .RE
+ .RS +4
+ .TP
+@@ -84,7 +82,7 @@ The conventional "decimal dot" notation and interpreted using the
+ .el o
+ The IP Version 6 protocol [IPV6], defined in RFC 1884 and interpreted using the
+ \fBinet_pton()\fR routine from the Internet address manipulation library. See
+-\fBinet\fR(3SOCKET).
++\fBinet\fR(3C).
+ .RE
+ .sp
+ .LP
+@@ -119,7 +117,6 @@ of its name. Hosts which do not serve as Internet gateways should not use
+ have "\(miTAC" as the last part of its host name, if it is a DoD host. Single
+ character names or nicknames are not allowed.
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRExample \fBhosts\fR File Entry
+ .sp
+ .LP
+@@ -148,10 +145,9 @@ The following is an example of an IPv6 \fBhosts\fR entry:
+ .sp
+ 
+ .SH SEE ALSO
+-.LP
++.BR inet (3C),
+ .BR gethostbyname (3NSL),
+ .BR getipnodebyname (3SOCKET),
+-.BR inet (3SOCKET),
+ .BR nsswitch.conf (5),
+ .BR resolv.conf (5)
+ .sp
+@@ -171,7 +167,6 @@ Architecture\fR, Network Working Group, December, 1995.
+ Postel, Jon, RFC 921, \fIDomain Name System Implementation Schedule
+ (Revised)\fR, Network Working Group, October 1984.
+ .SH NOTES
+-.LP
+ \fB/etc/inet/hosts\fR is the official SVR4 name of the \fBhosts\fR file. The
+ symbolic link \fB/etc/hosts\fR exists for \fBBSD\fR compatibility.
+ .sp
+diff --git a/usr/src/man/man5/networks.5 b/usr/src/man/man5/networks.5
+index 9171c8cc29..1b9ea223b9 100644
+--- a/usr/src/man/man5/networks.5
++++ b/usr/src/man/man5/networks.5
+@@ -4,11 +4,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH NETWORKS 5 "Feb 25, 2017"
++.TH NETWORKS 5 "March 30, 2022"
+ .SH NAME
+ networks \- network name database
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fB/etc/inet/networks\fR
+ .fi
+@@ -19,7 +18,6 @@ networks \- network name database
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBnetworks\fR file is a local source of information regarding the networks
+ which comprise the Internet. The networks file can be used in conjunction
+ with, or instead of, other networks sources, including the NIS maps
+@@ -49,17 +47,14 @@ it up to date regarding unofficial aliases and/or unknown networks.
+ .LP
+ Network numbers may be specified in the conventional dot (`\fB\&.\fR') notation
+ using the \fBinet_network\fR routine from the Internet address manipulation
+-library, \fBinet\fR(4P). Network names may contain any printable character
++library, \fBinet\fR(3C). Network names may contain any printable character
+ other than a field delimiter, \fBNEWLINE\fR, or comment character.
+ .SH SEE ALSO
+-.LP
++.BR inet (3C),
+ .BR getnetbyaddr (3SOCKET),
+ .BR getnetbyname (3SOCKET),
+-.BR inet (3SOCKET),
+-.BR inet (4P),
+ .BR nsswitch.conf (5)
+ .SH NOTES
+-.LP
+ The official SVR4 name of the \fBnetworks\fR file is \fB/etc/inet/networks\fR.
+ The symbolic link \fB/etc/networks\fR exists for \fBBSD\fR compatibility.
+ .sp
+diff --git a/usr/src/man/man5/overlay_files.5 b/usr/src/man/man5/overlay_files.5
+index a676e59f57..c44b504f28 100644
+--- a/usr/src/man/man5/overlay_files.5
++++ b/usr/src/man/man5/overlay_files.5
+@@ -11,7 +11,7 @@
+ .\"
+ .\" Copyright 2015, Joyent, Inc.
+ .\"
+-.Dd Apr 13, 2015
++.Dd March 30, 2022
+ .Dt OVERLAY_FILES 5
+ .Os
+ .Sh NAME
+@@ -80,7 +80,7 @@ The value is a
+ Both IPv4 and IPv6 addresses are supported and should be written out in their
+ traditional forms.
+ Follow the guidelines for writing addresses in
+-.Xr inet_aton 3SOCKET .
++.Xr inet_aton 3C .
+ .Ed
+ .It Sy port
+ .Bd -filled -compact
+@@ -110,7 +110,7 @@ what is configured on top of it.
+ The value is a
+ .Em JSON String
+ and should be written out following the guidelines for IPv4 addresses in
+-.Xr inet_aton 3SOCKET .
++.Xr inet_aton 3C .
+ .Ed
+ .It Sy ndp
+ .Bd -filled -compact
+@@ -128,7 +128,7 @@ what is configured on top of it.
+ The value is a
+ .Em JSON String
+ and should be written out following the guidelines for IPv6 addresses in
+-.Xr inet_aton 3SOCKET .
++.Xr inet_aton 3C .
+ .Ed
+ .It Sy dhcp-proxy
+ .Bd -filled -compact
+diff --git a/usr/src/man/man7/mdoc.7 b/usr/src/man/man7/mdoc.7
+index b1c1e15ce0..33dbd29dd5 100644
+--- a/usr/src/man/man7/mdoc.7
++++ b/usr/src/man/man7/mdoc.7
+@@ -19,7 +19,7 @@
+ .\" Copyright 2014 Garrett D'Amore <garrett@damore.org>
+ .\" Copyright 2018 Nexenta Systems, Inc.
+ .\"
+-.Dd $Mdocdate: July 29 2021 $
++.Dd March 30, 2022
+ .Dt MDOC 7
+ .Os
+ .Sh NAME
+@@ -416,7 +416,7 @@ These interfaces are generally the most suitable for use in portable programs.
+ Indicates that the interface is intended to be preserved for the long-haul, and
+ will rarely, if ever change, and never without notification (barring
+ extraordinary and extenuating circumstances).
+-These interfaces are preferred over other interfaces with the exeception of
++These interfaces are preferred over other interfaces with the exception of
+ .Nm Standard
+ interfaces.
+ .It Nm Uncommitted
+@@ -2184,7 +2184,7 @@ argument or, if that isn't specified either,
+ and
+ .Fa release
+ as returned by
+-.Xr uname 3 .
++.Xr uname 2 .
+ .Pp
+ Examples:
+ .Dl \&.Os
+diff --git a/usr/src/man/man7/overlay.7 b/usr/src/man/man7/overlay.7
+index 708281aeda..1244a1ae19 100644
+--- a/usr/src/man/man7/overlay.7
++++ b/usr/src/man/man7/overlay.7
+@@ -11,7 +11,7 @@
+ .\"
+ .\" Copyright 2015 Joyent, Inc.
+ .\"
+-.Dd Apr 09, 2015
++.Dd March 30, 2022
+ .Dt OVERLAY 7
+ .Os
+ .Sh NAME
+@@ -383,7 +383,7 @@ The
+ plugin does not support broadcast or multicast traffic, but it has
+ support for proxy ARP, NDP, and DHCPv4.
+ For the full details of the file format, see
+-.Xr overlay_files 4 .
++.Xr overlay_files 5 .
+ .Pp
+ The
+ .Sy files
+diff --git a/usr/src/man/man8/fmthard.8 b/usr/src/man/man8/fmthard.8
+index 5bf261a348..56bf041e74 100644
+--- a/usr/src/man/man8/fmthard.8
++++ b/usr/src/man/man8/fmthard.8
+@@ -22,7 +22,7 @@
+ .\" Copyright (c) 2002, Sun Microsystems, Inc. All Rights Reserved
+ .\" Copyright 2022 Toomas Soome <tsoome@me.com>
+ .\"
+-.Dd January 31, 2022
++.Dd March 30, 2022
+ .Dt FMTHARD 8
+ .Os
+ .Sh NAME
+@@ -223,5 +223,5 @@ cannot write a
+ .Sy VTOC
+ on an unlabeled disk.
+ Use
+-.Xr format 1M
++.Xr format 8
+ for this purpose.
+diff --git a/usr/src/man/man8/in.routed.8 b/usr/src/man/man8/in.routed.8
+index 3c7426063b..8b0818c8cb 100644
+--- a/usr/src/man/man8/in.routed.8
++++ b/usr/src/man/man8/in.routed.8
+@@ -4,19 +4,16 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH IN.ROUTED 8 "Jul 24, 2008"
++.TH IN.ROUTED 8 "March 30, 2022"
+ .SH NAME
+ in.routed, routed \- network routing daemon
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fB/usr/sbin/in.routed\fR [\fB-AdghmnqsStVz\fR] [\fB-T\fR \fItracefile\fR [\fB-v\fR]]
+  [\fB-F\fR \fInet\fR[/mask ][,metric]] [\fB-P\fR \fIparams\fR]
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The daemon \fBin.routed\fR, often referred to as \fBrouted\fR, is invoked at
+ boot time to manage the network routing tables. It uses Routing Information
+ Protocol, RIPv1 (RFC 1058), RIPv2 (RFC 2453), and Internet Router Discovery
+@@ -91,7 +88,7 @@ flash update response containing only recently changed routes is sent.
+ In addition to processing incoming packets, in.routed also periodically checks
+ the routing table entries. If an entry has not been updated for 3 minutes, the
+ entry's metric is set to infinity and marked for deletion. Deletions are
+-delayed until the route has been advertised with an infnite metric to insure
++delayed until the route has been advertised with an infinite metric to insure
+ the invalidation is propagated throughout the local internet. This is a form of
+ poison reverse.
+ .sp
+@@ -188,8 +185,6 @@ a route if necessary, and that other routes to that destination should not be
+ installed by \fBin.routed\fR. Such entries are required only when both routers
+ might learn of routes to the same destination.
+ .SH OPTIONS
+-.sp
+-.LP
+ Listed below are available options. Any other argument supplied is interpreted
+ as the name of a file in which the actions of \fBin.routed\fR should be logged.
+ It is better to use \fB-T\fR (described below) instead of appending the name of
+@@ -427,7 +422,6 @@ the \fBrtquery\fR(8) command.
+ .RE
+ 
+ .SH FILES
+-.sp
+ .ne 2
+ .na
+ \fB\fB/etc/defaultrouter\fR\fR
+@@ -448,10 +442,8 @@ See \fBgateways\fR(5).
+ .RE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR ioctl (2),
+-.BR inet (3SOCKET),
++.BR inet (3C),
+ .BR icmp (4P),
+ .BR inet (4P),
+ .BR udp (4P),
+@@ -479,8 +471,6 @@ Standard\fR
+ .LP
+ \fIICMP Router Discovery Messages (RFC 1256, September 1991)\fR
+ .SH NOTES
+-.sp
+-.LP
+ In keeping with its intended design, this daemon deviates from RFC 2453 in two
+ notable ways:
+ .RS +4
+diff --git a/usr/src/man/man8/ipaddrsel.8 b/usr/src/man/man8/ipaddrsel.8
+index 6dda9a1d7f..f6d26a519b 100644
+--- a/usr/src/man/man8/ipaddrsel.8
++++ b/usr/src/man/man8/ipaddrsel.8
+@@ -4,11 +4,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH IPADDRSEL 8 "Nov 4, 2017"
++.TH IPADDRSEL 8 "March 30, 2022"
+ .SH NAME
+ ipaddrsel \- configure IPv6 default address selection
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fB/usr/sbin/ipaddrsel\fR
+ .fi
+@@ -24,7 +23,6 @@ ipaddrsel \- configure IPv6 default address selection
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ Use the \fBipaddrsel\fR utility to configure the IPv6 default address selection
+ policy table. The policy table is a longest-matching-prefix lookup table that
+ is used for IPv6 source address selection and for destination address ordering
+@@ -57,7 +55,6 @@ true for packets that are locally generated and for applications that do not
+ choose a non-zero source address using \fBbind\fR(3SOCKET).
+ .RE
+ .SS "The Configuration File"
+-.LP
+ The configuration file that the \fB-f\fR option accepts can contain either
+ comment lines or policy entries. Comment lines have a '\fB#\fR' character as
+ the first non-blank character. and they are ignored by the \fBipaddrsel\fR
+@@ -72,7 +69,7 @@ utility. Policy entry lines have the following format:
+ .sp
+ .LP
+ The \fIprefix\fR must be an IPv6 prefix in a format consistent with
+-\fBinet\fR(3SOCKET). The \fIprefix_length\fR is an integer ranging from 0 to
++\fBinet\fR(3C). The \fIprefix_length\fR is an integer ranging from 0 to
+ 128. The IPv6 source address selection and destination address ordering
+ algorithms determine the precedence or label of an address by doing a
+ longest-prefix-match lookup using the prefixes in this table, much like
+@@ -101,7 +98,6 @@ The file must contain a default policy entry, which is an entry with
+ \fB::0/0\fR as its \fIprefix\fR and \fIprefix_length\fR. This is to ensure that
+ all possible addresses match a policy.
+ .SH OPTIONS
+-.LP
+ The \fBippadrsel\fR utility supports the following options:
+ .sp
+ .ne 2
+@@ -138,7 +134,6 @@ example# \fBipaddrsel > /etc/inet/ipaddrsel.conf\fR
+ .RE
+ 
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRThe Default Policy in \fB/etc/inet/ipaddrsel.conf\fR
+ .sp
+ .LP
+@@ -253,7 +248,6 @@ This example assumes that the local system has one physical interface, and that
+ all global prefixes are assigned to that physical interface.
+ 
+ .SH EXIT STATUS
+-.LP
+ \fBipaddrsel\fR returns the following exit values:
+ .sp
+ .ne 2
+@@ -286,7 +280,6 @@ started.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -301,15 +294,13 @@ Interface Stability	Evolving
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
++.BR inet (3C),
+ .BR getaddrinfo (3SOCKET),
+-.BR inet (3SOCKET),
+ .BR inet6 (4P),
+ .BR ipaddrsel.conf (5),
+ .BR attributes (7),
+ .BR nscd (8)
+ .SH NOTES
+-.LP
+ The ipnodes cache kept by \fBnscd\fR(8) contains addresses that are ordered
+ using the destination address ordering algorithm, which is one of the reasons
+ why \fBipaddrsel\fR is called before \fBnscd\fR in the boot sequence. If
+diff --git a/usr/src/man/man8/zonestatd.8 b/usr/src/man/man8/zonestatd.8
+index 23e34c12cd..3d2d66d9b9 100644
+--- a/usr/src/man/man8/zonestatd.8
++++ b/usr/src/man/man8/zonestatd.8
+@@ -11,7 +11,7 @@
+ .\" Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+ .\" Copyright 2019 OmniOS Community Edition (OmniOSce) Association.
+ .\"
+-.Dd December 29, 2021
++.Dd March 30, 2022
+ .Dt ZONESTATD 8
+ .Os
+ .Sh NAME
+@@ -80,11 +80,11 @@ The zonestat service in each NGZ does not directly read system configuration
+ and utilization data, but rather reads from the zonestat service on the
+ global zone.
+ .Sh SEE ALSO
++.Xr prctl 1 ,
+ .Xr zonestat 1 ,
+ .Xr smf 7 ,
+ .Xr zones 7 ,
+ .Xr acctadm 8 ,
+ .Xr pooladm 8 ,
+ .Xr poolcfg 8 ,
+-.Xr prctl 8 ,
+ .Xr rcapadm 8
+diff --git a/usr/src/man/man8/zpool.8 b/usr/src/man/man8/zpool.8
+index bd649506a6..be07ef83af 100644
+--- a/usr/src/man/man8/zpool.8
++++ b/usr/src/man/man8/zpool.8
+@@ -27,7 +27,7 @@
+ .\" Copyright 2021 Joyent, Inc.
+ .\" Copyright (c) 2012 Cyril Plisko. All Rights Reserved.
+ .\"
+-.Dd October 15, 2021
++.Dd March 30, 2022
+ .Dt ZPOOL 8
+ .Os
+ .Sh NAME
+@@ -1630,7 +1630,7 @@ with no flags on the relevant target devices.
+ .Xc
+ Displays I/O statistics for the given pools/vdevs.
+ Physical I/Os may be observed via
+-.Xr iostat 1 .
++.Xr iostat 8 .
+ If writes are located nearby, they may be merged into a single larger operation.
+ Additional I/O may be generated depending on the level of vdev redundancy.
+ To filter output, you may pass in a list of pools, a pool and list of vdevs
+diff --git a/usr/src/man/man8/ztest.8 b/usr/src/man/man8/ztest.8
+index 184a0194de..9053cc28fc 100644
+--- a/usr/src/man/man8/ztest.8
++++ b/usr/src/man/man8/ztest.8
+@@ -27,7 +27,7 @@
+ .\" ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ .\" POSSIBILITY OF SUCH DAMAGE.
+ .\"/
+-.Dd December 10, 2018
++.Dd March 30, 2022
+ .Dt ZTEST 8
+ .Os
+ .Sh NAME
+@@ -90,7 +90,7 @@ process uses an
+ .Xr mmap 2
+ temporary file to pass information to child processes which allows shared
+ memory to survive
+-.Xr exec 3
++.Xr exec 2
+ syscall.
+ A copy of the
+ .Vt ztest_shared_hdr_t
+-- 
+2.42.0
+

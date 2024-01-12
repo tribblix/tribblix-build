@@ -1,0 +1,4102 @@
+From eb9b100249a3fb5f3c9f9dae512c8fe719bb6110 Mon Sep 17 00:00:00 2001
+From: Robert Mustacchi <rm@fingolfin.org>
+Date: Tue, 30 Nov 2021 00:34:18 +0000
+Subject: [PATCH] 14272 convert man7fs to mdoc Reviewed by: Peter Tribble
+ <peter.tribble@gmail.com> Approved by: Hans Rosenfeld
+ <rosenfeld@grumpf.hope-2000.org>
+
+---
+ usr/src/man/man7fs/bootfs.7fs  |  101 ++--
+ usr/src/man/man7fs/ctfs.7fs    |   72 ++-
+ usr/src/man/man7fs/dcfs.7fs    |   93 +--
+ usr/src/man/man7fs/dev.7fs     |  120 ++--
+ usr/src/man/man7fs/devfs.7fs   |  172 +++---
+ usr/src/man/man7fs/fd.7fs      |  121 ++--
+ usr/src/man/man7fs/hsfs.7fs    |  532 ++++++++---------
+ usr/src/man/man7fs/lofs.7fs    |  216 ++++---
+ usr/src/man/man7fs/objfs.7fs   |  118 ++--
+ usr/src/man/man7fs/pcfs.7fs    | 1007 +++++++++++++++++---------------
+ usr/src/man/man7fs/sharefs.7fs |   87 ++-
+ usr/src/man/man7fs/smbfs.7fs   |  259 ++++----
+ usr/src/man/man7fs/tmpfs.7fs   |  325 ++++++-----
+ usr/src/man/man7fs/udfs.7fs    |  167 +++---
+ usr/src/man/man7fs/ufs.7fs     |  494 ++++++++--------
+ 15 files changed, 2095 insertions(+), 1789 deletions(-)
+
+diff --git a/usr/src/man/man7fs/bootfs.7fs b/usr/src/man/man7fs/bootfs.7fs
+index f0a7f2e350..dbe264008f 100644
+--- a/usr/src/man/man7fs/bootfs.7fs
++++ b/usr/src/man/man7fs/bootfs.7fs
+@@ -10,59 +10,55 @@
+ .\"
+ .\"
+ .\" Copyright (c) 2014 Joyent, Inc.  All rights reserved.
++.\" Copyright 2021 Oxide Computer Company
+ .\"
+-
+-.TH BOOTFS 7FS "May 8, 2014"
+-.SH NAME
+-bootfs \- boot-time module file system
+-
+-.SH DESCRIPTION
+-
++.Dd May 8, 2014
++.Dt BOOTFS 7FS
++.Os
++.Sh NAME
++.Nm bootfs
++.Nd boot-time module file system
++.Sh DESCRIPTION
+ The
+-.B bootfs
++.Nm
+ file system is a read-only file system that provides access to any
+ boot-time modules that were passed in to the system loader which were
+ tagged with the type
+-.IR file .
+-.B bootfs
++.Em file .
++.Nm
+ does not display any boot-time modules that were tagged as type
+-.I hash
++.Em hash
+ or type
+-.IR rootfs .
+-
++.Em rootfs .
+ If modules with duplicate names and paths are specified, only the first
+ such entry will be present in the file system and a counter will be
+ incremented to indicate that a duplicate entry was found, but is not
+-present into the file system. If a module's name only consists of
+-invalid characters, such as '.', '..', or '/', then the module will not
+-be present in the file system and a counter will be incremented to
+-indicate that this has occurred. In both cases, diagnostic information
+-is available through the kstats facility.
+-
+-.SH FILES
+-.ne 2
+-.na
+-.B /system/boot
+-.ad
+-.RS 8n
++present into the file system.
++If a module's name only consists of invalid characters, such as
++.Sq . ,
++.Sq .. ,
++or
++.Sq / ,
++then the module will not be present in the file system and a counter
++will be incremented to indicate that this has occurred.
++In both cases, diagnostic information is available through the kstats
++facility.
++.Sh FILES
++.Bl -tag -width Pa
++.It Pa /system/boot
+ The mount point for the
+-.B bootfs
++.Nm
+ file system in the global zone.
+-
+-.SH EXAMPLES
+-
+-.LP
+-Example 1 Determining if collisions or invalid names are present
+-.sp
+-.LP
++.El
++.Sh EXAMPLES
++.Sy Example 1
++Determining if collisions or invalid names are present
++.Pp
+ To determine if any boot-time modules were not created due to collisions
+ or invalid names, enter the following command:
+-
+-.sp
+-.in +2
+-.nf
++.Bd -literal -offset indent
+ # kstat -m bootfs
+-module: bootfs                          instance: 1     
++module: bootfs                          instance: 1
+ name:   bootfs                          class:    fs
+         crtime                          236063.651324041
+         nbytes                          8749355
+@@ -71,19 +67,18 @@ name:   bootfs                          class:    fs
+         ndup                            0
+         nfiles                          2
+         snaptime                        236063.651324041
+-.fi
+-.in -2
+-.sp
+-.LP
++.Ed
+ The field
+-.B ndiscard
+-lists the number of boot-time modules that were discarded due to naming conflicts. The field
+-.B ndup
+-lists the number of duplicate entries that were found and therefore not displayed in the file system.
+-.sp
+-.LP
+-This information is provided for informational purposes only, it is not to be construed as a stable interface.
+-
+-.SH SEE ALSO
+-.BR kstat (1M),
+-.BR grub (5)
++.Fa ndiscard
++lists the number of boot-time modules that were discarded due to naming
++conflicts.
++The field
++.Fa ndup
++lists the number of duplicate entries that were found and therefore not
++displayed in the file system.
++.Pp
++This information is provided for informational purposes only, it is not
++to be construed as a stable interface.
++.Sh SEE ALSO
++.Xr kstat 1M ,
++.Xr loader 5
+diff --git a/usr/src/man/man7fs/ctfs.7fs b/usr/src/man/man7fs/ctfs.7fs
+index 8896eae7c4..49b5ebf6f2 100644
+--- a/usr/src/man/man7fs/ctfs.7fs
++++ b/usr/src/man/man7fs/ctfs.7fs
+@@ -1,28 +1,46 @@
+-'\" te
++.\"
+ .\" Copyright (c) 2004, Sun Microsystems, Inc. All Rights Reserved.
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+-.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+-.\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH CTFS 7FS "Nov 18, 2004"
+-.SH NAME
+-ctfs \- contract file system
+-.SH DESCRIPTION
+-.sp
+-.LP
+-The \fBctfs\fR filesystem is the interface to the contract sub-system.
+-\fBctfs\fR is mounted during boot at \fB/system/contract\fR. For information on
+-contracts and the contents of this filesystem, see \fBcontract\fR(4).
+-.SH FILES
+-.sp
+-.ne 2
+-.na
+-\fB\fB/system/contract\fR\fR
+-.ad
+-.RS 20n
+-Mount point for the \fBctfs\fR file system
+-.RE
+-
+-.SH SEE ALSO
+-.sp
+-.LP
+-\fBcontract\fR(4), \fBvfstab\fR(4), \fBattributes\fR(5), \fBsmf\fR(5)
++.\" Copyright 2021 Oxide Computer Company
++.\"
++.\" The contents of this file are subject to the terms of the
++.\" Common Development and Distribution License (the "License").
++.\" You may not use this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++.\" or http://www.opensolaris.org/os/licensing.
++.\" See the License for the specific language governing permissions
++.\" and limitations under the License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each
++.\" file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++.\" If applicable, add the following below this CDDL HEADER, with the
++.\" fields enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
++.\"
++.Dd November 18, 2004
++.Dt CTFS 7FS
++.Os
++.Sh NAME
++.Nm ctfs
++.Nd contract file system
++.Sh DESCRIPTION
++The
++.Nm
++filesystem is the interface to the contract sub-system.
++.Nm
++is mounted during boot at
++.Pa /system/contract .
++For information on contracts and the contents of this filesystem, see
++.Xr contract 4 .
++.Sh FILES
++.Bl -tag -width Pa
++.It Pa /system/contract
++Mount point for the
++.Nm
++file system
++.El
++.Sh SEE ALSO
++.Xr contract 4 ,
++.Xr vfstab 4 ,
++.Xr attributes 5 ,
++.Xr smf 5
+diff --git a/usr/src/man/man7fs/dcfs.7fs b/usr/src/man/man7fs/dcfs.7fs
+index 722e2b8711..ff238336ed 100644
+--- a/usr/src/man/man7fs/dcfs.7fs
++++ b/usr/src/man/man7fs/dcfs.7fs
+@@ -1,46 +1,49 @@
+-'\" te
++.\"
+ .\" Copyright (c) 2007, Sun Microsystems, Inc.  All Rights Reserved
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+-.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+-.\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH DCFS 7FS "Nov 28, 2007"
+-.SH NAME
+-dcfs \- Compression file system
+-.SH SYNOPSIS
+-.LP
+-.nf
+-#include <sys/filio.h>
+-#include <sys/fs/decomp.h>
+-.fi
+-
+-.SH DESCRIPTION
+-.sp
+-.LP
+-The \fBdcfs\fR filesystem is a layered filesystem that you use to compress data
+-when writing to a file and decompress upon read.  The primary function of the
+-\fBdcfs\fR filesystem is to compress individual files when constructing a boot
+-archive and when reading or booting from the archive.
+-.SH ATTRIBUTES
+-.sp
+-.LP
+-See \fBattributes\fR(5) for descriptions of the following attributes:
+-.sp
+-
+-.sp
+-.TS
+-box;
+-l l
+-l l .
+-ATTRIBUTE TYPE	ATTRIBUTE VALUE
+-Interface Stability	Uncommitted
+-.TE
+-
+-.SH SEE ALSO
+-.sp
+-.LP
+-\fBboot\fR(1M), \fBbootadm\fR(1M), \fBfiocompress\fR(1M), \fBattributes\fR(5),
+-\fBufs\fR(7FS)
+-.SH NOTES
+-.sp
+-.LP
+-The \fBdcfs\fR compression/decompression file system works only with UFS.
++.\" Copyright 2021 Oxide Computer Company
++.\"
++.\" The contents of this file are subject to the terms of the
++.\" Common Development and Distribution License (the "License").
++.\" You may not use this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++.\" or http://www.opensolaris.org/os/licensing.
++.\" See the License for the specific language governing permissions
++.\" and limitations under the License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each
++.\" file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++.\" If applicable, add the following below this CDDL HEADER, with the
++.\" fields enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
++.\"
++.Dd November 28, 2007
++.Dt DCFS 7FS
++.Os
++.Sh NAME
++.Nm dcfs
++.Nd Compression file system
++.Sh SYNOPSIS
++.In sys/filio.h
++.In sys/fs/decomp.h
++.Sh DESCRIPTION
++The
++.Nm
++filesystem is a layered filesystem that you use to compress data when writing to
++a file and decompress upon read.
++The primary function of the
++.Nm
++filesystem is to compress individual files when constructing a boot archive and
++when reading or booting from the archive.
++.Sh INTERFACE STABILITY
++.Sy Uncommitted
++.Sh SEE ALSO
++.Xr boot 1M ,
++.Xr bootadm 1M ,
++.Xr fiocompress 1M ,
++.Xr attributes 5 ,
++.Xr ufs 7FS
++.Sh NOTES
++The
++.Nm
++compression/decompression file system works only with UFS.
+diff --git a/usr/src/man/man7fs/dev.7fs b/usr/src/man/man7fs/dev.7fs
+index d6e432ff09..6aa994d322 100644
+--- a/usr/src/man/man7fs/dev.7fs
++++ b/usr/src/man/man7fs/dev.7fs
+@@ -1,43 +1,83 @@
+-'\" te
++.\"
+ .\" Copyright (c) 2006, Sun Microsystems, Inc.  All Rights Reserved
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+-.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+-.\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH DEV 7FS "Jun 9, 2006"
+-.SH NAME
+-dev \- Device name file system
+-.SH DESCRIPTION
+-.sp
+-.LP
+-The \fBdev\fR filesystem manages the name spaces of devices under the Solaris
+-operating environment. The global zone's instance of the \fBdev\fR filesystem
+-is mounted during boot on \fB/dev\fR.
+-.sp
+-.LP
+-A subdirectory under \fB/dev\fR may have unique operational semantics. Most of
+-the common device names under \fB/dev\fR are created automatically by
+-\fBdevfsadm\fR(1M).  Others, such as \fB/dev/pts\fR, are dynamic and reflect
+-the operational state of the system. You can manually generate device names for
+-newly attached hardware by invoking \fBdevfsadm\fR(1M) or implicitly, by
+-indirectly causing a lookup or readdir operation in the filesystem to occur.
++.\" Copyright 2021 Oxide Computer Company
++.\"
++.\" The contents of this file are subject to the terms of the
++.\" Common Development and Distribution License (the "License").
++.\" You may not use this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++.\" or http://www.opensolaris.org/os/licensing.
++.\" See the License for the specific language governing permissions
++.\" and limitations under the License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each
++.\" file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++.\" If applicable, add the following below this CDDL HEADER, with the
++.\" fields enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
++.\"
++.Dd November 29, 2021
++.Dt DEV 7FS
++.Os
++.Sh NAME
++.Nm dev
++.Nd Device name file system
++.Sh DESCRIPTION
++The
++.Nm
++filesystem manages the name spaces of devices in the operating system.
++The global zone's instance of the
++.Nm
++filesystem is mounted during boot on
++.Pa /dev .
++This filesystem is colloqiually called
++.Sq sdev
++as a way to distinguish it from the
++.Xr devfs 7FS
++filesystem mounted at
++.Pa /devices .
++.Pp
++A subdirectory under
++.Pa /dev
++may have unique operational semantics.
++Most of the common device names under
++.Pa /dev
++are created automatically by
++.Xr devfsadm 1M
++Others, such as
++.Pa /dev/pts ,
++.Pa /dev/net ,
++and
++.Pa /dev/zvol
++are dynamic and reflect the operational state of the system.
++You can manually generate device names for newly attached hardware by invoking
++.Xr devfsadm 1M
++or implicitly, by indirectly causing a lookup or readdir operation in the
++filesystem to occur.
+ For example, you can discover a disk that was attached when the system was
+ powered down (and generate a name for that device) by invoking
+-\fBformat\fR(1M)).
+-.SH FILES
+-.sp
+-.ne 2
+-.na
+-\fB/dev\fR
+-.ad
+-.RS 8n
+-Mount point for the \fB/dev\fR filesystem in the global zone.
+-.RE
+-
+-.SH SEE ALSO
+-.sp
+-.LP
+-\fBdevfsadm\fR(1M), \fBformat\fR(1M), \fBdevfs\fR(7FS)
+-.SH NOTES
+-.sp
+-.LP
+-The global \fB/dev\fR instance cannot be unmounted.
++.Xr format 1M .
++.Pp
++In a non-global zone, the
++.Nm
++filesystem is also mounted at
++.Pa /dev ;
++however, it is generally speaking read-only.
++Unlike in the global zone, a privileged user in a non-global zone cannot create
++directories or files, directories, or other objects within the filesystem.
++.Sh FILES
++.Bl -tag -width Pa
++.It Pa /dev
++Mount point for the
++.Nm
++filesystem in the global zone and non-global zones.
++.El
++.Sh SEE ALSO
++.Xr devfsadm 1M ,
++.Xr format 1M ,
++.Xr devfs 7FS
++.Sh NOTES
++The global
++.Pa /dev
++instance cannot be unmounted.
+diff --git a/usr/src/man/man7fs/devfs.7fs b/usr/src/man/man7fs/devfs.7fs
+index 69c9d1d4b4..284a12d16f 100644
+--- a/usr/src/man/man7fs/devfs.7fs
++++ b/usr/src/man/man7fs/devfs.7fs
+@@ -1,70 +1,110 @@
+-'\" te
+-.\"  Copyright (c) 2004 Sun Microsystems, Inc.  All Rights Reserved.
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+-.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+-.\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH DEVFS 7FS "Oct 26, 2004"
+-.SH NAME
+-devfs \- Devices file system
+-.SH DESCRIPTION
+-.sp
+-.LP
+-The \fBdevfs\fR filesystem manages a name space of all devices under the
+-Solaris operating environment and is mounted during boot on the \fB/devices\fR
++.\"
++.\" Copyright (c) 2004 Sun Microsystems, Inc.  All Rights Reserved.
++.\" Copyright 2021 Oxide compuer Company
++.\"
++.\" The contents of this file are subject to the terms of the
++.\" Common Development and Distribution License (the "License").
++.\" You may not use this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++.\" or http://www.opensolaris.org/os/licensing.
++.\" See the License for the specific language governing permissions
++.\" and limitations under the License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each
++.\" file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++.\" If applicable, add the following below this CDDL HEADER, with the
++.\" fields enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
++.\"
++.Dd November 29, 2021
++.Dt DEVFS 7FS
++.Os
++.Sh NAME
++.Nm devfs
++.Nd Devices file system
++.Sh DESCRIPTION
++The
++.Nm
++filesystem manages a name space of all devices in the operating environment and
++is mounted during boot on the
++.Pa /devices
+ name space.
+-.sp
+-.LP
+-The \fB/devices\fR name space is dynamic and reflects the current state of
+-accessible devices under the Solaris operating environment. The names of all
+-attached device instances are present under \fB/devices\fR.
+-.sp
+-.LP
+-The content under \fB/devices\fR is under the exclusive control of the
+-\fBdevfs\fR filesystem and cannot be changed.
+-.sp
+-.LP
++.Pp
++The
++.Pa /devices
++name space is dynamic and reflects the current state of accessible devices.
++The names of all attached device instances are present under
++.Pa /devices .
++.Pp
++The content under
++.Pa /devices
++is under the exclusive control of the
++.Nm
++filesystem and cannot be changed.
++.Pp
+ The system may be configured to include a device in one of two ways:
+-.br
+-.in +2
+-By means of dynamic reconfiguration (DR), using, for example, \fBcfgadm\fR(1M).
+-.in -2
+-.br
+-.in +2
+-For devices driven by \fBdriver.conf\fR(4) enumeration, edit the
+-\fBdriver.conf\fR file to add a new entry, then use \fBupdate_drv\fR(1M) to
+-cause the system to re-read the \fBdriver.conf\fR file and thereby enumerate
+-the instance.
+-.in -2
+-.sp
+-.LP
++.Bl -enum
++.It
++By means of dynamic reconfiguration
++.Pq DR ,
++using, for example,
++.Xr cfgadm 1M .
++Several different hardware buses such as PCIe and USB automatically discover and
++enumerate devices that they encounter.
++.It
++For devices driven by
++.Xr driver.conf 4
++enumeration, edit the
++.Pa driver.conf
++file to add a new entry, then use
++.Xr update_drv 1M
++to cause the system to re-read the
++.Pa driver.conf
++file and thereby enumerate the instance.
++.El
++.Pp
+ The device may be attached through a number of system calls and programs,
+-including \fBopen\fR(2), \fBstat\fR(2) and \fBls\fR(1). During device attach,
+-the device driver typically creates minor nodes corresponding to the device via
+-\fBddi_create_minor_node\fR(9F). If the attach is successful, one or more minor
+-nodes referring to the device are created under \fB/devices\fR.
+-.sp
+-.LP
+-Operations like \fBmknod\fR(2), \fBmkdir\fR(2) and \fBcreat\fR(2) are not
+-supported in \fB/devices\fR.
+-.SH FILES
+-.sp
+-.ne 2
+-.na
+-\fB/devices\fR
+-.ad
+-.RS 12n
+-Mount point for \fBdevfs\fR file system
+-.RE
+-
+-.SH SEE ALSO
+-.sp
+-.LP
+-\fBdevfsadm\fR(1M), \fBvfstab\fR(4), \fBattach\fR(9E)
+-.SH NOTES
+-.sp
+-.LP
+-The \fB/devices\fR name space cannot be unmounted.
+-.sp
+-.LP
+-All content at or below the \fB/devices\fR name space is an implementation
++including
++.Xr open 2 ,
++.Xr stat 2 ,
++and
++.Xr ls 1 .
++During device attach, the device driver typically creates minor nodes
++corresponding to the device via
++.Xr ddi_create_minor_node 9F .
++If the attach is successful, one or more minor nodes referring to the device are
++created under
++.Pa /devices .
++.Pp
++Operations like
++.Xr mknod 2 ,
++.Xr mkdir 2 ,
++and
++.Xr creat 2
++are not supported in
++.Pa /devices .
++.Pp
++This file system is not present in a non-global zone.
++.Sh FILES
++.Bl -tag -width Pa
++.It Pa /devices
++Mount point for
++.Nm
++file system in the global zone.
++.El
++.Sh SEE ALSO
++.Xr devfsadm 1M ,
++.Xr vfstab 4 ,
++.Xr attach 9E
++.Sh NOTES
++The
++.Pa /devices
++name space cannot be unmounted.
++.Pp
++All content at or below the
++.Pa /devices
++name space is an implementation
+ artifact and subject to incompatible change or removal without notification.
++Generally, user programs should leverage the device name space under
++.Pa /dev .
+diff --git a/usr/src/man/man7fs/fd.7fs b/usr/src/man/man7fs/fd.7fs
+index 00f12f07f7..254021f708 100644
+--- a/usr/src/man/man7fs/fd.7fs
++++ b/usr/src/man/man7fs/fd.7fs
+@@ -1,45 +1,84 @@
+-'\" te
++.\"
+ .\" Copyright (c) 1993, Sun Microsystems, Inc. All Rights Reserved.
+ .\" Copyright 1989 AT&T
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+-.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+-.\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH FD 7FS "Jul 3, 1990"
+-.SH NAME
+-fd, stdin, stdout, stderr \- file descriptor files
+-.SH DESCRIPTION
+-.sp
+-.LP
+-These files, conventionally called  \fB/dev/fd/0\fR, \fB/dev/fd/1\fR,
+-\fB/dev/fd/2\fR, and so on, refer to files accessible through file descriptors.
+-If file descriptor  \fIn\fR is open, these two system calls have the same
++.\" Copyright 2021 Oxide Computer Company
++.\"
++.\" The contents of this file are subject to the terms of the
++.\" Common Development and Distribution License (the "License").
++.\" You may not use this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++.\" or http://www.opensolaris.org/os/licensing.
++.\" See the License for the specific language governing permissions
++.\" and limitations under the License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each
++.\" file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++.\" If applicable, add the following below this CDDL HEADER, with the
++.\" fields enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
++.\"
++.Dd July 3, 1990
++.Dt FD 7FS
++.Os
++.Sh NAME
++.Nm fd ,
++.Nm stdin ,
++.Nm stdout ,
++.Nm stderr
++.Nd file descriptor files
++.Sh DESCRIPTION
++These files, conventionally called
++.Pa /dev/fd/0 ,
++.Pa /dev/fd/1 ,
++.Pa /dev/fd/2 ,
++and so on, refer to files accessible through file descriptors.
++If file descriptor
++.Em n
++is open, these two system calls have the same
+ effect:
+-.sp
+-.in +2
+-.nf
+-\fBfd = open("/dev/fd/\fR\fIn\fR",mode);
+-fd = dup(\fIn\fR);
+-.fi
+-.in -2
+-.sp
+-
+-.sp
+-.LP
+-On these files  \fBcreat\fR(2) is equivalent to \fBopen\fR, and \fBmode\fR is
+-ignored. As with  \fBdup\fR, subsequent reads or writes on  \fBfd\fR fail
+-unless the original file descriptor allows the operations.
+-.sp
+-.LP
++.Bd -literal -offset indent
++fd = open("/dev/fd/<n>", mode);
++fd = dup(n);
++.Ed
++.Pp
++On these files
++.Xr creat 2
++is equivalent to
++.Xr open 2 ,
++and
++.Fa mode
++is
++ignored.
++As with
++.Xr dup 2 ,
++subsequent reads or writes on
++.Em fd
++fail unless the original file descriptor allows the operations.
++.Pp
+ For convenience in referring to standard input, standard output, and standard
+-error, an additional set of names is provided:  \fB/dev/stdin\fR is a synonym
+-for  \fB/dev/fd/0\fR, \fB/dev/stdout\fR for \fB/dev/fd/1\fR, and
+-\fB/dev/stderr\fR for  \fB/dev/fd/2\fR.
+-.SH SEE ALSO
+-.sp
+-.LP
+-\fBcreat\fR(2), \fBdup\fR(2), \fBopen\fR(2)
+-.SH DIAGNOSTICS
+-.sp
+-.LP
+-\fBopen\fR(2) returns \fB\(mi1\fR and  \fBEBADF\fR if the associated file
+-descriptor is not open.
++error, an additional set of names is provided:
++.Pa /dev/stdin
++is a synonym
++for
++.Pa /dev/fd/0 ,
++.Pa /dev/stdout
++for
++.Pa /dev/fd/1 ,
++and
++.Pa /dev/stderr
++for
++.Pa /dev/fd/2 .
++.Sh DIAGNOSTICS
++.Xr open 2
++returns
++.Sy -1
++and
++.Va errno
++is set to
++.Er EBADF
++if the associated file descriptor is not open.
++.Sh SEE ALSO
++.Xr creat 2 ,
++.Xr dup 2 ,
++.Xr open 2
+diff --git a/usr/src/man/man7fs/hsfs.7fs b/usr/src/man/man7fs/hsfs.7fs
+index 54961435fa..61a137082f 100644
+--- a/usr/src/man/man7fs/hsfs.7fs
++++ b/usr/src/man/man7fs/hsfs.7fs
+@@ -1,301 +1,253 @@
+-'\" te
++.\"
+ .\" Copyright (c) 2006, Sun Microsystems, Inc.
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+-.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+-.\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH HSFS 7FS "Nov 1, 2006"
+-.SH NAME
+-hsfs \- High Sierra & ISO 9660 CD-ROM file system
+-.SH DESCRIPTION
+-.sp
+-.LP
+-\fBHSFS\fR is a file system type that allows users to access files on High
+-Sierra or  \fBISO\fR 9660 format \fBCD-ROM\fR disks from within the SunOS
+-operating system. Once mounted, a \fBHSFS\fR file system provides standard
+-SunOS read-only file system operations and semantics, meaning that you can read
+-and list files in a directory on a High Sierra or \fBISO\fR 9660 \fBCD-ROM\fR
+-and applications can use standard UNIX system calls on these files and
+-directories.
+-.sp
+-.LP
++.\" Copyright 2021 Oxide Computer Company
++.\"
++.\" The contents of this file are subject to the terms of the
++.\" Common Development and Distribution License (the "License").
++.\" You may not use this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++.\" or http://www.opensolaris.org/os/licensing.
++.\" See the License for the specific language governing permissions
++.\" and limitations under the License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each
++.\" file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++.\" If applicable, add the following below this CDDL HEADER, with the
++.\" fields enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
++.\"
++.Dd November 1, 2006
++.Dt HSFS 7FS
++.Os
++.Sh NAME
++.Nm hsfs
++.Nd High Sierra & ISO 9660 CD-ROM file system
++.Sh DESCRIPTION
++.Nm
++is a file system type that allows users to access files on High Sierra or ISO
++9660 format CD-ROM disks from within the SunOS operating system.
++Once mounted, a
++.Nm
++file system provides standard read-only file system operations and semantics,
++meaning that you can read and list files in a directory on a High Sierra or ISO
++9660 CD-ROM and applications can use standard UNIX system calls on these files
++and directories.
++.Pp
+ This file system contains support for Rock Ridge, ISO 9660 Version 2 and Joliet
+-extensions. These extensions provide support for file names with a  length of
+-at least 207 bytes, but only Rock Ridge extensions (with the exception of
+-writability and hard links) can provide file system semantics and file types as
+-they are found in UFS. The presence of Rock Ridge, ISO 9660 Version 2  and
+-Joliet is autodetected and the best-suitable available extension is  used by
+-the HSFS driver for file name and attribute lookup.
+-.sp
+-.LP
+-If  your \fB/etc/vfstab\fR file contains a line similar to the following:
+-.sp
+-.in +2
+-.nf
+-/dev/dsk/c0t6d0s0 \(mi/hsfs hsfs \fB-no\fR ro
+-.fi
+-.in -2
+-
+-.sp
+-.LP
+-and \fB/hsfs\fR exists, you can mount an \fBHSFS\fR file system with either of
+-the following commands:
+-.sp
+-.in +2
+-.nf
+-mount \fB-F\fR hsfs \fB-o\fR ro \fIdevice-special\fR \fIdirectory-name\fR
+-.fi
+-.in -2
+-
+-.sp
+-.LP
++extensions.
++These extensions provide support for file names with a length of at least 207
++bytes, but only Rock Ridge extensions
++.Pq with the exception of writability and hard links
++can provide file system semantics and file types as they are found in UFS.
++The presence of Rock Ridge, ISO 9660 Version 2, and Joliet is autodetected and
++the best-suitable available extension is used by the HSFS driver for file name
++and attribute lookup.
++.Pp
++If your
++.Pa /etc/vfstab
++file contains a line similar to the following:
++.Bd -literal
++/dev/dsk/c0t6d0s0 - /hsfs hsfs - no ro
++.Ed
++.Pp
++and
++.Pa /hsfs
++exists, you can mount an
++.Nm
++file system with either of the following commands:
++.Bd -literal -offset indent
++mount -F hsfs -o ro device-special directory-name
++.Ed
+ or
+-.sp
+-.in +2
+-.nf
++.Bd -literal -offset indent
+ mount /hsfs
+-.fi
+-.in -2
+-
+-.sp
+-.LP
+-By default, Rock Ridge extensions are used if available, otherwise  ISO 9660
+-Version 2, then Joliet are used. If neither extension is present HSFS defaults
+-to the standard capabilities of ISO  9660. Since so-called hybrid CD-ROMs that
+-contain multiple extensions are possible,  you can use the following mount
+-options to deliberately disable the  search for a specific extension or to
+-force the use of a specific extension even if a preferable type is present:
+-.sp
+-.in +2
+-.nf
+-mount \fB-F\fR hsfs \fB-o\fR ro,nrr \fIdevice-special\fR \fIdirectory-name\fR
+-.fi
+-.in -2
+-
+-.sp
+-.LP
++.Ed
++.Pp
++By default, Rock Ridge extensions are used if available, otherwise ISO 9660
++Version 2, then Joliet are used.
++If neither extension is present HSFS defaults to the standard capabilities of
++ISO 9660.
++Since so-called hybrid CD-ROMs that contain multiple extensions are possible,
++you can use the following mount options to deliberately disable the search for a
++specific extension or to force the use of a specific extension even if a
++preferable type is present:
++.Bd -literal
++mount -F hsfs -o ro,nrr device-special directory-name
++.Ed
++.Pp
+ Mount options are:
+-.sp
+-.LP
+-rr\(emrequest HSFS to use Rock Ridge extensions, if present. This is the
+-default  behavior and does not need to be explicitly specified.
+-.sp
+-.LP
+-nrr\(emdisable detection and use of Rock Ridge extensions, even if present.
+-.sp
+-.LP
+-vers2\(emrequest HSFS to use \fIISO 9660\fR Version 2 extensions, even if Rock
+-Ridge is available.
+-.sp
+-.LP
+-novers2\(emdisable detection and use of \fIISO 9660\fR Version 2 extensions.
+-.sp
+-.LP
+-joliet\(emrequest HSFS to use Joliet extensions, even if Rock Ridge or \fIISO
+-9660\fR Version 2 extensions are available.
+-.sp
+-.LP
+-nojoliet\(emdisable detection and use of Joliet extensions.
+-.sp
+-.LP
+-Files on a High Sierra or \fBISO\fR 9660 \fBCD-ROM\fR disk have names of the
+-form \fIfilename.ext;version\fR, where  \fIfilename\fR and the optional
+-\fIext\fR consist of a sequence of uppercase alphanumeric characters (including
+-``_''), while the \fIversion\fR consists of a sequence of digits, representing
+-the version number of  the file. \fBHSFS\fR converts all the uppercase
+-characters in a file name to lowercase, and truncates the ``;'' and version
+-information. If more than one version of a file is present on the
+-\fBCD-ROM\fR, only the file with the highest version number is accessible.
+-.sp
+-.LP
++.Bl -tag -width Ds
++.It rr
++Request HSFS to use Rock Ridge extensions, if present.
++This is the default behavior and does not need to be explicitly specified.
++.It nrr
++Disable detection and use of Rock Ridge extensions, even if present.
++.It vers2
++Request HSFS to use ISO 9660 Version 2 extensions, even if Rock Ridge is
++available.
++.It novers2
++Disable detection and use of ISO 9660 Version 2 extensions.
++.It joliet
++Request HSFS to use Joliet extensions, even if Rock Ridge or ISO 9660 Version 2
++extensions are available.
++.It nojoliet
++Disable detection and use of Joliet extensions.
++.El
++.Pp
++Files on a High Sierra or ISO 9660 CD-ROM disk have names of the form
++.Pa filename.ext;versio ,
++where
++.Fa filename
++and the optional
++.Fa ext
++consist of a sequence of uppercase alphanumeric characters
++.Po
++including
++.Sq _
++.Pc ,
++while the
++.Fa version
++consists of a sequence of digits, representing the version number of the file.
++.Nm
++converts all the uppercase characters in a file name to lowercase, and truncates
++the
++.Sq ;
++and version information.
++If more than one version of a file is present on the CD-ROM, only the file with
++the highest version number is accessible.
++.Pp
+ Conversion of uppercase to lowercase characters may be disabled by using the
+-\fB-o\fR \fBnomaplcase\fR option to \fBmount\fR(1M). (See
+-\fBmount_hsfs\fR(1M)).
+-.sp
+-.LP
+-If the  \fBCD-ROM\fR contains Rock Ridge, ISO  9660 version 2 or Joliet
+-extensions, the file names and directory names may contain any character
+-supported under  \fBUFS.\fR The names may also be upper and/or lower case and
+-are case sensitive. File name lengths can be as long as those of  \fBUFS\fR.
+-.sp
+-.LP
+-Files accessed through \fBHSFS\fR have mode 555 (owner, group and world
+-readable and executable),  uid 0 and gid 3. If a directory on the \fBCD-ROM\fR
+-has read permission, \fBHSFS\fR grants execute permission to the directory,
+-allowing it to be searched.
+-.sp
+-.LP
++.Fl o
++.Ar nomaplcase
++option to
++.Xr mount 1M .
++See
++.Xr mount_hsfs 1M .
++.Pp
++If the CD-ROM contains Rock Ridge, ISO 9660 version 2 or Joliet extensions, the
++file names and directory names may contain any character supported under
++.Xr UFS 7FS .
++The names may also be upper and/or lower case and are case sensitive.
++File name lengths can be as long as those of
++.Xr UFS 7FS .
++.Pp
++Files accessed through
++.Nm
++have mode 555
++.Pq owner, group and world readable and executable ,
++uid 0 and gid 3. If a directory on the CD-ROM has read permission,
++.Nm
++grants execute permission to the directory, allowing it to be searched.
++.Pp
+ With Rock Ridge extensions, files and directories can have any permissions that
+-are supported on a  \fBUFS\fR file system. However, under all write
+-permissions, the file system is read-only, with \fBEROFS\fR returned to any
+-write operations.
+-.sp
+-.LP
+-Like High Sierra and \fBISO\fR 9660 \fBCD-ROMs\fR, HSFS supports only regular
+-files and directories. A Rock Ridge \fBCD-ROM\fR can support regular files,
+-directories, and symbolic links, as well as device nodes, such as block,
+-character, and FIFO.
+-.SH EXAMPLES
+-.LP
+-\fBExample 1 \fRSample Display of File System Files
+-.sp
+-.LP
+-If there is a file \fBBIG.BAR\fR on a High Sierra or \fBISO\fR 9660 format
+-\fBCD-ROM\fR it will show up as \fBbig.bar\fR when listed on a \fBHSFS\fR file
+-system.
+-
+-.sp
+-.LP
++are supported on a
++.Xr UFS 7FS
++file system.
++However, under all write permissions, the file system is read-only, with
++.Er EROFS
++returned to any write operations.
++.Pp
++Like High Sierra and ISO 9660 CD-ROMs, HSFS supports only regular files and
++directories.
++A Rock Ridge CD-ROM can support regular files, directories, and symbolic links,
++as well as device nodes, such as block, character, and FIFO.
++.Sh EXAMPLES
++.Sy Example 1
++Sample Display of File System Files
++.Pp
++If there is a file
++.Pa BIG.BAR
++on a High Sierra or ISO 9660 format CD-ROM it will show up as
++.Pa big.bar
++when listed on a
++.Nm
++file system.
++.Pp
+ If there are three files
+-
+-.sp
+-.in +2
+-.nf
+-\fBBAR.BAZ;1\fR
+-.fi
+-.in -2
+-
+-.sp
+-.in +2
+-.nf
+-\fBBAR.BAZ;2\fR
+-.fi
+-.in -2
+-
+-.sp
+-.LP
++Pa BAR.BAZ;1 ,
++Pa BBAR.BAZ;2 ,
+ and
+-
+-.sp
+-.in +2
+-.nf
+-\fBBAR.BAZ;3\fR
+-.fi
+-.in -2
+-
+-.sp
+-.LP
+-on a High Sierra or \fBISO\fR 9660 format \fBCD-ROM,\fR only the file
+-\fBBAR.BAZ;3\fR will be accessible. It will be listed as \fBbar.baz\fR.
+-
+-.SH SEE ALSO
+-.sp
+-.LP
+-\fBmount\fR(1M), \fBmount_hsfs\fR(1M), \fBvfstab\fR(4)
+-.sp
+-.LP
+-N. V. Phillips and Sony Corporation, \fISystem Description Compact Disc Digital
+-Audio\fR, ("Red Book").
+-.sp
+-.LP
+-N. V. Phillips and Sony Corporation, \fISystem Description of Compact Disc Read
+-Only Memory\fR, ("Yellow Book").
+-.sp
+-.LP
+-IR "Volume and File Structure of CD-ROM for Information Interchange", ISO
+-9660:1988(E).
+-.SH DIAGNOSTICS
+-.sp
+-.ne 2
+-.na
+-\fBhsfs: Warning: the file system... \fR
+-.ad
+-.br
+-.na
+-\fBdoes not conform to the ISO-9660 spec\fR
+-.ad
+-.sp .6
+-.RS 4n
+-The specific reason appears on the following line. You might be attempting to
+-mount a \fBCD-ROM\fR containing a different file system, such as \fBUFS\fR.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fBhsfs: Warning: the file system... \fR
+-.ad
+-.br
+-.na
+-\fBcontains a file [with an] unsupported type\fR
+-.ad
+-.sp .6
+-.RS 4n
+-The \fBhsfs\fR file system does not support the format of some file or
+-directory on the \fBCD-ROM,\fR for example a record structured file.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fBhsfs: hsnode table full, %d nodes allocated\fR
+-.ad
+-.sp .6
+-.RS 4n
+-There are not enough \fBHSFS\fR internal data structure elements to handle all
+-the files currently open.  This problem may be overcome by adding a line of the
+-form \fBset hsfs:nhsnode=\fR\fInumber\fR to the \fB/etc/system\fR system
+-configuration file and rebooting.  See \fBsystem\fR(4).
+-.RE
+-
+-.SH WARNINGS
+-.sp
+-.LP
+-Do not physically eject a \fBCD-ROM\fR while the device is still mounted as a
+-\fBHSFS\fR file system.
+-.sp
+-.LP
+-Under \fBMS-DOS\fR (for which \fBCD-ROMs\fR are frequently targeted), files
+-with no extension may be represented either as:
+-.sp
+-.in +2
+-.nf
+-\fIfilename.\fR
+-.fi
+-.in -2
+-
+-.sp
+-.LP
++.Pa BAR.BAZ;3
++on a High Sierra or ISO 9660 format CD-ROM, only the file
++.Pa BAR.BAZ;3
++will be accessible.
++It will be listed as
++.Pa bar.baz .
++.Sh DIAGNOSTICS
++.Bl -tag -width Ds
++.It "hsfs: Warning: the file system...  does not conform to the ISO-9660 spec"
++The specific reason appears on the following line.
++You might be attempting to mount a CD-ROM containing a different file system,
++such as
++.Xr UFS 7FS
++.It "hsfs: Warning: the file system... contains a file [with an] unsupported"
++type"
++The
++.Nm
++file system does not support the format of some file or directory on the CD-ROM,
++for example a record structured file.
++.It "hsfs: hsnode table full, %d nodes allocated"
++There are not enough
++.Nm
++internal data structure elements to handle all the files currently open.
++This problem may be overcome by adding a line of the form
++.Ql set hsfs:nhsnode=number
++to the
++.Pa /etc/system
++system configuration file and rebooting.
++See
++.Xr system 4 .
++.El
++.Sh SEE ALSO
++.Xr mount 1M ,
++.Xr mount_hsfs 1M ,
++.Xr vfstab 4
++.Pp
++.Rs
++.%A N. V. Phillips
++.%A Sony Corporation
++.%T System Description Compact Disc Digital Audio, ("Red Book")
++.Re
++.Rs
++.%A N. V. Phillips
++.%A Sony Corporation
++.%T System Description of Compact Disc Read Only Memory, ("Yellow Book")
++.Re
++.Rs
++.%T Volume and File Structure of CD-ROM for Information Interchange
++.%N ISO 9660:1988(E)
++.Re
++.Sh WARNINGS
++Do not physically eject a CD-ROM while the device is still mounted as a
++.Nm
++file system.
++.Pp
++Under MS-DOS
++.Pq for which CD-ROMs are frequently targeted ,
++files with no extension may be represented either as:
++.Pa filename\&.
+ or
+-.sp
+-.in +2
+-.nf
+-\fIfilename\fR
+-.fi
+-.in -2
+-
+-.sp
+-.LP
+-that is, with or without a trailing period. These names are not equivalent
+-under UNIX systems. For example, the names:
+-.sp
+-.in +2
+-.nf
+-\fBBAR.\fR
+-.fi
+-.in -2
+-
+-.sp
+-.LP
++.Pa filename
++that is, with or without a trailing period.
++These names are not equivalent under UNIX systems.
++For example, the names:
++.Pa BAR\&.
+ and
+-.sp
+-.in +2
+-.nf
+-\fBBAR\fR
+-.fi
+-.in -2
+-
+-.sp
+-.LP
+-are not names for the same file under the UNIX system. This may cause confusion
+-if you are consulting documentation for \fBCD-ROMs\fR originally intended for
+-\fBMS-DOS\fR systems.
+-.sp
+-.LP
+-Use of the \fB-o\fR \fBnotraildot\fR option to \fBmount\fR(1M) makes it
+-optional to specify the trailing dot. (See \fBmount_hsfs\fR(1M)).
+-.SH NOTES
+-.sp
+-.LP
+-No translation of any sort is done on the contents of High Sierra or \fBISO\fR
+-9660 format \fBCD-ROMs\fR; only directory and file names are subject to
+-interpretation by \fBHSFS.\fR
++.Pa BAR
++are not names for the same file under the UNIX system.
++This may cause confusion if you are consulting documentation for CD-ROMs
++originally intended for MS-DOS systems.
++.Pp
++Use of the
++.Fl o
++.Ar notraildot
++option to
++.Xr mount 1M
++makes it optional to specify the trailing dot.
++See
++.Xr mount_hsfs 1M .
++.Sh NOTES
++No translation of any sort is done on the contents of High Sierra or ISO 9660
++format CD-ROMs; only directory and file names are subject to interpretation by
++.Nm .
+diff --git a/usr/src/man/man7fs/lofs.7fs b/usr/src/man/man7fs/lofs.7fs
+index 4a5311552b..7288fa82dd 100644
+--- a/usr/src/man/man7fs/lofs.7fs
++++ b/usr/src/man/man7fs/lofs.7fs
+@@ -1,87 +1,137 @@
+-'\" te
++.\"
+ .\" Copyright 2014 Nexenta Systems, Inc.  All Rights Reserved.
+ .\"  Copyright (c) 2009, Sun Microsystems, Inc.  All Rights Reserved
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+-.\"  See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with
+-.\" the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH LOFS 7FS "Nov 24, 2014"
+-.SH NAME
+-lofs \- loopback virtual file system
+-.SH SYNOPSIS
+-.LP
+-.nf
+-#include <sys/param.h>
+-#include <sys/mount.h>
+-
+-\fBint\fR \fBmount\fR (\fBconst char *\fR\fIdir\fR, \fBconst char *\fR\fIvirtual\fR, \fBint\fR \fImflag\fR, \fB"lofs"\fR, \fBNULL\fR, \fB0\fR);
+-.fi
+-
+-.SH DESCRIPTION
+-.LP
++.\" Copyright 2021 Oxide Computer Company
++.\"
++.\" The contents of this file are subject to the terms of the
++.\" Common Development and Distribution License (the "License").
++.\" You may not use this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++.\" or http://www.opensolaris.org/os/licensing.
++.\" See the License for the specific language governing permissions
++.\" and limitations under the License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each
++.\" file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++.\" If applicable, add the following below this CDDL HEADER, with the
++.\" fields enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
++.\"
++.Dd November 24, 2014
++.Dt LOFS 7FS
++.Os
++.Sh NAME
++.Nm lofs
++.Nd loopback virtual file system
++.Sh SYNOPSIS
++.In sys/param.h
++.In sys/mount.h
++.Ft int
++.Fo mount
++.Fa "const char *dir"
++.Fa "const char *virtual"
++.Fa "int mflag"
++.Fa \(dqlofs\(dq ,
++.Fa NULL ,
++.Fa 0
++.Fc
++.Sh DESCRIPTION
+ The loopback file system device allows new, virtual file systems to be created,
+-which provide access to existing files using alternate pathnames. Once the
+-virtual file system is created, other file systems can be mounted within it,
+-without affecting the original file system. However, file systems which are
+-subsequently mounted onto the original file system \fIare\fR visible to the
+-virtual file system, unless or until the corresponding mount point in the
+-virtual file system is covered by a file system mounted there.
+-.sp
+-.LP
+-\fIvirtual\fR is the mount point for the virtual file system. \fIdir\fR is the
+-pathname of the existing file system. \fImflag\fR specifies the mount options;
+-the  \fBMS_DATA\fR bit in  \fImflag\fR must be set. If the \fBMS_RDONLY\fR bit
+-in  \fImflag\fR is not set, accesses to the loop back file system are the same
+-as for the underlying file system. Otherwise, all accesses in the loopback file
+-system will be read-only. All other \fBmount\fR(2) options are inherited from
+-the underlying file systems.
+-.sp
+-.LP
+-A loopback mount of '\fB/\fR' onto \fB/tmp/newroot\fR allows the entire file
+-system hierarchy to appear as if it were duplicated under \fB/tmp/newroot\fR,
+-including any file systems mounted from remote \fBNFS\fR servers. All files
+-would then be accessible either from a pathname relative to '\fB/\fR' or from a
+-pathname relative to \fB/tmp/newroot\fR until such time as a file system is
+-mounted in \fB/tmp/newroot\fR, or any of its subdirectories.
+-.sp
+-.LP
+-Loopback mounts of '\fB/\fR' can be performed in conjunction with the
+-\fBchroot\fR(2) system call, to provide a complete virtual file system to a
+-process or family of processes.
+-.sp
+-.LP
+-Recursive traversal of loopback mount points is not allowed. After the loopback
+-mount of \fB/tmp/newroot\fR, the file \fB/tmp/newroot/tmp/newroot\fR does not
+-contain yet another file system hierarchy; rather, it appears just as
+-\fB/tmp/newroot\fR did before the loopback mount was performed (for example, as
+-an empty directory).
+-.SS "Examples"
+-.LP
+-\fBlofs\fR file systems are mounted using:
+-.sp
+-.in +2
+-.nf
+-\fBmount\fR \fB-F\fR lofs /tmp /mnt
+-.fi
+-.in -2
+-.sp
+-
+-.SH SEE ALSO
+-.LP
+-\fBlofiadm\fR(1M), \fBmount\fR(1M), \fBchroot\fR(2), \fBmount\fR(2),
+-\fBsysfs\fR(2), \fBvfstab\fR(4), \fBlofi\fR(7D)
+-.SH NOTES
+-.LP
+-All access to entries in \fBlofs\fR mounted file systems map to their
+-underlying file system. If a mount point is made available in multiple
+-locations via \fBlofs\fR and is busy in any of those locations, an attempt to
+-mount a file system at that mount point fails unless the overlay flag is
+-specified. See \fBmount\fR(1M). Examples of a mount point being busy within a
+-\fBlofs\fR mount include having a file system mounted on it or it being a
+-processes' current working directory.
+-.SH WARNINGS
+-.LP
++which provide access to existing files using alternate pathnames.
++Once the virtual file system is created, other file systems can be mounted
++within it, without affecting the original file system.
++However, file systems which are subsequently mounted onto the original file
++system
++.Em are
++visible to the virtual file system, unless or until the corresponding mount
++point in the virtual file system is covered by a file system mounted there.
++.Pp
++.Fa virtual
++is the mount point for the virtual file system.
++.Fa dir
++is the pathname of the existing file system.
++.Fa mflag
++specifies the mount options; the
++.Dv MS_DATA
++bit in
++.Fa mflag
++must be set.
++If the
++.Dv MS_RDONLY
++bit in
++.Fa mflag
++is not set, accesses to the loop back file system are the same as for the
++underlying file system.
++Otherwise, all accesses in the loopback file system will be read-only.
++All other
++.Xr mount 2
++options are inherited from the underlying file systems.
++.Pp
++A loopback mount of
++.Pa /
++onto
++.Pa /tmp/newroot
++allows the entire file system hierarchy to appear as if it were duplicated under
++.Pa /tmp/newroot ,
++including any file systems mounted from remote NFS servers.
++All files would then be accessible either from a pathname relative to
++.Pa /
++or from a pathname relative to
++.Pa /tmp/newroot
++until such time as a file system is mounted in
++.Pa /tmp/newroot
++or any of its subdirectories.
++.Pp
++Loopback mounts of
++.Pa /
++can be performed in conjunction with the
++.Xr chroot 2
++system call, to provide a complete virtual file system to a process or family of
++processes.
++.Pp
++Recursive traversal of loopback mount points is not allowed.
++After the loopback mount of
++.Pa /tmp/newroot ,
++the file
++.Pa /tmp/newroot/tmp/newroot
++does not contain yet another file system hierarchy; rather, it appears just as
++.Pa /tmp/newroot
++did before the loopback mount was performed
++.Pq for example, as an empty directory .
++.Sh EXAMPLES
++.Nm
++file systems are mounted using:
++.Bd -literal -offset indent
++mount -F lofs /tmp /mnt
++.Ed
++.Sh SEE ALSO
++.Xr lofiadm 1M ,
++.Xr mount 1M ,
++.Xr chroot 2 ,
++.Xr mount 2 ,
++.Xr sysfs 2 ,
++.Xr vfstab 4 ,
++.Xr lofi 7D
++.Sh NOTES
++All access to entries in
++.Nm
++mounted file systems map to their underlying file system.
++If a mount point is made available in multiple locations via
++.Nm
++and is busy in any of those locations, an attempt to mount a file system at that
++mount point fails unless the overlay flag is specified.
++See
++.Xr mount 1M .
++Examples of a mount point being busy within a
++.Nm
++mount include having a file system mounted on it or it being a processes'
++current working directory.
++.Sh WARNINGS
+ Because of the potential for confusing users and applications, you should use
+-loopback mounts with care. A loopback mount entry in \fB/etc/vfstab\fR must be
+-placed after the mount points of both directories it depends on.  This is most
+-easily accomplished by  making the loopback mount entry the last in
+-\fB/etc/vfstab\fR.
++loopback mounts with care.
++A loopback mount entry in
++.Pa /etc/vfstab
++must be placed after the mount points of both directories it depends on.
++This is most easily accomplished by making the loopback mount entry the last in
++.Pa /etc/vfstab .
+diff --git a/usr/src/man/man7fs/objfs.7fs b/usr/src/man/man7fs/objfs.7fs
+index 4cadf59dfb..850e0b725f 100644
+--- a/usr/src/man/man7fs/objfs.7fs
++++ b/usr/src/man/man7fs/objfs.7fs
+@@ -1,62 +1,62 @@
+-'\" te
+-.\"  Copyright (c) 2004, Sun Microsystems, Inc.  All Rights Reserved
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+-.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+-.\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH OBJFS 7FS "Aug 30, 2004"
+-.SH NAME
+-objfs \- Kernel object filesystem
+-.SH DESCRIPTION
+-.sp
+-.LP
+-The \fBobjfs\fR filesystem describes the state of all modules currently loaded
+-by the kernel. It is mounted during boot at \fB/system/object\fR.
+-.sp
+-.LP
++.\"
++.\" Copyright (c) 2004, Sun Microsystems, Inc.  All Rights Reserved
++.\" Copyright 2021 Oxide Computer Company
++.\"
++.\" The contents of this file are subject to the terms of the
++.\" Common Development and Distribution License (the "License").
++.\" You may not use this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++.\" or http://www.opensolaris.org/os/licensing.
++.\" See the License for the specific language governing permissions
++.\" and limitations under the License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each
++.\" file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++.\" If applicable, add the following below this CDDL HEADER, with the
++.\" fields enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
++.\"
++.Dd November 29, 2021
++.Dt OBJFS 7FS
++.Os
++.Sh NAME
++.Nm objfs
++.Nd Kernel object filesystem
++.Sh DESCRIPTION
++The
++.Nm
++filesystem describes the state of all modules currently loaded
++by the kernel.
++It is mounted during boot at
++.Pa /system/object .
++.Pp
+ The contents of the filesystem are dynamic and reflect the current state of the
+-system. Each module is represented by a directory containing a single
+-file, 'object.' The object file is a read only ELF file which contains information
+-about the object loaded in the kernel.
+-.sp
+-.LP
+-The kernel may load and unload modules dynamically as the system runs. As a
+-result, applications may observe different directory contents in
+-\fB/system/object\fR if they repeatedly rescan the directory. If a module is
+-unloaded, its associated \fB/system/object\fR files disappear from the
+-hierarchy and subsequent attempts to open them, or to read files opened before
+-the module unloaded, elicits an error.
+-.SH FILES
+-.sp
+-.ne 2
+-.na
+-\fB\fB/system/object\fR\fR
+-.ad
+-.RS 18n
+-Mount point for objfs file system
+-.RE
+-
+-.SH ATTRIBUTES
+-.sp
+-.LP
+-See \fBattributes\fR(5) for descriptions of the following attributes:
+-.sp
+-
+-.sp
+-.TS
+-box;
+-c | c
+-l | l .
+-ATTRIBUTE TYPE	ATTRIBUTE VALUE
+-_
+-Interface Stability	Private
+-.TE
+-
+-.SH SEE ALSO
+-.sp
+-.LP
+-\fBvfstab\fR(4)
+-.SH NOTES
+-.sp
+-.LP
++system.
++Each module is represented by a directory containing a single file,
++.Sq object' .
++The object file is a read only ELF file which contains information about the
++object loaded in the kernel.
++.Pp
++The kernel may load and unload modules dynamically as the system runs.
++As a result, applications may observe different directory contents in
++.Pa /system/object
++if they repeatedly rescan the directory.
++If a module is unloaded, its associated
++.Pa /system/object
++files disappear from the hierarchy and subsequent attempts to open them, or to
++read files opened before the module unloaded, elicits an error.
++.Pp
++This file system is generally not present in a non-global zone.
++.Sh FILES
++.Bl -tag -width Pa
++.It Pa /system/object
++Mount point for objfs file system in the global zone.
++.El
++.Sh Interface Stability
++.Sy Private
++.Sh SEE ALSO
++.Xr vfstab 4
++.Sh NOTES
+ The content of the ELF files is private to the implementation and subject to
+ change without notice.
+diff --git a/usr/src/man/man7fs/pcfs.7fs b/usr/src/man/man7fs/pcfs.7fs
+index cd92220c57..de0a2ee73c 100644
+--- a/usr/src/man/man7fs/pcfs.7fs
++++ b/usr/src/man/man7fs/pcfs.7fs
+@@ -1,497 +1,540 @@
+-'\" te
++.\"
+ .\" Copyright (c) 2007 Sun Microsystems, Inc. All Rights Reserved.
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+-.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+-.\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PCFS 7FS "June 20, 2021"
+-.SH NAME
+-pcfs \- FAT formatted file system
+-.SH SYNOPSIS
+-.nf
+-#include <sys/param.h>
+-#include <sys/mount.h>
+-#include <sys/fs/pc_fs.h>
+-
+-\fBint\fR \fBmount\fR(\fBconst char *\fR\fIspec\fR,
+-     \fBconst char *\fR \fIdir\fR, \fBint\fR  \fImflag\fR,
+-     \fB"pcfs", NULL, 0,\fR \fBchar *\fR\fIoptptr\fR,
+-     \fBint\fR \fIoptlen\fR);
+-.fi
+-
+-.SH DESCRIPTION
+-\fBpcfs\fR is a file system type that enables direct access to files on
+-\fBFAT\fR formatted disks from within the SunOS operating system.
+-.sp
+-.LP
+-Once mounted, \fBpcfs\fR provides standard SunOS file operations and semantics.
+-Using \fBpcfs\fR, you can create, delete, read, and write files on a \fBFAT\fR
+-formatted disk. You can also create and delete directories and list files in a
+-directory.
+-.sp
+-.LP
+-\fBpcfs\fR supports FAT12 (floppies) and FAT16 and FAT32 file systems.
+-.sp
+-.LP
+-\fBpcfs\fR file systems can be force umounted using the \fB-f\fR argument to
+-\fBumount\fR(1M).
+-.sp
+-.LP
+-The \fBpcfs\fR file system contained on the block special file identified by
+-\fIspec\fR is mounted on the directory identified by \fIdir\fR. \fIspec\fR and
+-\fIdir\fR are pointers to pathnames. \fImflag\fR specifies the \fBmount\fR
+-options. The \fBMS_DATA\fR bit in \fImflag\fR must be set. Mount options can be
+-passed to \fBpcfs\fR  using the  optptr and optlen  arguments.  See
+-\fBmount_pcfs\fR(1M) for a list of mount options supported by \fBpcfs\fR.
+-.sp
+-.LP
++.\" Copyright 2021 Oxide Computer Company
++.\"
++.\" The contents of this file are subject to the terms of the
++.\" Common Development and Distribution License (the "License").
++.\" You may not use this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++.\" or http://www.opensolaris.org/os/licensing.
++.\" See the License for the specific language governing permissions
++.\" and limitations under the License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each
++.\" file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++.\" If applicable, add the following below this CDDL HEADER, with the
++.\" fields enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
++.\"
++.Dd November 29, 2021
++.Dt PCFS 7FS
++.Os
++.Sh NAME
++.Nm pcfs
++.Nd FAT formatted file system
++.Sh SYNOPSIS
++.In sys/param.h
++.In sys/mount.h
++.In sys/fs/pc_fs.h
++.Ft int
++.Fo mount
++.Fa "const char *spec"
++.Fa "const char *dir"
++.Fa "int mflag"
++.Fa \(dqpcfs\(dq
++.Fa NULL
++.Fa 0
++.Fa "const char *optptr"
++.Fa "int optlen"
++.Fc
++.Sh DESCRIPTION
++.Nm
++is a file system type that enables direct access to files on FAT formatted disks
++from within the SunOS operating system.
++.Pp
++Once mounted,
++.Nm
++provides standard file operations and semantics.
++Using
++.Nm
++you can create, delete, read, and write files on a FAT formatted disk.
++You can also create and delete directories and list files in a directory.
++.Pp
++.Nm
++supports FAT12 (floppies) and FAT16 and FAT32 file systems.
++.Pp
++.Nm
++file systems can be force umounted using the
++.Fl -f
++argument to
++.Xr umount 1M .
++.Pp
++The
++.Nm
++file system contained on the block special file identified by
++.Fa spec
++is mounted on the directory identified by
++.Fa dir .
++.Fa spec
++and
++.Fa dir
++are pointers to pathnames.
++.Fa mflag
++specifies the
++.Fa mount
++options.
++The
++.Dv MS_DATA
++bit in
++.Fa mflag
++must be set.
++Mount options can be passed to
++.Nm
++using the optptr and optlen arguments.
++See
++.Xr mount_pcfs 1M
++for a list of mount options supported by
++.Nm
++.Pp
+ Because FAT formatted media can record file timestamps between January 1st 1980
+-and December 31st 2127, it's not possible to fully represent UNIX \fBtime_t\fR
+-in \fBpcfs\fR for 32 bit or 64 bit programs. In particular, if post-2038
+-timestamps are present on a FAT formatted medium and \fBpcfs\fR returns these,
+-32bit applications may unexpectedly fail with \fBEOVERFLOW\fR errors. To
+-prevent this, the default behaviour of \fBpcfs\fR has been modified to clamp
+-post-2038 timestamps to the latest possible value for a 32bit \fBtime_t\fR,
++and December 31st 2127, it's not possible to fully represent UNIX
++.Vt time_t
++in
++.Nm
++for 32 bit or 64 bit programs.
++In particular, if post-2038 timestamps are present on a FAT formatted medium and
++.Nm
++returns these, 32bit applications may unexpectedly fail with
++.Er EOVERFLOW
++errors.
++To prevent this, the default behaviour of
++.Nm
++has been modified to clamp
++post-2038 timestamps to the latest possible value for a 32bit
++.Vt time_t ,
+ which is January 19th 2038, 03:14:06 UTC when setting and retrieving file
+-timestamps. You can override this behavior using the \fBnoclamptime\fR mount
+-option, as described in \fBmount_pcfs\fR(1M).
+-.sp
+-.LP
+-Timestamps on FAT formatted media are recorded in local time. If the recording
+-and  receiving systems use different timezones, the representation of
+-timestamps shown on the two systems for the same medium might vary. To correct
+-this,  \fBpcfs\fR  provides a  timezone mount option to force  interpretation
+-of timestamps as read from a FAT formatted medium in a given  timezone (that of
+-the recorder). By default, the local timezone of the  receiver is used. See
+-\fBmount_pcfs\fR(1M) for details.
+-.sp
+-.LP
+-The root directory of a FAT formatted medium has no timestamps and \fBpcfs\fR
+-returns the time when the mount was done as timestamp  for the root of the
++timestamps.
++You can override this behavior using the
++.Ar noclamptime
++mount option, as described in
++.Xr mount_pcfs 1M .
++.Pp
++Timestamps on FAT formatted media are recorded in local time.
++If the recording and receiving systems use different timezones, the
++representation of timestamps shown on the two systems for the same medium might
++vary.
++To correct this,
++.Nm
++provides a timezone mount option to force interpretation
++of timestamps as read from a FAT formatted medium in a given timezone
++.Pq that of the recorder .
++By default, the local timezone of the receiver is used.
++See
++.Xr mount_pcfs 1M
++for details.
++.Pp
++The root directory of a FAT formatted medium has no timestamps and
++.Nm
++returns the time when the mount was done as timestamp for the root of the
+ filesystem.
+-.sp
+-.LP
+-The FAT filesystem doesn't support multiple links. As a result, the link count
+-for all files and directories in \fBpcfs\fR is hard-coded as "1."
+-.SS "Mounting File Systems"
+-Use the following command to mount \fBpcfs\fR from diskette:
+-.sp
+-.in +2
+-.nf
+-mount \fB-F\fR pcfs \fIdevice-special\fR \fIdirectory-name\fR
+-.fi
+-.in -2
+-.sp
+-
+-.sp
+-.LP
++.Pp
++The FAT filesystem doesn't support multiple links.
++As a result, the link count
++for all files and directories in
++.Nm
++is hard-coded as
++.Dq 1 .
++.Ss Mounting File Systems
++Use the following command to mount
++.Nm
++from diskette:
++.Bd -literal -offset indent
++mount -F pcfs device-special directory-name
++.Ed
++.Pp
+ You can use:
+-.sp
+-.in +2
+-.nf
+-mount \fIdirectory-name\fR
+-.fi
+-.in -2
+-.sp
+-
+-.sp
+-.LP
+-if the following line is in your \fB/etc/vfstab\fR file:
+-.sp
+-.in +2
+-.nf
+-\fIdevice-special\fR - \fIdirectory-name\fR pcfs \(mi no rw
+-.fi
+-.in -2
+-
+-.sp
+-.LP
+-Use the following command to mount \fBpcfs\fR from non-diskette media:
+-.sp
+-.in +2
+-.nf
+-mount \fB-F\fR pcfs \fIdevice-special\fR:\fIlogical-drive\fR \fBdirectory-name\fR
+-.fi
+-.in -2
+-.sp
+-
+-.sp
+-.LP
++.Bd -literal -offset indent
++mount directory-name
++.Ed
++if the following line is in your
++.Pa /etc/vfstab
++file:
++.Bd -literal -offset indent
++device-special - directory-name pcfs - no rw
++.Ed
++.Pp
++Use the following command to mount
++.Nm
++from non-diskette media:
++.Bd -literal -offset indent
++mount -F pcfs device-special:logical-drive directory-name
++.Ed
++.Pp
+ You can use:
+-.sp
+-.in +2
+-.nf
+-mount \fIdirectory-name\fR
+-.fi
+-.in -2
+-.sp
+-
+-.sp
+-.LP
+-if the following line is in your \fB/etc/vfstab\fR file:
+-.sp
+-.in +2
+-.nf
+-\fIdevice-special\fR:\fIlogical_drive\fR \fB\(mi\fR \fIdirectory-name\fR pcfs \(mi no rw
+-.fi
+-.in -2
+-
+-.sp
+-.LP
+-\fIdevice-special\fR specifies the special block device file for the diskette
+-(\fB/dev/diskette\fIN\fR\fR) or the entire hard disk
+-(\fB/dev/dsk/c\fIN\fRt\fIN\fRd\fIN\fRp0\fR for a SCSI disk, and
+-\fB/dev/dsk/c\fIN\fRd\fIN\fRp0\fR for \fBIDE\fR disks) or the \fBPCMCIA\fR
+-pseudo-floppy memory card (\fB/dev/dsk/c\fIN\fRt\fIN\fRd\fIN\fRs\fIN\fR\fR).
+-.sp
+-.LP
+-\fIlogical-drive\fR specifies either the \fBDOS\fR logical drive letter
+-(\fBc\fR through \fBz\fR) or a drive number (\fB1\fR through \fB24\fR). Drive
+-letter \fBc\fR is equivalent to drive number \fB1\fR and represents the Primary
+-\fBDOS\fR partition on the disk; drive letters \fBd\fR through \fBz\fR are
+-equivalent to drive numbers \fB2\fR through \fB24\fR, and represent \fBDOS\fR
+-drives within the Extended \fBFAT\fR partition. Note that \fIdevice-special\fR
+-and \fIlogical-drive\fR must be separated by a colon.
+-.sp
+-.LP
+-\fIdirectory-name\fR specifies the location where the file system is mounted.
+-.sp
+-.LP
+-For example, to mount the Primary \fBDOS\fR partition from a SCSI hard disk,
++.Bd -literal -offset indent
++mount directory-name
++.Ed
++if the following line is in your
++.Pa /etc/vfstab
++file:
++.Bd -literal -offset indent
++device-special:logical_drive - directory-name pcfs - no rw
++.Ed
++.Pp
++.Ar device-special
++specifies the special block device file for the diskette
++.Pq Pa /dev/disketteN
++or the entire hard disk
++.Po
++Pa /dev/dsk/cNtNdNp0
++for a SCSI, SATA, NVME disk, and
++.Pa /dev/dsk/cNdNp0
++for IDE disks
++.Pc
++or the PCMCIA pseudo-floppy memory card
++.Pq Pa /dev/dsk/cNtNdNsN .
++.Pp
++.Ar logical-drive
++specifies either the DOS logical drive letter
++.Po
++.Sy c
++through
++.Sy z
++.Pc
++or a drive number
++.Pq 1 through 24 .
++Drive letter
++.Sy c
++is equivalent to drive number
++.Sy 1
++and represents the Primary DOS partition on the disk; drive letters
++.Sy d
++through
++.Sy z
++are equivalent to drive numbers
++.Sy 2
++through
++.Sy 24 ,
++and represent DOS drives within the Extended FAT partition.
++Note that
++.Ar device-special
++and
++.Ar logical-drive
++must be separated by a colon.
++.Pp
++.Ar directory-name
++specifies the location where the file system is mounted.
++.Pp
++For example, to mount the Primary DOS partition from a SCSI hard disk,
+ use:
+-.sp
+-.in +2
+-.nf
+-mount \fB-F\fR pcfs /dev/dsk/c\fIN\fRt\fIN\fRd\fIN\fRp0:c /pcfs/c
+-.fi
+-.in -2
+-.sp
+-
+-.sp
+-.LP
+-To mount the first logical drive in the Extended \fBDOS\fR partition from an
+-\fBIDE\fR hard disk, use:
+-.sp
+-.in +2
+-.nf
+-mount \fB-F\fR pcfs /dev/dsk/c\fIN\fRd\fIN\fRp0:d /pcfs/d
+-.fi
+-.in -2
+-.sp
+-
+-.sp
+-.LP
+-To mount a \fBDOS\fR diskette in the first floppy drive when volume management
+-is not running use:
+-.sp
+-.in +2
+-.nf
+-mount \fB-F\fR pcfs /dev/diskette /pcfs/a
+-.fi
+-.in -2
+-.sp
+-
+-.sp
+-.LP
+-If Volume Management is running, run \fBvolcheck\fR(1) to automatically mount
+-the floppy and some removable disks.
+-.sp
+-.LP
+-To mount a \fBPCMCIA\fR pseudo-floppy memory card, with Volume Management not
+-running (or not managing the \fBPCMCIA\fR media), use:
+-.sp
+-.in +2
+-.nf
+-mount \fB-F\fR pcfs /dev/dsk/c\fIN\fRt\fIN\fRd\fIN\fRs\fIN\fR /pcfs
+-.fi
+-.in -2
+-.sp
+-
+-.SS "Conventions"
+-Files and directories created through \fBpcfs\fR must comply with either the
+-\fBFAT\fR short file name convention or the long file name convention
+-introduced with Windows 95. The \fBFAT\fR short file name convention is of the
+-form \fIfilename\fR[.\fIext\fR], where \fIfilename\fR generally consists of
+-from one to eight upper-case characters, while the optional \fIext\fR consists
+-of from one to three upper-case characters.
+-.sp
+-.LP
+-The long file name convention is much closer to Solaris file names. A long file
+-name can consist of any characters valid in a short file name, lowercase
+-letters, non-leading spaces, the characters \fB+,;=[]\fR, any number of
+-periods, and can be up to 255 characters long. Long file names have an
+-associated short file name for systems that do not support long file names
+-(including earlier releases of Solaris). The short file name is not visible if
+-the system recognizes long file names. \fBpcfs\fR generates a unique short name
+-automatically when creating a long file name.
+-.sp
+-.LP
+-Given a long file name such as \fBThis is a really long filename.TXT\fR, the
+-short file name will generally be of the form \fBTHISIS~\fR\fIN\fR\fB\&.TXT\fR,
+-where \fIN\fR is a number. The long file name will probably get the short name
+-\fBTHISIS~1.TXT\fR, or \fBTHISIS~2.TXT\fR if \fBTHISIS~1.TXT\fR already exits
+-(or \fBTHISIS~3.TXT\fR if both exist, and so forth). If you use \fBpcfs\fR file
+-systems on systems that do not support long file names, you may want to
+-continue following the short file name conventions. See \fBEXAMPLES\fR.
+-.sp
+-.LP
+-When creating a file name, \fBpcfs\fR creates a short file name if it fits the
+-\fBFAT\fR short file name format, otherwise it creates a long file name. This
+-is because long file names take more directory space. Because the root
+-directory of a \fBpcfs\fR file system is fixed size, long file names in the
+-root directory should be avoided if possible.
+-.sp
+-.LP
+-When displaying file names, \fBpcfs\fR shows them exactly as they are on the
+-media. This means that short names are displayed as uppercase and long file
+-names retain their case. Earlier versions of \fBpcfs\fR folded all names to
+-lowercase, which can be forced with the \fBPCFS_MNT_FOLDCASE\fR mount option.
+-All file name searches within \fBpcfs\fR, however, are treated as if they were
+-uppercase, so \fBreadme.txt\fR and \fBReAdMe.TxT\fR refer to the same file.
+-.sp
+-.LP
+-To format a diskette or a \fBPCMCIA\fR pseudo-floppy memory card in \fBFAT\fR
+-format in the SunOS system, use either the \fBfdformat\fR \fB-d\fR or the
+-\fBDOS\fR \fBFORMAT\fR command.
+-.SS "Boot Partitions"
+-On x86 systems, hard drives may contain an \fBfdisk\fR partition reserved for
+-the Solaris boot utilities. These partitions are special instances of
+-\fBpcfs\fR. You can mount an x86 boot partition with the command:
+-.sp
+-.in +2
+-.nf
+-mount \fB-F\fR pcfs \fIdevice-special\fR:boot \fIdirectory-name\fR
+-.fi
+-.in -2
+-.sp
+-
+-.sp
+-.LP
++.Bd -literal -offset indent
++mount -F pcfs /dev/dsk/cNtNdNp0:c /pcfs/c
++.Ed
++.Pp
++To mount the first logical drive in the Extended DOS partition from an IDE hard
++disk, use:
++.Bd -literal -offset indent
++mount -F pcfs /dev/dsk/cNdNp0:d /pcfs/d
++.Ed
++.Pp
++To mount a DOS diskette in the first floppy drive when volume management is not
++running use:
++.Bd -literal -offset indent
++mount -F pcfs /dev/diskette /pcfs/a
++.Ed
++.Pp
++If Volume Management is running, run
++.Xr volcheck 1
++to automatically mount the floppy and some removable disks.
++.Pp
++To mount a PCMCIA pseudo-floppy memory card, with Volume Management not running
++.Pq or not managing the PCMCIA media ,
++use:
++.Bd -literal -offset indent
++mount -F pcfs /dev/dsk/cNtNdNsN /pcfs
++.Ed
++.Ss "Conventions"
++Files and directories created through
++.Nm
++must comply with either the FAT short file name convention or the long file name
++convention introduced with Windows 95.
++The FAT short file name convention is of the form
++.Pa filename[.ext] ,
++where
++.Em filename
++generally consists of from one to eight upper-case characters, while the
++optional
++.Em ext
++consists of from one to three upper-case characters.
++.Pp
++The long file name convention is much closer to illumos file names.
++A long file name can consist of any characters valid in a short file name,
++lowercase letters, non-leading spaces, the characters
++.Sy +,;=[] ,
++any number of periods, and can be up to 255 characters long.
++Long file names have an associated short file name for systems that do not
++support long file names.
++The short file name is not visible if the system recognizes long file names.
++.Nm
++generates a unique short name automatically when creating a long file name.
++.Pp
++Given a long file name such as
++.Pa This is a really long filename.TXT ,
++the short file name will generally be of the form
++.Pa THISIS~N\&.TXT ,
++where
++.Em N
++is a number.
++The long file name will probably get the short name
++.Pa THISIS~1.TXT ,
++or
++.Pa THISIS~2.TXT
++if
++.Pa THISIS~1.TXT
++already exits
++.Po or
++.Pa THISIS~3.TXT
++if both exist, and so forth
++.Pc .
++If you use
++.Nm
++file systems on systems that do not support long file names, you may want to
++continue following the short file name conventions.
++See
++.Sx EXAMPLES .
++.Pp
++When creating a file name,
++.Nm
++creates a short file name if it fits the FAT short file name format, otherwise
++it creates a long file name.
++This is because long file names take more directory space.
++Because the root directory of a
++.Nm
++file system is fixed size, long file names in the root directory should be
++avoided if possible.
++.Pp
++When displaying file names,
++.Nm
++shows them exactly as they are on the media.
++This means that short names are displayed as uppercase and long file names
++retain their case.
++Earlier versions of
++.Nm
++folded all names to lowercase, which can be forced with the
++.Dv PCFS_MNT_FOLDCASE
++mount option.
++All file name searches within
++.Nm ,
++however, are treated as if they were uppercase, so
++.Pa readme.txt
++and
++.Pa ReAdMe.TxT
++refer to the same file.
++.Pp
++To format a diskette or a PCMCIA pseudo-floppy memory card in FAT format in the
++SunOS system, use either the
++.Xr fdformat 1
++.Fl -d
++or the DOS
++.Sy FORMAT
++command.
++.Ss Boot Partitions
++On x86 systems, hard drives may contain an fdisk partition reserved for the boot
++utilities.
++The most common case is the EFI system partition.
++These partitions are special instances of
++.Nm .
++You can mount an x86 boot partition with the command:
++.Bd -literal -offset indent
++mount -F pcfs device-special:boot directory-name
++.Ed
+ or you can use:
+-.sp
+-.in +2
+-.nf
+-\fBmount \fIdirectory-name\fR\fR
+-.fi
+-.in -2
+-.sp
+-
+-.sp
+-.LP
+-if the following line is in your \fB/etc/vfstab\fR file:
+-.sp
+-.in +2
+-.nf
+-\fIdevice-special\fR:boot \(mi \fIdirectory-name\fR pcfs \(mi no rw
+-.fi
+-.in -2
+-.sp
+-
+-.sp
+-.LP
+-\fIdevice-special\fR specifies the special block device file for the entire
+-hard disk (\fB/dev/dsk/c\fIN\fRt\fIN\fRd\fIN\fRp0\fR)
+-.sp
+-.LP
+-\fIdirectory-name\fR specifies the location where the file system is mounted.
+-.sp
+-.LP
+-All files on a boot partition are owned by super-user. Only the super-user may
+-create, delete, or modify files on a boot partition.
+-.SH EXAMPLES
+-\fBExample 1 \fRSample Displays of File Names
+-.sp
+-.LP
+-If you copy a file \fBfinancial.data\fR from a UNIX file system to \fBpcfs\fR,
+-it displays as \fBfinancial.data\fR in \fBpcfs\fR, but may show up as
+-\fBFINANC~1.DAT\fR in systems that do not support long file names.
+-
+-.sp
+-.LP
+-The following are legal long file names. They are also \fBillegal\fR short file
+-names:
+-
+-.in +2
+-\fBtest.sh.orig\fR
+-.in -2
+-.br
+-.in +2
+-\fBdata+\fR
+-.in -2
+-.br
+-.in +2
+-\fB\&.login\fR
+-.in -2
+-.sp
+-.LP
++.Bd -literal -offset indent
++mount directory-name
++.Ed
++if the following line is in your
++.Pa /etc/vfstab
++file:
++.Bd -literal -offset indent
++device-special:boot - directory-name pcfs - no rw
++.Ed
++.Pp
++.Ar device-special
++specifies the special block device file for the entire hard disk
++.Pq Pa /dev/dsk/cNtNdNp0
++.Pp
++.Ar directory-name
++specifies the location where the file system is mounted.
++.Pp
++All files on a boot partition are owned by super-user.
++Only the super-user may create, delete, or modify files on a boot partition.
++.Sh ENVIRONMENT
++See
++.Xr environ 5
++for descriptions of the following environment variables
++for the current locale setting:
++.Ev LANG ,
++.Ev LC_ALL ,
++.Ev LC_CTYPE ,
++and
++.Ev LC_COLLATE .
++.Sh FILES
++.Bl -tag -width Pa
++.It Pa /usr/lib/fs/pcfs/mount
++.Nm
++mount command.
++.It Pa /usr/kernel/fs/amd64/pcfs
++64-bit kernel module (x86).
++.El
++.Sh EXAMPLES
++.Sy Example 1
++Sample Displays of File Names
++.Pp
++If you copy a file
++.Pa financial.data
++from a UNIX file system to
++.Nm ,
++it displays as
++.Pa financial.data
++in
++.Nm
++but may show up as
++.Pa FINANC~1.DAT
++in systems that do not support long file names.
++.Pp
++The following are legal long file names.
++They are also illegal short file names:
++.Bl -item -offset indent
++.It
++.Pa test.sh.orig
++.It
++.Pa data+
++.El
++.Pp
+ Other systems that do not support long file names may see:
+-
+-.in +2
+-\fBTESTSH~1.ORI\fR
+-.in -2
+-.br
+-.in +2
+-\fBDATA~1\fR
+-.in -2
+-.br
+-.in +2
+-\fBLOGIN~1\fR
+-.in -2
+-.sp
+-.LP
++.Bl -item -offset indent
++.It
++.Pa TESTSH~1.ORI
++.It
++.Pa DATA~1
++.It
++.Pa LOGIN~1
++.El
+ The short file name is generated from the initial characters of the long file
+-name, so differentiate names in the first few characters. For example, these
+-names:
+-
+-.in +2
+-\fBWorkReport.January.Data\fR
+-.in -2
+-.br
+-.in +2
+-\fBWorkReport.February.Data\fR
+-.in -2
+-.br
+-.in +2
+-\fBWorkReport.March.Data\fR
+-.in -2
+-.sp
+-.LP
++name, so differentiate names in the first few characters.
++For example, these names:
++.Bl -item -offset indent
++.It
++.Pa WorkReport.January.Data
++.It
++.Pa WorkReport.February.Data
++.It
++.Pa WorkReport.March.Data
++.El
+ result in these short names, which are not distinguishable:
+-
+-.in +2
+-\fBWORKRE~1.DAT\fR
+-.in -2
+-.br
+-.in +2
+-\fBWORKRE~2.DAT\fR
+-.in -2
+-.br
+-.in +2
+-\fBWORKRE~13.DAT\fR
+-.in -2
+-.sp
+-.LP
++.Bl -item -offset indent
++.It
++.Pa WORKRE~1.DAT
++.It
++.Pa WORKRE~2.DAT
++.It
++.Pa WORKRE~2.DAT
++.It
++.Pa WORKRE~2.DAT
++.It
++.Pa WORKRE~13.DAT
++.El
++.Pp
+ These names, however:
+-
+-.in +2
+-\fBJanuary.WorkReport.Data\fR
+-.in -2
+-.br
+-.in +2
+-\fBFebruary.WorkReport.Data\fR
+-.in -2
+-.br
+-.in +2
+-\fBMarch.WorkReport.Data\fR
+-.in -2
+-.sp
+-.LP
++.Bl -item -offset indent
++.It
++.Pa January.WorkReport.Data
++.It
++.Pa February.WorkReport.Data
++.It
++.Pa March.WorkReport.Data
++.El
+ result in the more descriptive short names:
+-
+-.in +2
+-\fBJANUAR~1.DAT\fR
+-.in -2
+-.br
+-.in +2
+-\fBFEBRUA~1.DAT\fR
+-.in -2
+-.br
+-.in +2
+-\fBMARCHW~1.DAT\fR
+-.in -2
+-.SH FILES
+-.ne 2
+-.na
+-\fB\fB/usr/lib/fs/pcfs/mount\fR\fR
+-.ad
+-.RS 26n
+-\fBpcfs\fR \fBmount\fR command.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fB/usr/kernel/fs/amd64/pcfs\fR\fR
+-.ad
+-.RS 26n
+-64-bit kernel module (x86).
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fB/usr/kernel/fs/sparcv9/pcfs\fR\fR
+-.ad
+-.RS 26n
+-64-bit kernel module (SPARC).
+-.RE
+-
+-.SH ENVIRONMENT VARIABLES
+-See \fBenviron\fR(5) for descriptions of the following environment variables
+-for the current locale setting: LANG, LC_ALL, LC_CTYPE, and LC_COLLATE.
+-.SH SEE ALSO
+-\fBchgrp\fR(1), \fBchown\fR(1), \fBdos2unix\fR(1), \fBeject\fR(1),
+-\fBfdformat\fR(1), \fBunix2dos\fR(1), \fBvolcheck\fR(1), \fBmount\fR(1M),
+-\fBmount_pcfs\fR(1M), \fBumount\fR(1M), \fBctime\fR(3C), \fBvfstab\fR(4),
+-\fBenviron\fR(5), \fBpcmem\fR(7D)
+-.SH WARNINGS
+-Do not physically eject a \fBFAT\fR floppy while the device is mounted as
+-\fBpcfs\fR. If Volume Management is managing a device, use the \fBeject\fR(1)
++.Bl -item -offset indent
++.It
++.Pa JANUAR~1.DAT
++.It
++.Pa FEBRUA~1.DAT
++.It
++.Pa MARCHW~1.DAT
++.El
++.Sh SEE ALSO
++.Xr chgrp 1 ,
++.Xr chown 1 ,
++.Xr dos2unix 1 ,
++.Xr eject 1 ,
++.Xr fdformat 1 ,
++.Xr unix2dos 1 ,
++.Xr volcheck 1 ,
++.Xr mount 1M ,
++.Xr mount_pcfs 1M ,
++.Xr umount 1M ,
++.Xr ctime 3C ,
++.Xr vfstab 4 ,
++.Xr environ 5
++.Sh WARNINGS
++Do not physically eject a FAT floppy while the device is mounted as
++.Nm
++If Volume Management is managing a device, use the
++.Xr eject 1
+ command before physically removing media.
+-.sp
+-.LP
+-When mounting \fBpcfs\fR on a hard disk, make sure the first block on that
+-device contains a valid \fBfdisk\fR partition table.
+-.sp
+-.LP
+-Because \fBpcfs\fR has no provision for handling owner-IDs or group-IDs on
+-files, \fBchown\fR(1) or \fBchgrp\fR(1) may generate various errors. This is a
+-limitation of \fBpcfs\fR, but it should not cause problems other than error
+-messages.
+-.SH NOTES
+-Only the following characters are allowed in \fBpcfs\fR short file names and
+-extensions:
+-.br
+-.in +2
+-\fB0-9\fR
+-.in -2
+-.br
+-.in +2
+-\fBA-Z\fR
+-.in -2
+-.br
+-.in +2
+-\fB$#&@!%()-{}<>`_^~|'\fR
+-.in -2
+-.sp
+-.LP
+-SunOS and \fBFAT\fR use different character sets and have different
+-requirements for the text file format. Use the \fBdos2unix\fR(1) and
+-\fBunix2dos\fR(1) commands to convert files between them.
+-.sp
+-.LP
+-\fBpcfs\fR offers a convenient transportation vehicle for files between Sun
+-workstations and \fBPCs.\fR Because the \fBFAT\fR disk format was designed for
+-use under \fBDOS,\fR it does not operate efficiently under the SunOS system and
+-should not be used as the format for a regular local storage. Instead, use
+-\fBufs\fR for local storage within the SunOS system.
+-.sp
+-.LP
+-Although long file names can contain spaces (just as in UNIX file names), some
+-utilities may be confused by them.
+-.sp
+-.LP
+-This implementation of \fBpcfs\fR conforms to the behavior exhibited by Windows
+-95 version 4.00.950.
+-.sp
+-.LP
+-When \fBpcfs\fR encounters long file names with non-ASCII characters, it
+-converts such long file names in Unicode scalar values into UTF-8 encoded
+-filenames so that they are legible and usable with any of Solaris UTF-8
+-locales. In the same context, when new file names with non-ASCII characters are
+-created, \fBpcfs\fR expects that such file names are in UTF-8. This feature
+-increases the interoperability of \fBpcfs\fR on Solaris with other operating
++.Pp
++When mounting
++.Nm
++on a hard disk, make sure the first block on that device contains a valid fdisk
++partition table.
++.Pp
++Because
++.Nm
++has no provision for handling owner-IDs or group-IDs on files,
++.Xr chown 1
++or
++.Xr chgrp 1
++may generate various errors.
++This is a limitation of
++.Nm
++but it should not cause problems other than error messages.
++.Sh NOTES
++Only the following characters are allowed in
++.Nm
++short file names and extensions:
++.Bl -item -offset indent
++.It
++0-9
++.It
++A-Z
++.It
++$#&@!%()-{}<>`_^~|'
++.It
++.El
++illumos and FAT use different character sets and have different
++requirements for the text file format.
++Use the
++.Xr dos2unix 1
++and
++.Xr unix2dos 1
++commands to convert files between them.
++.Pp
++.Nm
++offers a convenient transportation vehicle for files between multiple systems.
++Because the FAT disk format was designed for use under DOS, it does not operate
++efficiently under illumos and should not be used as the format for a regular
++local storage.
++Instead, use ZFS for local storage within an illumos system.
++.Pp
++Although long file names can contain spaces
++(just as in UNIX file names) ,
++some utilities may be confused by them.
++.Pp
++When
++.Nm
++encounters long file names with non-ASCII characters, it converts such long file
++names in Unicode scalar values into UTF-8 encoded filenames so that they are
++legible and usable with any of illumos UTF-8 locales.
++In the same context, when new file names with non-ASCII characters are created,
++.Nm
++expects that such file names are in UTF-8.
++This feature increases the interoperability of
++.Nm
++on illumos with other operating
+ systems.
+-.SH BUGS
+-\fBpcfs\fR should handle the disk change condition in the same way that
+-\fBDOS\fR does, so you do not need to unmount the file system to change
+-floppies.
++.Sh BUGS
++.Nm
++should handle the disk change condition in the same way that DOS does, so you do
++not need to unmount the file system to change floppies.
+diff --git a/usr/src/man/man7fs/sharefs.7fs b/usr/src/man/man7fs/sharefs.7fs
+index f79febc992..fc13421d48 100644
+--- a/usr/src/man/man7fs/sharefs.7fs
++++ b/usr/src/man/man7fs/sharefs.7fs
+@@ -1,38 +1,61 @@
+-'\" te
++.\"
+ .\" Copyright (c) 2007, Sun Microsystems, Inc.  All Rights Reserved
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+-.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+-.\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
++.\" Copyright 2021 Oxide Computer Company
++.\"
++.\" The contents of this file are subject to the terms of the
++.\" Common Development and Distribution License (the "License").
++.\" You may not use this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++.\" or http://www.opensolaris.org/os/licensing.
++.\" See the License for the specific language governing permissions
++.\" and limitations under the License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each
++.\" file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++.\" If applicable, add the following below this CDDL HEADER, with the
++.\" fields enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
+ .\"
+ .\" Copyright 2020 Joyent, Inc.
+-.TH SHAREFS 7FS "February 4, 2020"
+-.SH NAME
+-sharefs \- Kernel sharetab filesystem
+-.SH DESCRIPTION
+-The \fBsharefs\fR filesystem describes the state of all shares currently
+-loaded by the kernel, and shared by the invoking zone. It is mounted during
+-boot time as a read-only file at \fB/etc/dfs/sharetab\fR.
+-.sp
+-.LP
++.\" Copyright 2021 Oxide Computer Company
++.Dd February 4, 2020
++.Dt SHAREFS 7FS
++.Os
++.Sh NAME
++.Nm sharefs
++.Nd Kernel sharetab filesystem
++.Sh DESCRIPTION
++The
++.Nm
++filesystem describes the state of all shares currently loaded by the kernel, and
++shared by the invoking zone.
++It is mounted during boot time as a read-only file at
++.Pa /etc/dfs/sharetab .
++.Pp
+ Filesystem contents are dynamic and reflect the current set of shares in the
+-zone. File contents are described in \fBsharetab\fR(4).
+-.sp
+-.LP
+-File contents can be modified as a result of \fBshare\fR(1M),
+-\fBsharectl\fR(1M), \fBsharemgr\fR(1M) and changing properties of a
+-\fBzfs\fR(1M) data set.
+-.sp
+-.LP
++zone.
++File contents are described in
++.Xr sharetab 4 .
++.Pp
++File contents can be modified as a result of
++.Xr share 1M ,
++.Xr sharectl 1M ,
++.Xr sharemgr 1M ,
++and changing properties of a
++.Xr zfs 1M
++data set.
++.Pp
+ The module may not be unloaded dynamically by the kernel.
+-.SH FILES
+-.ne 2
+-.na
+-\fB\fB/etc/dfs/sharetab\fR\fR
+-.ad
+-.RS 21n
++.Sh FILES
++.Bl -tag -width Pa
++.It Pa /etc/dfs/sharetab
+ System record of shared file systems.
+-.RE
+-
+-.SH SEE ALSO
+-\fBshare\fR(1M), \fBsharectl\fR(1M), \fBsharemgr\fR(1M), \fBzfs\fR(1M),
+-\fBsharetab\fR(4), \fBzones\fR(5)
++.El
++.Sh SEE ALSO
++.Xr share 1M ,
++.Xr sharectl 1M ,
++.Xr sharemgr 1M ,
++.Xr zfs 1M ,
++.Xr sharetab 4 ,
++.Xr zones 5
+diff --git a/usr/src/man/man7fs/smbfs.7fs b/usr/src/man/man7fs/smbfs.7fs
+index c731cc217c..eef5ef76b8 100644
+--- a/usr/src/man/man7fs/smbfs.7fs
++++ b/usr/src/man/man7fs/smbfs.7fs
+@@ -1,123 +1,150 @@
+-'\" te
++.\"
+ .\" Copyright (c) 2009, Sun Microsystems, Inc. All Rights Reserved
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+-.\"  See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with
+-.\" the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH SMBFS 7FS "Sep 9, 2009"
+-.SH NAME
+-smbfs \- CIFS/SMB file system
+-.SH DESCRIPTION
+-.sp
+-.LP
+-The \fBsmbfs\fR file system allows you to mount CIFS shares that are exported
+-from Windows or compatible systems. SMB is the historical name for the CIFS
+-protocol, which stands for Server Message Block and is more commonly used in
+-technical contexts.
+-.sp
+-.LP
+-The \fBsmbfs\fR file system permits ordinary UNIX applications to change
+-directory into an \fBsmbfs\fR mount and perform simple file and directory
+-operations. Supported operations include \fBopen\fR, \fBclose\fR, \fBread\fR,
+-\fBwrite\fR, \fBrename\fR, \fBdelete\fR, \fBmkdir\fR, \fBrmdir\fR and \fBls\fR.
+-.SS "Limitations"
+-.sp
+-.LP
+-Some local UNIX file systems (for example UFS) have features that are not
+-supported by \fBsmbfs\fR. These include:
+-.RS +4
+-.TP
+-.ie t \(bu
+-.el o
+-No mapped-file access because \fBmmap\fR(2) returns \fBENOSYS\fR.
+-.RE
+-.RS +4
+-.TP
+-.ie t \(bu
+-.el o
+-Locking is \fBlocal only\fR and is not sent to the server.
+-.RE
+-.sp
+-.LP
++.\" Copyright 2021 Oxide Computer Company
++.\"
++.\" The contents of this file are subject to the terms of the
++.\" Common Development and Distribution License (the "License").
++.\" You may not use this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++.\" or http://www.opensolaris.org/os/licensing.
++.\" See the License for the specific language governing permissions
++.\" and limitations under the License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each
++.\" file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++.\" If applicable, add the following below this CDDL HEADER, with the
++.\" fields enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
++.\"
++.Dd September 9, 2009
++.Dt SMBFS 7FS
++.Os
++.Sh NAME
++.Nm smbfs
++.Nd CIFS/SMB file system
++.Sh DESCRIPTION
++The
++.Nm
++file system allows you to mount CIFS shares that are exported from Windows or
++compatible systems.
++SMB is the historical name for the CIFS protocol, which stands for Server
++Message Block and is more commonly used in technical contexts.
++.Pp
++The
++.Nm
++file system permits ordinary UNIX applications to change directory into an
++.Nm
++mount and perform simple file and directory operations.
++Supported operations include
++.Xr open 2 ,
++.Xr close 2 ,
++.Xr read 2 ,
++.Xr write 2 ,
++.Xr rename 2 ,
++.Xr rm 1 ,
++.Xr mkdir 1 ,
++.Xr rmdir 1 ,
++and
++.Xr ls 1 .
++.Ss Limitations
++Some local UNIX file systems
++.Pq for example UFS
++have features that are not supported by
++.Nm .
++These include:
++.Bl -bullet -offset indent
++.It
++No mapped-file access because
++.Xr mmap (2)
++returns
++.Er ENOSYS .
++.It
++Locking is
++.Sy local only
++and is not sent to the server.
++.El
++.Pp
+ The following are limitations in the CIFS protocol:
+-.RS +4
+-.TP
+-.ie t \(bu
+-.el o
+-\fBunlink()\fR or \fBrename()\fR of open files returns \fBEBUSY\fR.
+-.RE
+-.RS +4
+-.TP
+-.ie t \(bu
+-.el o
+-\fBrename()\fR of extended attribute files returns \fBEINVAL\fR.
+-.RE
+-.RS +4
+-.TP
+-.ie t \(bu
+-.el o
++.Bl -bullet -offset indent
++.It
++.Xr unlink 2
++or
++.Xr rename 2
++of open files returns
++Er EBUSY .
++.It
++.Xr rename 2
++of extended attribute files returns
++.Er EINVAL .
++.It
+ Creation of files with any of the following illegal characters returns
+-\fBEINVAL\fR: colon (\fB:\fR), backslash (\fB\\\fR), slash (\fB/\fR), asterisk
+-(\fB*\fR), question mark (\fB?\fR), double quote (\fB"\fR), less than
+-(\fB<\fR), greater than (\fB>\fR), and vertical bar (\fB|\fR).
+-.RE
+-.RS +4
+-.TP
+-.ie t \(bu
+-.el o
+-\fBchmod\fR and \fBchown\fR settings are silently discarded.
+-.RE
+-.RS +4
+-.TP
+-.ie t \(bu
+-.el o
++.Er EINVAL :
++colon
++.Pq \&: ,
++backslash
++.Pq \e ,
++slash
++.Pq / ,
++asterisk
++.Pq * ,
++question mark
++.Pq \&? ,
++double quote
++.Pq \(dq ,
++less than
++.Pq \(la ,
++greater than
++.Pq \(ra ,
++and vertical bar
++.Pq | .
++.It
++.Xr chmod 2
++and
++.Xr chown 2
++settings are silently discarded.
++.It
+ Links are not supported.
+-.RE
+-.RS +4
+-.TP
+-.ie t \(bu
+-.el o
++.It
+ Symbolic links are not supported.
+-.RE
+-.RS +4
+-.TP
+-.ie t \(bu
+-.el o
+-\fBmknod\fR is not supported. (Only file and directory objects are supported.)
+-.RE
+-.sp
+-.LP
+-The current \fBsmbfs\fR implementation does not support multi-user mounts.
++.It
++.Xr mknod 2
++is not supported.
++.Pq Only file and directory objects are supported.
++.El
++.Pp
++The current
++.Nm
++implementation does not support multi-user mounts.
+ Instead, each Unix user needs to make their own private mount points.
+-.sp
+-.LP
+-Currently, all access through an \fBsmbfs\fR mount point uses the Windows
+-credentials established by the user that ran the \fBmount\fR command. Normally,
+-permissions on \fBsmbfs\fR mount points should be \fB0700\fR to prevent Unix
+-users from using each others' Windows credentials. See the \fBdirperms\fR
+-option to \fBmount_smbfs\fR(1M) for details regarding how to control
+-\fBsmbfs\fR mount point permissions.
+-.sp
+-.LP
++.Pp
++Currently, all access through an
++.Nm
++mount point uses the Windows credentials established by the user that ran the
++.Xr mount 1
++command.
++Normally, permissions on
++.Nm
++mount points should be
++.Sy 0700
++to prevent Unix users from using each others' Windows credentials.
++See the
++.Ar dirperms
++option to
++.Xr mount_smbfs 1M
++for details regarding how to control
++.Nm
++mount point permissions.
++.Pp
+ An important implication of this limitation is that system-wide mounts, such as
+-those made using \fB/etc/vfstab\fR or automount maps are only useful in cases
+-where access control is not a concern, such as for public read-only resources.
+-.SH ATTRIBUTES
+-.sp
+-.LP
+-See \fBattributes\fR(5) for descriptions of the following attributes:
+-.sp
+-
+-.sp
+-.TS
+-box;
+-c | c
+-l | l .
+-ATTRIBUTE TYPE	ATTRIBUTE VALUE
+-_
+-Interface Stability	Uncommitted
+-.TE
+-
+-.SH SEE ALSO
+-.sp
+-.LP
+-\fBsmbutil\fR(1), \fBmount_smbfs\fR(1M), \fBnsmbrc\fR(4), \fBattributes\fR(5)
++those made using
++.Pa /etc/vfstab
++or automount maps are only useful in cases where access control is not a
++concern, such as for public read-only resources.
++.Sh INTERFACE STABILITY
++.Sy Uncommitted
++.Sh SEE ALSO
++.Xr smbutil 1 ,
++.Xr mount_smbfs 1M ,
++.Xr nsmbrc 4 ,
++.Xr attributes 5
+diff --git a/usr/src/man/man7fs/tmpfs.7fs b/usr/src/man/man7fs/tmpfs.7fs
+index e122be3086..b1dc877dd7 100644
+--- a/usr/src/man/man7fs/tmpfs.7fs
++++ b/usr/src/man/man7fs/tmpfs.7fs
+@@ -1,145 +1,190 @@
+-'\" te
++.\"
+ .\" Copyright (c) 1990, Sun Microsystems, Inc.
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+-.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+-.\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH TMPFS 7FS "Oct 9, 1990"
+-.SH NAME
+-tmpfs \- memory based file system
+-.SH SYNOPSIS
+-.LP
+-.nf
+-#include <sys/mount.h>
+-
+-\fB\fR\fBmount\fR (\fB\fR\fIspecial\fR, \fB\fR\fIdirectory\fR, \fB\fR\fIMS_DATA\fR, \fB\fR\fI"tmpfs"\fR, \fB\fR\fINULL\fR, \fB\fR\fI0\fR);
+-.fi
+-
+-.SH DESCRIPTION
+-.sp
+-.LP
+-\fBtmpfs\fR is a memory based file system which uses kernel resources relating
+-to the \fBVM\fR system and page cache as a file system. Once mounted, a
+-\fBtmpfs\fR file system provides standard file operations and semantics.
+-\fBtmpfs\fR is so named because files and directories are not preserved across
+-reboot or unmounts, all files residing on a  \fBtmpfs\fR file system that is
+-unmounted will be lost.
+-.sp
+-.LP
+-\fBtmpfs\fR file systems can be mounted with the command:
+-.sp
+-.in +2
+-.nf
+-\fBmount \fR\fB-F\fR\fB tmpfs swap \fR\fIdirectory\fR
+-.fi
+-.in -2
+-
+-.sp
+-.LP
+-Alternatively, to mount a  \fBtmpfs\fR file system on \fB/tmp\fR at multi-user
+-startup time (maximizing possible performance improvements), add the following
+-line to \fB/etc/vfstab\fR:
+-.sp
+-.in +2
+-.nf
+-\fBswap \(mi/tmp tmpfs \(mi yes \(mi\fR
+-.fi
+-.in -2
+-
+-.sp
+-.LP
+-\fBtmpfs\fR is designed as a performance enhancement which is achieved by
+-caching the writes to files residing on a  \fBtmpfs\fR file system. Performance
+-improvements are most noticeable when a large number of short lived files are
+-written and accessed on a \fBtmpfs\fR file system. Large compilations with
+-\fBtmpfs\fR mounted on \fB/tmp\fR are a good example of this.
+-.sp
+-.LP
+-Users of \fBtmpfs\fR should be aware of some constraints involved in mounting a
+-\fBtmpfs\fR file system. The resources used by \fBtmpfs\fR are the same as
+-those used when commands are executed (for example, swap space allocation).
+-This means that  large sized  \fBtmpfs\fR files can affect the amount of space
+-left over for programs to execute. Likewise, programs requiring large amounts
+-of memory use up the space available to \fBtmpfs\fR. Users running into this
+-constraint (for example, running out of space on \fBtmpfs\fR) can allocate more
+-swap space by using the \fBswap\fR(1M) command.
+-.sp
+-.LP
+-Another constraint is that the number of files available in a  \fBtmpfs\fR file
+-system is calculated based on the physical memory of the machine  and not the
+-size of the swap device/partition. If you have too many files, \fBtmpfs\fR will
+-print a warning message and you will be unable to create new files. You cannot
+-increase this limit by adding swap space.
+-.sp
+-.LP
++.\" Copyright 2021 Oxide Computer Company
++.\"
++.\" The contents of this file are subject to the terms of the
++.\" Common Development and Distribution License (the "License").
++.\" You may not use this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++.\" or http://www.opensolaris.org/os/licensing.
++.\" See the License for the specific language governing permissions
++.\" and limitations under the License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each
++.\" file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++.\" If applicable, add the following below this CDDL HEADER, with the
++.\" fields enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
++.\"
++.Dd October 9, 1990
++.Dt TMPFS 7FS
++.Os
++.Sh NAME
++.Nm tmpfs
++.Nd memory based file system
++.Sh SYNOPSIS
++.In sys/mount.h
++.Fo mount
++.Fa "const char *special"
++.Fa "const char *directory"
++.Fa IMS_DATA
++.Fa \(dqtmpfs\(dq
++.Fa NULL
++.Fa 0
++.Fc
++.Sh DESCRIPTION
++.Nm
++is a memory based file system which uses kernel resources relating to the VM
++system and page cache as a file system.
++Once mounted, a
++.Nm
++file system provides standard file operations and semantics.
++.Nm
++is so named because files and directories are not preserved across
++reboot or unmounts, all files residing on a
++.Nm
++file system that is unmounted will be lost.
++.Pp
++.Nm
++file systems can be mounted with the command:
++.Bd -literal -offset indent
++mount -F tmpfs swap directory
++.Ed
++.Pp
++Alternatively, to mount a
++.Nm
++file system on
++.Pa /tmp
++at multi-user startup time
++.Pq maximizing possible performance improvements  ,
++add the following line to
++.Pa /etc/vfstab :
++.Bd -literal -offset indent
++swap \(mi/tmp tmpfs \(mi yes \(mi
++.Ed
++.Pp
++.Nm
++is designed as a performance enhancement which is achieved by caching the writes
++to files residing on a
++.Nm
++file system.
++Performance improvements are most noticeable when a large number of short lived
++files are written and accessed on a
++.Nm
++file system.
++Large compilations with
++.Nm
++mounted on
++.Pa /tmp
++are a good example of this.
++.Pp
++Users of
++.Nm
++should be aware of some constraints involved in mounting a
++.Nm
++file system.
++The resources used by
++.Nm
++are the same as those used when commands are executed
++.Pq for example, swap space allocation .
++This means that large sized
++.Nm
++files can affect the amount of space left over for programs to execute.
++Likewise, programs requiring large amounts of memory use up the space available
++to
++.Nm
++Users running into this constraint
++.Po
++for example, running out of space on
++.Nm
++.Pc
++can allocate more swap space by using the
++.Xr swap 1M
++command.
++.Pp
++Another constraint is that the number of files available in a
++.Nm
++file system is calculated based on the physical memory of the machine and not
++the size of the swap device/partition.
++If you have too many files,
++.Nm
++will print a warning message and you will be unable to create new files.
++You cannot increase this limit by adding swap space.
++.Pp
+ Normal file system writes are scheduled to be written to a permanent storage
+-medium along with all control information associated with the file (for
+-example, modification time, file permissions). \fBtmpfs\fR control information
+-resides only in memory and never needs to be written to permanent storage. File
+-data remains in core until memory demands are sufficient to cause pages
+-associated with \fBtmpfs\fR to be reused at which time they are copied out to
+-swap.
+-.sp
+-.LP
+-An additional mount option can be specified to control the size of an
+-individual \fBtmpfs\fR file system.
+-.SH SEE ALSO
+-.sp
+-.LP
+-\fBdf\fR(1M), \fBmount\fR(1M), \fBmount_tmpfs\fR(1M), \fBswap\fR(1M),
+-\fBmmap\fR(2), \fBmount\fR(2), \fBumount\fR(2), \fBvfstab\fR(4)
+-.sp
+-.LP
+-\fISystem Administration Guide: Basic Administration\fR
+-.SH DIAGNOSTICS
+-.sp
+-.LP
+-If \fBtmpfs\fR runs out of space, one of the following messages will display in
+-the console.
+-.sp
+-.ne 2
+-.na
+-\fB\fB\fIdirectory\fR: File system full, swap space limit exceeded\fR\fR
+-.ad
+-.sp .6
+-.RS 4n
++medium along with all control information associated with the file
++.Pq for example, modification time, file permissions .
++.Nm
++control information resides only in memory and never needs to be written to
++permanent storage.
++File data remains in core until memory demands are sufficient to cause pages
++associated with
++.Nm
++to be reused at which time they are copied out to swap.
++.Pp
++An additional mount option can be specified to control the size of an individual
++.Nm
++file system.
++See
++.Xr mount_tmpfs 1M
++for more details.
++.Sh DIAGNOSTICS
++If
++.Nm
++runs out of space, one of the following messages will display in the console.
++.Bl -tag -width Ds
++.It "directory: File system full, swap space limit exceeded"
+ This message appears because a page could not be allocated while writing to a
+-file. This can occur if \fBtmpfs\fR is attempting to write more than it is
+-allowed, or if currently executing programs are using a lot of memory. To make
+-more space available, remove unnecessary files, exit from some programs, or
+-allocate more swap space using \fBswap\fR(1M).
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fB\fIdirectory\fR: File system full, memory allocation failed\fR\fR
+-.ad
+-.sp .6
+-.RS 4n
+-\fBtmpfs\fR ran out of physical memory while attempting to create a new file or
+-directory. Remove unnecessary files or directories or install more physical
+-memory.
+-.RE
+-
+-.SH WARNINGS
+-.sp
+-.LP
+-Files and directories on a \fBtmpfs\fR file system are not preserved across
+-reboots or unmounts. Command scripts or programs which count on this will not
+-work as expected.
+-.SH NOTES
+-.sp
+-.LP
+-Compilers do not necessarily use \fB/tmp\fR to write intermediate files
+-therefore missing some significant performance benefits. This can be remedied
+-by setting the environment variable \fBTMPDIR\fR to \fB/tmp\fR. Compilers use
++file.
++This can occur if
++.Nm
++is attempting to write more than it is allowed, or if currently executing
++programs are using a lot of memory.
++To make more space available, remove unnecessary files, exit from some programs,
++or allocate more swap space using
++.Xr swap 1M .
++.It "directory: File system full, memory allocation failed"
++.Nm
++ran out of physical memory while attempting to create a new file or
++directory.
++Remove unnecessary files or directories or install more physical memory.
++.El
++.Sh SEE ALSO
++.Xr df 1M ,
++.Xr mount 1M ,
++.Xr mount_tmpfs 1M ,
++.Xr swap 1M ,
++.Xr mmap 2 ,
++.Xr mount 2 ,
++.Xr umount 2 ,
++.Xr vfstab 4
++.Sh WARNINGS
++Files and directories on a
++.Nm
++file system are not preserved across reboots or unmounts.
++Command scripts or programs which count on this will not work as expected.
++.Sh NOTES
++Compilers do not necessarily use
++/tmp
++to write intermediate files therefore missing some significant performance
++benefits.
++This can be remedied by setting the environment variable
++.Ev TMPDIR to
++.Pa /tmp .
++Compilers use
+ the value in this environment variable as the name of the directory to store
+ intermediate files.
+-.sp
+-.LP
+-\fBswap\fR to a \fBtmpfs\fR file is not supported.
+-.sp
+-.LP
+-\fBdf\fR(1M) output is of limited accuracy since a \fBtmpfs\fR file system size
+-is not static and the space available to \fBtmpfs\fR is dependent on the swap
+-space demands of the entire system.
++.Pp
++.Sy swap
++to a
++.Nm
++file is not supported.
++.Pp
++.Xr df 1M
++output is of limited accuracy since a
++.Nm
++file system size
++is not static and the space available to
++.Nm
++is dependent on the swap space demands of the entire system.
+diff --git a/usr/src/man/man7fs/udfs.7fs b/usr/src/man/man7fs/udfs.7fs
+index cd0733bbc7..cb57651008 100644
+--- a/usr/src/man/man7fs/udfs.7fs
++++ b/usr/src/man/man7fs/udfs.7fs
+@@ -1,75 +1,102 @@
+-'\" te
+-.\"  Copyright (c) 1999 Sun Microsystems, Inc.
+-.\"  All Rights Reserved.
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+-.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+-.\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH UDFS 7FS "June 20, 2021"
+-.SH NAME
+-udfs \- universal disk format file system
+-.SH DESCRIPTION
+-The \fBudfs\fR file system is a file system type that allows user access to
+-files on Universal Disk Format (UDF) disks from within the Solaris operating
+-environment. Once mounted, a \fBudfs\fR file system provides standard Solaris
+-file system operations and semantics. That is, users can read files, write
+-files, and list files in a directory on a UDF device and applications can use
+-standard UNIX system calls on these files and directories.
+-.sp
+-.LP
+-Because \fBudfs\fR is a platform-independent file system, the same media can be
+-written to and read from by any operating system or vendor.
+-.SS "Mounting File Systems"
+-\fBudfs\fR file systems are mounted using:
+-.sp
+-.in +2
+-.nf
++.\"
++.\" Copyright (c) 1999 Sun Microsystems, Inc.
++.\" All Rights Reserved.
++.\" Copyright 2021 Oxide Computer Company
++.\"
++.\" The contents of this file are subject to the terms of the
++.\" Common Development and Distribution License (the "License").
++.\" You may not use this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++.\" or http://www.opensolaris.org/os/licensing.
++.\" See the License for the specific language governing permissions
++.\" and limitations under the License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each
++.\" file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++.\" If applicable, add the following below this CDDL HEADER, with the
++.\" fields enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
++.\"
++.Dd June 20, 2021
++.Dt UDFS 7FS
++.Os
++.Sh NAME
++.Nm udfs
++.Nd universal disk format file system
++.Sh DESCRIPTION
++The
++.Nm
++file system is a file system type that allows user access to files on Universal
++Disk Format (UDF) disks from within illumos.
++Once mounted, a
++.Nm
++file system provides standard file system operations and semantics.
++That is, users can read files, write files, and list files in a directory on a
++UDF device and applications can use standard UNIX system calls on these files
++and directories.
++.Pp
++Because
++.Nm
++is a platform-independent file system, the same media can be written to and read
++from by any operating system or vendor.
++.Ss "Mounting File Systems"
++.Nm
++file systems are mounted using:
++.Bd -literal -offset indent
+ mount -F udfs -o rw/ro device-special
+-.fi
+-.in -2
+-.sp
+-
+-.sp
+-.LP
++.Ed
++.Pp
+ Use:
+-.sp
+-.in +2
+-.nf
++.Bd -literal -offset indent
+ mount /udfs
+-.fi
+-.in -2
+-.sp
+-
+-.sp
+-.LP
+-if the \fB/udfs\fR and device special file \fB/dev/dsk/c0t6d0s0\fR are valid
+-and the following line (or similar line) appears in your \fB/etc/vfstab\fR
++.Ed
++if the
++.Nm
++and device special file
++.Pa /dev/dsk/c0t6d0s0
++are valid and the following line
++.Pq or similar line
++appears in your
++Pa /etc/vfstab
+ file:
+-.sp
+-.in +2
+-.nf
++.Bd -literal -offset indent
+ /dev/dsk/c0t6d0s0 - /udfs udfs - no ro
+-.fi
+-.in -2
+-.sp
+-
+-.sp
+-.LP
+-The \fBudfs\fR file system provides read-only support for ROM, RAM, and
+-sequentially-recordable media and read-write support on RAM media.
+-.sp
+-.LP
+-The \fBudfs\fR file system also supports regular files, directories, and
+-symbolic links, as well as device nodes such as block, character, FIFO, and
+-Socket.
+-.SH SEE ALSO
+-\fBmount\fR(1M), \fBmount_udfs\fR(1M), \fBvfstab\fR(4)
+-.SH NOTES
+-Invalid characters such as "\fINULL\fR" and "\fB/\fR" and invalid file names
+-such as "\fB\&.\fR" and "\fB\&..\fR" will be translated according to the
+-following rule:
+-.sp
+-.LP
+-Replace the invalid character with an "\fB_\fR," then append the file name with
+-\fB#\fR followed by a 4 digit hex representation of the 16-bit CRC of the
+-original \fBFileIdentifier\fR. For example, the file name ".." will become
+-"__#4C05"
++.Ed
++.Pp
++The
++.Nm
++file system provides read-only support for ROM, RAM, and sequentially-recordable
++media and read-write support on RAM media.
++.Pp
++The
++.Nm
++file system also supports regular files, directories, and symbolic links, as
++well as device nodes such as block, character, FIFO, and Socket.
++.Sh SEE ALSO
++.Xr mount 1M ,
++.Xr mount_udfs 1M ,
++.Xr vfstab 4
++.Sh NOTES
++Invalid characters such as
++.Dq \e0
++and
++.Dq /
++and invalid file names
++such as
++.Dq \ .
++.Dq \&.
++and
++.Dq \&.\&.
++will be translated according to the following rule:
++.Pp
++Replace the invalid character with an
++.Dq _ ,
++then append the file name with
++.Dq #
++followed by a 4 digit hex representation of the 16-bit CRC of the original
++.Sy FileIdentifier .
++For example, the file name
++.Dq \&.\&.
++will become
++.Dq __#4C05 .
+diff --git a/usr/src/man/man7fs/ufs.7fs b/usr/src/man/man7fs/ufs.7fs
+index c6c6373b3a..462f201e43 100644
+--- a/usr/src/man/man7fs/ufs.7fs
++++ b/usr/src/man/man7fs/ufs.7fs
+@@ -1,265 +1,269 @@
+-'\" te
++.\"
+ .\" Copyright (c) 2009, Sun Microsystems, Inc. All Rights Reserved
+ .\" Copyright 1989 AT&T
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+-.\"  See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with
+-.\" the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH UFS 7FS "Jun 18, 2009"
+-.SH NAME
+-ufs \- UFS file system
+-.SH SYNOPSIS
+-.LP
+-.nf
+-\fB#include <sys/param.h>\fR
+-.fi
+-
+-.LP
+-.nf
+-\fB#include <sys/types.h>\fR
+-.fi
+-
+-.LP
+-.nf
+-\fB#include <sys/fs/ufs_fs.h>\fR
+-.fi
+-
+-.LP
+-.nf
+-\fB#include <sys/fs/ufs_inode.h>\fR
+-.fi
+-
+-.SH DESCRIPTION
+-.sp
+-.LP
+-\fBUFS\fR is the default disk-based file system for the Solaris environment.
+-The UFS file system is hierarchical, starting with its root directory (\fB/\fR)
+-and continuing downward through a number of directories. The root of a UFS file
+-system is \fBinode 2\fR. A UFS file system's root contents replace the contents
+-of the directory upon which it is mounted.
+-.sp
+-.LP
++.\" Copyright 2021 Oxide Computer Company
++.\"
++.\" The contents of this file are subject to the terms of the
++.\" Common Development and Distribution License (the "License").
++.\" You may not use this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++.\" or http://www.opensolaris.org/os/licensing.
++.\" See the License for the specific language governing permissions
++.\" and limitations under the License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each
++.\" file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++.\" If applicable, add the following below this CDDL HEADER, with the
++.\" fields enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
++.\"
++.Dd November 29, 2021
++.Dt UFS 7FS
++.Os
++.Sh NAME
++.Nm ufs
++.Nd UFS file system
++.Sh SYNOPSIS
++.In sys/param.h
++.In sys/types.h
++.In sys/fs/ufs_fs.h
++.In sys/fs/ufs_inode.h
++.Sh DESCRIPTION
++.Nm
++is one of the primary default disk-based file systems for illumos.
++The UFS file system is hierarchical, starting with its root directory
++.Pq Pa /
++and continuing downward through a number of directories.
++The root of a UFS file system is
++.Sy inode 2 .
++A UFS file system's root contents replace the contents of the directory upon
++which it is mounted.
++.Pp
+ Subsequent sections of this manpage provide details of the UFS file systems.
+-.SS "State Flags (\fBfs_state\fR and \fBfs_clean\fR)"
+-.sp
+-.LP
+-UFS uses state flags to identify the state of the file system. \fBfs_state\fR
+-is \fBFSOKAY\fR - \fBfs_time\fR.  \fBfs_time\fR is the timestamp that indicates
+-when the last system write occurred. \fBfs_state\fR is updated whenever
+-\fBfs_clean\fR changes. Some \fBfs_clean\fR values are:
+-.sp
+-.ne 2
+-.na
+-\fB\fBFSCLEAN\fR\fR
+-.ad
+-.RS 12n
++.Ss State Flags Pq Fa fs_state , Fa fs_clean
++UFS uses state flags to identify the state of the file system.
++.Fa fs_state
++is
++.Dv FSOKAY -
++.Fa fs_time .
++.Fa fs_time
++is the timestamp that indicates when the last system write occurred.
++.Fa fs_state
++is updated whenever
++.Fa fs_clean
++changes.
++Some
++.Fa fs_clean
++values are:
++.Bl -tag -width Ds
++.It Dv FSCLEAN
+ Indicates an undamaged, cleanly unmounted file system.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBFSACTIVE\fR\fR
+-.ad
+-.RS 12n
+-Indicates a mounted file system that has modified data in memory. A mounted
+-file system with this state flag indicates that user data or metadata would be
+-lost if power to the system is interrupted.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBFSSTABLE\fR\fR
+-.ad
+-.RS 12n
+-Indicates an idle mounted file system. A mounted file system with this state
+-flag indicates that neither user data nor metadata would be lost if power to
+-the system is interrupted.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBFSBAD\fR\fR
+-.ad
+-.RS 12n
++.It Dv FSACTIVE
++Indicates a mounted file system that has modified data in memory.
++A mounted file system with this state flag indicates that user data or metadata
++would be lost if power to the system is interrupted.
++.It Dv FSSTABLE
++Indicates an idle mounted file system.
++A mounted file system with this state flag indicates that neither user data nor
++metadata would be lost if power to the system is interrupted.
++.It Dv FSBAD
+ Indicates that this file system contains inconsistent file system data.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fBFSLOG\fR
+-.ad
+-.RS 12n
+-Indicates that the file system has logging enabled. A file system with this
+-flag set is either mounted or unmounted. If a file system has logging enabled,
+-the only flags that it can have are \fBFSLOG\fR or \fBFSBAD\fR. A non-logging
+-file system can have \fBFSACTIVE\fR, \fBFSSTABLE\fR, or \fBFSCLEAN\fR.
+-.RE
+-
+-.sp
+-.LP
+-It is not necessary to run the \fBfsck\fR command on unmounted file systems
+-with a state of \fBFSCLEAN\fR, \fBFSSTABLE\fR, or \fBFSLOG\fR. \fBmount\fR(2)
+-returns \fBENOSPC\fR if an attempt is made to mount a \fBUFS\fR file system
+-with a state of \fBFSACTIVE\fR for read/write access.
+-.sp
+-.LP
+-As an additional safeguard, \fBfs_clean\fR should be trusted only if
+-\fBfs_state\fR contains a value equal to \fBFSOKAY\fR - \fBfs_time\fR, where
+-\fBFSOKAY\fR is a constant integer defined in the
+-\fB/usr/include/sys/fs/ufs_fs.h\fR file.  Otherwise, \fBfs_clean\fR is treated
+-as though it contains the value of \fBFSACTIVE\fR.
+-.SS "Extended Fundamental Types  (\fBEFT\fR)"
+-.sp
+-.LP
+-Extended Fundamental Types (EFT) provide 32-bit user ID (UID), group ID (GID),
++.It Dv FSLOG
++Indicates that the file system has logging enabled.
++A file system with this flag set is either mounted or unmounted.
++If a file system has logging enabled, the only flags that it can have are
++.Dv FSLOG
++or
++.Dv FSBAD .
++A non-logging file system can have
++.Dv FSACTIVE ,
++.Dv FSSTABLE ,
++or
++.Dv FSCLEAN .
++.Pp
++It is not necessary to run the
++.Sy fsck
++command on unmounted file systems with a state of
++.Dv FSCLEAN ,
++.Dv FSSTABLE ,
++or
++.Dv FSLOG .
++.Xr mount 2
++returns
++.Dv ENOSPC
++if an attempt is made to mount a UFS file system with a state of
++.Dv FSACTIVE
++for read/write access.
++.Pp
++As an additional safeguard,
++.Fa fs_clean
++should be trusted only if
++.Fa fs_state
++contains a value equal to
++.Dv FSOKAY -
++.Fa fs_time ,
++where
++.Dv FSOKAY
++is a constant integer defined in the
++.Pa /usr/include/sys/fs/ufs_fs.h
++file.
++Otherwise,
++.Fa fs_clean
++is treated as though it contains the value of
++.Dv FSACTIVE .
++.El
++.Ss Extended Fundamental Types (EFT)
++Extended Fundamental Types
++.Pq EFT
++provide 32-bit user ID
++.Pq UID ,
++group ID
++.Pq GID ,
+ and device numbers.
+-.sp
+-.LP
+-If a UID or GID contains an extended value, the short variable (\fBic_suid\fR,
+-\fBic_sgid\fR) contains the value 65535 and the corresponding UID or GID is in
+-\fBic_uid\fR or \fBic_gid\fR. Because numbers for block and character devices
+-are stored in the first direct block pointer of the inode (\fBic_db[0]\fR) and
+-the disk block addresses are already 32 bit values, no special encoding exists
+-for device numbers (unlike UID or GID fields).
+-.SS "Multiterabyte File System"
+-.sp
+-.LP
++.Pp
++If a UID or GID contains an extended value, the short variable
++.Po
++.Fa ic_suid ,
++.Fa ic_sgid
++.Pc
++contains the value 65535 and the corresponding UID or GID is in
++.Fa ic_uid
++or
++.Fa ic_gid .
++Because numbers for block and character devices are stored in the first direct
++block pointer of the inode
++.Pq Fa ic_db[0]
++and the disk block addresses are already 32 bit values, no special encoding
++exists for device numbers
++.Pq unlike UID or GID fields .
++.Ss Multiterabyte File System
+ A multiterabyte file system enables creation of a UFS file system up to
+ approximately 16 terabytes of usable space, minus approximately one percent
+-overhead. A sparse file can have a logical size of one terabyte. However, the
+-actual amount of data that can be stored in a file is approximately one percent
+-less than one terabyte because of file system overhead.
+-.sp
+-.LP
++overhead.
++A sparse file can have a logical size of one terabyte.
++However, the actual amount of data that can be stored in a file is approximately
++one percent less than one terabyte because of file system overhead.
++.Pp
+ On-disk format changes for a multiterabyte UFS file system include:
+-.RS +4
+-.TP
+-.ie t \(bu
+-.el o
+-The magic number in the superblock changes from \fBFS_MAGIC\fR to
+-\fBMTB_UFS_MAGIC\fR. For more information, see the
+-\fB/usr/include/sys/fs/ufs_fs\fR file.
+-.RE
+-.RS +4
+-.TP
+-.ie t \(bu
+-.el o
+-The \fBfs_logbno\fR unit is a sector for UFS that is less than 1 terabyte in
++.Bl -bullet -offset indent
++.It
++The magic number in the superblock changes from
++.Dv FS_MAGIC
++to
++.Dv MTB_UFS_MAGIC .
++For more information, see the
++.Pa /usr/include/sys/fs/ufs_fs.h
++file.
++.It
++The
++.Fa fs_logbno
++unit is a sector for UFS that is less than 1 terabyte in
+ size and fragments for a multiterabyte UFS file system.
+-.RE
+-.SS "UFS Logging"
+-.sp
+-.LP
++.El
++.Ss UFS Logging
+ UFS logging bundles the multiple metadata changes that comprise a complete UFS
+-operation into a transaction. Sets of transactions are recorded in an on-disk
+-log and are applied to the actual UFS file system's metadata.
+-.sp
+-.LP
++operation into a transaction.
++Sets of transactions are recorded in an on-disk log and are applied to the
++actual UFS file system's metadata.
++.Pp
+ UFS logging provides two advantages:
+-.RS +4
+-.TP
+-1.
++.Bl -enum
++.It
+ A file system that is consistent with the transaction log eliminates the
+-need to run \fBfsck\fR after a system crash or an unclean shutdown.
+-.RE
+-.RS +4
+-.TP
+-2.
+-UFS logging often provides a significant performance improvement. This is
+-because a file system with logging enabled converts multiple updates to the
+-same data into single updates, thereby reducing the number of overhead disk
++need to run
++.Sy fsck
++after a system crash or an unclean shutdown.
++.It
++UFS logging often provides a significant performance improvement.
++This is because a file system with logging enabled converts multiple updates to
++the same data into single updates, thereby reducing the number of overhead disk
+ operations.
+-.RE
+-.sp
+-.LP
++.El
++.Pp
+ The UFS log is allocated from free blocks on the file system and is sized at
+-approximately 1 Mbyte per 1 Gbyte of file system, up to 256 Mbytes. The log
+-size may be larger (up to a maximum of 512 Mbytes), depending upon the number
+-of cylinder groups present in the file system. The log is continually flushed
+-as it fills up. The log is also flushed when the file system is unmounted or as
+-a result of a \fBlockfs\fR(1M) command.
+-.SS "Mounting UFS File Systems"
+-.sp
+-.LP
++approximately 1 Mbyte per 1 Gbyte of file system, up to 256 Mbytes.
++The log size may be larger (up to a maximum of 512 Mbytes), depending upon the
++number of cylinder groups present in the file system.
++The log is continually flushed as it fills up.
++The log is also flushed when the file system is unmounted or as a result of a
++.Xr lockfs 1M
++command.
++.Ss Mounting UFS File Systems
+ You can mount a UFS file system in various ways using syntax similar to the
+ following:
+-.RS +4
+-.TP
+-1.
+-Use \fBmount\fR from the command line:
+-.sp
+-.in +2
+-.nf
++.Bl -enum
++.It
++Use
++.Xr mount 1M
++from the command line:
++.Bd -literal -offset indent
+ # mount -F ufs /dev/dsk/c0t0d0s7 /export/home
+-.fi
+-.in -2
+-.sp
+-
+-.RE
+-.RS +4
+-.TP
+-2.
+-Include an entry in the \fB/etc/vfstab\fR file to mount the file system at
+-boot time:
+-.sp
+-.in +2
+-.nf
++.Ed
++.It
++Include an entry in the
++.Pa /etc/vfstab
++file to mount the file system at boot time:
++.Bd -literal -offset indent
+ /dev/dsk/c0t0d0s7 /dev/rdsk/c0t0d0s7 /export/home  ufs   2   yes  -
+-.fi
+-.in -2
+-.sp
+-
+-.RE
+-.sp
+-.LP
+-For more information on mounting UFS file systems, see \fBmount_ufs\fR(1M).
+-.SH ATTRIBUTES
+-.sp
+-.LP
+-See \fBattributes\fR(5) for a description of the following attributes:
+-.sp
+-
+-.sp
+-.TS
+-box;
+-c | c
+-l | l .
+-ATTRIBUTE TYPE	ATTRIBUTE VALUE
+-_
+-Interface Stability	Uncommitted
+-.TE
+-
+-.SH SEE ALSO
+-.sp
+-.LP
+-\fBdf\fR(1M), \fBfsck\fR(1M), \fBfsck_ufs\fR(1M), \fBfstyp\fR(1M),
+-\fBlockfs\fR(1M), \fBmkfs_ufs\fR(1M), \fBnewfs\fR(1M), \fBufsdump\fR(1M),
+-\fBufsrestore\fR(1M), \fBtunefs\fR(1M), \fBmount\fR(2), \fBattributes\fR(5)
+-.sp
+-.LP
+-\fIWriting Device Drivers\fR
+-.SH NOTES
+-.sp
+-.LP
+-For information about internal UFS structures, see \fBnewfs\fR(1M) and
+-\fBmkfs_ufs\fR(1M). For information about the \fBufsdump\fR and
+-\fBufsrestore\fR commands, see \fBufsdump\fR(1M), \fBufsrestore\fR(1M), and
+-\fB/usr/include/protocols/dumprestore.h\fR.
+-.sp
+-.LP
++.Ed
++.El
++.Pp
++For more information on mounting UFS file systems, see
++.Xr mount_ufs 1M .
++.Sh INTERFACE STABILITY
++.Sy Uncomitted
++.Sh SEE ALSO
++.Xr df 1M ,
++.Xr fsck 1M ,
++.Xr fsck_ufs 1M ,
++.Xr fstyp 1M ,
++.Xr lockfs 1M ,
++.Xr mkfs_ufs 1M ,
++.Xr newfs 1M ,
++.Xr tunefs 1M ,
++.Xr ufsdump 1M ,
++.Xr ufsrestore 1M ,
++.Xr mount 2 ,
++.Xr attributes 5
++.Sh NOTES
++For information about internal UFS structures, see
++.Xr newfs 1M
++and
++.Xr mkfs_ufs 1M .
++For information about dumping and restoring file systems, see
++.Xr ufsdump 1M ,
++.Xr ufsrestore 1M ,
++and
++.Pa /usr/include/protocols/dumprestore.h .
+ If you experience difficulty in allocating space on the ufs filesystem, it may
+-be due to framentation. Fragmentation can occur when you do not have sufficient
+-free blocks to satisfy an allocation request even though \fBdf\fR(1M) indicates
+-that enough free space is available. (This may occur because df only uses the
+-available fragment count to calculate available space, but the file system
+-requires contiguous sets of fragments for most allocations). If you suspect
+-that you have exhausted contiguous  fragments on  your file system, you can use
+-the \fBfstyp\fR(1M) utility with the -v option. In the \fBfstyp\fR output,
+-look at the  \fInbfree\fR (number  of  blocks  free) and \fInffree\fR (number
+-of fragments free) fields. On unmounted filesystems, you can use \fBfsck\fR(1M)
+-and observe  the  last line of output, which reports, among other items, the
+-number of fragments and the degree of fragmentation. To correct a fragmentation
+-problem, run \fBufsdump\fR(1M) and \fBufsrestore\fR(1M) on the ufs filesystem.
++be due to fragmentation.
++Fragmentation can occur when you do not have sufficient free blocks to satisfy
++an allocation request even though
++.Xr df 1M
++indicates that enough free space is available.
++(This may occur because df only uses the available fragment count to calculate
++available space, but the file system requires contiguous sets of fragments for
++most allocations).
++If you suspect that you have exhausted contiguous fragments on your file system,
++you can use the
++.Xr fstyp 1M
++utility with the
++.Fl v
++option.
++In the fstyp output, look at the
++.Em nbfree
++.Pq number of blocks free
++and
++.Fa nffree
++.Pq (number of fragments free)
++fields.
++On unmounted filesystems, you can use
++.Xr fsck 1M
++and observe the last line of output, which reports, among other items, the
++number of fragments and the degree of fragmentation.
++To correct a fragmentation problem, run
++.Xr ufsdump 1M
++and
++.Xr ufsrestore 1M
++on the ufs filesystem.
+-- 
+2.40.1
+

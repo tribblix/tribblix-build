@@ -1,0 +1,1089 @@
+From 63e22ea4f2e3c9c64bbc3b905c94bff00b65df13 Mon Sep 17 00:00:00 2001
+From: Peter Tribble <peter.tribble@gmail.com>
+Date: Sun, 20 Aug 2023 10:50:07 +0100
+Subject: [PATCH] =?UTF-8?q?15731=20Tidy=20up=20audio=20driver=20man=20page?=
+ =?UTF-8?q?s=20Reviewed=20by:=20Toomas=20Soome=20<tsoome@me.com>=20Reviewe?=
+ =?UTF-8?q?d=20by:=20Richard=20Lowe=20<richlowe@richlowe.net>=20Reviewed?=
+ =?UTF-8?q?=20by:=20Gerg=C5=91=20Mih=C3=A1ly=20Doma=20<domag02@gmail.com>?=
+ =?UTF-8?q?=20Approved=20by:=20Dan=20McDonald=20<danmcd@mnx.io>?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ usr/src/man/man4d/audio.4d        | 17 +++-------
+ usr/src/man/man4d/audio1575.4d    | 48 ++-------------------------
+ usr/src/man/man4d/audio810.4d     | 48 ++-------------------------
+ usr/src/man/man4d/audiocmi.4d     | 31 ++---------------
+ usr/src/man/man4d/audiocmihd.4d   | 19 +----------
+ usr/src/man/man4d/audioemu10k.4d  | 19 +----------
+ usr/src/man/man4d/audioens.4d     | 31 ++---------------
+ usr/src/man/man4d/audiohd.4d      | 55 ++-----------------------------
+ usr/src/man/man4d/audioixp.4d     | 55 ++-----------------------------
+ usr/src/man/man4d/audiols.4d      | 20 ++---------
+ usr/src/man/man4d/audiop16x.4d    | 33 ++-----------------
+ usr/src/man/man4d/audiopci.4d     | 23 +------------
+ usr/src/man/man4d/audiosolo.4d    | 21 ++----------
+ usr/src/man/man4d/audiots.4d      | 50 +++-------------------------
+ usr/src/man/man4d/audiovia823x.4d | 23 ++-----------
+ 15 files changed, 35 insertions(+), 458 deletions(-)
+
+diff --git a/usr/src/man/man4d/audio.4d b/usr/src/man/man4d/audio.4d
+index 3ab5d389ee..f6697765f2 100644
+--- a/usr/src/man/man4d/audio.4d
++++ b/usr/src/man/man4d/audio.4d
+@@ -3,12 +3,12 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License"). You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+ .\"  See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE. If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH AUDIO 4D "Jan 10, 2020"
++.TH AUDIO 4D "June 8, 2023"
+ .SH NAME
+ audio \- common audio framework
+ .SH DESCRIPTION
+ The \fBaudio\fR driver provides common support routines for audio devices in
+-Solaris.
++illumos.
+ .sp
+ .LP
+ The audio framework supports multiple \fBpersonalities\fR, allowing for devices
+@@ -83,7 +83,7 @@ telephone companies in the United States, Canada, and Japan. A-Law encoding is
+ also part of CCITT G.711 and is the standard encoding for telephony elsewhere
+ in the world. A-Law and u-Law audio data are sampled at a rate of 8000 samples
+ per second with 12-bit precision, with the data compressed to 8-bit samples.
+-The resulting audio data quality is equivalent to that of stan dard analog
++The resulting audio data quality is equivalent to that of standard analog
+ telephone service.
+ .sp
+ .LP
+@@ -139,15 +139,6 @@ precision is 24-bits.
+ Device driver (x86)
+ .RE
+ 
+-.sp
+-.ne 2
+-.na
+-\fB\fB/kernel/drv/sparcv9/audio\fR\fR
+-.ad
+-.RS 29n
+-Device driver (SPARC)
+-.RE
+-
+ .sp
+ .ne 2
+ .na
+@@ -168,7 +159,7 @@ l | l
+ l | l .
+ ATTRIBUTE TYPE	ATTRIBUTE VALUE
+ _
+-Architecture	SPARC, x86
++Architecture	x86
+ _
+ Interface Stability	Uncommitted
+ .TE
+diff --git a/usr/src/man/man4d/audio1575.4d b/usr/src/man/man4d/audio1575.4d
+index 46c30174a1..0a2df1f895 100644
+--- a/usr/src/man/man4d/audio1575.4d
++++ b/usr/src/man/man4d/audio1575.4d
+@@ -3,20 +3,17 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License"). You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+ .\"  See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE. If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH AUDIO1575 4D "May 13, 2009"
++.TH AUDIO1575 4D "June 8, 2023"
+ .SH NAME
+ audio1575 \- Uli M1575 Super South Bridge audio digital controller interface
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBaudio1575\fR device uses the Uli M1575 AC97-compatible audio digital
+ controller and an AC-97 Codec to implement the audio device interface. This
+ interface allows analog only inputs and outputs.
+ .SH FILES
+-.sp
+ .ne 2
+ .na
+-\fB\fB/kernel/drv/sparcv9/audio1575\fR\fR
++\fB\fB/kernel/drv/amd64/audio1575\fR\fR
+ .ad
+ .sp .6
+ .RS 4n
+@@ -34,8 +31,6 @@ Driver configuration file
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -46,14 +41,12 @@ c | c
+ l | l .
+ ATTRIBUTE TYPE	ATTRIBUTE VALUE
+ _
+-Architecture	SPARC, x86
++Architecture	x86
+ _
+ Stability level	Uncommitted
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR ioctl (2),
+ .BR audio (4I),
+ .BR mixer (4I),
+@@ -65,38 +58,3 @@ Stability level	Uncommitted
+ .sp
+ .LP
+ \fIAD1981B AC '97 SoundMAX(R) Codec Data Sheet\fR\(em Analog Devices Inc.
+-.SH DIAGNOSTICS
+-.sp
+-.LP
+-In addition to being logged, the following messages might appear on the system
+-console:
+-.sp
+-.ne 2
+-.na
+-\fB\fBplay-interrupts too low\fR\fR
+-.ad
+-.br
+-.na
+-\fB\fBrecord-interrupts too low\fR\fR
+-.ad
+-.RS 30n
+-The interrupt rate specified in \fBaudio1575.conf\fR is set too low. It has
+-been reset to the rate specified in the message. Update \fBaudio1575.conf\fR to
+-a higher interrupt rate.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBplay-interrupts too high\fR\fR
+-.ad
+-.br
+-.na
+-\fB\fBrecord-interrupts too high\fR\fR
+-.ad
+-.RS 30n
+-The interrupt rate specified in \fBaudio1575.conf\fR is set too high. It has
+-been reset to the rate specified in the message. Update \fBaudio1575.conf\fR to
+-a lower interrupt rate.
+-.RE
+-
+diff --git a/usr/src/man/man4d/audio810.4d b/usr/src/man/man4d/audio810.4d
+index c298b87ca2..87616bbda7 100644
+--- a/usr/src/man/man4d/audio810.4d
++++ b/usr/src/man/man4d/audio810.4d
+@@ -3,7 +3,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License"). You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+ .\"  See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE. If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH AUDIO810 4D "September 12, 2020"
++.TH AUDIO810 4D "June 8, 2023"
+ .SH NAME
+ audio810 \- Intel ICH series, nVidia nForce series and AMD 8111 audio core
+ support
+@@ -13,15 +13,6 @@ in Intel ICH, nVidia nForce, and AMD 8111 chips.
+ .SH FILES
+ .ne 2
+ .na
+-\fB\fB/kernel/drv/audio810\fR\fR
+-.ad
+-.RS 30n
+-32-bit kernel driver module
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+ \fB\fB/kernel/drv/amd64/audio810\fR\fR
+ .ad
+ .RS 30n
+@@ -38,7 +29,7 @@ in Intel ICH, nVidia nForce, and AMD 8111 chips.
+ .RE
+ 
+ .SH ATTRIBUTES
+-See \fBattributes\fR(7) for a descriptions of the following attributes:
++See \fBattributes\fR(7) for a description of the following attributes:
+ .sp
+ 
+ .sp
+@@ -70,38 +61,5 @@ Inc.
+ Some laptops (including Sony VAIO, among others), have their on-board amplifier
+ powered down by default, meaning that audio is suppressed even if hardware and
+ the \fBaudio810\fR driver are working normally. To correct this, set the
+-\fBac97-invert-amp=1\fR property in the \fB/kernel/drv/audio810.conf\fR to
++\fBac97-amplifier=0\fR property in the \fB/kernel/drv/audio810.conf\fR to
+ power-up the amplifier.
+-.SH DIAGNOSTICS
+-In addition to being logged, the following messages may appear on the system
+-console:
+-.sp
+-.ne 2
+-.na
+-\fB\fBplay-interrupts too low\fR\fR
+-.ad
+-.br
+-.na
+-\fB\fBrecord-interrupts too low\fR\fR
+-.ad
+-.RS 30n
+-The interrupt rate in \fBaudio810.conf\fR is set too low. It has been reset to
+-the rate specified in the message. Update \fBaudio810.conf\fR to a higher
+-interrupt rate.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBplay-interrupts too high\fR\fR
+-.ad
+-.br
+-.na
+-\fB\fBrecord-interrupts too high\fR\fR
+-.ad
+-.RS 30n
+-The interrupt rate set in \fBaudio810.conf\fR is set too high. It has been
+-reset to the rate specified in the message. Update \fBaudio810.conf\fR to a
+-lower interrupt rate.
+-.RE
+-
+diff --git a/usr/src/man/man4d/audiocmi.4d b/usr/src/man/man4d/audiocmi.4d
+index 2812211209..854286bc34 100644
+--- a/usr/src/man/man4d/audiocmi.4d
++++ b/usr/src/man/man4d/audiocmi.4d
+@@ -3,27 +3,14 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License"). You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+ .\" See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE. If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH AUDIOCMI 4D "Aug 17, 2009"
++.TH AUDIOCMI 4D "June 8, 2023"
+ .SH NAME
+ audiocmi \- C-Media 8738, 8768, and 8338 driver support
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBaudiocmi\fR driver provides support for the C-Media 8738, 8768, and 8338
+ audio controllers. These are found on some motherboards and some add-in PCI
+ cards.
+ .SH FILES
+-.sp
+-.ne 2
+-.na
+-\fB\fB/kernel/drv/audiocmi\fR\fR
+-.ad
+-.sp .6
+-.RS 4n
+-32-bit kernel driver module
+-.RE
+-
+-.sp
+ .ne 2
+ .na
+ \fB\fB/kernel/drv/amd64/audiocmi\fR\fR
+@@ -33,16 +20,6 @@ cards.
+ 64-bit x86 kernel driver module
+ .RE
+ 
+-.sp
+-.ne 2
+-.na
+-\fB\fB/kernel/drv/sparcv9/audiocmi\fR\fR
+-.ad
+-.sp .6
+-.RS 4n
+-64-bit SPARC kernel driver module
+-.RE
+-
+ .sp
+ .ne 2
+ .na
+@@ -54,9 +31,7 @@ Driver configuration file
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+-See \fBattributes\fR(7) for a descriptions of the following attributes:
++See \fBattributes\fR(7) for a description of the following attributes:
+ .sp
+ 
+ .sp
+@@ -70,8 +45,6 @@ Architecture	PC-based system
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR ioctl (2),
+ .BR audio (4I),
+ .BR mixer (4I),
+diff --git a/usr/src/man/man4d/audiocmihd.4d b/usr/src/man/man4d/audiocmihd.4d
+index c5b309dd76..efb2e92b10 100644
+--- a/usr/src/man/man4d/audiocmihd.4d
++++ b/usr/src/man/man4d/audiocmihd.4d
+@@ -11,27 +11,14 @@
+ .\"
+ .\" Copyright 2011 Nexenta Systems, Inc.  All rights reserved.
+ .\"
+-.TH AUDIOCMIHD 4D "Mar 18, 2011"
++.TH AUDIOCMIHD 4D "June 8, 2023"
+ .SH NAME
+ audiocmihd \- CMI8788 HD audio driver
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBaudiocmihd\fR driver provides support for audio devices based on
+ the CMedia 8788 and similar parts.  Most often these are seen in
+ devices sold under the Asus Xonar brand.
+ .SH FILES
+-.sp
+-.ne 2
+-.na
+-\fB/kernel/drv/audiocmihd\fR
+-.ad
+-.sp .6
+-.RS 4n
+-32-bit kernel module
+-.RE
+-
+-.sp
+ .ne 2
+ .na
+ \fB/kernel/drv/amd64/audiocmihd\fR
+@@ -42,8 +29,6 @@ devices sold under the Asus Xonar brand.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -58,8 +43,6 @@ Architecture	x86
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR audio (4I),
+ .BR dsp (4I),
+ .BR mixer (4I),
+diff --git a/usr/src/man/man4d/audioemu10k.4d b/usr/src/man/man4d/audioemu10k.4d
+index fdf5a4cc86..d6d08542bf 100644
+--- a/usr/src/man/man4d/audioemu10k.4d
++++ b/usr/src/man/man4d/audioemu10k.4d
+@@ -11,12 +11,10 @@
+ .\"
+ .\" Copyright 2011 Nexenta Systems, Inc.  All rights reserved.
+ .\"
+-.TH AUDIOEMU10K 4D "Mar 18, 2011"
++.TH AUDIOEMU10K 4D "June 8, 2023"
+ .SH NAME
+ audioemu10k \- EMU10K audio driver
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBaudioemu10\fR driver provides support for audio devices based on
+ the Creative EMU10K1 and EMU10K2 chips.  Most often these are seen in
+ devices sold under the Audigy or Sound Blaster Live! brand names.
+@@ -24,17 +22,6 @@ devices sold under the Audigy or Sound Blaster Live! brand names.
+ The \fBaudioemu10k\fR driver provides support for surround sound and
+ SPDIF features on devices with such capabilities.
+ .SH FILES
+-.sp
+-.ne 2
+-.na
+-\fB/kernel/drv/audioemu10k\fR
+-.ad
+-.sp .6
+-.RS 4n
+-32-bit kernel module
+-.RE
+-
+-.sp
+ .ne 2
+ .na
+ \fB/kernel/drv/amd64/audioemu10k\fR
+@@ -45,8 +32,6 @@ SPDIF features on devices with such capabilities.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -61,8 +46,6 @@ Architecture	x86
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR audio (4I),
+ .BR dsp (4I),
+ .BR mixer (4I),
+diff --git a/usr/src/man/man4d/audioens.4d b/usr/src/man/man4d/audioens.4d
+index a70d8988ac..c9c5b2ea45 100644
+--- a/usr/src/man/man4d/audioens.4d
++++ b/usr/src/man/man4d/audioens.4d
+@@ -3,27 +3,14 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License"). You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+ .\"  See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE. If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH AUDIOENS 4D "May 15, 2009"
++.TH AUDIOENS 4D "June 8, 2023"
+ .SH NAME
+ audioens \- Ensoniq ESS 1371 and ESS 1373 audio driver
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBaudioens\fR driver provides support for the Ensoniq ESS1371, ESS1373,
+ and Creative 5880 AC'97 devices. These devices are commonly known by several
+ different names, including the Sound Blaster PCI128 and AudioPCI '97.
+ .SH FILES
+-.sp
+-.ne 2
+-.na
+-\fB\fB/kernel/drv/audioens\fR\fR
+-.ad
+-.sp .6
+-.RS 4n
+-32-bit kernel module
+-.RE
+-
+-.sp
+ .ne 2
+ .na
+ \fB\fB/kernel/drv/amd64/audioens\fR\fR
+@@ -33,19 +20,7 @@ different names, including the Sound Blaster PCI128 and AudioPCI '97.
+ 64-bit x86 kernel module
+ .RE
+ 
+-.sp
+-.ne 2
+-.na
+-\fB\fB/kernel/drv/sparcv9/audioens\fR\fR
+-.ad
+-.sp .6
+-.RS 4n
+-64-bit SPARC kernel module
+-.RE
+-
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -56,14 +31,12 @@ c | c
+ l | l .
+ ATTRIBUTE TYPE	ATTRIBUTE VALUE
+ _
+-Architecture	SPARC, x86
++Architecture	x86
+ _
+ Interface Stability	Uncommitted
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR audio (4I),
+ .BR dsp (4I),
+ .BR mixer (4I),
+diff --git a/usr/src/man/man4d/audiohd.4d b/usr/src/man/man4d/audiohd.4d
+index 0ab59e52d5..4e0a15fec7 100644
+--- a/usr/src/man/man4d/audiohd.4d
++++ b/usr/src/man/man4d/audiohd.4d
+@@ -3,16 +3,13 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License"). You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+ .\"  See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE. If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH AUDIOHD 4D "May 12, 2009"
++.TH AUDIOHD 4D "June 8, 2023"
+ .SH NAME
+ audiohd \- Intel High Definition Audio Controller support
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBaudiohd\fR driver provides support for the generic codec chips which are
+ compatible with the Intel High-Definition Audio Controller 1.0 specification.
+ .SH FILES
+-.sp
+ .ne 2
+ .na
+ \fB\fB/kernel/drv/audiohd.conf\fR\fR
+@@ -21,15 +18,6 @@ compatible with the Intel High-Definition Audio Controller 1.0 specification.
+ \fBaudiohd\fR driver configuration file
+ .RE
+ 
+-.sp
+-.ne 2
+-.na
+-\fB\fB/kernel/drv/audiohd\fR\fR
+-.ad
+-.RS 29n
+-32-bit x86 kernel driver module
+-.RE
+-
+ .sp
+ .ne 2
+ .na
+@@ -40,9 +28,7 @@ compatible with the Intel High-Definition Audio Controller 1.0 specification.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+-See \fBattributes\fR(7) for a descriptions of the following attributes:
++See \fBattributes\fR(7) for a description of the following attributes:
+ .sp
+ 
+ .sp
+@@ -58,8 +44,6 @@ Stability level	Uncommitted
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR ioctl (2),
+ .BR audio (4I),
+ .BR mixer (4I),
+@@ -71,38 +55,3 @@ Stability level	Uncommitted
+ .sp
+ .LP
+ \fIALC880 Specification\fR \(em Realtek Inc.
+-.SH DIAGNOSTICS
+-.sp
+-.LP
+-In addition to being logged, the following messages can appear on the system
+-console:
+-.sp
+-.ne 2
+-.na
+-\fB\fBplay-interrupts too low\fR\fR
+-.ad
+-.br
+-.na
+-\fB\fBrecord-interrupts too low\fR\fR
+-.ad
+-.RS 30n
+-The interrupt rate in \fBaudiohd.conf\fR is set too low. It has been reset to
+-the rate specified in the message. Update \fBaudiohd.conf\fR to a higher
+-interrupt rate.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBredcord-interrupts too low\fR\fR
+-.ad
+-.br
+-.na
+-\fB\fBrecord-interrupts too high\fR\fR
+-.ad
+-.RS 30n
+-The interrupt rate in \fBaudiohd.conf\fR is set too low. It has been reset to
+-the rate specified in the message. Update \fBaudiohd.conf\fR to a higher
+-interrupt rate
+-.RE
+-
+diff --git a/usr/src/man/man4d/audioixp.4d b/usr/src/man/man4d/audioixp.4d
+index b8e5450097..9d16c14daf 100644
+--- a/usr/src/man/man4d/audioixp.4d
++++ b/usr/src/man/man4d/audioixp.4d
+@@ -3,12 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License"). You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+ .\"  See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE. If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH AUDIOIXP 4D "May 12, 2009"
++.TH AUDIOIXP 4D "June 8, 2023"
+ .SH NAME
+ audioixp \- ATI IXP400 south bridge audio digital controller interface
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBaudioixp\fR device uses the IXP400 south bridge audio digital controller
+ and a AC-97 Codec to implement the audio device interface.
+ .sp
+@@ -16,7 +14,6 @@ and a AC-97 Codec to implement the audio device interface.
+ The \fBaudioixp\fR  device  provides  support  for  the internal speaker,
+ headphone, line out, line in, and microphone.
+ .SH FILES
+-.sp
+ .ne 2
+ .na
+ \fB\fB/kernel/drv/audioixp.conf\fR\fR
+@@ -25,15 +22,6 @@ headphone, line out, line in, and microphone.
+ Driver configuration file
+ .RE
+ 
+-.sp
+-.ne 2
+-.na
+-\fB\fB/kernel/drv/audioixp\fR\fR
+-.ad
+-.RS 30n
+-32-bit kernel driver module
+-.RE
+-
+ .sp
+ .ne 2
+ .na
+@@ -44,9 +32,7 @@ Driver configuration file
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+-See \fBattributes\fR(7) for a descriptions of the following attributes:
++See \fBattributes\fR(7) for a description of the following attributes:
+ .sp
+ 
+ .sp
+@@ -62,8 +48,6 @@ Stability level	Uncommitted
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR ioctl (2),
+ .BR audio (4I),
+ .BR mixer (4I),
+@@ -72,38 +56,3 @@ Stability level	Uncommitted
+ .sp
+ .LP
+ \fIATI IXP400 South Bridge Data Sheet\fR
+-.SH DIAGNOSTICS
+-.sp
+-.LP
+-In addition to being logged, the following messages may appear on the system
+-console:
+-.sp
+-.ne 2
+-.na
+-\fB\fBplay-interrupts too low\fR\fR
+-.ad
+-.br
+-.na
+-\fB\fBrecord-interrupts too low\fR\fR
+-.ad
+-.RS 30n
+-The interrupt rate in \fBaudioixp.conf\fR is set too low. It has been reset to
+-the rate specified in the message. Update \fBaudioixp.conf\fR to a higher
+-interrupt rate.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBplay-interrupts too high\fR\fR
+-.ad
+-.br
+-.na
+-\fB\fBrecord-interrupts too high\fR\fR
+-.ad
+-.RS 30n
+-The interrupt rate set in \fBaudioixp.conf\fR is set too high. It has been
+-reset to the rate specified in the message. Update \fBaudioixp.conf\fR to a
+-lower interrupt rate.
+-.RE
+-
+diff --git a/usr/src/man/man4d/audiols.4d b/usr/src/man/man4d/audiols.4d
+index e8af3204d5..d6a50f77f3 100644
+--- a/usr/src/man/man4d/audiols.4d
++++ b/usr/src/man/man4d/audiols.4d
+@@ -3,12 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License"). You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+ .\" See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE. If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH AUDIOLS 4D "Sep 8, 2009"
++.TH AUDIOLS 4D "June 8, 2023"
+ .SH NAME
+ audiols \- Creative Audigy LS audio device support
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBaudiols\fR driver provides support for the Creative Audigy LS audio
+ device.
+ .sp
+@@ -19,16 +17,6 @@ only Audigy LS devices are supported by this driver.
+ .LP
+ This device is capable of 5.1 surround sound.
+ .SH FILES
+-.sp
+-.ne 2
+-.na
+-\fB\fB/kernel/drv/audiols\fR\fR
+-.ad
+-.RS 29n
+-32-bit kernel driver module
+-.RE
+-
+-.sp
+ .ne 2
+ .na
+ \fB\fB/kernel/drv/amd64/audiols\fR\fR
+@@ -38,9 +26,7 @@ This device is capable of 5.1 surround sound.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+-See \fBattributes\fR(7) for a descriptions of the following attributes:
++See \fBattributes\fR(7) for a description of the following attributes:
+ .sp
+ 
+ .sp
+@@ -54,8 +40,6 @@ Architecture	x86
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR ioctl (2),
+ .BR audio (4I),
+ .BR mixer (4I),
+diff --git a/usr/src/man/man4d/audiop16x.4d b/usr/src/man/man4d/audiop16x.4d
+index 821279a2cc..b576365424 100644
+--- a/usr/src/man/man4d/audiop16x.4d
++++ b/usr/src/man/man4d/audiop16x.4d
+@@ -3,12 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License"). You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+ .\" See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE. If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH AUDIOP16X 4D "Sep 8, 2009"
++.TH AUDIOP16X 4D "June 8, 2023"
+ .SH NAME
+ audiop16x \- Creative Sound Blaster Live! OEM support
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBaudiop16x\fR driver provides support for the Creative Sound Blaster
+ Live! products based on the P16X device. These chips are also known as the
+ \fBEMU10K1X\fR device, not to be confused with the \fBEMU10K1\fR.
+@@ -20,17 +18,6 @@ model numbers SB0200 or SB0213.
+ .LP
+ This device is capable of 5.1 surround sound.
+ .SH FILES
+-.sp
+-.ne 2
+-.na
+-\fB\fB/kernel/drv/audiop16x\fR\fR
+-.ad
+-.sp .6
+-.RS 4n
+-32-bit kernel driver module
+-.RE
+-
+-.sp
+ .ne 2
+ .na
+ \fB\fB/kernel/drv/amd64/audiop16x\fR\fR
+@@ -40,20 +27,8 @@ This device is capable of 5.1 surround sound.
+ 64-bit x86 kernel driver module
+ .RE
+ 
+-.sp
+-.ne 2
+-.na
+-\fB\fB/kernel/drv/sparcv9/audiop16x\fR\fR
+-.ad
+-.sp .6
+-.RS 4n
+-64-bit SPARC kernel driver module
+-.RE
+-
+ .SH ATTRIBUTES
+-.sp
+-.LP
+-See \fBattributes\fR(7) for a descriptions of the following attributes:
++See \fBattributes\fR(7) for a description of the following attributes:
+ .sp
+ 
+ .sp
+@@ -63,12 +38,10 @@ c | c
+ l | l .
+ ATTRIBUTE TYPE	ATTRIBUTE VALUE
+ _
+-Architecture	x86, SPARC
++Architecture	x86
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR ioctl (2),
+ .BR audio (4I),
+ .BR mixer (4I),
+diff --git a/usr/src/man/man4d/audiopci.4d b/usr/src/man/man4d/audiopci.4d
+index 6adc8582de..4352a9578e 100644
+--- a/usr/src/man/man4d/audiopci.4d
++++ b/usr/src/man/man4d/audiopci.4d
+@@ -3,41 +3,22 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License"). You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+ .\"  See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE. If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH AUDIOPCI 4D "May 13, 2017"
++.TH AUDIOPCI 4D "June 8, 2023"
+ .SH NAME
+ audiopci \- Ensoniq 1370 driver support
+ .SH DESCRIPTION
+-.LP
+ The \fBaudiopci\fR driver provides support for the Ensoniq 1370 audio
+ controller. Ensoniq 1370 chips are found on add-in PCI cards commonly
+ identified as Audio PCI and SoundBlaster PCI.
+ .SH FILES
+ .ne 2
+ .na
+-\fB\fB/kernel/drv/audiopci\fR\fR
+-.ad
+-.RS 30n
+-32-bit kernel driver module
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+ \fB\fB/kernel/drv/amd64/audiopci\fR\fR
+ .ad
+ .RS 30n
+ 64-bit x86 kernel driver module
+ .RE
+ 
+-.sp
+-.ne 2
+-.na
+-\fB\fB/kernel/drv/sparcv9/audiopci\fR\fR
+-.ad
+-.RS 30n
+-64-bit SPARC kernel driver module
+-.RE
+-
+ .sp
+ .ne 2
+ .na
+@@ -48,7 +29,6 @@ Driver configuration file
+ .RE
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(7) for a description of the following attributes:
+ .sp
+ 
+@@ -63,7 +43,6 @@ Architecture	PCI-based systems
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ .BR ioctl (2),
+ .BR audio (4I),
+ .BR mixer (4I),
+diff --git a/usr/src/man/man4d/audiosolo.4d b/usr/src/man/man4d/audiosolo.4d
+index fb9fd7287b..8e743dcd90 100644
+--- a/usr/src/man/man4d/audiosolo.4d
++++ b/usr/src/man/man4d/audiosolo.4d
+@@ -3,27 +3,14 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License"). You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+ .\" See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE. If applicable, add the following below this CDDL HEADER,
+ .\" with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH AUDIOSOLO 4D "Sep 18, 2009"
++.TH AUDIOSOLO 4D "June 8, 2023"
+ .SH NAME
+ audiosolo \- ESS Solo-1 audio device support
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBaudiosolo\fR driver provides support for the ESS Solo-1 audio device.
+ This device is found on certain motherboards and discrete audio cards. It
+ supports 16-bit 48 kHZ stereo playback and capture.
+ .SH FILES
+-.sp
+-.ne 2
+-.na
+-\fB\fB/kernel/drv/audiosolo\fR\fR
+-.ad
+-.sp .6
+-.RS 4n
+-32-bit kernel driver module
+-.RE
+-
+-.sp
+ .ne 2
+ .na
+ \fB\fB/kernel/drv/amd64/audiosolo\fR\fR
+@@ -34,9 +21,7 @@ supports 16-bit 48 kHZ stereo playback and capture.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+-See \fBattributes\fR(7) for a descriptions of the following attributes:
++See \fBattributes\fR(7) for a description of the following attributes:
+ .sp
+ 
+ .sp
+@@ -50,8 +35,6 @@ Architecture	x86
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR ioctl (2),
+ .BR audio (4I),
+ .BR mixer (4I),
+diff --git a/usr/src/man/man4d/audiots.4d b/usr/src/man/man4d/audiots.4d
+index 87594d6a90..e5dbd93bba 100644
+--- a/usr/src/man/man4d/audiots.4d
++++ b/usr/src/man/man4d/audiots.4d
+@@ -3,12 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License"). You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+ .\"  See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE. If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH AUDIOTS 4D "May 12, 2009"
++.TH AUDIOTS 4D "June 8, 2023"
+ .SH NAME
+ audiots \- Acer Laboratories Inc. M5451 audio processor interface
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBaudiots\fR device uses the ALI M5451 audio processor and an AC-97 Codec
+ to implement the audio device interface.
+ .sp
+@@ -16,10 +14,9 @@ to implement the audio device interface.
+ The \fBaudiots\fR device provides support for the internal speaker, headphone,
+ line out, line in, and microphone.
+ .SH FILES
+-.sp
+ .ne 2
+ .na
+-\fB\fB/kernel/drv/sparcv9/audiots\fR\fR
++\fB\fB/kernel/drv/amd64/audiots\fR\fR
+ .ad
+ .sp .6
+ .RS 4n
+@@ -37,9 +34,7 @@ line out, line in, and microphone.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+-See \fBattributes\fR(7) for a descriptions of the following attributes:
++See \fBattributes\fR(7) for a description of the following attributes:
+ .sp
+ 
+ .sp
+@@ -49,14 +44,12 @@ c | c
+ l | l .
+ ATTRIBUTE TYPE	ATTRIBUTE VALUE
+ _
+-Architecture	SPARC
++Architecture	x86
+ _
+ Stability level	Uncommitted
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR ioctl (2),
+ .BR audio (4I),
+ .BR mixer (4I),
+@@ -65,38 +58,3 @@ Stability level	Uncommitted
+ .sp
+ .LP
+ Acer Laboratories Inc. \fBM5451\fR PCI Audio Processor Technical Specification
+-.SH DIAGNOSTICS
+-.sp
+-.LP
+-In addition to being logged, the following messages can appear on the system
+-console:
+-.sp
+-.ne 2
+-.na
+-\fB\fBplay-interrupts too low\fR\fR
+-.ad
+-.br
+-.na
+-\fB\fBrecord-interrupts too low\fR\fR
+-.ad
+-.RS 30n
+-The interrupt rate in \fBaudiots.conf\fR is set too low. It has been reset to
+-the rate specified in the message. Update \fBaudiots.conf\fR to a higher
+-interrupt rate.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBplay-interrupts too high\fR\fR
+-.ad
+-.br
+-.na
+-\fB\fBrecord-interrupts too high\fR\fR
+-.ad
+-.RS 30n
+-The interrupt rate set in \fBaudiots.conf\fR is set too high. It has been reset
+-to the rate specified in the message. Update \fBaudiots.conf\fR to a lower
+-interrupt rate.
+-.RE
+-
+diff --git a/usr/src/man/man4d/audiovia823x.4d b/usr/src/man/man4d/audiovia823x.4d
+index 26442fe81f..19d8f3ad48 100644
+--- a/usr/src/man/man4d/audiovia823x.4d
++++ b/usr/src/man/man4d/audiovia823x.4d
+@@ -3,27 +3,14 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License"). You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+ .\"  See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE. If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH AUDIOVIA823X 4D "May 12, 2009"
++.TH AUDIOVIA823X 4D "June 8, 2023"
+ .SH NAME
+-audiovia823x \- VIA VT8233, VT8235, and VT8237) support
++audiovia823x \- VIA VT8233, VT8235, and VT8237 support
+ .SH DESCRIPTION
+-.sp
+-.LP
+-The \fBaudiovia823\fR\fIx\fR driver provides support for the VIA VT8233,
++The \fBaudiovia823x\fR driver provides support for the VIA VT8233,
+ VT8235, and VT8237 AC'97 devices found on motherboards with certain VIA chip
+ sets.
+ .SH FILES
+-.sp
+-.ne 2
+-.na
+-\fB\fB/kernel/drv/audiovia823x\fR\fR
+-.ad
+-.sp .6
+-.RS 4n
+-32-bit x86 kernel module
+-.RE
+-
+-.sp
+ .ne 2
+ .na
+ \fB\fB/kernel/drv/amd64/audiovia823x\fR\fR
+@@ -34,8 +21,6 @@ sets.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -52,8 +37,6 @@ Interface Stability	Committed
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR audio (4I),
+ .BR dsp (4I),
+ .BR mixer (4I),
+-- 
+2.43.0
+

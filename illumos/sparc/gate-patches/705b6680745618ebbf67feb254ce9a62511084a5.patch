@@ -1,0 +1,54 @@
+From 705b6680745618ebbf67feb254ce9a62511084a5 Mon Sep 17 00:00:00 2001
+From: Spencer Evans-Cole <spencer.ec09@gmail.com>
+Date: Thu, 2 Sep 2021 19:31:46 -0400
+Subject: [PATCH] 4450 pointless condfree in libfmnotify Reviewed by: Dan
+ McDonald <danmcd@joyent.com> Reviewed by: Toomas Soome <tsoome@me.com>
+ Reviewed by: Robert Mustacchi <rm@fingolfin.org> Approved by: Rich Lowe
+ <richlowe@richlowe.net>
+
+---
+ .../lib/fm/libfmnotify/common/libfmnotify.c   | 25 +++++++------------
+ 1 file changed, 9 insertions(+), 16 deletions(-)
+
+diff --git a/usr/src/lib/fm/libfmnotify/common/libfmnotify.c b/usr/src/lib/fm/libfmnotify/common/libfmnotify.c
+index 661d0595d2..8141ed0866 100644
+--- a/usr/src/lib/fm/libfmnotify/common/libfmnotify.c
++++ b/usr/src/lib/fm/libfmnotify/common/libfmnotify.c
+@@ -594,25 +594,18 @@ nd_get_event_info(nd_hdl_t *nhdl, const char *class, fmev_t ev,
+ 	return (0);
+ }
+ 
+-static void
+-condfree(void *buf)
+-{
+-	if (buf != NULL)
+-		free(buf);
+-}
+-
+ void
+ nd_free_event_info(nd_ev_info_t *ev_info)
+ {
+-	condfree(ev_info->ei_severity);
+-	condfree(ev_info->ei_descr);
+-	condfree(ev_info->ei_diagcode);
+-	condfree(ev_info->ei_url);
+-	condfree(ev_info->ei_uuid);
+-	condfree(ev_info->ei_fmri);
+-	condfree(ev_info->ei_from_state);
+-	condfree(ev_info->ei_to_state);
+-	condfree(ev_info->ei_reason);
++	free(ev_info->ei_severity);
++	free(ev_info->ei_descr);
++	free(ev_info->ei_diagcode);
++	free(ev_info->ei_url);
++	free(ev_info->ei_uuid);
++	free(ev_info->ei_fmri);
++	free(ev_info->ei_from_state);
++	free(ev_info->ei_to_state);
++	free(ev_info->ei_reason);
+ 	fmev_rele(ev_info->ei_ev);
+ 	free(ev_info);
+ }
+-- 
+2.40.1
+

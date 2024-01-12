@@ -1,0 +1,254 @@
+From 439b932b1a6fbc5105bd6987cb696a707183a149 Mon Sep 17 00:00:00 2001
+From: Toomas Soome <tsoome@me.com>
+Date: Mon, 27 Dec 2021 01:04:50 +0200
+Subject: [PATCH] 14344 libnisdb: ISO C++17 does not allow 'register' storage
+ class specifier Reviewed by: Andrew Stormont <andyjstormont@gmail.com>
+ Reviewed by: Peter Tribble <peter.tribble@gmail.com> Approved by: Dan
+ McDonald <danmcd@joyent.com>
+
+---
+ usr/src/lib/libnisdb/db_dictionary.cc   | 24 +++++++++----------
+ usr/src/lib/libnisdb/db_index.cc        |  8 +++----
+ usr/src/lib/libnisdb/db_index_entry_c.c | 32 ++++++++++---------------
+ usr/src/lib/libnisdb/ldap_map.c         |  2 +-
+ 4 files changed, 30 insertions(+), 36 deletions(-)
+
+diff --git a/usr/src/lib/libnisdb/db_dictionary.cc b/usr/src/lib/libnisdb/db_dictionary.cc
+index 74162009af..2eef6d3b6e 100644
+--- a/usr/src/lib/libnisdb/db_dictionary.cc
++++ b/usr/src/lib/libnisdb/db_dictionary.cc
+@@ -322,7 +322,7 @@ static bool_t
+ add_to_bucket(db_table_desc_p bucket, db_table_desc **head, db_table_desc_p td)
+ {
+ 	db_table_desc_p curr;
+-	register char *target_name;
++	char *target_name;
+ 	unsigned long target_hval;
+ 	target_name = td->table_name;
+ 	target_hval = td->hashval;
+@@ -488,7 +488,7 @@ enumerate_dictionary(db_dict_desc *dd, db_status (*func) (db_table_desc*))
+ static db_table_desc *
+ search_dictionary(db_dict_desc *dd, char *target)
+ {
+-	register unsigned long hval;
++	unsigned long hval;
+ 	unsigned long bucket;
+ 
+ 	if (target == NULL || dd == NULL || dd->tables.tables_len == 0)
+@@ -514,9 +514,9 @@ search_dictionary(db_dict_desc *dd, char *target)
+ static db_status
+ remove_from_dictionary(db_dict_desc *dd, char *target, bool_t remove_storage)
+ {
+-	register unsigned long hval;
++	unsigned long hval;
+ 	unsigned long bucket;
+-	register db_table_desc *fst;
++	db_table_desc *fst;
+ 
+ 	if (target == NULL)
+ 		return (DB_NOTUNIQUE);
+@@ -544,7 +544,7 @@ remove_from_dictionary(db_dict_desc *dd, char *target, bool_t remove_storage)
+  *
+  * Inputs: db_dict_desc_p dd	pointer to dictionary to add to.
+  *	   db_table_desc *td	pointer to table entry to be added. The
+- * 				db_table_desc.next field will be altered
++ *				db_table_desc.next field will be altered
+  *				without regard to it's current setting.
+  *				This means that if next points to a list of
+  *				table entries, they may be either linked into
+@@ -553,7 +553,7 @@ remove_from_dictionary(db_dict_desc *dd, char *target, bool_t remove_storage)
+ static db_status
+ add_to_dictionary(db_dict_desc_p dd, db_table_desc *td)
+ {
+-	register unsigned long hval;
++	unsigned long hval;
+ 	char *target;
+ 
+ 	if (dd == NULL)
+@@ -692,7 +692,7 @@ db_dictionary::db_clone_bucket(db_table_desc *bucket, db_table_desc **clone)
+ int
+ db_dictionary::change_table_name(db_table_desc *clone, char *tok, char *repl)
+ {
+-	char 	*newname;
++	char	*newname;
+ 	char	*loc_end, *loc_beg;
+ 
+ 	WRITELOCK(this, DB_LOCK_ERROR, "w db_dictionary::change_table_name");
+@@ -700,7 +700,7 @@ db_dictionary::change_table_name(db_table_desc *clone, char *tok, char *repl)
+ 		/*
+ 		 * Special case for a tok="". This is used for the
+ 		 * nisrestore(1M), when restoring a replica in another
+-		 * domain. This routine is used to change the datafile 
++		 * domain. This routine is used to change the datafile
+ 		 * names in the data.dict (see bugid #4031273). This will not
+ 		 * effect massage_dict(), since it never generates an empty
+ 		 * string for tok.
+@@ -843,7 +843,7 @@ db_dictionary::massage_dict(char *newdictname, char *tok, char *repl)
+ 	int		retval;
+ 	u_int		i, tbl_count;
+ 	db_status	status;
+-	db_table_desc 	*bucket, *np, *clone, *next_np;
++	db_table_desc	*bucket, *np, *clone, *next_np;
+ 	char		tail[NIS_MAXNAMELEN];
+ 	db_dictionary	*tmpptr;
+ 
+@@ -976,7 +976,7 @@ db_dictionary::merge_dict(db_dictionary& tempdict, char *tok, char *repl)
+ 					"wu db_dictionary::merge_dict");
+ 				return (DB_INTERNAL_ERROR);
+ 			}
+-			
++
+ 			dbstat = add_to_dictionary(dictionary, clone);
+ 			if (dbstat == DB_NOTUNIQUE) {
+ 				/* Overide */
+@@ -1294,7 +1294,7 @@ db_dictionary::dump()
+ 	unlink(tmpfilename);  /* get rid of partial dumps */
+ 	pickle_dict_desc f(tmpfilename, PICKLE_WRITE);
+ 
+-	status = f.transfer(&dictionary); 	/* dump table descs */
++	status = f.transfer(&dictionary);	/* dump table descs */
+ 	if (status != 0) {
+ 		WARNING("db_dictionary::dump: could not write out dictionary");
+ 	} else if (rename(tmpfilename, filename) < 0) {
+@@ -2393,7 +2393,7 @@ db_dictionary::rollback(char *table) {
+ 		syslog(LOG_ERR,
+ 	"db_dictionary::rollback: rollback error %d for \"%s\"", ret, table);
+ 	}
+-		
++
+ 	WRITEUNLOCK(this, ret, "wu db_dictionary::rollback");
+ 	return (ret);
+ }
+diff --git a/usr/src/lib/libnisdb/db_index.cc b/usr/src/lib/libnisdb/db_index.cc
+index ccc8da686e..1f2f1e6641 100644
+--- a/usr/src/lib/libnisdb/db_index.cc
++++ b/usr/src/lib/libnisdb/db_index.cc
+@@ -187,7 +187,7 @@ db_index_entry *
+ db_index::lookup(item *index_value, long *how_many_found,
+ 		db_table *table, bool_t checkTTL)
+ {
+-	register unsigned long hval;
++	unsigned long hval;
+ 	unsigned long bucket;
+ 	db_index_entry	*ret;
+ 
+@@ -225,9 +225,9 @@ db_index::lookup(item *index_value, long *how_many_found,
+ db_status
+ db_index::remove(item* index_value, entryp recnum)
+ {
+-	register unsigned long hval;
++	unsigned long hval;
+ 	unsigned long bucket;
+-	register db_index_entry *fst;
++	db_index_entry *fst;
+ 	db_status	ret;
+ 
+ 	if (index_value == NULL)
+@@ -265,7 +265,7 @@ db_index::remove(item* index_value, entryp recnum)
+ db_status
+ db_index::add(item* index_value, entryp recnum)
+ {
+-	register unsigned long hval;
++	unsigned long hval;
+ 
+ 	if (index_value == NULL)
+ 		return (DB_NOTUNIQUE);
+diff --git a/usr/src/lib/libnisdb/db_index_entry_c.c b/usr/src/lib/libnisdb/db_index_entry_c.c
+index f1ea9e6921..c8ffe721bc 100644
+--- a/usr/src/lib/libnisdb/db_index_entry_c.c
++++ b/usr/src/lib/libnisdb/db_index_entry_c.c
+@@ -40,20 +40,18 @@
+ #include "xdr_nullptr.h"
+ 
+ bool_t
+-xdr_db_index_entry(xdrs, objp)
+-	register XDR *xdrs;
+-	db_index_entry *objp;
++xdr_db_index_entry(XDR *xdrs, db_index_entry *objp)
+ {
+ 	bool_t	more_data;
+-	register db_index_entry *ep = objp;
+-	register db_index_entry *loc;
+-	register db_index_entry *freeptr = NULL;
++	db_index_entry *ep = objp;
++	db_index_entry *loc;
++	db_index_entry *freeptr = NULL;
+ 
+ 	for (;;) {
+ 		if (!xdr_u_long(xdrs, &ep->hashval))
+ 			return (FALSE);
+ 		if (!xdr_pointer(xdrs, (char **)&ep->key, sizeof (item),
+-			(xdrproc_t) xdr_item))
++		    (xdrproc_t)xdr_item))
+ 			return (FALSE);
+ 		if (!xdr_entryp(xdrs, &ep->location))
+ 			return (FALSE);
+@@ -93,7 +91,7 @@ xdr_db_index_entry(xdrs, objp)
+ 		case XDR_DECODE:
+ 			if (loc == NULL) {
+ 				ep->next = loc = (db_index_entry *)
+-					mem_alloc(sizeof (db_index_entry));
++				    mem_alloc(sizeof (db_index_entry));
+ 				if (loc == NULL) {
+ 					syslog(LOG_ERR,
+ 				"xdr_db_index_entry: mem_alloc failed");
+@@ -125,13 +123,11 @@ xdr_db_index_entry(xdrs, objp)
+ 
+ 
+ bool_t
+-xdr_db_index_entry_p(xdrs, objp)
+-	register XDR *xdrs;
+-	db_index_entry_p *objp;
++xdr_db_index_entry_p(XDR *xdrs, db_index_entry_p *objp)
+ {
+ 
+ 	if (!xdr_pointer(xdrs, (char **)objp, sizeof (db_index_entry),
+-		(xdrproc_t) xdr_db_index_entry))
++	    (xdrproc_t)xdr_db_index_entry))
+ 		return (FALSE);
+ 	return (TRUE);
+ }
+@@ -139,14 +135,12 @@ xdr_db_index_entry_p(xdrs, objp)
+ 
+ 
+ bool_t
+-xdr_db_free_entry(xdrs, objp)
+-	register XDR *xdrs;
+-	db_free_entry *objp;
++xdr_db_free_entry(XDR *xdrs, db_free_entry *objp)
+ {
+ 	bool_t	more_data;
+-	register db_free_entry *ep = objp;
+-	register db_free_entry *loc;
+-	register db_free_entry *freeptr = NULL;
++	db_free_entry *ep = objp;
++	db_free_entry *loc;
++	db_free_entry *freeptr = NULL;
+ 
+ 	for (;;) {
+ 		if (!xdr_entryp(xdrs, &ep->where))
+@@ -185,7 +179,7 @@ xdr_db_free_entry(xdrs, objp)
+ 		case XDR_DECODE:
+ 			if (loc == NULL) {
+ 				ep->next = loc = (db_free_entry *)
+-					mem_alloc(sizeof (db_free_entry));
++				    mem_alloc(sizeof (db_free_entry));
+ 				if (loc == NULL) {
+ 					syslog(LOG_ERR,
+ 				"db_free_entry: mem_alloc failed");
+diff --git a/usr/src/lib/libnisdb/ldap_map.c b/usr/src/lib/libnisdb/ldap_map.c
+index 524a847757..4d2e5c4a0d 100644
+--- a/usr/src/lib/libnisdb/ldap_map.c
++++ b/usr/src/lib/libnisdb/ldap_map.c
+@@ -1402,7 +1402,7 @@ attrVal(char *msg, char *attrName, char *def, char *attrs) {
+ 	return (val);
+ }
+ 
+-extern bool_t	xdr_nis_object(register XDR *xdrs, nis_object *objp);
++extern bool_t	xdr_nis_object(XDR *xdrs, nis_object *objp);
+ 
+ /*
+  * Copy an XDR:ed version of the NIS+ object 'o' (or the one indicated
+-- 
+2.42.0
+

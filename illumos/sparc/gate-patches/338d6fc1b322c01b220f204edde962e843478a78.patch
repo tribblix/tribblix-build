@@ -1,0 +1,4035 @@
+From 338d6fc1b322c01b220f204edde962e843478a78 Mon Sep 17 00:00:00 2001
+From: Peter Tribble <peter.tribble@gmail.com>
+Date: Fri, 17 Dec 2021 14:49:26 +0000
+Subject: [PATCH] 14258 The manual should follow RFC 2606 Reviewed by:
+ Sebastian Wiedenroth <wiedi@frubar.net> Reviewed by: Richard Lowe
+ <richlowe@richlowe.net> Approved by: Dan McDonald <danmcd@joyent.com>
+
+---
+ usr/src/man/man1/kmfcfg.1                     |  6 +-
+ usr/src/man/man1/ktutil.1                     | 20 +---
+ usr/src/man/man1/ldapmodify.1                 | 23 +----
+ usr/src/man/man1/pktool.1                     | 20 ++--
+ usr/src/man/man1/vacation.1                   | 14 +--
+ usr/src/man/man1m/etrn.1m                     | 35 ++-----
+ usr/src/man/man1m/idmap.1m                    | 44 ++-------
+ usr/src/man/man1m/ipseckey.1m                 | 40 ++------
+ usr/src/man/man1m/kadmin.1m                   | 97 ++++++++-----------
+ usr/src/man/man1m/kclient.1m                  | 47 ++++-----
+ usr/src/man/man1m/kdb5_util.1m                | 13 +--
+ usr/src/man/man1m/ksslcfg.1m                  | 24 +----
+ usr/src/man/man1m/ldapclient.1m               | 45 ++++-----
+ usr/src/man/man1m/lpset.1m                    | 15 +--
+ usr/src/man/man1m/mount_smbfs.1m              | 31 ++----
+ usr/src/man/man1m/pppd.1m                     | 45 ++-------
+ usr/src/man/man1m/share_nfs.1m                |  8 +-
+ usr/src/man/man1m/sharectl.1m                 | 20 ++--
+ usr/src/man/man1m/sharemgr.1m                 | 15 +--
+ .../man/man3commputil/sdp_parse.3commputil    | 20 +---
+ .../man3nsl/rpc_gss_get_principal_name.3nsl   | 10 +-
+ usr/src/man/man3nsl/rpc_gss_seccreate.3nsl    | 20 +---
+ .../man/man3sip/sip_enable_trans_logging.3sip | 28 +++---
+ .../man3sip/sip_get_contact_display_name.3sip | 15 +--
+ .../man/man3sip/sip_get_request_method.3sip   | 17 +---
+ .../man/man3sip/sip_get_request_uri_str.3sip  | 19 +---
+ usr/src/man/man3sip/sip_is_sip_uri.3sip       | 19 +---
+ usr/src/man/man3sip/sip_parse_uri.3sip        | 19 +---
+ usr/src/man/man4/NISLDAPmapping.4             |  4 +-
+ usr/src/man/man4/bootparams.4                 | 17 ++--
+ usr/src/man/man4/ike.config.4                 | 31 +++---
+ usr/src/man/man4/krb5.conf.4                  | 32 +++---
+ usr/src/man/man4/netid.4                      | 12 +--
+ usr/src/man/man4/nfs.4                        |  6 +-
+ usr/src/man/man4/nsmbrc.4                     | 36 +++----
+ usr/src/man/man4/timezone.4                   |  8 +-
+ usr/src/man/man4/warn.conf.4                  | 12 +--
+ usr/src/man/man5/audit_remote.5               | 21 ++--
+ usr/src/man/man5/kerberos.5                   | 17 +---
+ usr/src/man/man5/krb5_auth_rules.5            | 17 +---
+ usr/src/man/man5/pam_krb5_migrate.5           | 20 +---
+ 41 files changed, 290 insertions(+), 672 deletions(-)
+
+diff --git a/usr/src/man/man1/kmfcfg.1 b/usr/src/man/man1/kmfcfg.1
+index 6c6d812976..5ea8e0fc57 100644
+--- a/usr/src/man/man1/kmfcfg.1
++++ b/usr/src/man/man1/kmfcfg.1
+@@ -3,7 +3,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH KMFCFG 1 "June 13, 2021"
++.TH KMFCFG 1 "November 22, 2021"
+ .SH NAME
+ kmfcfg \- Key Management Policy and Plugin Configuration Utility
+ .SH SYNOPSIS
+@@ -155,7 +155,7 @@ Sets the proxy server name and port for dynamically retrieving a CRL file when
+ .sp
+ The port number is optional. If the port number is not specified, the default
+ value is \fB8080\fR. An example \fBcrl-proxy\fR setting might be:
+-\fBcrl-proxy=webcache.sfbay:8080\fR.
++\fBcrl-proxy=webcache.example.org:8080\fR.
+ .RE
+ 
+ .sp
+@@ -273,7 +273,7 @@ not verified. This attribute value is default to \fBfalse\fR.
+ .RS 4n
+ Set the proxy server name and port for OCSP. The port number is optional. If
+ the port number is not specified, the default value is 8080. An example
+-\fBocsp-proxy\fR setting might be: \fBocsp-proxy="webcache.sfbay:8080"\fR
++\fBocsp-proxy\fR setting might be: \fBocsp-proxy="webcache.example.org:8080"\fR
+ .RE
+ 
+ .sp
+diff --git a/usr/src/man/man1/ktutil.1 b/usr/src/man/man1/ktutil.1
+index b1060daf21..4c856da907 100644
+--- a/usr/src/man/man1/ktutil.1
++++ b/usr/src/man/man1/ktutil.1
+@@ -4,18 +4,15 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH KTUTIL 1 "Nov 16, 2006"
++.TH KTUTIL 1 "November 22, 2021"
+ .SH NAME
+ ktutil \- Kerberos keytab maintenance utility
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fB/usr/bin/ktutil\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBktutil\fR command is an interactive command-line interface utility for
+ managing  the keylist in keytab files. You must read in a keytab's keylist
+ before you can manage it. Also, the user running the \fBktutil\fR command must
+@@ -23,7 +20,6 @@ have read/write permissions on the keytab. For example, if a keytab is owned by
+ root, which it typically is, \fBktutil\fR must be run as root to have the
+ appropriate permissions.
+ .SH COMMANDS
+-.sp
+ .ne 2
+ .na
+ \fB\fBclear_list\fR\fR
+@@ -137,11 +133,10 @@ Exits utility.
+ .RE
+ 
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRDeleting a principal from a file
+ .sp
+ .LP
+-The following example deletes the \fBhost/denver@ACME.com\fR principal from the
++The following example deletes the \fBhost/denver@EXAMPLE.com\fR principal from the
+ \fB/etc/krb5/krb5.keytab\fR file. Notice that if you want to delete an entry
+ from an existing keytab, you must first write the keylist to a temporary keytab
+ and then overwrite the existing keytab with the temporary keytab. This is
+@@ -156,13 +151,13 @@ example# \fB/usr/krb5/bin/ktutil\fR
+     ktutil: list
+ slot KVNO Principal
+ ---- ---- ---------------------------------------
+-   1    8 host/vail@ACME.COM
+-   2    5 host/denver@ACME.COM
++   1    8 host/vail@EXAMPLE.COM
++   2    5 host/denver@EXAMPLE.COM
+     ktutil:delent 2
+     ktutil:l
+ slot KVNO Principal
+ ---- ---- --------------------------------------
+-   1    8 host/vail@ACME.COM
++   1    8 host/vail@EXAMPLE.COM
+     ktutil:wkt /tmp/krb5.keytab
+     ktutil:q
+ example# \fBmv /tmp/krb5.keytab /etc/krb5/krb5.keytab\fR
+@@ -171,7 +166,6 @@ example# \fBmv /tmp/krb5.keytab /etc/krb5/krb5.keytab\fR
+ .sp
+ 
+ .SH FILES
+-.sp
+ .ne 2
+ .na
+ \fB\fB/etc/krb5/krb5.keytab\fR\fR
+@@ -181,8 +175,6 @@ keytab file for Kerberos clients
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -200,6 +192,4 @@ Interface Stability	See below.
+ .LP
+ The command arguments are Evolving. The command output is Unstable.
+ .SH SEE ALSO
+-.sp
+-.LP
+ \fBkadmin\fR(1M), \fBk5srvutil\fR(1M), \fBattributes\fR(5), \fBkerberos\fR(5)
+diff --git a/usr/src/man/man1/ldapmodify.1 b/usr/src/man/man1/ldapmodify.1
+index 6110e933fe..9c11d48403 100644
+--- a/usr/src/man/man1/ldapmodify.1
++++ b/usr/src/man/man1/ldapmodify.1
+@@ -4,11 +4,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH LDAPMODIFY 1 "Jan 15, 2004"
++.TH LDAPMODIFY 1 "November 22, 2021"
+ .SH NAME
+ ldapmodify, ldapadd \- ldap entry addition and modification tools
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBldapmodify\fR [\fB-a\fR] [\fB-c\fR] [\fB-r\fR] [\fB-n\fR] [\fB-v\fR] [\fB-F\fR] [\fB-b\fR] [\fB-A\fR] [\fB-q\fR]
+      [\fB-H\fR] [\fB-?\fR] [\fB-E\fR] [\fB-J\fR] [\fB-Z\fR] [\fB-M\fR] [\fB-d\fR \fIdebuglevel\fR]
+@@ -32,8 +31,6 @@ ldapmodify, ldapadd \- ldap entry addition and modification tools
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBldapmodify\fR utility opens a connection to an \fBLDAP\fR server, binds
+ and modifies or adds entries. The entry information is read from standard input
+ or from \fIfile\fR, specified using the \fB-f\fR option. The \fBldapadd\fR
+@@ -45,8 +42,6 @@ automatically.
+ Both \fBldapadd\fR and \fBldapmodify\fR reject duplicate attribute-name/value
+ pairs for the same entry.
+ .SH OPTIONS
+-.sp
+-.LP
+ The following options are supported:
+ .sp
+ .ne 2
+@@ -548,8 +543,6 @@ options needed to identify the certificate and the key database.
+ .RE
+ 
+ .SH EXIT STATUS
+-.sp
+-.LP
+ The following exit values are returned:
+ .sp
+ .ne 2
+@@ -570,8 +563,6 @@ An error occurred. A diagnostic message is written to standard error.
+ .RE
+ 
+ .SH EXAMPLES
+-.sp
+-.LP
+ The format of the content of \fIfile\fR (or standard input if no \fB-f\fR
+ option is specified) is illustrated in the following examples.
+ .LP
+@@ -586,7 +577,7 @@ The file \fB/tmp/entrymods\fR contains the following modification instructions:
+      dn: cn=Modify Me, o=XYZ, c=US
+     changetype: modify
+     replace: mail
+-    mail: modme@atlanta.xyz.com
++    mail: modme@atlanta.example.com
+     -
+     add: title
+     title: System Manager
+@@ -619,7 +610,7 @@ modifies the \fBModify Me\fR entry as follows:
+ .TP
+ 1.
+ The current value of the \fBmail\fR attribute is replaced with the value,
+-\fBmodme@atlanta.xyz.com\fR.
++\fBmodme@atlanta.example.com\fR.
+ .RE
+ .RS +4
+ .TP
+@@ -653,7 +644,7 @@ a new entry:
+     cn: Annie Jones
+     sn: Jones
+     title: Director of Research and Development
+-    mail: ajones@londonrd.xyz.us.com
++    mail: ajones@londonrd.example.com
+     uid: ajones
+ .fi
+ .in -2
+@@ -690,7 +681,7 @@ a new entry: on an IPv6 server.
+     cn: Annie Jones
+     sn: Jones
+     title: Director of Research and Development
+-    mail: ajones@londonrd.xyz.us.com
++    mail: ajones@londonrd.example.com
+     uid: ajones
+ .fi
+ .in -2
+@@ -746,8 +737,6 @@ example% \fBldapmodify -f /tmp/badentry\fR
+ removes Ann Jones' entry.
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(5) for a description of the following attributes:
+ .sp
+ 
+@@ -761,8 +750,6 @@ Stability Level	Evolving
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ \fBldap\fR(1), \fBldapdelete\fR(1), \fBldaplist\fR(1), \fBldapmodrdn\fR(1),
+ \fBldapsearch\fR(1), \fBldapaddent\fR(1M), \fBldap_cachemgr\fR(1M),
+ \fBldap_get_option\fR(3LDAP), \fBldap_set_option\fR(3LDAP), \fBattributes\fR(5)
+diff --git a/usr/src/man/man1/pktool.1 b/usr/src/man/man1/pktool.1
+index 52869c4106..0f6a805cc2 100644
+--- a/usr/src/man/man1/pktool.1
++++ b/usr/src/man/man1/pktool.1
+@@ -3,7 +3,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License"). You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+ .\"  See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE. If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PKTOOL 1 "December 28, 2020"
++.TH PKTOOL 1 "November 22, 2021"
+ .SH NAME
+ pktool \- manage certificates and keys
+ .SH SYNOPSIS
+@@ -70,10 +70,10 @@ An example of using the \fB-i\fR option follows:
+ Country Name (2 letter code) [US]:US
+ State or Province Name (full name) [Some-State]:CA
+ Locality Name (eg, city) []:Menlo Park
+-Organization Name (eg, company):Sun Microsystems Inc.
++Organization Name (eg, company):Example Microsystems Inc.
+ Organizational Unit Name (eg, section):OPG
+ Common Name (eg, YOUR name):John Smith
+- Email Address []: john.smith@sun.com
++ Email Address []: john.smith@example.com
+ .fi
+ .in -2
+ .sp
+@@ -82,8 +82,8 @@ The resulting \fBsubject-DN\fR is:
+ .sp
+ .in +2
+ .nf
+-"C=US, ST=CA, L=Menlo Park, O=Sun Microsystems Inc.,\e
+-   OU=OPG, emailAddress=john.smith@sun.com, \e
++"C=US, ST=CA, L=Menlo Park, O=Example Microsystems Inc.,\e
++   OU=OPG, emailAddress=john.smith@example.com, \e
+    CN=John Smith"
+ .fi
+ .in -2
+@@ -723,12 +723,12 @@ The \fBpktool\fR subcommands support the following options:
+ Subject Alternative Names the certificate. The argument that follows the -A
+ option should be in the form of tag=value. Valid tags are IP, DNS, EMAIL, URI,
+ DN, KRB, UPN, and RID. The SubjectAltName extension is marked as \fBcritical\fR
+-if the altname string is pre-peneded with the
++if the altname string is prepended with the word \fBcritical\fR.
+ .sp
+ Example 1: Add an IP address to the \fIsubjectAltName\fR extension.
+ \fBaltname="IP=1.2.3.4"\fR Example 2: Add an email address to the
+ \fIsubjectAltName\fR extension, and mark it as being critical.
+-\fBaltname="critical:EMAIL=first.last@company.com"\fR
++\fBaltname="critical:EMAIL=first.last@example.com"\fR
+ .RE
+ 
+ .sp
+@@ -1151,7 +1151,7 @@ request. An example \fBsubject=\fR setting might be:
+ .sp
+ .in +2
+ .nf
+-subject=O=Sun Microsystems Inc., \e
++subject=O=Example Microsystems Inc., \e
+ OU=Solaris Security Technologies Group, \e
+ L=Ashburn, ST=VA, C=US, CN=John Smith
+ .fi
+@@ -1250,7 +1250,7 @@ indicated in the command:
+ .in +2
+ .nf
+  $ pktool gencert keystore=nss nickname=WebServerCert \e
+-       subject="O=Sun Microsystems Inc., OU=Solaris Security Technologies Group, \e
++       subject="O=Example Microsystems Inc., OU=Solaris Security Technologies Group, \e
+        L=Ashburn, ST=VA, C=US, CN=John Smith" dir=/etc/certs \e
+        keytype=rsa keylen=2048
+ .fi
+@@ -1267,7 +1267,7 @@ in the command:
+ .sp
+ .in +2
+ .nf
+- $ pktool gencsr keystore=nss subject="O=Sun Microsystems Inc., \e
++ $ pktool gencsr keystore=nss subject="O=Example Microsystems Inc., \e
+        OU=Solaris Security Technologies Group, L=Ashburn, ST=VA, C=US, \e
+        CN=John Smith" keytype=rsa keylen=2048 outcsr=csr.dat
+ .fi
+diff --git a/usr/src/man/man1/vacation.1 b/usr/src/man/man1/vacation.1
+index 82cb694c27..45386d2944 100644
+--- a/usr/src/man/man1/vacation.1
++++ b/usr/src/man/man1/vacation.1
+@@ -4,7 +4,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH VACATION 1 "June 20, 2021"
++.TH VACATION 1 "November 22, 2021"
+ .SH NAME
+ vacation \- reply to mail automatically
+ .SH SYNOPSIS
+@@ -264,12 +264,12 @@ A sample filter file might look like the following:
+ .sp
+ .in +2
+ .nf
+-!host.subdomain.sun.com
+-sun.com
+-!wife@mydomain.com
+-mydomain.com
+-onefriend@hisisp.com
+-anotherfriend@herisp.com
++!host.subdomain.example.com
++example.com
++!wife@example.org
++example.org
++onefriend@example.net
++anotherfriend@example.net
+ .fi
+ .in -2
+ .sp
+diff --git a/usr/src/man/man1m/etrn.1m b/usr/src/man/man1m/etrn.1m
+index ddb147e465..76665411eb 100644
+--- a/usr/src/man/man1m/etrn.1m
++++ b/usr/src/man/man1m/etrn.1m
+@@ -3,18 +3,15 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH ETRN 1M "Aug 10, 2004"
++.TH ETRN 1M "November 22, 2021"
+ .SH NAME
+ etrn \- start mail queue run
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBetrn\fR [\fB-b\fR] [\fB-v\fR] \fIserver-host\fR [\fIclient-hosts\fR]
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ SMTP's \fBETRN\fR command allows an SMTP client and server to interact, giving
+ the server an opportunity to start the processing of its queues for messages to
+ go to a given host. This is meant to be used in start-up conditions, as well as
+@@ -29,8 +26,6 @@ command with that name as the argument. If any \fIclient-hosts\fR are
+ specified, \fBetrn\fR uses each of these as arguments for successive \fBETRN\fR
+ commands.
+ .SH OPTIONS
+-.sp
+-.LP
+ The following options are supported:
+ .sp
+ .ne 2
+@@ -59,8 +54,6 @@ conversations with the remote SMTP server.
+ .RE
+ 
+ .SH ENVIRONMENT VARIABLES
+-.sp
+-.LP
+ No environment variables are used. However, at system start-up,
+ \fBsvc:/network/smtp:sendmail\fR reads \fB/etc/default/sendmail\fR. In this
+ file, if the variable \fBETRN_HOSTS\fR is set, \fBsvc:/network/smtp:sendmail\fR
+@@ -92,7 +85,6 @@ for each \fIclient\fR name. This is comparable to running:
+ .LP
+ on the host \fIserver\fR.
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRUsing \fBetrn\fR
+ .sp
+ .LP
+@@ -101,7 +93,7 @@ Inserting the line:
+ .sp
+ .in +2
+ .nf
+-ETRN_HOSTS="s1.domain.com:clnt.domain.com s2.domain.com:clnt.domain.com"
++ETRN_HOSTS="s1.example.com:clnt.example.com s2.example.com:clnt.example.com"
+ .fi
+ .in -2
+ .sp
+@@ -110,8 +102,8 @@ ETRN_HOSTS="s1.domain.com:clnt.domain.com s2.domain.com:clnt.domain.com"
+ .LP
+ in \fB/etc/default/sendmail\fR results in \fBsvc:/network/smtp:sendmail\fR
+ invoking \fBetrn\fR such that \fBETRN\fR commands are sent to both
+-\fBs1.domain.com\fR and \fBs2.domain.com\fR, with both having
+-\fBclnt.domain.com\fR as the \fBETRN\fR argument.
++\fBs1.example.com\fR and \fBs2.example.com\fR, with both having
++\fBclnt.example.com\fR as the \fBETRN\fR argument.
+ 
+ .sp
+ .LP
+@@ -120,16 +112,16 @@ The line:
+ .sp
+ .in +2
+ .nf
+-ETRN_HOSTS="server.domain.com:client1.domain.com,client2.domain.com"
++ETRN_HOSTS="server.example.com:client1.example.com,client2.example.com"
+ .fi
+ .in -2
+ .sp
+ 
+ .sp
+ .LP
+-results in two \fBETRN\fR commands being sent to \fBserver.domain.com\fR, one
+-with the argument \fBclient1.domain.com\fR, the other with the argument
+-\fBclient2.domain.com\fR.
++results in two \fBETRN\fR commands being sent to \fBserver.example.com\fR, one
++with the argument \fBclient1.example.com\fR, the other with the argument
++\fBclient2.example.com\fR.
+ 
+ .sp
+ .LP
+@@ -138,7 +130,7 @@ The line:
+ .sp
+ .in +2
+ .nf
+-ETRN_HOSTS="server1.domain.com server2.domain.com"
++ETRN_HOSTS="server1.example.com server2.example.com"
+ .fi
+ .in -2
+ .sp
+@@ -146,12 +138,11 @@ ETRN_HOSTS="server1.domain.com server2.domain.com"
+ .sp
+ .LP
+ results in set of a \fBETRN\fR commands being sent to both
+-\fBserver1.domain.com\fR and \fBserver2.domain.com\fR; each set contains one
++\fBserver1.example.com\fR and \fBserver2.example.com\fR; each set contains one
+ \fBETRN\fR command for each host name for which \fBsendmail\fR(1M) accepts
+ email, with that host name as the argument.
+ 
+ .SH FILES
+-.sp
+ .ne 2
+ .na
+ \fB\fB/etc/mail/sendmail.cf\fR\fR
+@@ -170,8 +161,6 @@ Variables used by \fBsvc:/network/smtp:sendmail\fR
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -186,13 +175,9 @@ Interface Stability	Stable
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ \fBsendmail\fR(1M), \fBattributes\fR(5)
+ .sp
+ .LP
+ RFC 1985
+ .SH NOTES
+-.sp
+-.LP
+ Not all SMTP servers support \fBETRN\fR.
+diff --git a/usr/src/man/man1m/idmap.1m b/usr/src/man/man1m/idmap.1m
+index 7854c02708..585760e0fd 100644
+--- a/usr/src/man/man1m/idmap.1m
++++ b/usr/src/man/man1m/idmap.1m
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License"). You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+ .\"  See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE. If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH IDMAP 1M "Aug 3, 2009"
++.TH IDMAP 1M "November 22, 2021"
+ .SH NAME
+ idmap \- configure and manage the Native Identity Mapping service
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBidmap\fR
+ .fi
+@@ -85,8 +84,6 @@ idmap \- configure and manage the Native Identity Mapping service
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBidmap\fR utility is used to configure and manage the Native Identity
+ Mapping service.
+ .sp
+@@ -125,8 +122,6 @@ If the \fBidmap\fR utility is invoked without a subcommand or option, it reads
+ the subcommands from standard input. When standard input is a TTY, the
+ \fBidmap\fR command prints the usage message and exits.
+ .SS "Mapping Mechanisms"
+-.sp
+-.LP
+ The \fBidmapd\fR(1M) daemon maps Windows user and group SIDs to UNIX UIDs and
+ GIDs as follows:
+ .RS +4
+@@ -160,8 +155,6 @@ Windows groups and Solaris users and between Solaris groups and Windows users.
+ They are needed when Windows uses a group identity as a file owner or vice
+ versa.
+ .SS "Name-based Mappings"
+-.sp
+-.LP
+ Name-based mappings establish name equivalence between Windows users and groups
+ and their counterparts in the UNIX name service. These mappings persist across
+ reboots. For example, the following command maps Windows users to UNIX users
+@@ -169,7 +162,7 @@ with the same name:
+ .sp
+ .in +2
+ .nf
+-# \fBidmap add "winuser:*@mywindomain.com" "unixuser:*"\fR
++# \fBidmap add "winuser:*@example.com" "unixuser:*"\fR
+ .fi
+ .in -2
+ .sp
+@@ -250,8 +243,6 @@ add     winname:fred@example.com       unixuser:fredf
+ .sp
+ 
+ .SS "Ephemeral Mappings"
+-.sp
+-.LP
+ The \fBidmapd\fR daemon attempts to preserve ephemeral ID mappings across
+ daemon restarts. However, when IDs cannot be preserved, the daemon maps each
+ previously mapped SID to a new ephemeral UID or GID value. The daemon will
+@@ -264,8 +255,6 @@ The dynamic ID mappings are not retained across reboots. So, any SIDs that are
+ dynamically mapped to UNIX UIDs or GIDs are most likely mapped to different IDs
+ after rebooting the system.
+ .SS "Local SID Mappings"
+-.sp
+-.LP
+ If no name-based mapping is found, a non-ephemeral UID or GID is mapped to an
+ algorithmically generated local SID. The mapping is generated as follows:
+ .sp
+@@ -282,8 +271,6 @@ local SID for GID = \fI<machine SID>\fR - \fI<2^31 + GID>\fR
+ \fI<machine SID>\fR is a unique SID generated by the \fBidmap\fR service for
+ the host on which it runs.
+ .SS "Rule Lookup Order"
+-.sp
+-.LP
+ When mapping a Windows name to a UNIX name, lookup for name-based mapping rules
+ is performed in the following order:
+ .RS +4
+@@ -366,8 +353,6 @@ is performed in the following order:
+ \fB*\fR to \fIwindows-name\fR\fB@\fR\fIdomain\fR
+ .RE
+ .SS "Service Properties"
+-.sp
+-.LP
+ The service properties determine the behavior of the \fBidmapd\fR(1M) daemon.
+ These properties are stored in the SMF repository (see \fBsmf\fR(5)) under
+ property group \fBconfig\fR. They can be accessed and modified using
+@@ -432,8 +417,6 @@ Changes to service properties do not affect a running \fBidmap\fR service. The
+ service must be refreshed (with \fBsvcadm\fR(1M)) for the changes to take
+ effect.
+ .SH OPERANDS
+-.sp
+-.LP
+ The \fBidmap\fR command uses the following operands:
+ .sp
+ .ne 2
+@@ -697,12 +680,9 @@ attribute within the object specified by the \fIname\fR operand.
+ .RE
+ 
+ .SH OPTIONS
+-.sp
+-.LP
+ The \fBidmap\fR command supports one option and a set of subcommands. The
+ subcommands also have options.
+ .SS "Command-Line Option"
+-.sp
+ .ne 2
+ .na
+ \fB\fB-f\fR \fIcommand-file\fR\fR
+@@ -715,8 +695,6 @@ not used by any subcommands.
+ .RE
+ 
+ .SS "Subcommands"
+-.sp
+-.LP
+ The following subcommands are supported:
+ .sp
+ .ne 2
+@@ -947,11 +925,10 @@ See the \fBset-namemap\fR subcommand for options.
+ .RE
+ 
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRUsing a Wildcard on Both Sides of a Name-Based Mapping Rule
+ .sp
+ .LP
+-The following command maps all Windows user names in the \fBxyz.com\fR domain
++The following command maps all Windows user names in the \fBexample.com\fR domain
+ to the UNIX users with the same names provided that one exists and is not
+ otherwise mapped. If such a rule is matched but the UNIX user name does not
+ exist, an ephemeral ID mapping is used.
+@@ -959,7 +936,7 @@ exist, an ephemeral ID mapping is used.
+ .sp
+ .in +2
+ .nf
+-# \fBidmap add "winuser:*@xyz.com" "unixuser:*"\fR
++# \fBidmap add "winuser:*@example.com" "unixuser:*"\fR
+ .fi
+ .in -2
+ .sp
+@@ -968,14 +945,14 @@ exist, an ephemeral ID mapping is used.
+ \fBExample 2 \fRUsing a Wildcard on One Side of a Name-Based Mapping Rule
+ .sp
+ .LP
+-The following command maps all unmapped Windows users in the \fBxyz.com\fR
++The following command maps all unmapped Windows users in the \fBexample.com\fR
+ domain to the \fBguest\fR UNIX user. The \fB-d\fR option specifies a
+-unidirectional mapping from \fB*@xyz.com\fR users to the \fBguest\fR user.
++unidirectional mapping from \fB*@example.com\fR users to the \fBguest\fR user.
+ 
+ .sp
+ .in +2
+ .nf
+-# \fBidmap add -d "winuser:*@xyz.com" unixuser:guest\fR
++# \fBidmap add -d "winuser:*@example.com" unixuser:guest\fR
+ .fi
+ .in -2
+ .sp
+@@ -1249,7 +1226,6 @@ object representing \fBjoe@example.com\fR.
+ .sp
+ 
+ .SH EXIT STATUS
+-.sp
+ .ne 2
+ .na
+ \fB\fB0\fR\fR
+@@ -1268,8 +1244,6 @@ An error occurred. A diagnostic message is written to standard error.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -1284,13 +1258,9 @@ Interface Stability	Uncommitted
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ \fBsvcs\fR(1), \fBidmapd\fR(1M), \fBldapaddent\fR(1M), \fBsvcadm\fR(1M),
+ \fBsvccfg\fR(1M), \fBattributes\fR(5), \fBsmf\fR(5)
+ .SH NOTES
+-.sp
+-.LP
+ The \fBidmapd\fR service is managed by the service management facility,
+ \fBsmf\fR(5). The service identifier for the \fBidmapd\fR service is
+ \fBsvc:/system/idmap\fR.
+diff --git a/usr/src/man/man1m/ipseckey.1m b/usr/src/man/man1m/ipseckey.1m
+index a76e99d9ab..180635151b 100644
+--- a/usr/src/man/man1m/ipseckey.1m
++++ b/usr/src/man/man1m/ipseckey.1m
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH IPSECKEY 1M "Sep 25, 2008"
++.TH IPSECKEY 1M "November 22, 2021"
+ .SH NAME
+ ipseckey \- manually manipulate an IPsec Security Association Database (SADB)
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBipseckey\fR  [\fB-nvp\fR]
+ .fi
+@@ -53,8 +52,6 @@ ipseckey \- manually manipulate an IPsec Security Association Database (SADB)
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBipseckey\fR command is used to manually manipulate the security
+ association databases of the network security services, \fBipsecah\fR(7P) and
+ \fBipsecesp\fR(7P). You can use the \fBipseckey\fR command to set up security
+@@ -81,7 +78,6 @@ types.
+ \fBipseckey\fR handles sensitive cryptographic keying information. Please read
+ the \fBSecurity\fR section for details on how to use this command securely.
+ .SH OPTIONS
+-.sp
+ .ne 2
+ .na
+ \fB\fB-c\fR [\fIfilename\fR]\fR
+@@ -158,7 +154,6 @@ raw seconds values for lifetimes.
+ .RE
+ 
+ .SH COMMANDS
+-.sp
+ .ne 2
+ .na
+ \fB\fBadd\fR\fR
+@@ -313,7 +308,6 @@ Prints a brief summary of commands.
+ .RE
+ 
+ .SS "\fBSA_TYPE\fR"
+-.sp
+ .ne 2
+ .na
+ \fB\fBall\fR\fR
+@@ -346,8 +340,6 @@ Specifies the IPsec Encapsulating Security Payload ("\fBESP\fR") \fBSA\fR.
+ .RE
+ 
+ .SH EXTENSION VALUE TYPES
+-.sp
+-.LP
+ Commands like \fBadd\fR, \fBdelete\fR, \fBget\fR, and \fBupdate\fR require that
+ certain extensions and associated values be specified. The extensions will be
+ listed here, followed by the commands that use them, and the commands that
+@@ -1015,14 +1007,10 @@ is used by the \fBadd\fR and \fBupdate\fR commands
+ .RE
+ 
+ .SS "Tunnel Mode versus Transport Mode SAs"
+-.sp
+-.LP
+ An IPsec SA is a Tunnel Mode SA if the "proto" value is either 4 (\fBipip\fR)
+ or 41 (\fBipv6\fR) \fBand\fR there is an inner-address or inner-port value
+ specified. Otherwise, the SA is a Transport Mode SA.
+ .SH SECURITY
+-.sp
+-.LP
+ Keying material is very sensitive and should be generated as randomly as
+ possible. Some algorithms have known weak keys. IPsec algorithms have built-in
+ weak key checks, so that if a weak key is in a newly added \fBSA\fR, the
+@@ -1103,8 +1091,6 @@ For further thoughts on this subject, see the afterward by Matt Blaze in Bruce
+ Schneier's \fIApplied Cryptography: Protocols, Algorithms, and Source Code in
+ C\fR.
+ .SS "Service Management Facility"
+-.sp
+-.LP
+ IPsec manual keys are managed by the service management facility, \fBsmf\fR(5).
+ The services listed below manage the components of IPsec. These services are
+ delivered as follows:
+@@ -1244,7 +1230,6 @@ discouraged. If the \fBipseckey\fR command is to be run from the command line,
+ the \fBmanual-key\fR \fBsmf\fR(5) service should be disabled first. See
+ \fBsvcadm\fR(1M).
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fREmptying Out All \fBSA\fRs
+ .sp
+ .LP
+@@ -1352,9 +1337,9 @@ Adding or updating \fBSA\fRs requires entering interactive mode:
+ .in +2
+ .nf
+ example# \fBipseckey\fR
+-ipseckey> \fBadd ah spi 0x90125 src me.domain.com dst you.domain.com \e
++ipseckey> \fBadd ah spi 0x90125 src me.example.com dst you.example.com \e
+           authalg md5 authkey 1234567890abcdef1234567890abcdef\fR
+-ipseckey> \fBupdate ah spi 0x90125 dst you.domain.com hard_bytes \e
++ipseckey> \fBupdate ah spi 0x90125 dst you.example.com hard_bytes \e
+           16000000\fR
+ ipseckey> \fBexit\fR
+ .fi
+@@ -1369,10 +1354,10 @@ Adding two SAs that are linked together as a pair:
+ .in +2
+ .nf
+ example# \fBipseckey\fR
+-ipseckey> \fBadd esp spi 0x2345 src me.domain.com dst you.domain.com \e
++ipseckey> \fBadd esp spi 0x2345 src me.example.com dst you.example.com \e
+    authalg md5 authkey bde359723576fdea08e56cbe876e24ad \e
+    encralg des encrkey be02938e7def2839\fR
+-ipseckey> \fBadd esp spi 0x5432 src me.domain.com dst you.domain.com \e
++ipseckey> \fBadd esp spi 0x5432 src me.example.com dst you.example.com \e
+    authalg md5 authkey bde359723576fdea08e56cbe876e24ad \e
+    encralg des encrkey be02938e7def2839 pair-spi 0x2345\fR
+ ipseckey> \fBexit\fR
+@@ -1392,7 +1377,7 @@ also needs to add both \fBSA\fRs.
+ .in +2
+ .nf
+ example# \fBipseckey\fR
+-ipseckey> \fBadd ah spi 0x2112 src you.domain.com dst me.domain.com \e
++ipseckey> \fBadd ah spi 0x2112 src you.example.com dst me.example.com \e
+           authalg md5 authkey bde359723576fdea08e56cbe876e24ad \e
+           hard_bytes 16000000\fR
+ ipseckey> \fBexit\fR
+@@ -1434,10 +1419,10 @@ flush esp
+ ### SECURITY section in this manual page for why this can be
+ ### dangerous .
+ 
+-add esp spi 0x2112 src me.domain.com dst you.domain.com \e
++add esp spi 0x2112 src me.example.com dst you.example.com \e
+     authalg md5 authkey bde359723576fdea08e56cbe876e24ad \e
+     encralg des encrkey be02938e7def2839 hard_usetime 28800
+-add esp spi 0x5150 src you.domain.com dst me.domain.com \e
++add esp spi 0x5150 src you.example.com dst me.example.com \e
+     authalg md5 authkey 930987dbe09743ade09d92b4097d9e93 \e
+     encralg des encrkey 8bd4a52e10127deb hard_usetime 28800
+ 
+@@ -1480,7 +1465,6 @@ pair-spi 0x654321\fR
+ .sp
+ 
+ .SH FILES
+-.sp
+ .ne 2
+ .na
+ \fB\fB/etc/inet/secret/ipseckeys\fR\fR
+@@ -1492,8 +1476,6 @@ and \fBSECURITY\fR for more information.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -1507,8 +1489,6 @@ Interface Stability	Committed
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ \fBps\fR(1), \fBsvcprop\fR(1), \fBsvcs\fR(1), \fBipsecconf\fR(1M),
+ \fBipsecalgs\fR(1M), \fBroute\fR(1M), \fBsvcadm\fR(1M), \fBsvccfg\fR(1M),
+ \fBike.config\fR(4), \fBattributes\fR(5), \fBsmf\fR(5), \fBipsec\fR(7P),
+@@ -1518,8 +1498,6 @@ Interface Stability	Committed
+ Schneier, B., \fIApplied Cryptography: Protocols, Algorithms, and Source Code
+ in C\fR. Second ed. New York, New York: John Wiley & Sons, 1996.
+ .SH DIAGNOSTICS
+-.sp
+-.LP
+ The \fBipseckey\fR command parses the configuration file and reports any
+ errors. In the case of multiple errors, \fBipseckey\fR reports as many of these
+ as possible.
+@@ -1629,8 +1607,6 @@ provides more detail about what precise value was incorrect and why.
+ .RE
+ 
+ .SH NOTES
+-.sp
+-.LP
+ In spite of its IPsec-specific name, \fBipseckey\fR is analogous to
+ \fBroute\fR(1M), in that it is a command-line interface to a socket-based
+ administration engine, in this case, \fBPF_KEY\fR. \fBPF_KEY\fR was originally
+diff --git a/usr/src/man/man1m/kadmin.1m b/usr/src/man/man1m/kadmin.1m
+index d906fc4f0a..0a9106ee2d 100644
+--- a/usr/src/man/man1m/kadmin.1m
++++ b/usr/src/man/man1m/kadmin.1m
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH KADMIN 1M "Oct 29, 2015"
++.TH KADMIN 1M "November 22, 2021"
+ .SH NAME
+ kadmin, kadmin.local \- Kerberos database administration program
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fB/usr/sbin/kadmin\fR [\fB-r\fR \fIrealm\fR] [\fB-p\fR \fIprincipal\fR] [\fB-q\fR \fIquery\fR]
+  [\fB-s\fR \fIadmin_server\fR [\fI:port\fR]] [ [\fB-c\fR \fIcredential_cache\fR]
+@@ -21,8 +20,6 @@ kadmin, kadmin.local \- Kerberos database administration program
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ \fBkadmin\fR and \fBkadmin.local\fR are interactive command-line interfaces to
+ the Kerberos V5 administration system. They provide for the maintenance of
+ Kerberos principals, policies, and service key tables (keytabs). \fBkadmin\fR
+@@ -62,8 +59,6 @@ file (see \fBkdb5_util\fR(1M)) to decrypt information from the database rather
+ than prompting for a password. The \fB-m\fR option will bypass the
+ \fB\&.k5.\fR\fIrealm\fR stash file and prompt for the master password.
+ .SH OPTIONS
+-.sp
+-.LP
+ The following options are supported:
+ .sp
+ .ne 2
+@@ -254,7 +249,6 @@ Directory server connection port.
+ .RE
+ 
+ .SH COMMANDS
+-.sp
+ .ne 2
+ .na
+ \fB\fBlist_requests\fR\fR
+@@ -573,11 +567,11 @@ des-cbc-crc:normal.
+ .in +2
+ .nf
+ kadmin: \fBaddprinc tlyu/admin\fR
+-WARNING: no policy specified for "tlyu/admin@ACME.COM";
++WARNING: no policy specified for "tlyu/admin@EXAMPLE.COM";
+ defaulting to no policy.
+-Enter password for principal tlyu/admin@ACME.COM:
+-Re-enter password for principal tlyu/admin@ACME.COM:
+-Principal "tlyu/admin@ACME.COM" created.
++Enter password for principal tlyu/admin@EXAMPLE.COM:
++Re-enter password for principal tlyu/admin@EXAMPLE.COM:
++Principal "tlyu/admin@EXAMPLE.COM" created.
+ kadmin:
+ .fi
+ .in -2
+@@ -627,8 +621,8 @@ deletion, unless the \fB-force\fR option is given. This command requires the
+ .nf
+ kadmin: \fBdelprinc mwm_user\fR
+ Are you sure you want to delete the principal
+-"mwm_user@ACME.COM"? (yes/no): \fByes\fR
+-Principal "mwm_user@ACME.COM" deleted.
++"mwm_user@EXAMPLE.COM"? (yes/no): \fByes\fR
++Principal "mwm_user@EXAMPLE.COM" deleted.
+ Make sure that you have removed this principal from
+ all kadmind ACLs before reusing.
+ kadmin:
+@@ -749,9 +743,9 @@ will allow existing valid TGTs to continue to work.
+ .in +2
+ .nf
+ kadmin: \fBcpw systest\fR
+-Enter password for principal systest@ACME.COM:
+-Re-enter password for principal systest@ACME.COM:
+-Password for systest@ACME.COM changed.
++Enter password for principal systest@EXAMPLE.COM:
++Re-enter password for principal systest@EXAMPLE.COM:
++Password for systest@EXAMPLE.COM changed.
+ kadmin:
+ .fi
+ .in -2
+@@ -801,13 +795,13 @@ tab-separated strings. Aliased by \fBgetprinc\fR.
+ .in +2
+ .nf
+ kadmin: \fBgetprinc tlyu/admin\fR
+-Principal: tlyu/admin@ACME.COM
++Principal: tlyu/admin@EXAMPLE.COM
+ Expiration date: [never]
+ Last password change: Thu Jan 03 12:17:46 CET 2008
+ Password expiration date: [none]
+ Maximum ticket life: 24855 days 03:14:07
+ Maximum renewable life: 24855 days 03:14:07
+-Last modified: Thu Jan 03 12:17:46 CET 2008 (root/admin@ACME.COM)
++Last modified: Thu Jan 03 12:17:46 CET 2008 (root/admin@EXAMPLE.COM)
+ Last successful authentication: [never]
+ Last failed authentication: [never]
+ Failed password attempts: 0
+@@ -820,8 +814,8 @@ Key: vno 2, DES cbc mode with RSA-MD5, no salt
+ Attributes: REQUIRES_PRE_AUTH
+ Policy: [none]
+ kadmin: \fBgetprinc -terse tlyu/admin\fR
+-"tlyu/admin@ACME.COM"   0       1199359066      0       2147483647
+-"root/admin@ACME.COM"   1199359066      128     2       0       "[none]"       21474836
++"tlyu/admin@EXAMPLE.COM"   0       1199359066      0       2147483647
++"root/admin@EXAMPLE.COM"   1199359066      128     2       0       "[none]"       21474836
+ 47      0       0       0       5       1       2       18      0       1      2
+ 17      0       1       2       16      0       1       2       23      0      12
+        3       0
+@@ -871,10 +865,10 @@ the expression. Requires the \fBlist\fR privilege. Aliased by \fBlistprincs\fR,
+ .in +2
+ .nf
+ kadmin: \fBlistprincs test*\fR
+-test3@ACME.COM
+-test2@ACME.COM
+-test1@ACME.COM
+-testuser@ACME.COM
++test3@EXAMPLE.COM
++test2@EXAMPLE.COM
++test1@EXAMPLE.COM
++testuser@EXAMPLE.COM
+ kadmin:
+ .fi
+ .in -2
+@@ -1266,8 +1260,6 @@ Quits \fBkadmin\fR. Aliased by \fBexit\fR and \fBq\fR.
+ .RE
+ 
+ .SS "Time Formats"
+-.sp
+-.LP
+ Various commands in \fBkadmin\fR can take a variety of time formats, specifying
+ time durations or absolute times. The \fBkadmin\fR option variables
+ \fImaxrenewlife\fR, \fImaxlife\fR, and \fIminlife\fR are time durations,
+@@ -1350,7 +1342,7 @@ l l .
+ .TS
+ l l
+ l l .
+-\fBVariable Description\fR	
++\fBVariable\fR	\fBDescription\fR
+ \fBdd\fR	day
+ \fImm\fR	month
+ \fIyy\fR	T{
+@@ -1370,29 +1362,29 @@ l l .
+ \fBTime Units\fR	\fBExamples\fR
+ [+|- \fI#\fR] year	"-2 year"
+ [+|- \fI#\fR] month	"2 months"
+-[+|- \fI#\fR] fortnight	
+-[+|- \fI#\fR] week	
+-[+|- \fI#\fR] day	
+-[+|- \fI#\fR] hour	
+-[+|- \fI#\fR] minute	
+-[+|- \fI#\fR] min	
+-[+|- \fI#\fR] second	
+-[+|- \fI#\fR] sec	
+-tomorrow	
+-yesterday	
+-today 	
+-now 	
++[+|- \fI#\fR] fortnight
++[+|- \fI#\fR] week
++[+|- \fI#\fR] day
++[+|- \fI#\fR] hour
++[+|- \fI#\fR] minute
++[+|- \fI#\fR] min
++[+|- \fI#\fR] second
++[+|- \fI#\fR] sec
++tomorrow
++yesterday
++today
++now
+ this	"this year"
+ last	"last saturday"
+ next	"next month"
+-sunday	
+-monday	
+-tuesday	
+-wednesday	
+-thursday	
+-friday	
+-saturday	
+-never	
++sunday
++monday
++tuesday
++wednesday
++thursday
++friday
++saturday
++never
+ .TE
+ 
+ .sp
+@@ -1402,8 +1394,6 @@ You can also use the following time modifiers: \fBfirst\fR, \fBsecond\fR,
+ \fBeighth\fR, \fBninth\fR, \fBtenth\fR, \fBeleventh\fR, \fBtwelfth\fR, and
+ \fBago\fR.
+ .SH ENVIRONMENT VARIABLES
+-.sp
+-.LP
+ See \fBenviron\fR(5) for descriptions of the following environment variables
+ that affect the execution of \fBkadmin\fR:
+ .sp
+@@ -1418,7 +1408,6 @@ specify options. The default is \fBmore\fR(1).
+ .RE
+ 
+ .SH FILES
+-.sp
+ .ne 2
+ .na
+ \fB\fB/var/krb5/principal\fR\fR
+@@ -1492,8 +1481,6 @@ Keytab for \fBkadmind\fR principals: \fBkadmin\fR/\fIfqdn\fR,
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -1508,20 +1495,14 @@ Interface Stability	Committed
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ \fBkpasswd\fR(1), \fBmore\fR(1), \fBkadmind\fR(1M),
+ \fBkdb5_util\fR(1M), \fBkdb5_ldap_util\fR(1M), \fBkproplog\fR(1M),
+ \fBkadm5.acl\fR(4), \fBkdc.conf\fR(4), \fBkrb5.conf\fR(4), \fBattributes\fR(5),
+ \fBenviron\fR(5), \fBkerberos\fR(5), \fBkrb5envvar\fR(5)
+ .SH HISTORY
+-.sp
+-.LP
+ The \fBkadmin\fR program was originally written by Tom Yu at MIT, as an
+ interface to the OpenVision Kerberos administration program.
+ .SH DIAGNOSTICS
+-.sp
+-.LP
+ The \fBkadmin\fR command is currently incompatible with the MIT \fBkadmind\fR
+ daemon interface, so you cannot use this command to administer an MIT-based
+ Kerberos database. However, clients running the Solaris implementation of
+diff --git a/usr/src/man/man1m/kclient.1m b/usr/src/man/man1m/kclient.1m
+index 276c0055cf..caca84423a 100644
+--- a/usr/src/man/man1m/kclient.1m
++++ b/usr/src/man/man1m/kclient.1m
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License"). You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing. See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE. If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH KCLIENT 1M "May 27, 2009"
++.TH KCLIENT 1M "November 22, 2021"
+ .SH NAME
+ kclient \- set up a machine as a Kerberos client
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fB/usr/sbin/kclient\fR [\fB-n\fR] [\fB-R\fR \fIrealm\fR] [\fB-k\fR \fIkdc\fR] [\fB-a\fR \fIadminuser\fR]
+      [\fB-c\fR \fIfilepath\fR] [\fB-d\fR \fIdnsarg\fR] [\fB-f\fR \fIfqdn_list\fR] [\fB-h\fR \fIlogical_host_name\fR]
+@@ -16,8 +15,6 @@ kclient \- set up a machine as a Kerberos client
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ By specifying the various command options, you can use the \fBkclient\fR
+ utility to:
+ .RS +4
+@@ -137,8 +134,6 @@ the KDC. It is advised that both systems run some form of time synchronization
+ protocol, such as the Network Time Protocol (NTP). See the \fBntpd\fR man page,
+ delivered  in  the  \fBSUNWntpu\fR package (not a SunOS man page).
+ .SH OPTIONS
+-.sp
+-.LP
+ The non-interactive mode supports the following options:
+ .sp
+ .ne 2
+@@ -417,18 +412,17 @@ example of a possible \fIpam_service\fR value is: \fBdtlogin,sshd-kbdint\fR.
+ .RE
+ 
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRSetting Up a Kerberos Client Using Command-Line Options
+ .sp
+ .LP
+ To setup a Kerberos client using the \fBclntconfig/admin\fR administrative
+-principal for realm \fB\&'ABC.COM', kdc `example1.com'\fR and that also does
+-kerberized NFS, enter:
++principal for realm \fB\&'EXAMPLE.COM', kdc `example1.example.com'\fR and
++that also does kerberized NFS, enter:
+ 
+ .sp
+ .in +2
+ .nf
+-# /usr/sbin/kclient -n -R ABC.COM -k example1.com -a clntconfig
++# /usr/sbin/kclient -n -R EXAMPLE.COM -k example1.example.com -a clntconfig
+ .fi
+ .in -2
+ .sp
+@@ -436,15 +430,15 @@ kerberized NFS, enter:
+ .sp
+ .LP
+ Alternatively, to set up a Kerberos client using the \fBclntconfig/admin\fR
+-administrative principal for the realm \fB`EAST.ABC.COM', kdc
+-`example2.east.abc.com'\fR and that also needs service principal(s) created
++administrative principal for the realm \fB`EAST.EXAMPLE.COM', kdc
++`example2.east.example.com'\fR and that also needs service principal(s) created
+ and/or added to the local \fBkeytab\fR for multiple DNS domains, enter:
+ 
+ .sp
+ .in +2
+ .nf
+-# /usr/sbin/kclient -n -R EAST.ABC.COM -k example2.east.abc.com \e
+--f west.abc.com,central.abc.com -a clntconfig
++# /usr/sbin/kclient -n -R EAST.EXAMPLE.COM -k example2.east.example.com \e
++-f west.example.com,central.example.com -a clntconfig
+ .fi
+ .in -2
+ 
+@@ -458,7 +452,7 @@ privileges (for the principals in the KDC database) in order for the
+ .sp
+ .in +2
+ .nf
+-clntconfig/admin@ABC.COM acmi
++clntconfig/admin@EXAMPLE.COM acmi
+ .fi
+ .in -2
+ .sp
+@@ -468,13 +462,13 @@ clntconfig/admin@ABC.COM acmi
+ .sp
+ .LP
+ To setup a Kerberos client using the \fBclntconfig/admin\fR administrative
+-principal for realm \fB`ABC.COM', kdc `example1.com'\fR and that also copies
+-over the master \fBkrb5.conf\fR from a specified location, enter:
++principal for realm \fB`EXAMPLE.COM', kdc `example1.example.com'\fR and that
++also copies over the master \fBkrb5.conf\fR from a specified location, enter:
+ 
+ .sp
+ .in +2
+ .nf
+-# /usr/sbin/kclient -p /net/example1.com/export/profile.krb5
++# /usr/sbin/kclient -p /net/example1.example.com/export/profile.krb5
+ .fi
+ .in -2
+ .sp
+@@ -486,10 +480,10 @@ The contents of \fBprofile.krb5\fR:
+ .sp
+ .in +2
+ .nf
+-REALM ABC.COM
+-KDC example1
++REALM EXAMPLE.COM
++KDC example1.example.com
+ ADMIN clntconfig
+-FILEPATH /net/example1.com/export/krb5.conf
++FILEPATH /net/example1.example.com/export/krb5.conf
+ NFS 0
+ DNSLOOKUP none
+ .fi
+@@ -507,8 +501,8 @@ therefore does not require a \fBkeytab\fR (\fB/etc/krb5/krb5.keytab\fR) file.
+ .sp
+ .LP
+ For this type of client the administrator would issue the following command to
+-configure this machine to be a Kerberos client of the \fBABC.COM\fR realm with
+-the KDC server \fBkdc1.example.com\fR:
++configure this machine to be a Kerberos client of the \fBEXAMPLE.COM\fR realm
++with the KDC server \fBkdc1.example.com\fR:
+ 
+ .sp
+ .in +2
+@@ -519,7 +513,6 @@ the KDC server \fBkdc1.example.com\fR:
+ .sp
+ 
+ .SH FILES
+-.sp
+ .ne 2
+ .na
+ \fB\fB/etc/krb5/kadm5.acl\fR\fR
+@@ -570,8 +563,6 @@ DNS resolver configuration file.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -586,15 +577,11 @@ Interface Stability	Committed
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ \fBencrypt\fR(1), \fBksh93\fR(1), \fBldapdelete\fR(1), \fBldapmodify\fR(1),
+ \fBldapsearch\fR(1), \fBdd\fR(1M), \fBsmbadm\fR(1M), \fBkadm5.acl\fR(4),
+ \fBkrb5.conf\fR(4), \fBnfssec.conf\fR(4), \fBpam.conf\fR(4),
+ \fBresolv.conf\fR(4), \fBattributes\fR(5), \fBpam_krb5\fR(5)
+ .SH NOTES
+-.sp
+-.LP
+ \fBfqdn\fR stands for the Fully Qualified Domain Name of the local host. The
+ \fBkclient\fR utility saves copies of both the \fBkrb5.conf\fR(4) and
+ \fBnfssec.conf\fR(4) files to files with corresponding names and \fB\&.sav\fR
+diff --git a/usr/src/man/man1m/kdb5_util.1m b/usr/src/man/man1m/kdb5_util.1m
+index 6e7a54ffb5..0ec8d80a48 100644
+--- a/usr/src/man/man1m/kdb5_util.1m
++++ b/usr/src/man/man1m/kdb5_util.1m
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH KDB5_UTIL 1M "April 9, 2016"
++.TH KDB5_UTIL 1M "November 22, 2021"
+ .SH NAME
+ kdb5_util \- Kerberos Database maintenance utility
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fB/usr/sbin/kdb5_util\fR  [\fB-d\fR \fIdbname\fR] [\fB-f\fR \fIstashfile_name\fR]
+      [\fB-k\fR \fImkeytype\fR] [\fB-m\fR ] [\fB-M\fR \fImkeyname\fR] [\fB-P\fR \fIpassword\fR] [\fB-r\fR \fIrealm\fR]
+@@ -15,12 +14,10 @@ kdb5_util \- Kerberos Database maintenance utility
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBkdb5_util\fR utility enables you to create, dump, load, and destroy the
+ Kerberos V5 database. You can also use \fBkdb5_util\fR to create a stash file
+ containing the Kerberos database master key.
+ .SH OPTIONS
+-.LP
+ The following options are supported:
+ .sp
+ .ne 2
+@@ -160,7 +157,6 @@ Directory server connection port.
+ .RE
+ 
+ .SH OPERANDS
+-.LP
+ The following operands are supported:
+ .sp
+ .ne 2
+@@ -446,18 +442,17 @@ Optional argument that is derived from \fIdbname\fR if not specified.
+ .RE
+ 
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRCreating File that Contains Information about Two Principals
+ .sp
+ .LP
+ The following example creates a file named \fBslavedata\fR that contains the
+-information about two principals, \fBjdb@ACME.COM\fR and \fBpak@ACME.COM\fR.
++information about two principals, \fBjdb@EXAMPLE.COM\fR and \fBpak@EXAMPLE.COM\fR.
+ 
+ .sp
+ .in +2
+ .nf
+ # /usr/krb5/bin/kdb5_util dump -verbose slavedata
+-jdb@ACME.COM pak@ACME.COM
++jdb@EXAMPLE.COM pak@EXAMPLE.COM
+ .fi
+ .in -2
+ .sp
+@@ -505,7 +500,6 @@ The update log file for incremental propagation.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -520,7 +514,6 @@ Interface Stability	Evolving
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ \fBkpasswd\fR(1), \fBkadmin\fR(1M), \fBkadmind\fR(1M),
+ \fBkadmin.local\fR(1M), \fBkdb5_ldap_util\fR(1M), \fBkproplog\fR(1M),
+ \fBkadm5.acl\fR(4), \fBkdc.conf\fR(4), \fBattributes\fR(5), \fBkerberos\fR(5)
+diff --git a/usr/src/man/man1m/ksslcfg.1m b/usr/src/man/man1m/ksslcfg.1m
+index d70ff33c94..efe6124d87 100644
+--- a/usr/src/man/man1m/ksslcfg.1m
++++ b/usr/src/man/man1m/ksslcfg.1m
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH KSSLCFG 1M "May 27, 2008"
++.TH KSSLCFG 1M "November 22, 2021"
+ .SH NAME
+ ksslcfg \- enable and configure SMF instance of Kernel SSL
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBksslcfg\fR create \fB-f\fR pkcs11 \fB-T\fR \fItoken_label\fR \fB-C\fR \fIcertificate_label\fR
+      [\fB-d\fR \fIsofttoken_directory\fR]
+@@ -49,8 +48,6 @@ ksslcfg \- enable and configure SMF instance of Kernel SSL
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ \fBksslcfg\fR manages \fBsmf\fR(5) instances for the Kernel SSL proxy module.
+ An SSL-enabled web server can use the services of its Kernel SSL proxy to
+ improve the performance of the HTTPS packets processing. It does so by creating
+@@ -85,8 +82,6 @@ service unique to the combination of host and SSL port. Instance FMRIs for
+ particular proxy entries can be found with \fBsvcs\fR(1) and used for
+ dependencies of other services.
+ .SH OPTIONS
+-.sp
+-.LP
+ The following options are supported:
+ .sp
+ .ne 2
+@@ -281,7 +276,6 @@ Displays the usage of the command.
+ .RE
+ 
+ .SH OPERANDS
+-.sp
+ .ne 2
+ .na
+ \fB\fB[\fIhost\fR] [\fIssl_port\fR]\fR\fR
+@@ -295,7 +289,6 @@ is required. Typically, this has a value of 443.
+ .RE
+ 
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRCreate and Enable a Kernel SSL Instance
+ .sp
+ .LP
+@@ -307,11 +300,11 @@ certificate and a key in PKCS#11 format.
+ .nf
+ # \fBksslcfg create -f pkcs11 -T "Sun Software PKCS#11 softtoken"  \e
+ -C "Server-Cert" -p /some/directory/password -u webservd \e
+--x 8080 www.mysite.com 443\fR
++-x 8080 www.example.com 443\fR
+ 
+ % \fBsvcs svc:/network/ssl/proxy\fR
+ STATE          STIME    FMRI
+-online         Sep_27   svc:/network/ssl/proxy:kssl-www-mysite-com-443
++online         Sep_27   svc:/network/ssl/proxy:kssl-www-example-com-443
+ .fi
+ .in -2
+ .sp
+@@ -321,7 +314,7 @@ online         Sep_27   svc:/network/ssl/proxy:kssl-www-mysite-com-443
+ .sp
+ .LP
+ The following command creates and enables a default instance for all addresses
+-from a certicate and key in a \fBpkcs#12\fR file.
++from a certificate and key in a \fBpkcs#12\fR file.
+ 
+ .sp
+ .in +2
+@@ -359,13 +352,12 @@ The following command disables and deletes an instance.
+ .sp
+ .in +2
+ .nf
+-# \fBksslcfg delete www.mysite.com 443\fR
++# \fBksslcfg delete www.example.com 443\fR
+ .fi
+ .in -2
+ .sp
+ 
+ .SH EXIT STATUS
+-.sp
+ .ne 2
+ .na
+ \fB\fB0\fR\fR
+@@ -384,8 +376,6 @@ An error occurred.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -405,14 +395,10 @@ Command line options are Evolving; command output is Unstable. The FMRI service
+ name (\fBsvc://network/ssl/proxy\fR) is Unstable, as is the FMRI instance's
+ name format. The utility name is Stable.
+ .SH SEE ALSO
+-.sp
+-.LP
+ \fBnca\fR(1), \fBsvcprop\fR(1), \fBsvcs\fR(1), \fBcryptoadm\fR(1M),
+ \fBsvcadm\fR(1M), \fBsvccfg\fR(1M), \fBuser_attr\fR(4), \fBattributes\fR(5),
+ \fBpkcs11_softtoken\fR(5), \fBrbac\fR(5), \fBsmf\fR(5)
+ .SH NOTES
+-.sp
+-.LP
+ \fBksslcfg\fR \fBcreate\fR without an host argument creates an \fBINADDR_ANY\fR
+ \fBsmf\fR instance. \fBksslcfg\fR \fBdelete\fR without an host argument deletes
+ only the \fBINADDR_ANY\fR instance. \fBksslcfg\fR \fBdelete\fR needs a host
+diff --git a/usr/src/man/man1m/ldapclient.1m b/usr/src/man/man1m/ldapclient.1m
+index d56e09fed5..bb8162458d 100644
+--- a/usr/src/man/man1m/ldapclient.1m
++++ b/usr/src/man/man1m/ldapclient.1m
+@@ -3,12 +3,11 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH LDAPCLIENT 1M "Feb 25, 2017"
++.TH LDAPCLIENT 1M "November 22, 2021"
+ .SH NAME
+ ldapclient \- initialize LDAP client machine or output an LDAP client profile
+ in LDIF format
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fB/usr/sbin/ldapclient\fR [\fB-v\fR | \fB-q\fR] init [\fB-a\fR profileName=\fIprofileName\fR]
+      [\fB-a\fR domainName=\fIdomain\fR] [\fB-a\fR proxyDN=\fIproxyDN\fR]
+@@ -49,7 +48,6 @@ in LDIF format
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBldapclient\fR utility can be used to:
+ .RS +4
+ .TP
+@@ -108,7 +106,7 @@ self \fBcredentialLevel\fR is configured, \fBauthenticationMethod\fR must be
+ \fBsasl/GSSAPI\fR.
+ .sp
+ .LP
+-Similarily, if a client is to be configured to enable shadow information update
++Similarly, if a client is to be configured to enable shadow information update
+ and use a proxy credentialLevel, administrator credentials must be provided
+ using \fB-a\fR \fBadminDN=\fR\fIadminDN\fR and \fB-a\fR
+ \fBadminPassword=\fR\fIadminPassword\fR. However, the shadow information update
+@@ -252,7 +250,6 @@ appropriate certificate databases to use TLS. Note that the \fBtls:none\fR
+ authentication method requires a \fBcredentialLevel\fR of \fBproxy\fR to
+ take effect.
+ .SS "Commands"
+-.LP
+ The following commands are supported:
+ .sp
+ .ne 2
+@@ -319,7 +316,6 @@ directory for clients to use, with the \fBinit\fR form of this command.
+ .RE
+ 
+ .SS "Attributes"
+-.LP
+ The following attributes are supported:
+ .sp
+ .ne 2
+@@ -765,18 +761,17 @@ This is a multivalued attribute. In the example,
+ .sp
+ .in +2
+ .nf
+-serviceSearchDescriptor=passwd:ou=people,dc=a1,dc=acme,dc=com?one
++serviceSearchDescriptor=passwd:ou=people,dc=a1,dc=example,dc=com?one
+ .fi
+ .in -2
+ .sp
+ 
+ the LDAP client would do a one level search in
+-\fBou=people,dc=a1,dc=acme,dc=com\fR rather than
++\fBou=people,dc=a1,dc=example,dc=com\fR rather than
+ \fBou=people,\fIdefaultSearchBase\fR\fR for the \fBpasswd\fR service.
+ .RE
+ 
+ .SH OPTIONS
+-.LP
+ The following options are supported:
+ .sp
+ .ne 2
+@@ -876,7 +871,6 @@ This option is mutually exclusive of the \fB-a\fR \fIadminPassword\fR option.
+ .RE
+ 
+ .SH OPERANDS
+-.LP
+ The following operand is supported:
+ .sp
+ .ne 2
+@@ -892,7 +886,6 @@ Once the profile is loaded, the \fBpreferredServerList\fR and
+ .RE
+ 
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRSetting Up a Client By Using the Default Profile Stored on a
+ Specified LDAP Server
+ .sp
+@@ -917,14 +910,14 @@ a Specified LDAP Server
+ .LP
+ The following example shows how to set up a client using the \fBsimple\fR
+ profile stored on the specified LDAP server. The domainname is set to
+-\fBxyz.mycompany.com\fR and the proxyPassword is \fBsecret\fR.
++\fBxyz.example.com\fR and the proxyPassword is \fBsecret\fR.
+ 
+ .sp
+ .in +2
+ .nf
+ example# \fBldapclient init -a profileName=simple \e
+--a domainName=xyz.mycompany.com \e
+--a proxyDN=cn=proxyagent,ou=profile,dc=xyz,dc=mycompany,dc=com \e
++-a domainName=xyz.example.com \e
++-a proxyDN=cn=proxyagent,ou=profile,dc=xyz,dc=example,dc=com \e
+ -a proxyPassword=secret '['fe80::a00:20ff:fea3:388']':386\fR
+ .fi
+ .in -2
+@@ -936,13 +929,13 @@ example# \fBldapclient init -a profileName=simple \e
+ .LP
+ The following example shows how to set up a client using only one server. The
+ authentication method is set to \fBnone\fR, and the search base is
+-\fBdc=mycompany,dc=com\fR.
++\fBdc=example,dc=com\fR.
+ 
+ .sp
+ .in +2
+ .nf
+ example# \fBldapclient manual -a authenticationMethod=none \e
+--a defaultSearchBase=dc=mycompany,dc=com \e
++-a defaultSearchBase=dc=example,dc=com \e
+ -a defaultServerList=172.16.100.1\fR
+ .fi
+ .in -2
+@@ -956,7 +949,7 @@ Referrals
+ The following example shows how to set up a client using only one server. The
+ credential level is set to \fBproxy\fR. The authentication method of is
+ \fBsasl/CRAM-MD5\fR, with the option not to follow referrals. The domain name
+-is \fBxyz.mycompany.com\fR, and the LDAP server is running on port number 386
++is \fBxyz.example.com\fR, and the LDAP server is running on port number 386
+ at IP address \fB172.16.100.1\fR.
+ 
+ .sp
+@@ -966,9 +959,9 @@ example# \fBldapclient manual \e
+ -a credentialLevel=proxy \e
+ -a authenticationMethod=sasl/CRAM-MD5 \e
+ -a proxyPassword=secret \e
+--a proxyDN=cn=proxyagent,ou=profile,dc=xyz,dc=mycompany,dc=com \e
+--a defaultSearchBase=dc=xyz,dc=mycompany,dc=com \e
+--a domainName=xyz.mycompany.com \e
++-a proxyDN=cn=proxyagent,ou=profile,dc=xyz,dc=example,dc=com \e
++-a defaultSearchBase=dc=xyz,dc=example,dc=com \e
++-a domainName=xyz.example.com \e
+ -a followReferrals=false \e
+ -a defaultServerList=172.16.100.1:386\fR
+ .fi
+@@ -1006,8 +999,8 @@ The following example creates a profile on IPv6 servers
+ example# \fBldapclient genprofile -a profileName=eng \e
+ -a credentialLevel=proxy \e
+ -a authenticationMethod=sasl/DIGEST-MD5 \e
+--a defaultSearchBase=dc=eng,dc=acme,dc=com \e
+--a "serviceSearchDescriptor=passwd:ou=people,dc=a1,dc=acme,dc=com?one"\e
++-a defaultSearchBase=dc=eng,dc=example,dc=com \e
++-a "serviceSearchDescriptor=passwd:ou=people,dc=a1,dc=example,dc=com?one"\e
+ -a preferredServerList= '['fe80::a00:20ff:fea3:388']' \e
+ -a "defaultServerList='['fec0::111:a00:20ff:fea3:edcf']' \e
+     '['fec0::111:a00:20ff:feb5:e41']'" > eng.ldif\fR
+@@ -1027,8 +1020,8 @@ The following example shows a profile that overrides every default value.
+ example# \fBldapclient genprofile -a profileName=eng \e
+ -a credentialLevel=proxy -a authenticationMethod=sasl/DIGEST-MD5 \e
+ -a bindTimeLimit=20 \e
+--a defaultSearchBase=dc=eng,dc=acme,dc=com \e
+--a "serviceSearchDescriptor=passwd:ou=people,dc=a1,dc=acme,dc=com?one"\e
++-a defaultSearchBase=dc=eng,dc=example,dc=com \e
++-a "serviceSearchDescriptor=passwd:ou=people,dc=a1,dc=example,dc=com?one"\e
+ -a serviceAuthenticationMethod=pam_ldap:tls:simple \e
+ -a defaultSearchScope=sub \e
+ -a attributeMap=passwd:uid=employeeNumber \e
+@@ -1041,7 +1034,6 @@ example# \fBldapclient genprofile -a profileName=eng \e
+ .sp
+ 
+ .SH EXIT STATUS
+-.LP
+ The following exit values are returned:
+ .sp
+ .ne 2
+@@ -1120,7 +1112,6 @@ files.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -1135,14 +1126,12 @@ Interface Stability	Evolving
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ \fBchkey\fR(1), \fBldap\fR(1), \fBldapadd\fR(1), \fBldapdelete\fR(1),
+ \fBldaplist\fR(1), \fBldapmodify\fR(1), \fBldapmodrdn\fR(1),
+ \fBldapsearch\fR(1), \fBidsconfig\fR(1M), \fBldapaddent\fR(1M),
+ \fBldap_cachemgr\fR(1M), \fBdefaultdomain\fR(4),
+ \fBnsswitch.conf\fR(4), \fBresolv.conf\fR(4), \fBattributes\fR(5)
+ .SH CAUTION
+-.LP
+ Currently \fBStartTLS\fR is not supported by \fBlibldap.so.5\fR, therefore the
+ port number provided refers to the port used during a TLS open, rather than the
+ port used as part of a \fBStartTLS\fR sequence. To avoid timeout delays, mixed
+diff --git a/usr/src/man/man1m/lpset.1m b/usr/src/man/man1m/lpset.1m
+index 4556d8d27b..a25eed3fc5 100644
+--- a/usr/src/man/man1m/lpset.1m
++++ b/usr/src/man/man1m/lpset.1m
+@@ -3,12 +3,11 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH LPSET 1M "Feb 25, 2017"
++.TH LPSET 1M "November 22, 2021"
+ .SH NAME
+ lpset \- set printing configuration in /etc/printers.conf or other supported
+ databases
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBlpset\fR [\fB-n\fR system | fnsldap] [\fB-x\fR]
+      [ [\fB-D\fR binddn] [\fB-w\fR passwd] [\fB-h\fR ldaphost]]
+@@ -16,7 +15,6 @@ databases
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBlpset\fR utility sets printing configuration information in  the system
+ configuration databases. Use \fBlpset\fR to create and update printing
+ configuration in \fB/etc/printers.conf\fR.
+@@ -25,7 +23,6 @@ See \fBnsswitch.conf\fR(4) and \fBprinters.conf\fR(4).
+ .LP
+ Only a superuser or a member of Group 14 may execute \fBlpset\fR.
+ .SH OPTIONS
+-.LP
+ The following options are supported:
+ .sp
+ .ne 2
+@@ -105,7 +102,6 @@ not specified, the default is the current host system.
+ .RE
+ 
+ .SH OPERANDS
+-.LP
+ The following operand is supported:
+ .sp
+ .ne 2
+@@ -123,7 +119,6 @@ atomic names and \fBstandards\fR(5) for information regarding POSIX.
+ .RE
+ 
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRRemoving All Existing Printing Configuration Information
+ .sp
+ .LP
+@@ -143,14 +138,13 @@ example% \fBlpset -x dogs\fR
+ .sp
+ .in +2
+ .nf
+-example% \fBlpset -n ldap -h ldapl.xyz.com -D "cn=Directory Manager" \e
++example% \fBlpset -n ldap -h ldapl.example.com -D "cn=Directory Manager" \e
+    -w passwd -a key1=value1 printer1\fR
+ .fi
+ .in -2
+ .sp
+ 
+ .SH EXIT STATUS
+-.LP
+ The following exit values are returned:
+ .sp
+ .ne 2
+@@ -180,7 +174,6 @@ System configuration database.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -195,7 +188,6 @@ Stability Level	Stable
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ \fBldap\fR(1), \fBlp\fR(1), \fBlpc\fR(1B), \fBlpq\fR(1B), \fBlpr\fR(1B),
+ \fBlpstat\fR(1), \fBldapclient\fR(1M), \fBlpadmin\fR(1M), \fBlpget\fR(1M),
+ \fBnsswitch.conf\fR(4), \fBprinters\fR(4), \fBprinters.conf\fR(4),
+@@ -204,7 +196,6 @@ Stability Level	Stable
+ .LP
+ \fI\fR
+ .SH NOTES
+-.LP
+ If the \fBldap\fR database is used, the printer administrator should be mindful
+ of the following when updating printer information.
+ .RS +4
+@@ -219,7 +210,7 @@ host the same domain that is used by the current \fBldapclient\fR(1M) server.
+ 2.
+ If the LDAP server being updated is a replica LDAP server, the updates will
+ be referred to the master LDAP server and completed there. The updates might be
+-out of sync and not appear immediatedly, as the replica server may not have
++out of sync and not appear immediately, as the replica server may not have
+ been updated by the master server.  For example, a printer that you deleted by
+ using \fBlpset\fR may still appear in the printer list you display with
+ \fBlpget\fR until the replica is updated from the master. Replica servers vary
+diff --git a/usr/src/man/man1m/mount_smbfs.1m b/usr/src/man/man1m/mount_smbfs.1m
+index f47587ba67..74d38ba013 100644
+--- a/usr/src/man/man1m/mount_smbfs.1m
++++ b/usr/src/man/man1m/mount_smbfs.1m
+@@ -7,12 +7,11 @@
+ .\" SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+ .\" OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ .\" Copyright 2012 Nexenta Systems, Inc.  All rights reserved.
+-.TH MOUNT_SMBFS 1M "Jan 2, 2012"
++.TH MOUNT_SMBFS 1M "November 22, 2021"
+ .SH NAME
+ mount_smbfs, umount_smbfs \- mount and unmount a shared resource from a CIFS
+ file server
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fB/sbin/mount\fR [\fB-F smbfs\fR] [\fIgeneric-options\fR] [\fB-o\fR \fIname\fR\fB=\fR\fIvalue\fR] [\fB-O\fR] \fIresource\fR
+ .fi
+@@ -34,8 +33,6 @@ file server
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBmount\fR utility attaches a named resource, \fIresource\fR, to the file
+ system hierarchy at the path name location, \fImount-point\fR, which must
+ already exist.
+@@ -78,8 +75,6 @@ To enable the service, enter the following \fBsvcadm\fR(1M) command:
+ .sp
+ 
+ .SS "Operands"
+-.sp
+-.LP
+ The \fBmount\fR command supports the following operands:
+ .sp
+ .ne 2
+@@ -148,8 +143,6 @@ The \fBmount\fR command maintains a table of mounted file systems in the
+ .RE
+ 
+ .SH OPTIONS
+-.sp
+-.LP
+ See the \fBmount\fR(1M) man page for the list of supported
+ \fIgeneric-options\fR.
+ .sp
+@@ -323,7 +316,6 @@ producing the error "device busy."
+ .RE
+ 
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRMounting an SMBFS Share
+ .sp
+ .LP
+@@ -335,7 +327,7 @@ perform the mount operation.
+ .sp
+ .in +2
+ .nf
+-# \fBmount -F smbfs "//SALES;root@nano.sfbay/tmp" /mnt\fR
++# \fBmount -F smbfs "//SALES;root@nano.example.org/tmp" /mnt\fR
+ Password:
+ .fi
+ .in -2
+@@ -352,7 +344,7 @@ password for the \fBroot\fR user to successfully perform the mount operation.
+ .sp
+ .in +2
+ .nf
+-# \fBmount -F smbfs //root@nano.sfbay/tmp /mnt\fR
++# \fBmount -F smbfs //root@nano.example.org/tmp /mnt\fR
+ Password:
+ .fi
+ .in -2
+@@ -370,7 +362,7 @@ View the file system entry in the \fB/etc/mnttab\fR file.
+ .in +2
+ .nf
+ # \fBgrep root /etc/mnttab\fR
+-//root@nano.sfbay/tmp   /mnt    smbfs   dev=4900000     1177097833
++//root@nano.example.org/tmp   /mnt    smbfs   dev=4900000     1177097833
+ .fi
+ .in -2
+ .sp
+@@ -385,7 +377,7 @@ View the output of the \fBmount\fR command.
+ .in +2
+ .nf
+ # \fBmount | grep root\fR
+-/mnt on //root@nano.sfbay/tmp read/write/setuid/devices/dev=4900000 on
++/mnt on //root@nano.example.org/tmp read/write/setuid/devices/dev=4900000 on
+ Fri Apr 20 13:37:13 2007
+ .fi
+ .in -2
+@@ -401,7 +393,7 @@ View the output of the \fBdf /mnt\fR command.
+ .in +2
+ .nf
+ # \fBdf /mnt\fR
+-/mnt               (//root@nano.sfbay/tmp): 3635872 blocks       -1 files
++/mnt               (//root@nano.example.org/tmp): 3635872 blocks       -1 files
+ .fi
+ .in -2
+ .sp
+@@ -417,7 +409,7 @@ Obtain information about the mounted share by viewing the output of the \fBdf
+ .nf
+ # \fBdf -k /mnt\fR
+ Filesystem            kbytes    used   avail capacity  Mounted on
+-//root@nano.sfbay/tmp
++//root@nano.example.org/tmp
+                       1882384   64448 1817936     4%    /mnt
+ .fi
+ .in -2
+@@ -439,7 +431,6 @@ point. The following command line unmounts the share from the mount point.
+ .sp
+ 
+ .SH FILES
+-.sp
+ .ne 2
+ .na
+ \fB\fB/etc/mnttab\fR\fR
+@@ -481,8 +472,6 @@ connection.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See the \fBattributes\fR(5) man page for descriptions of the following
+ attributes:
+ .sp
+@@ -498,21 +487,15 @@ Interface Stability	Committed
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ \fBldap\fR(1), \fBsmbutil\fR(1),
+ \fBmount\fR(1M), \fBmountall\fR(1M), \fBsvcadm\fR(1M),
+ \fBacl\fR(2), \fBfcntl\fR(2), \fBlink\fR(2), \fBmknod\fR(2), \fBmount\fR(2),
+ \fBsymlink\fR(2), \fBumount\fR(2), \fBmnttab\fR(4), \fBnsmbrc\fR(4),
+ \fBvfstab\fR(4), \fBattributes\fR(5), \fBpcfs\fR(7FS), \fBsmbfs\fR(7FS)
+ .SH AUTHORS
+-.sp
+-.LP
+ This manual page contains material originally authored by Boris Popov,
+ \fBbpATbutya.kz\fR, \fBbpATFreeBSD.org\fR.
+ .SH NOTES
+-.sp
+-.LP
+ The Solaris CIFS client always attempts to use \fBgethostbyname()\fR to resolve
+ host names. If the host name cannot be resolved, the CIFS client uses NetBIOS
+ name resolution (NBNS). By default, the Solaris CIFS client permits the use of
+diff --git a/usr/src/man/man1m/pppd.1m b/usr/src/man/man1m/pppd.1m
+index 712976375a..8862ee9b94 100644
+--- a/usr/src/man/man1m/pppd.1m
++++ b/usr/src/man/man1m/pppd.1m
+@@ -3,18 +3,15 @@
+ .\" Redistribution and use in source and binary forms are permitted provided that the above copyright notice and this paragraph are duplicated in all such forms and that any documentation, advertising materials, and other materials related to such distribution and use acknowledge that the software was developed by Carnegie Mellon University.  The name of the University may not be used to endorse or promote products derived from this software without specific prior written permission.  THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+ .\" WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+ .\" Portions Copyright (c) 2008, Sun Microsystems, Inc. All Right Reserved.
+-.TH PPPD 1M "Nov 21, 2001"
++.TH PPPD 1M "November 22, 2021"
+ .SH NAME
+ pppd \- point to point protocol daemon
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBpppd\fR [\fItty_name\fR] [\fIspeed\fR] [\fIoptions\fR]
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The point-to-point protocol (PPP) provides a method for transmitting datagrams
+ over serial point-to-point links. PPP is composed of three components: a
+ facility for encapsulating datagrams over serial links, an extensible link
+@@ -27,12 +24,8 @@ provides the basic LCP authentication support and several NCPs for establishing
+ and configuring the Internet Protocol (referred to as the IP Control Protocol
+ or "IPCP") and IPv6 (IPV6CP).
+ .SH OPTIONS
+-.sp
+-.LP
+ The following sections discuss the \fBpppd\fR options:
+ .SS "Options Files"
+-.sp
+-.LP
+ Options are taken from files and the command line. \fBpppd\fR reads options
+ from the files \fB/etc/ppp/options\fR, \fB$HOME/.ppprc\fR and
+ \fB/etc/ppp/options.\fR\fIttyname\fR (in that order) before processing the
+@@ -51,7 +44,6 @@ starts a comment, which continues until the end of the line. There is no
+ restriction on using the \fBfile\fR or \fBcall\fR options within an options
+ file.
+ .SS "Frequently Used Options"
+-.sp
+ .ne 2
+ .na
+ \fB\fB<tty_name>\fR \fR
+@@ -269,7 +261,6 @@ this option.
+ .RE
+ 
+ .SS "Options"
+-.sp
+ .ne 2
+ .na
+ \fB\fB<local_IP_address>:<remote_IP_address>\fR \fR
+@@ -507,9 +498,9 @@ in conjunction with the \fBdemand\fR option.
+ .RS 4n
+ Append the domain name \fId\fR to the local host name for authentication
+ purposes. For example, if \fBgethostname()\fR returns the name \fBporsche\fR,
+-but the fully qualified domain name is \fBporsche.Quotron.COM\fR, you could
+-specify \fBdomain Quotron.COM\fR. With this configuration, \fBpppd\fR uses the
+-name \fBporsche.Quotron.COM\fR for accessing secrets in the secrets file and as
++but the fully qualified domain name is \fBporsche.Example.COM\fR, you could
++specify \fBdomain Example.COM\fR. With this configuration, \fBpppd\fR uses the
++name \fBporsche.Example.COM\fR for accessing secrets in the secrets file and as
+ the default name when authenticating to the peer. This option is privileged.
+ .RE
+ 
+@@ -1813,8 +1804,6 @@ the serial port.
+ .RE
+ 
+ .SS "Obsolete Options"
+-.sp
+-.LP
+ The following options are obsolete:
+ .sp
+ .ne 2
+@@ -1855,12 +1844,8 @@ Show brief help message and exit.
+ .RE
+ 
+ .SH EXTENDED DESCRIPTION
+-.sp
+-.LP
+ The following sections discuss miscellaneous features of \fBpppd\fR:
+ .SS "Security"
+-.sp
+-.LP
+ \fBpppd\fR allows system administrators to provide legitimate users with PPP
+ access to a server machine without fear of compromising the security of the
+ server or the network it runs on. Access control is provided by restricting IP
+@@ -1902,8 +1887,6 @@ administrator can allow users to establish a PPP connection via a device that
+ they would not normally have access to. Otherwise \fBpppd\fR uses the invoking
+ user's real UID when opening the device.
+ .SS "Authentication"
+-.sp
+-.LP
+ During the authentication process, one peer convinces the other of its identity
+ by sending its name and some secret information to the other. During
+ authentication, the first peer becomes the "client" and the second becomes the
+@@ -2027,8 +2010,6 @@ peername servername secret ip-address -- novj
+ .in -2
+ 
+ .SS "Routing"
+-.sp
+-.LP
+ When IPCP negotiation is complete, \fBpppd\fR informs the kernel of the local
+ and remote IP addresses for the PPP interface and creates a host route to the
+ remote end of the link that enables peers to exchange IP packets. Communication
+@@ -2060,8 +2041,6 @@ addresses to the negotiated addresses. This may disrupt existing connections.
+ Using demand dialing with peers that perform dynamic IP address assignment is
+ not recommended.
+ .SS "Scripts"
+-.sp
+-.LP
+ \fBpppd\fR invokes scripts at various stages during processing that are used to
+ perform site-specific ancillary processing. These scripts may be shell scripts
+ or executable programs. \fBpppd\fR does not wait for the scripts to finish. The
+@@ -2262,7 +2241,6 @@ script.
+ .RE
+ 
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRUsing the \fBauth\fR Option
+ .sp
+ .LP
+@@ -2336,13 +2314,13 @@ To provide a user with access to the PPP facilities, allocate an IP address for
+ the user's machine, create an entry in \fB/etc/ppp/pap-secrets\fR or
+ \fB/etc/ppp/chap-secrets\fR. This enables the user's machine to authenticate
+ itself. For example, to enable user "Joe" using machine "joespc" to dial in to
+-machine "server" and use the IP address "joespc.my.net," add the following
++machine "server" and use the IP address "joespc.example.net," add the following
+ entry to the \fB/etc/ppp/pap-secrets\fR or \fB/etc/ppp/chap-secrets\fR files:
+ 
+ .sp
+ .in +2
+ .nf
+-\fBjoespc	server	"joe's secret"	joespc.my.net\fR
++\fBjoespc	server	"joe's secret"	joespc.example.net\fR
+ .fi
+ .in -2
+ .sp
+@@ -2363,8 +2341,6 @@ includes a telnet, escape ^] (\fBasyncmap 200a0000\fR). If the path includes a
+ followed by any 8 bytes] from the stream.
+ 
+ .SH EXIT STATUS
+-.sp
+-.LP
+ The \fBpppd\fR exit status indicates errors or specifies why a link was
+ terminated. Exit status values are:
+ .sp
+@@ -2554,7 +2530,6 @@ Authentication to the peer failed.
+ .RE
+ 
+ .SH FILES
+-.sp
+ .ne 2
+ .na
+ \fB\fB/var/run/sppp\fIn\fR\fR\fB\&.pid\fR \fR
+@@ -2641,8 +2616,6 @@ but only to certain trusted peers.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -2657,8 +2630,6 @@ Interface Stability	Evolving
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ \fBchat\fR(1M), \fBifconfig\fR(1M), \fBcrypt\fR(3C), \fBpam\fR(3PAM),
+ \fBattributes\fR(5)
+ .sp
+@@ -2690,8 +2661,6 @@ Group. July 1994.
+ Simpson, W. \fIRFC 1662, HDLC-like Framing \fR. Network Working Group. July
+ 1994.
+ .SH NOTES
+-.sp
+-.LP
+ These signals affect \fBpppd\fR behavior:
+ .sp
+ .ne 2
+@@ -2738,8 +2707,6 @@ implementation.)
+ .RE
+ 
+ .SH DIAGNOSTICS
+-.sp
+-.LP
+ Messages are sent to the syslog daemon using facility \fBLOG_DAEMON\fR. To see
+ error and debug messages, edit the \fB/etc/syslog.conf\fR file to direct the
+ messages to the desired output device or file, or use the \fBupdetach\fR or
+diff --git a/usr/src/man/man1m/share_nfs.1m b/usr/src/man/man1m/share_nfs.1m
+index 8904de8ba1..ff360207e1 100644
+--- a/usr/src/man/man1m/share_nfs.1m
++++ b/usr/src/man/man1m/share_nfs.1m
+@@ -23,7 +23,7 @@
+ .\" Copyright 2014 Nexenta Systems, Inc.  All rights reserved.
+ .\" Copyright 2016 Jason King.
+ .\"
+-.Dd March 23, 2017
++.Dd November 22, 2021
+ .Dt SHARE_NFS 1M
+ .Os
+ .Sh NAME
+@@ -440,14 +440,14 @@ NIS   172.16.45.9 --> "myhost"
+ .Pp
+ and
+ .Bd -literal -offset indent
+-DNS or LDAP   172.16.45.9 --> "myhost.mydomain.mycompany.com"
++DNS or LDAP   172.16.45.9 --> "myhost.mydomain.example.com"
+ .Ed
+ .Pp
+ The domain name suffix is distinguished from hostnames and netgroups by a
+ prefixed dot.
+ For example,
+ .Bd -literal -offset indent
+-rw=.mydomain.mycompany.com
++rw=.mydomain.example.com
+ .Ed
+ .Pp
+ A single dot can be used to match a hostname with no suffix.
+@@ -459,7 +459,7 @@ rw=.
+ matches
+ .Qq mydomain
+ but not
+-.Qq mydomain.mycompany.com .
++.Qq mydomain.example.com .
+ This feature can be used to match hosts resolved through NIS rather
+ than DNS and LDAP.
+ .It Sy network
+diff --git a/usr/src/man/man1m/sharectl.1m b/usr/src/man/man1m/sharectl.1m
+index 74d260d4e7..bd27bb4911 100644
+--- a/usr/src/man/man1m/sharectl.1m
++++ b/usr/src/man/man1m/sharectl.1m
+@@ -18,7 +18,7 @@
+ .\" Copyright (c) 2007, Sun Microsystems, Inc. All Rights Reserved
+ .\" Copyright 2016 Nexenta Systems, Inc.
+ .\"
+-.Dd December 16, 2016
++.Dd November 22, 2021
+ .Dt SHARECTL 1M
+ .Os
+ .Sh NAME
+@@ -148,7 +148,7 @@ lockd_listen_backlog=32
+ lockd_servers=256
+ lockd_retransmit_timeout=5
+ grace_period=90
+-nfsmapid_domain=sun.com
++nfsmapid_domain=example.com
+ servers=1024
+ server_versmin=2
+ server_versmax=4
+@@ -172,24 +172,24 @@ nfs      enabled
+ The following command shows how an authorized user can use
+ .Nm
+ commands to configure global settings for the
+-.Pa ex.com
++.Pa example.com
+ environment in the service management facility
+ .Pq SMF .
+ See
+ .Xr nsmbrc 4
+ for a description of the example environment,
+-.Pa ex.com .
++.Pa example.com .
+ See
+ .Xr smf 5
+ for a description of the SMF.
+ .Bd -literal
+ # sharectl set -p section=default -p workgroup=SALES \e
+   -p timeout=5 smbfs
+-# sharectl set -p section=FSERVER -p addr=fserv.ex.com smbfs
++# sharectl set -p section=FSERVER -p addr=fserv.example.com smbfs
+ # sharectl set -p section=RSERVER -p workgroup=REMGROUP \e
+-  -p addr=rserv.ex.com smbfs
++  -p addr=rserv.example.com smbfs
+ # sharectl set -p section=RSERVER:george -p timeout=30 smbfs
+-# sharectl set -p section="SSERV:*:POKY" -p addr=sserv.ex.com \e
++# sharectl set -p section="SSERV:*:POKY" -p addr=sserv.example.com \e
+   -p timeout=25 smbfs
+ .Ed
+ .It Sy Example 5 No Displaying Current Settings
+@@ -205,14 +205,14 @@ The values shown are those set by the previous example.
+ workgroup=SALES
+ timeout=5
+ [FSERVER]
+-addr=fserv.ex.com
++addr=fserv.example.com
+ [RSERVER]
+ workgroup=REMGROUP
+-addr=rserv.ex.com
++addr=rserv.example.com
+ [RSERVER:george]
+ timeout=30
+ [SSERV:*:POKY]
+-addr=sserv.ex.com
++addr=sserv.example.com
+ timeout=25
+ .Ed
+ .El
+diff --git a/usr/src/man/man1m/sharemgr.1m b/usr/src/man/man1m/sharemgr.1m
+index e7e86f4961..6bf52efd94 100644
+--- a/usr/src/man/man1m/sharemgr.1m
++++ b/usr/src/man/man1m/sharemgr.1m
+@@ -4,11 +4,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+ .\"  See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with
+ .\" the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH SHAREMGR 1M "Feb 25, 2017"
++.TH SHAREMGR 1M "November 22, 2021"
+ .SH NAME
+ sharemgr \- configure and manage file sharing
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBsharemgr\fR \fIsubcommand\fR [\fIoptions\fR]
+ .fi
+@@ -89,7 +88,6 @@ sharemgr \- configure and manage file sharing
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBsharemgr\fR command configures share groups and the shares contained
+ within them.
+ .sp
+@@ -123,7 +121,6 @@ The options shown in the SYNOPSIS section are described in the context of each
+ subcommand. All subcommands except \fBlist\fR and \fBshow\fR require root
+ privileges or that you assume the Primary Administrator role.
+ .SS "Subcommands"
+-.LP
+ With no subcommand entered, a \fBsharemgr\fR command with the \fB-h\fR option
+ displays a usage message for all subcommands.
+ .sp
+@@ -629,7 +626,6 @@ across reboots.
+ .RE
+ 
+ .SS "Supported Properties"
+-.LP
+ Properties are protocol-specific. Currently, only the NFS and SMB protocols are
+ supported. Properties have the following characteristics:
+ .RS +4
+@@ -1130,7 +1126,6 @@ is when the access list is an asterisk (\fB*\fR), in which case \fBro\fR or
+ .RE
+ 
+ .SS "Access List Argument"
+-.LP
+ The \fIaccess-list\fR argument is either the string \fB"*"\fR to represent all
+ hosts or a colon-separated list whose components can be any number of the
+ following:
+@@ -1191,7 +1186,7 @@ Returns: \fBmyhost\fR
+ .ad
+ .sp .6
+ .RS 4n
+-Returns: \fBmyhost.mydomain.mycompany.com\fR
++Returns: \fBmyhost.mydomain.example.com\fR
+ .RE
+ 
+ The domain name suffix is distinguished from hostnames and netgroups by a
+@@ -1199,7 +1194,7 @@ prefixed dot. For example:
+ .sp
+ .in +2
+ .nf
+-rw=.mydomain.mycompany.com
++rw=.mydomain.example.com
+ .fi
+ .in -2
+ 
+@@ -1212,7 +1207,7 @@ rw=.
+ .fi
+ .in -2
+ 
+-\&...matches \fBmydomain\fR but not \fBmydomain.mycompany.com\fR. This feature
++\&...matches \fBmydomain\fR but not \fBmydomain.example.com\fR. This feature
+ can be used to match hosts resolved through NIS rather than DNS and
+ LDAP.
+ .RE
+@@ -1321,7 +1316,6 @@ Error codes used for exit status.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -1336,6 +1330,5 @@ Interface Stability	Committed
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ \fBidmap\fR(1M), \fBsharectl\fR(1M), \fBzfs\fR(1M), \fBattributes\fR(5),
+ \fBnfssec\fR(5), \fBsmf\fR(5), \fBstandards\fR(5)
+diff --git a/usr/src/man/man3commputil/sdp_parse.3commputil b/usr/src/man/man3commputil/sdp_parse.3commputil
+index e6cdbb0b4c..abdae2ece5 100644
+--- a/usr/src/man/man3commputil/sdp_parse.3commputil
++++ b/usr/src/man/man3commputil/sdp_parse.3commputil
+@@ -4,11 +4,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH SDP_PARSE 3COMMPUTIL "Oct 12, 2007"
++.TH SDP_PARSE 3COMMPUTIL "November 22, 2021"
+ .SH NAME
+ sdp_parse \- parse the SDP description
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBcc\fR [ \fIflag\fR...] \fIfile\fR... -\fBlcommputil\fR [ \fIlibrary\fR...]
+ #include <sdp.h>
+@@ -18,8 +17,6 @@ sdp_parse \- parse the SDP description
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBsdp_parse()\fR function parses the SDP description present in
+ \fIsdp_info\fR and populates the \fBsdp_session_t\fR structure. The \fIlen\fR
+ argument specifies the length of the character buffer \fIsdp_info\fR. The
+@@ -85,7 +82,7 @@ and contains the following members:
+ .in +2
+ .nf
+ typedef    struct sdp_session {
+-    int              sdp_session_version;  /* SDP session verstion */
++    int              sdp_session_version;  /* SDP session version */
+     int              s_version;            /* SDP version field */
+     sdp_origin_t     *s_origin;            /* SDP origin field */
+     char             *s_name;              /* SDP name field */
+@@ -303,14 +300,10 @@ typedef struct sdp_media {
+ .in -2
+ 
+ .SH RETURN VALUES
+-.sp
+-.LP
+ The \fBsdp_parse()\fR function returns 0 on success and the appropriate error
+ value on failure. The value of \fBerrno\fR is not changed by these calls in the
+ event of an error.
+ .SH ERRORS
+-.sp
+-.LP
+ The \fBsdp_parse()\fR function will fail if:
+ .sp
+ .ne 2
+@@ -331,7 +324,6 @@ Memory allocation failed while parsing \fIsdp_info\fR.
+ .RE
+ 
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fR\fBsdp_parse()\fR example
+ .sp
+ .LP
+@@ -344,7 +336,7 @@ v=0\er\en
+ o=jdoe 23423423 234234234 IN IP4 192.168.1.1\er\en
+ s=SDP seminar\er\en
+ i=A seminar on the session description protocol\er\en
+-e=test@host.com
++e=test@example.com
+ c=IN IP4 156.78.90.1\er\en
+ t=2873397496 2873404696\er\en
+ .fi
+@@ -373,7 +365,7 @@ session {
+         s_info = "A seminar on the session description protocol"
+         s_uri =  (nil)
+         s_email {
+-                value = "test@host.com"
++                value = "test@example.com"
+                 next = (nil)
+         }
+         s_phone = (nil)
+@@ -401,8 +393,6 @@ session {
+ .in -2
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -419,7 +409,5 @@ MT-Level	Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ \fBlibcommputil\fR(3LIB), \fBsdp_new_session\fR(3COMMPUTIL),
+ \fBattributes\fR(5)
+diff --git a/usr/src/man/man3nsl/rpc_gss_get_principal_name.3nsl b/usr/src/man/man3nsl/rpc_gss_get_principal_name.3nsl
+index 0f5514d603..72910a7b92 100644
+--- a/usr/src/man/man3nsl/rpc_gss_get_principal_name.3nsl
++++ b/usr/src/man/man3nsl/rpc_gss_get_principal_name.3nsl
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH RPC_GSS_GET_PRINCIPAL_NAME 3NSL "Feb 25, 2017"
++.TH RPC_GSS_GET_PRINCIPAL_NAME 3NSL "November 22, 2021"
+ .SH NAME
+ rpc_gss_get_principal_name \- Get principal names at server
+ .SH SYNOPSIS
+-.LP
+ .nf
+ #include <rpc/rpcsec_gss.h>
+ 
+@@ -16,7 +15,6 @@ rpc_gss_get_principal_name \- Get principal names at server
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ Servers need to be able to operate on a client's principal name. Such a name is
+ stored by the server as a  \fBrpc_gss_principal_t\fR structure, an opaque byte
+ string which can be used either directly in access control lists or as database
+@@ -33,7 +31,6 @@ and a domain name.  From these parameters it constructs a unique,
+ mechanism-dependent principal name of the \fBrpc_gss_principal_t\fR structure
+ type.
+ .SH PARAMETERS
+-.LP
+ How many of the identifying parameters (\fIname\fR, \fInode\fR, and
+ \fIdomain\fR) are necessary to specify depends on the mechanism being used.
+ For example, Kerberos V5 requires only a user name but can accept a node and
+@@ -90,11 +87,10 @@ example, 'valleyforge').
+ .ad
+ .RS 14n
+ A security domain; for example, a DNS or NIS domain name
+-('eng.company.com').
++('eng.example.com').
+ .RE
+ 
+ .SH RETURN VALUES
+-.LP
+ \fBrpc_gss_get_principal_name()\fR returns  TRUE if it is successful;
+ otherwise, use  \fBrpc_gss_get_error()\fR to get the error associated with the
+ failure.
+@@ -108,7 +104,6 @@ File containing valid security mechanisms
+ .RE
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -123,7 +118,6 @@ MT-Level	MT-Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ \fBfree\fR(3C), \fBrpc\fR(3NSL), \fBrpc_gss_get_mechanisms\fR(3NSL),
+ \fBrpc_gss_set_svc_name\fR(3NSL), \fBrpcsec_gss\fR(3NSL), \fBmech\fR(4),
+ \fBattributes\fR(5)
+diff --git a/usr/src/man/man3nsl/rpc_gss_seccreate.3nsl b/usr/src/man/man3nsl/rpc_gss_seccreate.3nsl
+index d423802fd3..d445c2e204 100644
+--- a/usr/src/man/man3nsl/rpc_gss_seccreate.3nsl
++++ b/usr/src/man/man3nsl/rpc_gss_seccreate.3nsl
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH RPC_GSS_SECCREATE 3NSL "Jun 29, 2001"
++.TH RPC_GSS_SECCREATE 3NSL "November 21, 2021"
+ .SH NAME
+ rpc_gss_seccreate \- create a security context using the RPCSEC_GSS protocol
+ .SH SYNOPSIS
+-.LP
+ .nf
+ #include <rpc/rpcsec_gss.h>
+ 
+@@ -18,17 +17,13 @@ rpc_gss_seccreate \- create a security context using the RPCSEC_GSS protocol
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+-\fBrpc_gss_seccreate()\fR is used by an appliction to create a security context
++\fBrpc_gss_seccreate()\fR is used by an application to create a security context
+ using the \fBRPCSEC_GSS\fR protocol, making use of the underlying \fBGSS-API\fR
+ network layer.   \fBrpc_gss_seccreate()\fR allows an application to specify the
+ type of security mechanism (for example, Kerberos v5), the type of service (for
+ example, integrity checking), and the Quality of Protection (\fBQOP\fR) desired
+ for transferring data.
+ .SH PARAMETERS
+-.sp
+-.LP
+ Information on  \fBRPCSEC_GSS\fR data types for parameters may be found on the
+ \fBrpcsec_gss\fR(3NSL) man page.
+ .sp
+@@ -50,7 +45,7 @@ This is the RPC client handle. \fIclnt\fR may be obtained, for example, from
+ This is the identity of the server principal, specified in the form
+ \fIservice\fR@\fIhost\fR, where \fIservice\fR is the name of the service the
+ client wishes to access and \fIhost\fR is the fully qualified name of the host
+-where the service resides \(em for example, nfs@mymachine.eng.company.com.
++where the service resides \(em for example, nfs@mymachine.eng.example.com.
+ .RE
+ 
+ .sp
+@@ -110,14 +105,11 @@ need to see these options, then it may specify \fINULL\fR for this parameter.
+ .RE
+ 
+ .SH RETURN VALUES
+-.sp
+-.LP
+ \fBrpc_gss_seccreate()\fR returns a security context handle (an RPC
+ authentication handle) of type \fBAUTH\fR. If \fBrpc_gss_seccreate()\fR cannot
+ return successfully, the application can get an error number by calling
+ \fBrpc_gss_get_error()\fR.
+ .SH FILES
+-.sp
+ .ne 2
+ .na
+ \fB\fB/etc/gss/mech\fR\fR
+@@ -136,8 +128,6 @@ File containing valid QOP values.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -152,8 +142,6 @@ MT-Level	MT-Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ \fBauth_destroy\fR(3NSL), \fBrpc\fR(3NSL), \fBrpc_gss_get_error\fR(3NSL), \fBrpc_gss_get_mechanisms\fR(3NSL), \fBrpcsec_gss\fR(3NSL), \fBmech\fR(4), \fBqop\fR(4), \fBattributes\fR(5)
+ .sp
+ .LP
+@@ -161,5 +149,3 @@ MT-Level	MT-Safe
+ .sp
+ .LP
+ Linn, J. \fIRFC 2743, Generic Security Service Application Program Interface Version 2, Update 1\fR. Network Working Group. January 2000.
+-.SH NOTES
+-.sp
+diff --git a/usr/src/man/man3sip/sip_enable_trans_logging.3sip b/usr/src/man/man3sip/sip_enable_trans_logging.3sip
+index 86ed42c657..81ad69f55a 100644
+--- a/usr/src/man/man3sip/sip_enable_trans_logging.3sip
++++ b/usr/src/man/man3sip/sip_enable_trans_logging.3sip
+@@ -3,13 +3,12 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH SIP_ENABLE_TRANS_LOGGING 3SIP "April 9, 2016"
++.TH SIP_ENABLE_TRANS_LOGGING 3SIP "November 22, 2021"
+ .SH NAME
+ sip_enable_trans_logging, sip_enable_dialog_logging,
+ sip_disable_dialog_logging, sip_disable_trans_logging \- transaction and dialog
+ logging operations
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBcc\fR [ \fIflag\fR... ] \fIfile\fR... -\fBlsip\fR [ \fIlibrary\fR... ]
+ #include <sip.h>
+@@ -33,7 +32,6 @@ logging operations
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBsip_enable_trans_logging()\fR and \fBsip_enable_dialog_logging()\fR
+ functions enable transaction and dialog logging respectively. The \fIlogfile\fR
+ argument points to a file to which the SIP messages are logged. The flags
+@@ -59,12 +57,10 @@ close the files. It is the responsibility of the application to close them.
+ The log contains the state of the transaction or dialog at the time the message
+ was processed.
+ .SH RETURN VALUES
+-.LP
+ Upon successful completion, \fBsip_enable_trans_logging()\fR and
+ \fBsip_enable_dialog_logging()\fR return 0. They return \fBEINVAL\fR if
+ \fIlogfile\fR is \fINULL\fR or \fIflags\fR is unrecognized.
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRDialog logging
+ .sp
+ .LP
+@@ -97,28 +93,28 @@ Dialog State            : SIP_DLG_NEW
+ 
+ Tue Nov 27 15:53:34 2007| Message - 1
+ INVITE sip:user@example.com SIP/2.0
+-From: "Me" < sip:me@mydomain.com > ; TAG=tag-from-01
+-To: "You" < sip:you@yourdomain.com >
+-Contact: < sip:myhome.host.com >
++From: "Me" < sip:me@my.example.com > ; TAG=tag-from-01
++To: "You" < sip:you@your.example.com >
++Contact: < sip:myhome.example.com >
+ MAX-FORWARDS: 70
+ Call-ID: 1261K6A6492KF33549XM
+ CSeq: 111 INVITE
+ CONTENT-TYPE: application/sdp
+ Via: SIP/2.0/UDP 192.0.0.1 : 5060 ;branch=z9hG4bK-via-EVERYTHINGIDO-05
+-Record-Route: <sip:server1.com;lr>
+-Record-Route: <sip:server2.com;lr>
++Record-Route: <sip:server1.example.com;lr>
++Record-Route: <sip:server2.example.com;lr>
+ CONTENT-LENGTH : 0
+ 
+ Tue Nov 27 15:53:34 2007| Message - 2
+ SIP/2.0 180 Ringing
+ Via: SIP/2.0/UDP 192.0.0.1 : 5060 ;branch=z9hG4bK-via-EVERYTHINGIDO-05
+-From: "Me" < sip:me@mydomain.com > ; TAG=tag-from-01
+-To: "You" < sip:you@yourdomain.com >;tag=1
++From: "Me" < sip:me@my.example.com > ; TAG=tag-from-01
++To: "You" < sip:you@your.example.com >;tag=1
+ Call-ID: 1261K6A6492KF33549XM
+ CSeq: 111 INVITE
+-Contact: <sip:whitestar2-0.East.Sun.COM:5060;transport=UDP>
+-Record-Route: <sip:server1.com;lr>
+-Record-Route: <sip:server2.com;lr>
++Contact: <sip:whitestar2-0.East.Example.COM:5060;transport=UDP>
++Record-Route: <sip:server1.example.com;lr>
++Record-Route: <sip:server2.example.com;lr>
+ Content-Length: 0
+ 
+ -----------------------------
+@@ -139,7 +135,6 @@ Dialog State            : SIP_DLG_CONFIRMED
+ .in -2
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -156,5 +151,4 @@ MT-Level	MT-Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ \fBsip_stack_init\fR(3SIP), \fBattributes\fR(5)
+diff --git a/usr/src/man/man3sip/sip_get_contact_display_name.3sip b/usr/src/man/man3sip/sip_get_contact_display_name.3sip
+index 42b28ef07b..26e16d5d3c 100644
+--- a/usr/src/man/man3sip/sip_get_contact_display_name.3sip
++++ b/usr/src/man/man3sip/sip_get_contact_display_name.3sip
+@@ -3,7 +3,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH SIP_GET_CONTACT_DISPLAY_NAME 3SIP "Feb 10, 2007"
++.TH SIP_GET_CONTACT_DISPLAY_NAME 3SIP "November 22, 2021"
+ .SH NAME
+ sip_get_contact_display_name, sip_get_from_display_name,
+ sip_get_to_display_name, sip_get_from_tag, sip_get_to_tag, sip_get_callid,
+@@ -33,7 +33,6 @@ sip_get_event, sip_get_substate, sip_get_content_lang, sip_get_tstamp_value,
+ sip_get_route_uri_str, sip_get_route_display_name, sip_get_contact_uri_str,
+ sip_get_from_uri_str, sip_get_to_uri_str \- obtain header specific attributes
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBcc\fR [ \fIflag\fR ... ] \fIfile\fR ... \fB-lsip\fR [ \fIlibrary\fR ... ]
+ #include <sip.h>
+@@ -515,8 +514,6 @@ sip_method_t\fB\fR \fIsip_get_rack_method\fR(\fBsip_msg_t\fR \fIsip_msg\fR, \fBi
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ For functions that return a pointer of type \fBsip_str_t\fR, \fBsip_str_t\fR is
+ supplied by:
+ .sp
+@@ -540,7 +537,7 @@ For example, given the following request line in a \fBSIP\fR message
+ .sp
+ .in +2
+ .nf
+-FROM : <Alice sip:alice@atlanta.com>;tag=1928301774
++FROM : <Alice sip:alice@example.com>;tag=1928301774
+ .fi
+ .in -2
+ 
+@@ -1032,8 +1029,6 @@ provided \fBCONTENT-LANGUAGE\fR value.
+ The \fBsip_get_tstamp_value()\fR function will return the timestamp value from
+ the \fBTIMESTAMP\fR header in the \fBSIP\fR message \fIsip_msg\fR.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ For functions that return a pointer to \fIsip_str_t\fR, the return value is the
+ specified value on success or \fBNULL\fR in case of error. For functions that
+ return an integer, the return value is the specified value on success and
+@@ -1043,8 +1038,6 @@ return an integer, the return value is the specified value on success and
+ The value of \fBerrno\fR is not changed by these calls in the event of an
+ error.
+ .SH ERRORS
+-.sp
+-.LP
+ These functions take a pointer to an integer \fIerror\fR as an argument. If the
+ error is non-null, one of the following values is set:
+ .sp
+@@ -1081,8 +1074,6 @@ There is an error allocating memory for the return value.
+ On success, the value of the location pointed to by \fIerror\fR is set to
+ \fB0\fR.
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -1099,6 +1090,4 @@ MT-Level	MT-Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ \fBlibsip\fR(3LIB)
+diff --git a/usr/src/man/man3sip/sip_get_request_method.3sip b/usr/src/man/man3sip/sip_get_request_method.3sip
+index 7eaa340e63..9ec271bd01 100644
+--- a/usr/src/man/man3sip/sip_get_request_method.3sip
++++ b/usr/src/man/man3sip/sip_get_request_method.3sip
+@@ -3,12 +3,11 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH SIP_GET_REQUEST_METHOD 3SIP "Jan 25, 2007"
++.TH SIP_GET_REQUEST_METHOD 3SIP "November 22, 2021"
+ .SH NAME
+ sip_get_request_method, sip_get_response_code, sip_get_response_phrase,
+ sip_get_sip_version \- obtain attributes from the start line in a SIP message
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBcc\fR [ \fIflag\fR ... ] \fIfile\fR ... \fB-lsip\fR [ \fIlibrary\fR ... ]
+ #include <sip.h>
+@@ -36,8 +35,6 @@ sip_get_sip_version \- obtain attributes from the start line in a SIP message
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ For functions that return a pointer of type \fBsip_str_t\fR, \fBsip_str_t\fR is
+ supplied by:
+ .sp
+@@ -61,7 +58,7 @@ For example, given the following request line in a \fBSIP\fR message
+ .sp
+ .in +2
+ .nf
+-FROM : <Alice sip:alice@atlanta.com>;tag=1928301774
++FROM : <Alice sip:alice@example.com>;tag=1928301774
+ .fi
+ .in -2
+ 
+@@ -134,7 +131,7 @@ The \fBsip_get_response_code()\fR function will return the response code
+ \fIresponse\fR from the request line in the  \fBSIP\fR message \fIsip_msg\fR.
+ .sp
+ .LP
+-The \fBsip_get_respose_phrase()\fR function will return the response phrase
++The \fBsip_get_response_phrase()\fR function will return the response phrase
+ \fIresponse\fR from the request line in the  \fBSIP\fR message \fIsip_msg\fR.
+ .sp
+ .LP
+@@ -142,8 +139,6 @@ The \fBsip_get_sip_version()\fR function will return the version of the
+ \fBSIP\fR protocol from the request or the response line in the \fBSIP\fR
+ message \fIsip_msg\fR.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ For functions that return a pointer to \fIsip_str_t\fR, the return value is the
+ specified value on success or \fBNULL\fR in case of error. For functions that
+ return an integer, the return value is the specified value on success and
+@@ -153,8 +148,6 @@ return an integer, the return value is the specified value on success and
+ The value of \fBerrno\fR is not changed by these calls in the event of an
+ error.
+ .SH ERRORS
+-.sp
+-.LP
+ These functions take a pointer to an integer \fIerror\fR as an argument. If the
+ error is non-null, one of the following values is set:
+ .sp
+@@ -191,8 +184,6 @@ There is an error allocating memory for the return value.
+ On success, the value of the location pointed to by \fIerror\fR is set to
+ \fB0\fR.
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -209,6 +200,4 @@ MT-Level	MT-Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ \fBlibsip\fR(3LIB)
+diff --git a/usr/src/man/man3sip/sip_get_request_uri_str.3sip b/usr/src/man/man3sip/sip_get_request_uri_str.3sip
+index 6765470c17..12d932c24b 100644
+--- a/usr/src/man/man3sip/sip_get_request_uri_str.3sip
++++ b/usr/src/man/man3sip/sip_get_request_uri_str.3sip
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH SIP_GET_REQUEST_URI_STR 3SIP "Jan 25, 2007"
++.TH SIP_GET_REQUEST_URI_STR 3SIP "November 22, 2021"
+ .SH NAME
+ sip_get_request_uri_str \- return request URI
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBcc\fR [ \fIflag\fR ... ] \fIfile\fR ... \fB-lsip\fR [ \fIlibrary\fR ... ]
+ #include <sip.h>
+@@ -17,8 +16,6 @@ sip_get_request_uri_str \- return request URI
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ For functions that return a pointer of type \fIsip_str_t\fR, \fIsip_str_t\fR is
+ supplied by:
+ .sp
+@@ -42,22 +39,20 @@ For example, given the following request line in a \fBSIP\fR message input to
+ .sp
+ .in +2
+ .nf
+-INVITE sip:marconi@radio.org SIP/2.0
++INVITE sip:marconi@example.org SIP/2.0
+ .fi
+ .in -2
+ 
+ .sp
+ .LP
+ the return is a pointer to \fIsip_str_t\fR with the \fIsip_str_ptr\fR member
+-pointing to "\fBs\fR" of \fBsip:marconi@radio.org\fR and \fIsip_str_len\fR
+-being set to \fB21\fR, the length of \fBsip:marconi@radio.org\fR.
++pointing to "\fBs\fR" of \fBsip:marconi@example.org\fR and \fIsip_str_len\fR
++being set to \fB23\fR, the length of \fBsip:marconi@example.org\fR.
+ .sp
+ .LP
+ The \fBsip_get_request_uri_str()\fR function returns the \fBURI\fR string from
+ the request line in the \fBSIP\fR message \fIsip_msg\fR.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ The \fBsip_get_request_uri_str()\fR function returns the \fBURI\fR string. The
+ function returns \fBNULL\fR on failure.
+ .sp
+@@ -65,8 +60,6 @@ function returns \fBNULL\fR on failure.
+ The value of \fBerrno\fR is not changed by these calls in the event of an
+ error.
+ .SH ERRORS
+-.sp
+-.LP
+ If the error is non-null, one of the following values is set:
+ .sp
+ .ne 2
+@@ -92,8 +85,6 @@ For \fIsip_get_request_uri_str\fR, the request \fBURI\fR is invalid.
+ On success, the value of the location pointed to by \fIerror\fR is set to
+ \fB0\fR.
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -110,6 +101,4 @@ MT-Level	MT-Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ \fBlibsip\fR(3LIB)
+diff --git a/usr/src/man/man3sip/sip_is_sip_uri.3sip b/usr/src/man/man3sip/sip_is_sip_uri.3sip
+index 04ec93b6fc..2a07335c57 100644
+--- a/usr/src/man/man3sip/sip_is_sip_uri.3sip
++++ b/usr/src/man/man3sip/sip_is_sip_uri.3sip
+@@ -3,7 +3,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH SIP_IS_SIP_URI 3SIP "Feb 10, 2007"
++.TH SIP_IS_SIP_URI 3SIP "November 22, 2021"
+ .SH NAME
+ sip_is_sip_uri, sip_get_uri_scheme, sip_get_uri_host, sip_get_uri_user,
+ sip_get_uri_password, sip_get_uri_port, sip_get_uri_params,
+@@ -11,7 +11,6 @@ sip_get_uri_headers, sip_get_uri_opaque, sip_get_uri_query, sip_get_uri_path,
+ sip_get_uri_regname, sip_is_uri_teluser, sip_get_uri_errflags,
+ sip_uri_errflags_to_str \- get URI related attributes
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBcc\fR [ \fIflag\fR ... ] \fIfile\fR ... \fB-lsip\fR [ \fIlibrary\fR ... ]
+ #include <sip.h>
+@@ -102,8 +101,6 @@ sip_uri_errflags_to_str \- get URI related attributes
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ For functions that return a pointer of type \fIsip_str_t\fR, \fIsip_str_t\fR is
+ supplied by:
+ .sp
+@@ -127,15 +124,15 @@ For example, given the following request line in a \fBSIP\fR message input to
+ .sp
+ .in +2
+ .nf
+-INVITE sip:marconi@radio.org SIP/2.0
++INVITE sip:marconi@example.org SIP/2.0
+ .fi
+ .in -2
+ 
+ .sp
+ .LP
+ the return is a pointer to \fIsip_str_t\fR with the \fIsip_str_ptr\fR member
+-pointing to "\fBs\fR" of \fBsip:marconi@radio.org\fR and \fIsip_str_len\fR
+-being set to \fB21\fR, the length of \fBsip:marconi@radio.org\fR.
++pointing to "\fBs\fR" of \fBsip:marconi@example.org\fR and \fIsip_str_len\fR
++being set to \fB23\fR, the length of \fBsip:marconi@example.org\fR.
+ .sp
+ .LP
+ The \fBsip_is_sip_uri()\fR function takes a parsed \fBURI\fR \fIsip_uri\fR and
+@@ -227,8 +224,6 @@ function returns a string such as:
+ .LP
+ The caller is responsible for freeing the returned string.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ The \fBsip_get_uri_scheme()\fR, \fBsip_get_uri_user()\fR,
+ \fBsip_get_uri_password()\fR, \fBsip_get_uri_host()\fR,
+ \fBsip_get_uri_params()\fR, \fBsip_get_uri_headers()\fR,
+@@ -245,8 +240,6 @@ The \fBsip_get_uri_port()\fR function returns \fIport\fR from the \fBURI\fR or
+ The value of \fBerrno\fR is not changed by these calls in the event of an
+ error.
+ .SH ERRORS
+-.sp
+-.LP
+ If the error is non-null, the following value is set:
+ .sp
+ .ne 2
+@@ -270,8 +263,6 @@ components are requested from a \fBSIP[S]\fR \fBURI\fR.
+ On success, the value of the location pointed to by \fIerror\fR is set to
+ \fB0\fR.
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -288,6 +279,4 @@ MT-Level	MT-Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ \fBlibsip\fR(3LIB)
+diff --git a/usr/src/man/man3sip/sip_parse_uri.3sip b/usr/src/man/man3sip/sip_parse_uri.3sip
+index 878fab7d14..f7219532ae 100644
+--- a/usr/src/man/man3sip/sip_parse_uri.3sip
++++ b/usr/src/man/man3sip/sip_parse_uri.3sip
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH SIP_PARSE_URI 3SIP "Jan 25, 2007"
++.TH SIP_PARSE_URI 3SIP "November 22, 2021"
+ .SH NAME
+ sip_parse_uri, sip_free_parsed_uri \- parse a URI and free a parsed URI
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBcc\fR [ \fIflag\fR ... ] \fIfile\fR ... \fB-lsip\fR [ \fIlibrary\fR ... ]
+ #include <sip.h>
+@@ -22,8 +21,6 @@ sip_parse_uri, sip_free_parsed_uri \- parse a URI and free a parsed URI
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ For functions that return a pointer of type \fIsip_str_t\fR, \fIsip_str_t\fR is
+ supplied by:
+ .sp
+@@ -47,15 +44,15 @@ For example, given the following request line in a \fBSIP\fR message input to
+ .sp
+ .in +2
+ .nf
+-INVITE sip:marconi@radio.org SIP/2.0
++INVITE sip:marconi@example.org SIP/2.0
+ .fi
+ .in -2
+ 
+ .sp
+ .LP
+ the return is a pointer to \fIsip_str_t\fR with the \fIsip_str_ptr\fR member
+-pointing to "\fBs\fR" of \fBsip:marconi@radio.org\fR and \fIsip_str_len\fR
+-being set to \fB21\fR, the length of \fBsip:marconi@radio.org\fR.
++pointing to "\fBs\fR" of \fBsip:marconi@example.org\fR and \fIsip_str_len\fR
++being set to \fB23\fR, the length of \fBsip:marconi@example.org\fR.
+ .sp
+ .LP
+ The \fBsip_parse_uri()\fR function takes a \fBURI\fR string in the form
+@@ -69,8 +66,6 @@ The \fBsip_free_parsed_uri()\fR function takes a parsed \fBURI\fR
+ \fIsip_uri\fR, obtained from \fBsip_parse_uri()\fR, and frees any associated
+ memory.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ The \fBsip_parse_uri()\fR function returns the parsed \fBURI\fR \fIsip_uri\fR
+ on success. It returns a \fBNULL\fR if memory cannot be allocated for the
+ parsed \fBURI\fR.
+@@ -79,8 +74,6 @@ parsed \fBURI\fR.
+ The value of \fBerrno\fR is not changed by these calls in the event of an
+ error.
+ .SH ERRORS
+-.sp
+-.LP
+ If the error is non-null, the following values is set:
+ .sp
+ .ne 2
+@@ -104,8 +97,6 @@ components are requested from a \fBSIP[S]\fR \fBURI\fR.
+ On success, the value of the location pointed to by \fIerror\fR is set to
+ \fB0\fR.
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -122,6 +113,4 @@ MT-Level	MT-Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ \fBlibsip\fR(3LIB)
+diff --git a/usr/src/man/man4/NISLDAPmapping.4 b/usr/src/man/man4/NISLDAPmapping.4
+index e1b30af0e0..91a3cbe0e6 100644
+--- a/usr/src/man/man4/NISLDAPmapping.4
++++ b/usr/src/man/man4/NISLDAPmapping.4
+@@ -3,7 +3,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH NISLDAPMAPPING 4 "June 20, 2021"
++.TH NISLDAPMAPPING 4 "November 22, 2021"
+ .SH NAME
+ NISLDAPmapping \- mapping file used by the NIS server components
+ .SH SYNOPSIS
+@@ -130,7 +130,7 @@ The following is an example of the \fBnisLDAPdomainContext\fR attribute:
+ .sp
+ .in +2
+ .nf
+-domain.one : dc=site, dc=company, dc=com
++domain.one : dc=site, dc=example, dc=com
+ .fi
+ .in -2
+ 
+diff --git a/usr/src/man/man4/bootparams.4 b/usr/src/man/man4/bootparams.4
+index 082fc6f4b3..50c582efff 100644
+--- a/usr/src/man/man4/bootparams.4
++++ b/usr/src/man/man4/bootparams.4
+@@ -1,20 +1,18 @@
+ '\" te
+-.\" Copyright 2017 Peter Tribble
++.\" Copyright 2021 Peter Tribble
+ .\" Copyright (C) 2002, Sun Microsystems, Inc. All Rights Reserved
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH BOOTPARAMS 4 "May 13, 2017"
++.TH BOOTPARAMS 4 "November 22, 2021"
+ .SH NAME
+ bootparams \- boot parameter data base
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fB/etc/bootparams\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBbootparams\fR file contains a list of client entries that diskless
+ clients use for booting. Diskless booting clients retrieve this information by
+ issuing requests to a server running the \fBrpc.bootparamd\fR(1M) program. The
+@@ -99,7 +97,7 @@ colon. For example:
+ .sp
+ .in +2
+ .nf
+-client1 domain=bldg1.workco.com
++client1 domain=bldg1.example.com
+ .fi
+ .in -2
+ .sp
+@@ -114,7 +112,7 @@ between the end of the path (\fBroot\fR) and the keyword \fBdomain\fR:
+ .sp
+ .in +2
+ .nf
+-client1 root=server1:/export/client1/root domain=bldg1.workco.com
++client1 root=server1:/export/client1/root domain=bldg1.example.com
+ .fi
+ .in -2
+ .sp
+@@ -170,7 +168,6 @@ specify the name service.
+ .LP
+ The \fBns\fR keyword can be set in \fBadd_install_client\fR or by Host Manager.
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRSample \fBbootparams\fR Entry
+ .sp
+ .LP
+@@ -180,7 +177,7 @@ Here is an example of an entry in the \fBbootparams\fR file:
+ .in +2
+ .nf
+ 	client1 root=server1:/export/client1/root rootopts=:vers=2 \e
+-		domain=bldg1.workco.com
++		domain=bldg1.example.com
+ 	client2 root=server2:/export/client2/root ns=:nis
+ 	client3 root=server2:/export/client3/root ns=watson:
+ 	client4 root=server2:/export/client4/root \e
+@@ -202,7 +199,7 @@ installation of diskless clients that do not have displays.
+ mozart root=haydn:/export/install/sparc/os/latest/Solaris_9/boot \e
+ install=haydn:/export/install/sparc/os/8.1/latest boottype=:in \e
+ install_config=haydn:/usr/local/share/lib/jump-net \e
+-ns=otis:nisplus(255.255.255.0) term=:xterms domain=eu.cte.work.com
++ns=otis:nisplus(255.255.255.0) term=:xterms domain=eu.cte.example.com
+ .fi
+ .in -2
+ .sp
+@@ -217,10 +214,8 @@ ns=otis:nisplus(255.255.255.0) term=:xterms domain=eu.cte.work.com
+ .RE
+ 
+ .SH SEE ALSO
+-.LP
+ \fBrpc.bootparamd\fR(1M), \fBnsswitch.conf\fR(4)
+ .SH NOTES
+-.LP
+ The \fBNIS+\fR, \fBsysidtool\fR, and jumpstart facilities are not present in
+ illumos. They are documented here solely for users who wish to use illumos as
+ a jumpstart server for older Solaris releases.
+diff --git a/usr/src/man/man4/ike.config.4 b/usr/src/man/man4/ike.config.4
+index 53b0c6d270..1e9140a5ce 100644
+--- a/usr/src/man/man4/ike.config.4
++++ b/usr/src/man/man4/ike.config.4
+@@ -4,17 +4,15 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License"). You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+ .\"  See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE. If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH IKE.CONFIG 4 "Apr 27, 2009"
++.TH IKE.CONFIG 4 "November 22, 2021"
+ .SH NAME
+ ike.config \- configuration file for IKE policy
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fB/etc/inet/ike/config\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fB/etc/inet/ike/config\fR file contains rules for matching inbound IKE
+ requests. It also contains rules for preparing outbound \fBIKE\fR requests.
+ .sp
+@@ -24,7 +22,6 @@ using the \fB-c\fR or \fB-f\fR options of \fBin.iked\fR(1M). You must use the
+ \fB-c\fR option to test a \fBconfig\fR file. You might need to use the \fB-f\fR
+ option if it is not in \fB/etc/inet/ike/config\fR.
+ .SS "Lexical Components"
+-.LP
+ On any line, an unquoted \fB#\fR character introduces a comment. The remainder
+ of that line is ignored. Additionally, on any line, an unquoted \fB//\fR
+ sequence introduces a comment. The remainder of that line is ignored.
+@@ -164,12 +161,12 @@ alternative names, the filename or \fBslot\fR of a certificate in
+ .in +2
+ .nf
+ "SLOT=0"
+-"EMAIL=postmaster@domain.org"
+-"webmaster@domain.org" # Some just work w/o TYPE=
++"EMAIL=postmaster@example.org"
++"webmaster@example.org" # Some just work w/o TYPE=
+ "IP=10.0.0.1"
+ "10.21.11.11"          # Some just work w/o TYPE=
+-"DNS=www.domain.org"
+-"mailhost.domain.org"  # Some just work w/o TYPE=
++"DNS=www.example.org"
++"mailhost.example.org"  # Some just work w/o TYPE=
+ "ISSUER=C=US, O=Sun Microsystems\\, Inc., CN=Sun CA"
+ .fi
+ .in -2
+@@ -206,7 +203,6 @@ A list of parameters.
+ .RE
+ 
+ .SS "File Body Entries"
+-.LP
+ There are four main types of entries:
+ .RS +4
+ .TP
+@@ -527,13 +523,13 @@ an IP address (for example, \fB10.1.1.2\fR)
+ .TP
+ .ie t \(bu
+ .el o
+-DNS name (for example, \fBtest.domain.com\fR)
++DNS name (for example, \fBtest.example.com\fR)
+ .RE
+ .RS +4
+ .TP
+ .ie t \(bu
+ .el o
+-MBOX RFC 822 name (for example, \fBroot@domain.com\fR)
++MBOX RFC 822 name (for example, \fBroot@example.com\fR)
+ .RE
+ .RS +4
+ .TP
+@@ -897,7 +893,7 @@ An initiator offers up lists of phase 1 transforms, and a receiver is expected
+ to only accept such an entry if it matches one in a phase 1 rule. There can be
+ several of these, and they are additive. There must be either at least one
+ phase 1 transform in a rule or a global default phase 1 transform list. A
+-\fBike.config\fR file without a global default phase 1transform list \fBand\fR
++\fBike.config\fR file without a global default phase 1 transform list \fBand\fR
+ a rule without a phase 1 transform list is an invalid file. Elements within the
+ parameter-list; unless specified as optional, must occur exactly once within a
+ given transform's parameter-list:
+@@ -984,7 +980,6 @@ Optional. The lifetime for a phase 1 SA.
+ .RE
+ 
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRA Sample \fBike.config\fR File
+ .sp
+ .LP
+@@ -1007,10 +1002,10 @@ cert_root    "C=US, O=Sun Microsystems\\, Inc., CN=Sun CA"
+ # Explicitly trusted certs that need no signatures, or perhaps
+ # self-signed ones. Like root certificates, use full DNs for them
+ # for now.
+-cert_trust    "EMAIL=root@domain.org"
++cert_trust    "EMAIL=root@example.org"
+ 
+ # Where do I send LDAP requests?
+-ldap_server        "ldap1.domain.org,ldap2.domain.org:389"
++ldap_server        "ldap1.example.org,ldap2.example.org:389"
+ 
+ ## phase 1 transform defaults...
+ 
+@@ -1118,7 +1113,7 @@ p2_pfs 2
+ 
+     label "punchin-point"
+     local_id_type mbox
+-    local_id "ipsec-wizard@domain.org"
++    local_id "ipsec-wizard@example.org"
+ 
+     remote_id "10.5.5.128"
+ 
+@@ -1133,7 +1128,7 @@ p2_pfs 2
+ {
+    label "receiver side"
+ 
+-   remote_id "ipsec-wizard@domain.org"
++   remote_id "ipsec-wizard@example.org"
+ 
+    local_id_type ip
+    local_id "10.5.5.128"
+@@ -1154,7 +1149,6 @@ p2_pfs 2
+ .in -2
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -1169,7 +1163,6 @@ Interface Stability	Committed
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ \fBcryptoadm\fR(1M), \fBikeadm\fR(1M), \fBin.iked\fR(1M), \fBikecert\fR(1M),
+ \fBipseckey\fR(1M), \fBipsecalgs\fR(1M), \fBipsecconf\fR(1M), \fBsvccfg\fR(1M),
+ \fBdlopen\fR(3C), \fBattributes\fR(5), \fBrandom\fR(7D)
+diff --git a/usr/src/man/man4/krb5.conf.4 b/usr/src/man/man4/krb5.conf.4
+index 4d18ab5362..62dabd5445 100644
+--- a/usr/src/man/man4/krb5.conf.4
++++ b/usr/src/man/man4/krb5.conf.4
+@@ -3,7 +3,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH KRB5.CONF 4 "May 16, 2020"
++.TH KRB5.CONF 4 "November 22, 2021"
+ .SH NAME
+ krb5.conf \- Kerberos configuration file
+ .SH SYNOPSIS
+@@ -394,7 +394,7 @@ option has no effect.
+ .RS 4n
+ If \fBtrue\fR, the local keytab file (\fB/etc/krb5/krb5.keytab\fR) must contain
+ an entry for the local \fBhost\fR principal, for example,
+-\fBhost/foo.bar.com@FOO.COM\fR. This entry is needed to verify that the
++\fBhost/foo.example.net@EXAMPLE.COM\fR. This entry is needed to verify that the
+ \fBTGT\fR requested was issued by the same \fBKDC\fR that issued the key for
+ the host principal. If undefined, the behavior is as if this option were set to
+ \fBtrue\fR. Setting this value to \fBfalse\fR leaves the system vulnerable to
+@@ -735,10 +735,10 @@ Regular expressions are defined in \fBregex\fR(5).
+ .sp
+ For example:
+ .sp
+-auth_to_local = RULE:[1:$1@$0](.*@.*ACME\.COM)s/@.*//
++auth_to_local = RULE:[1:$1@$0](.*@.*EXAMPLE\.COM)s/@.*//
+ .sp
+-The preceding maps \fB\fIusername\fR@ACME.COM\fR and all sub-realms of
+-\fBACME.COM\fR to \fIusername\fR.
++The preceding maps \fB\fIusername\fR@EXAMPLE.COM\fR and all sub-realms of
++\fBEXAMPLE.COM\fR to \fIusername\fR.
+ .RE
+ 
+ .sp
+@@ -843,7 +843,7 @@ Regardless of the size, both protocols are tried if the first attempt fails.
+ .RS 4n
+ If \fBtrue\fR, the local keytab file (\fB/etc/krb5/krb5.keytab\fR) must contain
+ an entry for the local \fBhost\fR principal, for example,
+-\fBhost/foo.bar.com@FOO.COM\fR. This entry is needed to verify that the
++\fBhost/foo.example.net@EXAMPLE.COM\fR. This entry is needed to verify that the
+ \fBTGT\fR requested was issued by the same \fBKDC\fR that issued the key for
+ the host principal. If undefined, the behavior is as if this option were set to
+ \fBtrue\fR. Setting this value to \fBfalse\fR leaves the system vulnerable to
+@@ -882,8 +882,8 @@ hostname's domain portion converted to upper case. For example, the following
+    .mit.edu = ATHENA.MIT.EDU
+    mit.edu = ATHENA.MIT.EDU
+    crash.mit.edu = TEST.ATHENA.MIT.EDU
+-   .fubar.org = FUBAR.ORG
+-   fubar.org = FUBAR.ORG
++   .example.org = EXAMPLE.ORG
++   example.org = EXAMPLE.ORG
+ .fi
+ .in -2
+ .sp
+@@ -891,9 +891,9 @@ hostname's domain portion converted to upper case. For example, the following
+ .sp
+ .LP
+ All other hosts in the \fBmit.edu\fR domain maps by default to the
+-\fBATHENA.MIT.EDU\fR realm, and all hosts in the \fBfubar.org\fR domain maps by
+-default into the \fBFUBAR.ORG\fR realm. The entries for the hosts \fBmit.edu\fR
+-and \fBfubar.org\fR. Without these entries, these hosts would be mapped into
++\fBATHENA.MIT.EDU\fR realm, and all hosts in the \fBexample.org\fR domain maps by
++default into the \fBEXAMPLE.ORG\fR realm. The entries for the hosts \fBmit.edu\fR
++and \fBexample.org\fR. Without these entries, these hosts would be mapped into
+ the Kerberos realms \fBEDU\fR and \fBORG\fR, respectively.
+ .SS "The \fB[logging]\fR Section"
+ This section indicates how Kerberos programs are to perform logging. There are
+@@ -1773,10 +1773,10 @@ The following is an example of a generic \fBkrb5.conf\fR file:
+       auth_to_local_realm = KRBDEV.ATHENA.MIT.EDU
+    }
+ 
+-   FUBAR.ORG = {
+-      kdc = kerberos.fubar.org
+-      kdc = kerberos-1.fubar.org
+-      admin_server = kerberos.fubar.org
++   EXAMPLE.ORG = {
++      kdc = kerberos.example.org
++      kdc = kerberos-1.example.org
++      admin_server = kerberos.example.org
+   }
+ 
+ [domain_realm]
+@@ -1798,7 +1798,7 @@ a Kerberos configuration file when the KDC is using the LDAP KDB plug-in.
+ .in +2
+ .nf
+ [realms]
+-    SUN.COM = {
++    EXAMPLE.COM = {
+         kdc = kc-umpk-01.athena.mit.edu
+         kdc = kc-umpk-02.athena.mit.edu
+         admin_server = kc-umpk-01.athena.mit.edu
+diff --git a/usr/src/man/man4/netid.4 b/usr/src/man/man4/netid.4
+index f58e1ce200..7f52e76ca8 100644
+--- a/usr/src/man/man4/netid.4
++++ b/usr/src/man/man4/netid.4
+@@ -4,17 +4,15 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH NETID 4 "Feb 25, 2017"
++.TH NETID 4 "November 22, 2021"
+ .SH NAME
+ netid \- netname database
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fB/etc/netid\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBnetid\fR file is a local source of information on mappings between
+ netnames (see \fBsecure_rpc\fR(3NSL)) and user ids or hostnames in the local
+ domain. The \fBnetid\fR file can be used in conjunction with, or instead of,
+@@ -108,7 +106,6 @@ The local hostname (see \fBhosts\fR(4)).
+ Blank lines are ignored. Any part of a line to the right of a `\fB#\fR' symbol
+ is treated as a comment.
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRA sample \fBnetid\fR file.
+ .sp
+ .LP
+@@ -117,9 +114,9 @@ Here is a sample \fBnetid\fR file:
+ .sp
+ .in +2
+ .nf
+-unix.789@West.Sun.COM	789:30,65
+-unix.123@Bldg_xy.Sun.COM	123:20,1521
+-unix.candlestick@campus1.bayarea.EDU	0:candlestick
++unix.789@West.Example.COM	789:30,65
++unix.123@Bldg_xy.Example.COM	123:20,1521
++unix.candlestick@campus1.example.NET	0:candlestick
+ .fi
+ .in -2
+ .sp
+@@ -170,6 +167,5 @@ public key database
+ .RE
+ 
+ .SH SEE ALSO
+-.LP
+ \fBnetname2user\fR(3NSL), \fBsecure_rpc\fR(3NSL), \fBgroup\fR(4),
+ \fBhosts\fR(4), \fBnsswitch.conf\fR(4), \fBpasswd\fR(4), \fBpublickey\fR(4)
+diff --git a/usr/src/man/man4/nfs.4 b/usr/src/man/man4/nfs.4
+index 95822c75e6..6979f5f485 100644
+--- a/usr/src/man/man4/nfs.4
++++ b/usr/src/man/man4/nfs.4
+@@ -20,7 +20,7 @@
+ .\" Copyright 2016 Nexenta Systems, Inc.
+ .\" Copyright 2020 Joyent, Inc.
+ .\"
+-.Dd December 28, 2020
++.Dd November 22, 2021
+ .Dt NFS 4
+ .Os
+ .Sh NAME
+@@ -249,8 +249,8 @@ falls back on using the configured domain name
+ .Pc ,
+ which is returned with the leading domain suffix removed.
+ For example, for
+-.Li widgets.sales.acme.com ,
+-.Li sales.acme.com
++.Li widgets.sales.example.com ,
++.Li sales.example.com
+ is returned.
+ .It
+ If
+diff --git a/usr/src/man/man4/nsmbrc.4 b/usr/src/man/man4/nsmbrc.4
+index 5eaffa9f63..26bb380eb5 100644
+--- a/usr/src/man/man4/nsmbrc.4
++++ b/usr/src/man/man4/nsmbrc.4
+@@ -4,17 +4,15 @@
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+ .\" Copyright 2018 Nexenta Systems, Inc.  All rights reserved.
+-.TH NSMBRC 4 "May 8, 2018"
++.TH NSMBRC 4 "November 22, 2021"
+ .SH NAME
+ nsmbrc \- configuration file for Solaris CIFS client requests
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fB$HOME/.nsmbrc\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ Global behavior of the Solaris CIFS client is defined by property values that
+ are stored in the Service Management Facility (SMF). The \fB\&.nsmbrc\fR file
+ can be used to customize the behavior of the Solaris CIFS client on a per-user
+@@ -27,7 +25,7 @@ these properties in SMF. See \fBsharectl\fR(1M).
+ .sp
+ .LP
+ A regular user can change the global values when granted the "SMBFS Management"
+-rights profile in the \fB/user_attr\fR file. See \fBuser_attr\fR(4) and
++rights profile in the \fB/etc/user_attr\fR file. See \fBuser_attr\fR(4) and
+ \fBrbac\fR(5).
+ .sp
+ .LP
+@@ -280,12 +278,11 @@ property. Use the \fBdomain\fR property instead.
+ .RE
+ 
+ .SH EXAMPLES
+-.LP
+ The examples in this section show how to use the \fB\&.nsmbrc\fR file and the
+-\fBsmbutil\fR command to configure the \fBex.com\fR environment.
++\fBsmbutil\fR command to configure the \fBexample.com\fR environment.
+ .sp
+ .LP
+-The \fBex.com\fR environment is described by means of these sections and
++The \fBexample.com\fR environment is described by means of these sections and
+ settings:
+ .RS +4
+ .TP
+@@ -300,20 +297,20 @@ are inherited by other sections unless property values are overridden.
+ .ie t \(bu
+ .el o
+ \fBFSERVER\fR is a server section that defines a server called
+-\fBfserv.ex.com\fR. It is part of the \fBSALES\fR domain.
++\fBfserv.example.com\fR. It is part of the \fBSALES\fR domain.
+ .RE
+ .RS +4
+ .TP
+ .ie t \(bu
+ .el o
+ \fBRSERVER\fR is a server section that defines a server called
+-\fBrserv.ex.com\fR that belongs to a new domain called \fBREMGROUP\fR.
++\fBrserv.example.com\fR that belongs to a new domain called \fBREMGROUP\fR.
+ .RE
+ .LP
+ \fBExample 1 \fRUsing the \fB$HOME/.nsmbrc\fR Configuration File
+ .sp
+ .LP
+-The following example shows how a user can configure the \fBex.com\fR
++The following example shows how a user can configure the \fBexample.com\fR
+ environment by creating the \fB\&.nsmbrc\fR file.
+ 
+ .sp
+@@ -324,7 +321,7 @@ parsed.
+ .sp
+ .in +2
+ .nf
+-# Configuration file for ex.com
++# Configuration file for example.com
+ # Specify the Windows account name to use everywhere.
+ [default]
+ domain=MYDOMAIN
+@@ -332,12 +329,12 @@ user=MYUSER
+ 
+ # The 'FSERVER' is server in our domain.
+ [FSERVER]
+-addr=fserv.ex.com
++addr=fserv.example.com
+ 
+ # The 'RSERVER' is a server in another domain.
+ [RSERVER]
+ domain=REMGROUP
+-addr=rserv.ex.com
++addr=rserv.example.com
+ .fi
+ .in -2
+ 
+@@ -346,16 +343,16 @@ addr=rserv.ex.com
+ .sp
+ .LP
+ The following example shows how an authorized user can use \fBsharectl\fR
+-commands to configure global settings for the \fBex.com\fR environment in SMF.
++commands to configure global settings for the \fBexample.com\fR environment in SMF.
+ 
+ .sp
+ .in +2
+ .nf
+ # \fBsharectl set -p section=default -p domain=MYDOMAIN \e
+ -p user=MYUSER smbfs\fR
+-# \fBsharectl set -p section=FSERVER -p addr=fserv.ex.com smbfs\fR
++# \fBsharectl set -p section=FSERVER -p addr=fserv.example.com smbfs\fR
+ # \fBsharectl set -p section=RSERVER -p domain=REMGROUP \e
+--p addr=rserv.ex.com smbfs\fR
++-p addr=rserv.example.com smbfs\fR
+ .fi
+ .in -2
+ .sp
+@@ -376,10 +373,10 @@ shown are those set by the previous example.
+   domain=MYDOMAIN
+   user=MYUSER
+ [FSERVER]
+-  addr=fserv.ex.com
++  addr=fserv.example.com
+ [RSERVER]
+   domain=REMGROUP
+-  addr=rserv.ex.com
++  addr=rserv.example.com
+ .fi
+ .in -2
+ .sp
+@@ -396,7 +393,6 @@ connection.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -411,11 +407,9 @@ Interface Stability	Committed
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ \fBsmbutil\fR(1), \fBmount_smbfs\fR(1M), \fBsharectl\fR(1M),
+ \fBnsswitch.conf\fR(4), \fBuser_attr\fR(4), \fBattributes\fR(5), \fBrbac\fR(5),
+ \fBsmbfs\fR(7FS)
+ .SH NOTES
+-.LP
+ By default, passwords stored in the \fB\&.nsmbrc\fR file are ignored unless
+ \fBonly\fR the file owner has read and write permission.
+diff --git a/usr/src/man/man4/timezone.4 b/usr/src/man/man4/timezone.4
+index 84ed9d5556..cfa7cf0ddc 100644
+--- a/usr/src/man/man4/timezone.4
++++ b/usr/src/man/man4/timezone.4
+@@ -3,17 +3,15 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH TIMEZONE 4 "May 13, 2017"
++.TH TIMEZONE 4 "November 22, 2021"
+ .SH NAME
+ timezone \- default timezone data base
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fB/etc/timezone\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The timezone file contains information regarding the default timezone for each
+ host in a domain. Alternatively, a single default line for the entire domain
+ may be specified. Each entry has the format:
+@@ -41,7 +39,6 @@ The \fBtimezone\fR file does not set the timezone environment variable
+ \fBTZ\fR. See \fBTIMEZONE\fR(4) for information to set the \fBTZ\fR environment
+ variable.
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRTypical timezone line
+ .sp
+ .LP
+@@ -50,7 +47,7 @@ Here is a typical line from the \fB/etc/timezone\fR file:
+ .sp
+ .in +2
+ .nf
+-US/Eastern          East.Sun.COM #Sun East Coast
++US/Eastern          East.Example.COM #Host on East Coast
+ .fi
+ .in -2
+ .sp
+@@ -65,5 +62,4 @@ US/Eastern          East.Sun.COM #Sun East Coast
+ .RE
+ 
+ .SH SEE ALSO
+-.LP
+ \fBTIMEZONE\fR(4)
+diff --git a/usr/src/man/man4/warn.conf.4 b/usr/src/man/man4/warn.conf.4
+index f667762149..62f5b7bab0 100644
+--- a/usr/src/man/man4/warn.conf.4
++++ b/usr/src/man/man4/warn.conf.4
+@@ -4,17 +4,15 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH WARN.CONF 4 "Mar 30, 2005"
++.TH WARN.CONF 4 "November 22, 2021"
+ .SH NAME
+ warn.conf \- Kerberos warning configuration file
+ .SH SYNOPSIS
+-.LP
+ .nf
+ /etc/krb5/warn.conf
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBwarn.conf\fR file contains configuration information specifying how
+ users will be warned by the \fBktkt_warnd\fR daemon about ticket expiration. In
+ addition, this file can be used to auto-renew the user's Ticket-Granting Ticket
+@@ -152,7 +150,6 @@ specified only with the \fBmail\fR field.
+ .RE
+ 
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRSpecifying Warnings
+ .sp
+ .LP
+@@ -174,7 +171,7 @@ expiration of the \fBTGT\fR for all principals. The form of the message is:
+ .sp
+ .in +2
+ .nf
+-jdb@ACME.COM: your kerberos credentials expire in 5 minutes
++jdb@EXAMPLE.COM: your kerberos credentials expire in 5 minutes
+ .fi
+ .in -2
+ .sp
+@@ -201,7 +198,7 @@ message (on renew success) is:
+ .sp
+ .in +2
+ .nf
+-myname@ACME.COM: your kerberos credentials have been renewed
++myname@EXAMPLE.COM: your kerberos credentials have been renewed
+ .fi
+ .in -2
+ 
+@@ -215,7 +212,6 @@ Kerberos warning daemon
+ .RE
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -230,10 +226,8 @@ Interface Stability	Evolving
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ \fBkinit\fR(1), \fBkdestroy\fR(1), \fBktkt_warnd\fR(1M), \fBsyslog.conf\fR(4),
+ \fButmpx\fR(4), \fBattributes\fR(5), \fBkerberos\fR(5), \fBpam_krb5\fR(5)
+ .SH NOTES
+-.LP
+ The auto-renew of the TGT is attempted only if the user is logged-in, as
+ determined by examining \fButmpx\fR(4).
+diff --git a/usr/src/man/man5/audit_remote.5 b/usr/src/man/man5/audit_remote.5
+index 7c5b762011..f1d2a39455 100644
+--- a/usr/src/man/man5/audit_remote.5
++++ b/usr/src/man/man5/audit_remote.5
+@@ -1,26 +1,23 @@
+ '\" te
+-.\" Copyright (c) 2017 Peter Tribble
++.\" Copyright (c) 2021 Peter Tribble
+ .\"  Copyright (c) 2009, Sun Microsystems, Inc. All Rights Reserved
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License"). You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+ .\"  See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE. If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH AUDIT_REMOTE 5 "Mar 6, 2017"
++.TH AUDIT_REMOTE 5 "November 22, 2021"
+ .SH NAME
+ audit_remote \- send audit logs to a remote server
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fB/usr/lib/security/audit_remote.so\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBaudit_remote\fR plugin module for audit,
+ \fB/usr/lib/security/audit_remote.so\fR, sends binary audit records
+ (\fBaudit.log\fR(4)) to audit servers specified in the plugin's attributes
+ configured by \fBauditconfig\fR(1M).
+ .SS "Object Attributes"
+-.LP
+ The following attributes specify the configuration of the \fBaudit_remote\fR
+ plugin:
+ .sp
+@@ -95,7 +92,6 @@ The default is the value of the kernel queue control high water mark. See
+ .RE
+ 
+ .SS "GSS SESSION"
+-.LP
+ The \fBaudit_remote plugin\fR is a TCP client that authenticates configured
+ audit servers using the GSS-API (\fBlibgss\fR(3LIB)). Binary Audit
+ records are sent with integrity and confidentiality protection as per-message
+@@ -148,7 +144,6 @@ retry <count> <error>.<error>\fR is connection \fB<host:port> <the network
+ error>\fR\&. An \fBEPROTO\fR network error indicates that the client plugin did
+ not get a successful protocol version handshake.
+ .SS "PROTOCOL DESCRIPTION"
+-.LP
+ All protocol messages are preceded by the 4 octets of the size of the data to
+ follow. This size is in network byte order.
+ .sp
+@@ -258,7 +253,6 @@ Secure remote audit client/server communication flow:
+ .in -2
+ 
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRActivating \fBaudit_remote.so\fR and Specifying attributes
+ .sp
+ .LP
+@@ -288,8 +282,8 @@ with the servers.
+ .in +2
+ .nf
+ # auditconfig -setplugin audit_remote active \e
+-p_hosts=eggplant.eng.sun.com::kerberos_v5,\e
+-purple.ebay.sun.com:4592:kerberos_v5
++p_hosts=eggplant.eng.example.com::kerberos_v5,\e
++purple.ebay.example.com:4592:kerberos_v5
+ .fi
+ .in -2
+ 
+@@ -304,14 +298,13 @@ mechanism. It also shows use of default port on one of the configured servers:
+ .in +2
+ .nf
+ # auditconfig -setplugin audit_remote active \e
+-p_hosts=jedger.eng.sun.com,\e
+-jbadams.ebay.sun.com:4592
++p_hosts=jedger.eng.example.com,\e
++jbadams.ebay.example.com:4592
+ .fi
+ .in -2
+ .sp
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(5) for a description of the following attributes:
+ .sp
+ 
+@@ -333,7 +326,6 @@ The plugin configuration parameters are Committed. The client/server protocol
+ (version \fB"01"\fR) is Contracted Project Private. See \fBaudit.log\fR(4) for
+ the audit record format and content stability.
+ .SH SEE ALSO
+-.LP
+ \fBauditd\fR(1M), \fBauditconfig\fR(1M), \fBaudit_warn\fR(1M),
+ \fBgetipnodebyname\fR(3SOCKET), \fBgetservbyname\fR(3XNET),
+ \fBgss_accept_sec_context\fR(3GSS), \fBgss_get_mic\fR(3GSS),
+@@ -342,7 +334,6 @@ the audit record format and content stability.
+ \fBaudit.log\fR(4), \fBkrb5.conf\fR(4), \fBmech\fR(4), \fBattributes\fR(5),
+ \fBkerberos\fR(5), \fBtcp\fR(7P)
+ .SH NOTES
+-.LP
+ \fBaudit_remote\fR authenticates itself to the remote audit service by way of
+ GSS-API (\fBlibgss\fR(3LIB)). Default gss credentials are used as provided by
+ the \fBgss\fR implementation mechanism, such as Kerberos.
+diff --git a/usr/src/man/man5/kerberos.5 b/usr/src/man/man5/kerberos.5
+index a27c1a9fdd..bd6d69d79e 100644
+--- a/usr/src/man/man5/kerberos.5
++++ b/usr/src/man/man5/kerberos.5
+@@ -4,12 +4,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH KERBEROS 5 "Oct 22, 2014"
++.TH KERBEROS 5 "November 22, 2021"
+ .SH NAME
+ kerberos \- overview of Solaris Kerberos implementation
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The Solaris Kerberos implementation, hereafter sometimes shortened to
+ "Kerberos," authenticates clients in a network environment, allowing for secure
+ transactions. (A client may be a user or a network service.) Kerberos validates
+@@ -104,7 +102,6 @@ and \fIprivacy\fR, which encrypts transmitted data. Developers can take
+ advantage of the \fBGSS-API\fR through the use of the RPCSEC_GSS \fBAPI\fR
+ interface (see \fBrpcsec_gss\fR(3NSL)).
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRExamples of valid principal names
+ .sp
+ .LP
+@@ -115,10 +112,10 @@ The following are examples of valid principal names:
+ .nf
+ 	joe
+ 	joe/admin
+-	joe@ENG.ACME.COM
+-	joe/admin@ENG.ACME.COM
+-	rlogin/bigmachine.eng.acme.com@ENG.ACME.COM
+-	host/bigmachine.eng.acme.com@ENG.ACME.COM
++	joe@ENG.EXAMPLE.COM
++	joe/admin@ENG.EXAMPLE.COM
++	rlogin/bigmachine.eng.example.com@ENG.EXAMPLE.COM
++	host/bigmachine.eng.example.com@ENG.EXAMPLE.COM
+ .fi
+ .in -2
+ .sp
+@@ -135,16 +132,12 @@ With host principals, the instance is the fully qualified hostname. Note that
+ the words \fBadmin\fR and \fBhost\fR are reserved keywords.
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ \fBkdestroy\fR(1), \fBkinit\fR(1), \fBklist\fR(1), \fBkpasswd\fR(1),
+ \fBkrb5.conf\fR(4), \fBkrb5envvar\fR(5)
+ .sp
+ .LP
+ \fISystem Administration Guide: Security Services\fR
+ .SH NOTES
+-.sp
+-.LP
+ In previous releases of the Solaris operating system, the Solaris Kerberos
+ implementation was referred to as the "Sun Enterprise Authentication Mechanism"
+ (SEAM).
+diff --git a/usr/src/man/man5/krb5_auth_rules.5 b/usr/src/man/man5/krb5_auth_rules.5
+index ddb0c92ae1..fcb964a64d 100644
+--- a/usr/src/man/man5/krb5_auth_rules.5
++++ b/usr/src/man/man5/krb5_auth_rules.5
+@@ -3,12 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH KRB5_AUTH_RULES 5 "Oct 29, 2015"
++.TH KRB5_AUTH_RULES 5 "November 22, 2021"
+ .SH NAME
+ krb5_auth_rules \- overview of Kerberos V5 authorization
+ .SH DESCRIPTION
+-.sp
+-.LP
+ When kerberized versions of the \fBftp\fR, \fBrdist\fR, \fBrcp\fR,
+ \fBrlogin\fR, \fBrsh\fR, \fBtelnet\fR, or \fBssh\fR clients are used to connect
+ to a server, the identity of the originating user must be authenticated to the
+@@ -23,7 +21,7 @@ remote user on the server the client is attempting to access. The file should
+ contain a private authorization list comprised of Kerberos principal names of
+ the form \fIprincipal/instance\fR@\fIrealm\fR. The \fI/instance\fR variable is
+ optional in Kerberos principal names. For example, different principal names
+-such as \fBjdb@ENG.ACME.COM\fR and \fBjdb/happy.eng.acme.com@ENG.ACME.COM\fR
++such as \fBjdb@ENG.EXAMPLE.COM\fR and \fBjdb/happy.eng.example.com@ENG.EXAMPLE.COM\fR
+ would each be legal, though not equivalent, Kerberos principals. The client is
+ granted access if the \fB~/.k5login\fR file is located in the login directory
+ of the remote user account and if the originating user can be authenticated to
+@@ -41,7 +39,7 @@ access. If the Unix user ID does not match, access is denied. See
+ .sp
+ .LP
+ For example, an originating user listed in the \fBgsscred\fR table with the
+-principal name \fBjdb@ENG.ACME.COM\fR and the \fBuid\fR \fB23154\fR is granted
++principal name \fBjdb@ENG.EXAMPLE.COM\fR and the \fBuid\fR \fB23154\fR is granted
+ access to the \fBjdb-user\fR account if \fB23154\fR is also the \fBuid\fR of
+ \fBjdb-user\fR listed in the user account database. See \fBpasswd\fR(4).
+ .sp
+@@ -74,9 +72,9 @@ The Unix account name exists on the server.
+ .sp
+ .LP
+ For example, if the originating user has the principal name
+-\fBjdb@ENG.ACME.COM\fR and if the server is in realm \fBSALES.ACME.COM\fR, the
++\fBjdb@ENG.EXAMPLE.COM\fR and if the server is in realm \fBSALES.EXAMPLE.COM\fR, the
+ client would be denied access even if \fBjdb\fR is a valid account name on the
+-server. This is because the realms \fBSALES.ACME.COM\fR and \fBENG.ACME.COM\fR
++server. This is because the realms \fBSALES.EXAMPLE.COM\fR and \fBENG.EXAMPLE.COM\fR
+ differ.
+ .sp
+ .LP
+@@ -84,7 +82,6 @@ The \fBkrb5.conf\fR(4) \fIauth_to_local_realm\fR parameter also affects
+ authorization. Non-default realms can be equated with the default realm for
+ authenticated \fBname-to-local name\fR mapping.
+ .SH FILES
+-.sp
+ .ne 2
+ .na
+ \fB\fB~/.k5login\fR\fR
+@@ -104,8 +101,6 @@ System account file. This information may also be in a directory service. See
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(5) for a description of the following attributes:
+ .sp
+ 
+@@ -120,8 +115,6 @@ Interface Stability	Evolving
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ \fBftp\fR(1), \fBrcp\fR(1), \fBrdist\fR(1), \fBrlogin\fR(1), \fBrsh\fR(1),
+ \fBtelnet\fR(1), \fBgsscred\fR(1M), \fBkadm5.acl\fR(4),
+ \fBkrb5.conf\fR(4), \fBpasswd\fR(4), \fBattributes\fR(5),
+diff --git a/usr/src/man/man5/pam_krb5_migrate.5 b/usr/src/man/man5/pam_krb5_migrate.5
+index 689e7b14a2..8f2dc5bb51 100644
+--- a/usr/src/man/man5/pam_krb5_migrate.5
++++ b/usr/src/man/man5/pam_krb5_migrate.5
+@@ -3,27 +3,22 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_KRB5_MIGRATE 5 "Jul 29, 2004"
++.TH PAM_KRB5_MIGRATE 5 "November 22, 2021"
+ .SH NAME
+ pam_krb5_migrate \- authentication PAM module for the KerberosV5 auto-migration
+ of users feature
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fB/usr/lib/security/pam_krb5_migrate.so.1\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The KerberosV5 auto-migrate service module for PAM provides functionality for
+ the PAM authentication component. The service module helps in the automatic
+ migration of \fBPAM_USER\fR to the client's local Kerberos realm, using
+ \fBPAM_AUTHTOK\fR (the PAM authentication token associated with \fBPAM_USER\fR)
+ as the new Kerberos principal's password.
+ .SS "KerberosV5 Auto-migrate Authentication Module"
+-.sp
+-.LP
+ The KerberosV5 auto-migrate authentication component provides the
+ \fBpam_sm_authenticate\fR(3PAM) function to migrate a user who does not have a
+ corresponding \fBkrb5\fR principal account to the default Kerberos realm of the
+@@ -54,8 +49,6 @@ is used in the authentication stack of a particular service, it is mandatory
+ that \fBpam_krb5\fR(5) be listed in the PAM account stack of that service for
+ proper operation (see EXAMPLES).
+ .SH OPTIONS
+-.sp
+-.LP
+ The following options can be passed to the KerberosV5 auto-migrate
+ authentication module:
+ .sp
+@@ -111,7 +104,6 @@ to \fBnow\fR (current time).
+ .RE
+ 
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRSample Entries from \fBpam.conf\fR
+ .sp
+ .LP
+@@ -153,15 +145,15 @@ host client service principal:
+ .sp
+ .in +2
+ .nf
+-host/*@ACME.COM U root
+-host/*@ACME.COM ui *
++host/*@EXAMPLE.COM U root
++host/*@EXAMPLE.COM ui *
+ .fi
+ .in -2
+ 
+ .sp
+ .LP
+ The preceding entries permit the \fBpam_krb5_migrate\fR \fBadd\fR privilege to
+-the host client service principal of any machine in the \fBACME.COM\fR
++the host client service principal of any machine in the \fBEXAMPLE.COM\fR
+ KerberosV5 realm, but denies the \fBadd\fR privilege to all host service
+ principals for addition of the root user account.
+ 
+@@ -182,8 +174,6 @@ k5migrate        account required        pam_unix_account.so.1
+ .in -2
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(5) for a description of the following attribute:
+ .sp
+ 
+@@ -198,8 +188,6 @@ Interface Stability	Evolving
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ \fBkadmind\fR(1M), \fBsyslog\fR(3C), \fBpam_authenticate\fR(3PAM),
+ \fBpam_acct_mgmt\fR(3PAM), \fBpam_sm_authenticate\fR(3PAM), \fBkadm5.acl\fR(4),
+ \fBpam.conf\fR(4), \fBattributes\fR(5), \fBpam_authtok_get\fR(5),
+-- 
+2.40.1
+

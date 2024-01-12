@@ -1,0 +1,39 @@
+From 83c2c0baa22bd77bc77facf1e1ef091642673ce2 Mon Sep 17 00:00:00 2001
+From: Toomas Soome <tsoome@me.com>
+Date: Sun, 28 Mar 2021 23:13:04 +0300
+Subject: [PATCH] 13679 rdist: error() and fatal() only do work in server
+ Reviewed by: Klaus Ziegler <klausz@haus-gisela.de> Approved by: Gordon Ross
+ <gordon.w.ross@gmail.com>
+
+---
+ usr/src/cmd/cmd-inet/usr.bin/rdist/server.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/usr/src/cmd/cmd-inet/usr.bin/rdist/server.c b/usr/src/cmd/cmd-inet/usr.bin/rdist/server.c
+index 70002fb628ae..1ea30cf3c674 100644
+--- a/usr/src/cmd/cmd-inet/usr.bin/rdist/server.c
++++ b/usr/src/cmd/cmd-inet/usr.bin/rdist/server.c
+@@ -1523,9 +1523,9 @@ error(char *fmt, ...)
+ 	static FILE *fp;
+ 
+ 	nerrs++;
+-	if (!fp && !(fp = fdopen(rem, "w")))
+-		return;
+ 	if (iamremote) {
++		if (!fp && !(fp = fdopen(rem, "w")))
++			return;
+ 		va_start(ap, fmt);
+ 		(void) fprintf(fp, "%crdist: ", 0x01);
+ 		(void) vfprintf(fp, fmt, ap);
+@@ -1555,9 +1555,9 @@ fatal(char *fmt, ...)
+ 	static FILE *fp;
+ 
+ 	nerrs++;
+-	if (!fp && !(fp = fdopen(rem, "w")))
+-		return;
+ 	if (iamremote) {
++		if (!fp && !(fp = fdopen(rem, "w")))
++			return;
+ 		va_start(ap, fmt);
+ 		(void) fprintf(fp, "%crdist: ", 0x02);
+ 		(void) vfprintf(fp, fmt, ap);

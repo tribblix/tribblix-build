@@ -1,0 +1,52 @@
+From 625b8b2ac3f4d9aee6c88dfdf2b99a6423a9b5b5 Mon Sep 17 00:00:00 2001
+From: "Andrew J. Stone" <andrew.j.stone.1@gmail.com>
+Date: Sat, 20 Aug 2022 21:58:13 +0000
+Subject: [PATCH] 14921 ipadm(8) could be clearer about addrobj requirements
+ Reviewed by: Robert Mustacchi <rm@fingolfin.org> Approved by: Patrick Mooney
+ <pmooney@pfmooney.com>
+
+---
+ usr/src/man/man8/ipadm.8 | 14 +++++++++-----
+ 1 file changed, 9 insertions(+), 5 deletions(-)
+
+diff --git a/usr/src/man/man8/ipadm.8 b/usr/src/man/man8/ipadm.8
+index a308a240a8..770ce52762 100644
+--- a/usr/src/man/man8/ipadm.8
++++ b/usr/src/man/man8/ipadm.8
+@@ -15,7 +15,7 @@
+ .\" Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
+ .\" Copyright 2021 Tintri by DDN, Inc. All rights reserved.
+ .\"
+-.Dd November 15, 2021
++.Dd August 20, 2022
+ .Dt IPADM 8
+ .Os
+ .Sh NAME
+@@ -192,16 +192,20 @@ For subcommands that take an
+ .Em addrobj ,
+ the
+ .Em addrobj
+-specifies a unique address on the system.
++specifies a unique address on the system, and must be unique itself.
+ It is made up of two parts, delimited by a
+ .Sq / .
+-The first part is the name of the interface and the second part is a string up
+-to 32 characters long.
++The first part is the name of the interface and the second part is an arbitrary
++string up to 32 alphanumeric characters long, where the first character must be
++alphabetic
++.Pq e.g. a-z,A-Z .
+ For example,
+ .Qq lo0/v4
+ is a loopback interface
+ .Em addrobj
+-name.
++name, which could also be called
++.Qq lo0/ipv4loopback .
++Consumers should note that this length limit may be lifted in the future.
+ .Pp
+ For subcommands that take a
+ .Em protocol ,
+-- 
+2.43.0
+

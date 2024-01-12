@@ -1,0 +1,37 @@
+From c77843b01543b72a167a9899efe84a9743d98ab8 Mon Sep 17 00:00:00 2001
+From: Robert Mustacchi <rm@fingolfin.org>
+Date: Sun, 11 Dec 2022 20:54:05 +0000
+Subject: [PATCH] 15246 scsi_hba_attach_setup(9F): Typo dev_bus_ops ->
+ devo_bus_ops Reviewed by: Toomas Soome <tsoome@me.com> Reviewed by: Garrett
+ D'Amore <garrett@damore.org> Reviewed by: Peter Tribble
+ <peter.tribble@gmail.com> Approved by: Dan McDonald <danmcd@mnx.io>
+
+---
+ usr/src/man/man9f/scsi_hba_attach_setup.9f | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/usr/src/man/man9f/scsi_hba_attach_setup.9f b/usr/src/man/man9f/scsi_hba_attach_setup.9f
+index 93e6343b5e..fbf2401e05 100644
+--- a/usr/src/man/man9f/scsi_hba_attach_setup.9f
++++ b/usr/src/man/man9f/scsi_hba_attach_setup.9f
+@@ -4,7 +4,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.Dd July 31, 2021
++.Dd December 11, 2022
+ .Dt SCSI_HBA_ATTACH_SETUP 9F
+ .Os
+ .Sh NAME
+@@ -67,7 +67,7 @@ imposed by the  HBA itself.
+ The
+ .Fn scsi_hba_attach_setup
+ function uses the
+-.Vt dev_bus_ops
++.Vt devo_bus_ops
+ field in the
+ .Xr dev_ops 9S
+ structure.
+-- 
+2.43.0
+

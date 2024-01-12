@@ -1,0 +1,247 @@
+From 772eca3305893e0fc7b9c13ec6a1a6df72251dbd Mon Sep 17 00:00:00 2001
+From: Jason King <jason.brian.king@gmail.com>
+Date: Tue, 16 Nov 2021 18:47:17 -0600
+Subject: [PATCH] 14173 Various smf manifests still contain Solaris references
+ Reviewed by: Peter Tribble <peter.tribble@gmail.com> Reviewed by: Andy
+ Fiddaman <andy@omnios.org> Approved by: Garrett D'Amore <garrett@damore.org>
+
+---
+ usr/src/cmd/auditd/auditd.xml                        |  6 +++---
+ usr/src/cmd/dumpadm/dumpadm.xml                      |  6 +++---
+ usr/src/cmd/fm/fmd/common/fmd.xml                    |  8 ++++----
+ usr/src/cmd/ipf/svc/ipfilter.xml                     | 10 +++++-----
+ usr/src/cmd/smbsrv/smbd/server.xml                   |  2 +-
+ usr/src/cmd/svc/milestone/devices-audio.xml          |  2 +-
+ usr/src/cmd/svc/milestone/devices-local.xml          |  4 +---
+ usr/src/cmd/syseventd/sysevent.xml                   | 12 ++++++------
+ .../cfgadm_plugins/fp/common/devices-fc-fabric.xml   |  4 ++--
+ 9 files changed, 26 insertions(+), 28 deletions(-)
+
+diff --git a/usr/src/cmd/auditd/auditd.xml b/usr/src/cmd/auditd/auditd.xml
+index 88632647f5..886504c204 100644
+--- a/usr/src/cmd/auditd/auditd.xml
++++ b/usr/src/cmd/auditd/auditd.xml
+@@ -153,7 +153,7 @@
+ 
+ 	<!--
+ 	  Audit Queue Control Properties - see auditconfig(1M)
+-	    
++
+ 	    Note, that the default value for all the queue control
+ 	    configuration parameters is 0, which makes auditd(1M) to
+ 	    use current active system parameters.
+@@ -218,7 +218,7 @@
+ 	<!--
+ 	  Plugins to configure where to send the audit trail - see
+ 	  auditconfig(1M), audit_binfile(5), audit_remote(5),
+-	  audit_syslog(5) 
++	  audit_syslog(5)
+ 
+ 	  Each plugin type property group has properties:
+ 
+@@ -310,7 +310,7 @@
+ 	<template>
+ 		<common_name>
+ 			<loctext xml:lang='C'>
+-				Solaris audit daemon
++				audit daemon
+ 			</loctext>
+ 		</common_name>
+ 		<documentation>
+diff --git a/usr/src/cmd/dumpadm/dumpadm.xml b/usr/src/cmd/dumpadm/dumpadm.xml
+index 367a92a667..65f7fdb900 100644
+--- a/usr/src/cmd/dumpadm/dumpadm.xml
++++ b/usr/src/cmd/dumpadm/dumpadm.xml
+@@ -68,9 +68,9 @@
+ 	</dependency>
+ 
+ 	<!--
+-		The fmd service exists in all Solaris zones, but only
+-		in the global zone (which dumpadm is defined in) should
+-		it be dependent on dumpadm configuration.
++		The fmd service may exist in a zone, but only in the
++		global zone (which dumpadm is defined in) should it be
++		dependent on dumpadm configuration.
+ 	-->
+ 	<dependent
+ 		name='dumpadm-fmd'
+diff --git a/usr/src/cmd/fm/fmd/common/fmd.xml b/usr/src/cmd/fm/fmd/common/fmd.xml
+index e03bdc01a1..92881321f4 100644
+--- a/usr/src/cmd/fm/fmd/common/fmd.xml
++++ b/usr/src/cmd/fm/fmd/common/fmd.xml
+@@ -96,14 +96,14 @@
+ 	<stability value='Evolving' />
+ 
+ 	<template>
+-	    	<common_name>
+-		    	<loctext xml:lang='C'>
+-				Solaris Fault Manager
++		<common_name>
++			<loctext xml:lang='C'>
++				Fault Manager
+ 			</loctext>
+ 		</common_name>
+ 
+ 		<documentation>
+-		    	<manpage
++			<manpage
+ 			    title='fmd'
+ 			    section='1M'
+ 			    manpath='/usr/share/man' />
+diff --git a/usr/src/cmd/ipf/svc/ipfilter.xml b/usr/src/cmd/ipf/svc/ipfilter.xml
+index 5f088f5344..41c6c1effb 100644
+--- a/usr/src/cmd/ipf/svc/ipfilter.xml
++++ b/usr/src/cmd/ipf/svc/ipfilter.xml
+@@ -152,7 +152,7 @@
+ 		</common_name>
+ 		<description>
+ 			<loctext xml:lang='C'>
+-			Solaris IP Filter - host-based firewall
++			IP Filter - host-based firewall
+ 			</loctext>
+ 		</description>
+ 		<documentation>
+@@ -177,7 +177,7 @@ The default system-wide firewall policy.
+ 			    required='true'>
+ 				<common_name>
+ 					<loctext xml:lang='C'>
+-Global Default policy 
++Global Default policy
+ 					</loctext>
+ 				</common_name>
+ 				<description>
+@@ -191,7 +191,7 @@ Firewall policy.
+ 					<value name='none'>
+ 						<description>
+ 							<loctext xml:lang='C'>
+-No firewall (allow all), this is the default value. 
++No firewall (allow all), this is the default value.
+ 							</loctext>
+ 
+ 						</description>
+@@ -390,7 +390,7 @@ The system-wide firewall policy that overrides default system-wide and all servi
+ 			    required='true'>
+ 				<common_name>
+ 					<loctext xml:lang='C'>
+-Global Override policy 
++Global Override policy
+ 					</loctext>
+ 				</common_name>
+ 				<description>
+@@ -404,7 +404,7 @@ Firewall policy.
+ 					<value name='none'>
+ 						<description>
+ 							<loctext xml:lang='C'>
+-No firewall (allow all), this is the default value. 
++No firewall (allow all), this is the default value.
+ 							</loctext>
+ 						</description>
+ 					</value>
+diff --git a/usr/src/cmd/smbsrv/smbd/server.xml b/usr/src/cmd/smbsrv/smbd/server.xml
+index aff42913ac..7dad5cc0b9 100644
+--- a/usr/src/cmd/smbsrv/smbd/server.xml
++++ b/usr/src/cmd/smbsrv/smbd/server.xml
+@@ -259,7 +259,7 @@ file.
+ 	<!-- 6. Identify faults to be ignored. -->
+ 	<!-- 7. Identify service model. Default service model is 'contract' -->
+ 	<!-- 8. Identify dependents.
+-		For Solaris NAS, we may want to have the smbd service start,
++		For a NAS, we may want to have the smbd service start,
+ 		before it reaches the svc:/milestone/multi-user-server
+ 		milestone.
+ 		<dependent
+diff --git a/usr/src/cmd/svc/milestone/devices-audio.xml b/usr/src/cmd/svc/milestone/devices-audio.xml
+index 7d67ffd221..636a481c82 100644
+--- a/usr/src/cmd/svc/milestone/devices-audio.xml
++++ b/usr/src/cmd/svc/milestone/devices-audio.xml
+@@ -82,7 +82,7 @@
+ 	<template>
+ 		<common_name>
+ 			<loctext xml:lang='C'>
+-			  Solaris audio device configuration.
++			  audio device configuration.
+ 			</loctext>
+ 		</common_name>
+ 	</template>
+diff --git a/usr/src/cmd/svc/milestone/devices-local.xml b/usr/src/cmd/svc/milestone/devices-local.xml
+index f02a3bbb1c..05b9c18b4f 100644
+--- a/usr/src/cmd/svc/milestone/devices-local.xml
++++ b/usr/src/cmd/svc/milestone/devices-local.xml
+@@ -24,8 +24,6 @@
+ 
+  CDDL HEADER END
+ 
+-	ident	"%Z%%M%	%I%	%E% SMI"
+-
+ 	NOTE:  This service manifest is not editable; its contents will
+ 	be overwritten by package or patch operations, including
+ 	operating system upgrade.  Make customizations in a different
+@@ -77,7 +75,7 @@
+ 	<template>
+ 		<common_name>
+ 			<loctext xml:lang='C'>
+-				Standard Solaris device configuration.
++				standard device configuration.
+ 			</loctext>
+ 		</common_name>
+ 	</template>
+diff --git a/usr/src/cmd/syseventd/sysevent.xml b/usr/src/cmd/syseventd/sysevent.xml
+index ebb88da564..a136c877a0 100644
+--- a/usr/src/cmd/syseventd/sysevent.xml
++++ b/usr/src/cmd/syseventd/sysevent.xml
+@@ -57,9 +57,9 @@
+ 	</dependent>
+ 
+ 	<!--
+-		The fmd service exists in all Solaris zones, but only
+-		in the global zone (which syseventd is defined in) should
+-		it be dependent on this service.
++		The fmd service may exist in a zone, but only in the global
++		zone (which syseventd is defined in) should it be dependent
++		on this service.
+ 	-->
+ 	<dependent
+ 		name='syseventd-fmd'
+@@ -83,14 +83,14 @@
+ 	<stability value='Unstable' />
+ 
+ 	<template>
+-	    	<common_name>
+-		    	<loctext xml:lang='C'>
++		<common_name>
++			<loctext xml:lang='C'>
+ 				system event notification
+ 			</loctext>
+ 		</common_name>
+ 
+ 		<documentation>
+-		    	<manpage
++			<manpage
+ 			    title='syseventd'
+ 			    section='1M'
+ 			    manpath='/usr/share/man' />
+diff --git a/usr/src/lib/cfgadm_plugins/fp/common/devices-fc-fabric.xml b/usr/src/lib/cfgadm_plugins/fp/common/devices-fc-fabric.xml
+index 4d9b91031f..06607a60c9 100644
+--- a/usr/src/lib/cfgadm_plugins/fp/common/devices-fc-fabric.xml
++++ b/usr/src/lib/cfgadm_plugins/fp/common/devices-fc-fabric.xml
+@@ -1,7 +1,7 @@
+ <?xml version="1.0"?>
+ <!DOCTYPE service_bundle SYSTEM "/usr/share/lib/xml/dtd/service_bundle.dtd.1">
+ <!--
+-	
++
+ CDDL HEADER START
+ 
+ The contents of this file are subject to the terms of the
+@@ -75,7 +75,7 @@ Use is subject to license terms.
+ 	<template>
+ 		<common_name>
+ 			<loctext xml:lang='C'>
+-				Solaris FC fabric device configuration.
++				FC fabric device configuration.
+ 			</loctext>
+ 		</common_name>
+                 <documentation>
+-- 
+2.40.1
+

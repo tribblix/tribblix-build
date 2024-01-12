@@ -1,0 +1,277 @@
+From cf96e8bf1ffaa8e64318435100a5e29e9d7971c7 Mon Sep 17 00:00:00 2001
+From: Marcel Telka <marcel@telka.sk>
+Date: Wed, 26 Jan 2022 21:41:22 +0100
+Subject: [PATCH] 13663 fchmodat(AT_SYMLINK_NOFOLLOW) should work for
+ non-symlinks Reviewed by: Gordon Ross <Gordon.W.Ross@gmail.com> Reviewed by:
+ Patrick Mooney <pmooney@pfmooney.com> Approved by: Dan McDonald
+ <danmcd@joyent.com>
+
+---
+ usr/src/man/man2/chmod.2                      | 13 +--
+ usr/src/pkg/manifests/system-test-ostest.p5m  |  2 +
+ usr/src/test/os-tests/runfiles/default.run    |  2 +-
+ usr/src/test/os-tests/tests/syscall/Makefile  |  2 +-
+ .../test/os-tests/tests/syscall/fchmodat.c    | 92 +++++++++++++++++++
+ usr/src/uts/common/os/fio.c                   |  4 +-
+ usr/src/uts/common/syscall/chmod.c            |  5 +-
+ 7 files changed, 103 insertions(+), 17 deletions(-)
+ create mode 100644 usr/src/test/os-tests/tests/syscall/fchmodat.c
+
+diff --git a/usr/src/man/man2/chmod.2 b/usr/src/man/man2/chmod.2
+index b1e0ebf2b4..d71ba875c5 100644
+--- a/usr/src/man/man2/chmod.2
++++ b/usr/src/man/man2/chmod.2
+@@ -45,11 +45,10 @@
+ .\" Copyright (c) 2005, Sun Microsystems, Inc.  All Rights Reserved.
+ .\" Copyright (c) 2014, Joyent, Inc.
+ .\"
+-.TH CHMOD 2 "Dec 22, 2014"
++.TH CHMOD 2 "Jan 26, 2022"
+ .SH NAME
+ chmod, fchmod, fchmodat \- change access permission mode of file
+ .SH SYNOPSIS
+-.LP
+ .nf
+ #include <sys/types.h>
+ #include <sys/stat.h>
+@@ -68,7 +67,6 @@ chmod, fchmod, fchmodat \- change access permission mode of file
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBchmod()\fR, \fBfchmod()\fR, and \fBfchmodat()\fR functions set the access
+ permission portion of the mode of the file whose name is given by \fIpath\fR or
+ referenced by the open file descriptor \fIfildes\fR to the bit pattern contained
+@@ -196,12 +194,10 @@ will result in an error.
+ Upon successful completion, \fBchmod()\fR, \fBfchmod()\fR, \fBfchmodat()\fR mark
+ for update the \fBst_ctime\fR field of the file.
+ .SH RETURN VALUES
+-.LP
+ Upon successful completion, \fB0\fR is returned. Otherwise, \fB\(mi1\fR is
+ returned, the file mode is unchanged, and \fBerrno\fR is set to indicate the
+ error.
+ .SH ERRORS
+-.LP
+ The \fBchmod()\fR, \fBfchmod()\fR, and \fBfchmodat()\fR functions will fail if:
+ .sp
+ .ne 2
+@@ -404,7 +400,8 @@ descriptor which does not refer to a file.
+ .B EOPNOTSUPP
+ .ad
+ .RS 16n
+-The \fBAT_SYMLINK_NOFOLLOW\fR bit is set in the \fIflags\fR argument.
++The \fBAT_SYMLINK_NOFOLLOW\fR bit is set in the \fIflags\fR argument and
++\fIpath\fR refers to a symbolic link.
+ .RE
+ 
+ .sp
+@@ -445,7 +442,6 @@ of this function on a pipe.
+ .RE
+ 
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRSet Read Permissions for User, Group, and Others
+ .sp
+ .LP
+@@ -517,7 +513,6 @@ status = stat("home/cnd/mod1", &buffer;);
+ .in -2
+ 
+ .SH USAGE
+-.LP
+ If \fBchmod()\fR or \fBfchmod()\fR is used to change the file group owner
+ permissions on a file with non-trivial ACL entries, only the ACL mask is set to
+ the new permissions and the group owner permission bits in the file's mode
+@@ -526,7 +521,6 @@ one whose meaning cannot be represented in the file's mode field alone. The new
+ ACL mask permissions  might change the effective permissions for additional
+ users and groups that have ACL entries on the file.
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(5) for descriptions of the following attributes:
+ .sp
+ 
+@@ -543,7 +537,6 @@ MT-Level	Async-Signal-Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ \fBchmod\fR(1), \fBchown\fR(2), \fBcreat\fR(2), \fBfcntl\fR(2), \fBmknod\fR(2),
+ \fBopen\fR(2), \fBread\fR(2), \fBrename\fR(2), \fBstat\fR(2), \fBwrite\fR(2),
+ \fBfattach\fR(3C), \fBmkfifo\fR(3C), \fBstat.h\fR(3HEAD), \fBattributes\fR(5),
+diff --git a/usr/src/pkg/manifests/system-test-ostest.p5m b/usr/src/pkg/manifests/system-test-ostest.p5m
+index 8f8f38407c..1f89619630 100644
+--- a/usr/src/pkg/manifests/system-test-ostest.p5m
++++ b/usr/src/pkg/manifests/system-test-ostest.p5m
+@@ -132,6 +132,8 @@ file path=opt/os-tests/tests/stackalign/stackalign.64 mode=0555
+ dir  path=opt/os-tests/tests/stress
+ file path=opt/os-tests/tests/stress/dladm-kstat mode=0555
+ dir  path=opt/os-tests/tests/syscall
++file path=opt/os-tests/tests/syscall/fchmodat.32 mode=0555
++file path=opt/os-tests/tests/syscall/fchmodat.64 mode=0555
+ file path=opt/os-tests/tests/syscall/open.32 mode=0555
+ file path=opt/os-tests/tests/syscall/open.64 mode=0555
+ dir  path=opt/os-tests/tests/timer
+diff --git a/usr/src/test/os-tests/runfiles/default.run b/usr/src/test/os-tests/runfiles/default.run
+index 0861ede6a4..dcf65fceed 100644
+--- a/usr/src/test/os-tests/runfiles/default.run
++++ b/usr/src/test/os-tests/runfiles/default.run
+@@ -76,7 +76,7 @@ tests = ['conn', 'dgram', 'drop_priv', 'nosignal', 'rights.32', 'rights.64',
+          'sockpair', 'recvmsg.32', 'recvmsg.64']
+ 
+ [/opt/os-tests/tests/syscall]
+-tests = ['open.32', 'open.64']
++tests = ['fchmodat.32', 'fchmodat.64', 'open.32', 'open.64']
+ 
+ [/opt/os-tests/tests/pf_key]
+ user = root
+diff --git a/usr/src/test/os-tests/tests/syscall/Makefile b/usr/src/test/os-tests/tests/syscall/Makefile
+index b4ba83a18b..b2842d4681 100644
+--- a/usr/src/test/os-tests/tests/syscall/Makefile
++++ b/usr/src/test/os-tests/tests/syscall/Makefile
+@@ -16,7 +16,7 @@
+ include $(SRC)/cmd/Makefile.cmd
+ include $(SRC)/test/Makefile.com
+ 
+-PROGS = open
++PROGS = fchmodat open
+ 
+ CSTD = $(CSTD_GNU99)
+ 
+diff --git a/usr/src/test/os-tests/tests/syscall/fchmodat.c b/usr/src/test/os-tests/tests/syscall/fchmodat.c
+new file mode 100644
+index 0000000000..7a0f5caca7
+--- /dev/null
++++ b/usr/src/test/os-tests/tests/syscall/fchmodat.c
+@@ -0,0 +1,92 @@
++/*
++ * This file and its contents are supplied under the terms of the
++ * Common Development and Distribution License ("CDDL"), version 1.0.
++ * You may only use this file in accordance with the terms of version
++ * 1.0 of the CDDL.
++ *
++ * A full copy of the text of the CDDL should have accompanied this
++ * source.  A copy of the CDDL is also available via the Internet at
++ * http://www.illumos.org/license/CDDL.
++ */
++
++/*
++ * Copyright 2022 Marcel Telka <marcel@telka.sk>
++ */
++
++/*
++ * Test for fchmodat(AT_SYMLINK_NOFOLLOW)
++ */
++
++#include <sys/param.h>
++#include <string.h>
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <fcntl.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <unistd.h>
++
++int
++main(void)
++{
++	int ret = 0;
++
++	char template[MAXPATHLEN];
++	char *path;
++	char file[MAXPATHLEN];
++	char link[MAXPATHLEN];
++
++	/* prepare template for temporary directory */
++	if (strlcpy(template, "/tmp/XXXXXX", sizeof (template))
++	    >= sizeof (template)) {
++		(void) printf("FAIL: Template copy failed\n");
++		exit(EXIT_FAILURE);
++	}
++
++	/* create temporary directory */
++	if ((path = mkdtemp(template)) == NULL) {
++		(void) printf("FAIL: Temporary directory creation failed\n");
++		exit(EXIT_FAILURE);
++	}
++
++	/* format file and link paths */
++	(void) snprintf(file, sizeof (file), "%s/file", path);
++	(void) snprintf(link, sizeof (link), "%s/link", path);
++
++	/* create the file */
++	int fd = open(file, O_WRONLY | O_CREAT, 0644);
++	if (fd < 0) {
++		(void) printf("FAIL: File %s creation failed\n", file);
++		(void) rmdir(path);
++		exit(EXIT_FAILURE);
++	}
++	(void) close(fd);
++
++	/* create symlink */
++	if (symlink("file", link) != 0) {
++		(void) printf("FAIL: Symlink %s creation failed\n", link);
++		(void) unlink(file);
++		(void) rmdir(path);
++		exit(EXIT_FAILURE);
++	}
++
++	/* test fchmodat(AT_SYMLINK_NOFOLLOW) for symlink */
++	if (fchmodat(AT_FDCWD, link, 0666, AT_SYMLINK_NOFOLLOW) == 0) {
++		(void) printf("FAIL: fchmodat(AT_SYMLINK_NOFOLLOW) "
++		    "unexpectedly succeeded for symlink\n");
++		ret = EXIT_FAILURE;
++	}
++	/* test fchmodat(AT_SYMLINK_NOFOLLOW) for regular file */
++	if (fchmodat(AT_FDCWD, file, 0666, AT_SYMLINK_NOFOLLOW) != 0) {
++		(void) printf("FAIL: fchmodat(AT_SYMLINK_NOFOLLOW) failed for "
++		    "regular file\n");
++		ret = EXIT_FAILURE;
++	}
++
++	/* cleanup */
++	(void) unlink(link);
++	(void) unlink(file);
++	(void) rmdir(path);
++
++	return (ret);
++}
+diff --git a/usr/src/uts/common/os/fio.c b/usr/src/uts/common/os/fio.c
+index 7b6d973b9e..c25564d85f 100644
+--- a/usr/src/uts/common/os/fio.c
++++ b/usr/src/uts/common/os/fio.c
+@@ -1585,7 +1585,9 @@ fsetattrat(int fd, char *path, int flags, struct vattr *vap)
+ 		VN_HOLD(vp);
+ 	}
+ 
+-	if (vn_is_readonly(vp)) {
++	if (vp->v_type == VLNK && (vap->va_mask & AT_MODE) != 0) {
++		error = EOPNOTSUPP;
++	} else if (vn_is_readonly(vp)) {
+ 		error = EROFS;
+ 	} else {
+ 		error = VOP_SETATTR(vp, vap, 0, CRED(), NULL);
+diff --git a/usr/src/uts/common/syscall/chmod.c b/usr/src/uts/common/syscall/chmod.c
+index bed521f0b3..925219515b 100644
+--- a/usr/src/uts/common/syscall/chmod.c
++++ b/usr/src/uts/common/syscall/chmod.c
+@@ -24,7 +24,7 @@
+  */
+ 
+ /*	Copyright (c) 1983, 1984, 1985, 1986, 1987, 1988, 1989 AT&T	*/
+-/*	  All Rights Reserved  	*/
++/*	  All Rights Reserved	*/
+ 
+ #include <sys/param.h>
+ #include <sys/isa_defs.h>
+@@ -55,9 +55,6 @@ fchmodat(int fd, char *path, int mode, int flag)
+ 	if (flag & ~AT_SYMLINK_NOFOLLOW)
+ 		return (set_errno(EINVAL));
+ 
+-	if (flag & AT_SYMLINK_NOFOLLOW)
+-		return (set_errno(EOPNOTSUPP));
+-
+ 	vattr.va_mode = mode & MODEMASK;
+ 	vattr.va_mask = AT_MODE;
+ 	error = fsetattrat(fd, path, flag, &vattr);
+-- 
+2.42.0
+

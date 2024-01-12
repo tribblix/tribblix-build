@@ -1,0 +1,1806 @@
+From 0be687ea0c09cd50b4ae51df829900fea257d535 Mon Sep 17 00:00:00 2001
+From: Robert Mustacchi <rm@fingolfin.org>
+Date: Wed, 24 Nov 2021 22:46:37 +0000
+Subject: [PATCH] 14270 convert man3kstat to mdoc Reviewed by: Jason King
+ <jason.brian.king@gmail.com> Approved by: Dan McDonald <danmcd@joyent.com>
+
+---
+ usr/src/man/man3kstat/kstat.3kstat            | 729 ++++++++----------
+ .../man/man3kstat/kstat_chain_update.3kstat   | 212 ++---
+ usr/src/man/man3kstat/kstat_lookup.3kstat     | 241 +++---
+ usr/src/man/man3kstat/kstat_open.3kstat       | 234 +++---
+ usr/src/man/man3kstat/kstat_read.3kstat       | 263 +++----
+ 5 files changed, 821 insertions(+), 858 deletions(-)
+
+diff --git a/usr/src/man/man3kstat/kstat.3kstat b/usr/src/man/man3kstat/kstat.3kstat
+index d0b45d94e6..ddab5ee8a6 100644
+--- a/usr/src/man/man3kstat/kstat.3kstat
++++ b/usr/src/man/man3kstat/kstat.3kstat
+@@ -1,26 +1,43 @@
+-'\" te
++.\"
+ .\" Copyright (c) 2007, Sun Microsystems, Inc.  All Rights Reserved.
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+-.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+-.\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH KSTAT 3KSTAT "Jan 29, 2007"
+-.SH NAME
+-kstat \- kernel statistics facility
+-.SH DESCRIPTION
+-.sp
+-.LP
+-The \fBkstat\fR facility is a general-purpose mechanism for providing kernel
+-statistics to users.
+-.SS "The kstat model"
+-.sp
+-.LP
+-The kernel maintains a linked list of statistics structures, or kstats. Each
+-kstat has a common header section and a type-specific data section. The header
+-section is defined by the \fBkstat_t\fR structure:
+-.SS "kstat header"
+-.sp
+-.in +2
+-.nf
++.\" Copyright 2021 Oxide Computer Company
++.\"
++.\" The contents of this file are subject to the terms of the
++.\" Common Development and Distribution License (the "License").
++.\" You may not use this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++.\" or http://www.opensolaris.org/os/licensing.
++.\" See the License for the specific language governing permissions
++.\" and limitations under the License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each
++.\" file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++.\" If applicable, add the following below this CDDL HEADER, with the
++.\" fields enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
++.\"
++.Dd November 29, 2021
++.Dt KSTAT 3KSTAT
++.Os
++.Sh NAME
++.Nm kstat
++.Nd kernel statistics facility
++.Sh LIBRARY
++.Lb libkstat
++.Sh DESCRIPTION
++The
++.Nm
++facility is a general-purpose mechanism for providing kernel statistics to
++users.
++.Ss The kstat model
++The kernel maintains a linked list of statistics structures, or kstats.
++Each kstat has a common header section and a type-specific data section.
++The header section is defined by the
++.Vt kstat_t
++structure:
++.Ss "kstat header"
++.Bd -literal -offset indent
+ typedef   int kid_t;    /* unique kstat id */
+ 
+ typedef struct kstat {
+@@ -53,180 +70,136 @@ typedef struct kstat {
+    int(*ks_snapshot)(struct kstat *, void *, int);
+    void  *ks_lock;
+ } kstat_t;
+-.fi
+-.in -2
+-
+-.sp
+-.LP
++.Ed
++.Pp
+ The fields that are of significance to the user are:
+-.sp
+-.ne 2
+-.na
+-\fB\fBks_crtime\fR\fR
+-.ad
+-.RS 16n
+-The time the kstat was created. This allows you to compute the rates of various
+-counters since the kstat was created; "rate since boot" is replaced by the more
+-general concept of "rate since kstat creation". All times associated with
+-kstats (such as creation time, last snapshot time, \fBkstat_timer_t\fR and
+-\fBkstat_io_t\fR timestamps, and the like) are 64-bit nanosecond values. The
+-accuracy of kstat timestamps is machine dependent, but the precision (units) is
+-the same across all platforms. See \fBgethrtime\fR(3C) for general information
+-about high-resolution timestamps.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBks_next\fR\fR
+-.ad
+-.RS 16n
+-kstats are stored as a linked list, or chain. \fBks_next\fR points to the next
+-kstat in the chain.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBks_kid\fR\fR
+-.ad
+-.RS 16n
++.Bl -tag -width Ds
++.It Fa ks_crtime
++The time the kstat was created.
++This allows you to compute the rates of various counters since the kstat was
++created;
++.Dq rate since boot
++is replaced by the more general concept of
++.Dq rate since kstat creation .
++All times associated with kstats
++.Po
++such as creation time, last snapshot time,
++.Vt kstat_timer_t
++and
++.Vt kstat_io_t
++timestamps, and the like
++.Pc
++are 64-bit nanosecond values.
++The accuracy of kstat timestamps is machine dependent, but the precision
++.Pq units
++is the same across all platforms.
++See
++.Xr gethrtime 3C
++for general information about high-resolution timestamps.
++.It Fa ks_next
++kstats are stored as a linked list, or chain.
++.Fa ks_next
++points to the next kstat in the chain.
++.It Fa ks_kid
+ A unique identifier for the kstat.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBks_module\fR,\fR
+-.ad
+-.br
+-.na
+-\fB\fBks_instance\fR\fR
+-.ad
+-.RS 16n
+-contain the name and instance of the module that created the kstat. In cases
+-where there can only be one instance, \fBks_instance\fR is 0.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBks_name\fR\fR
+-.ad
+-.RS 16n
+-gives a meaningful name to a kstat. The full kstat namespace is
+-<\fBks_module\fR,\fBks_instance\fR,\fBks_name\fR>, so the name only need be
+-unique within a module.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBks_type\fR\fR
+-.ad
+-.RS 16n
+-The type of data in this kstat. kstat data types are discussed below.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBks_class\fR\fR
+-.ad
+-.RS 16n
++.It Fa ks_module , Fa ks_instance
++contain the name and instance of the module that created the kstat.
++In cases where there can only be one instance,
++.Fa ks_instance
++is 0.
++.It Fa ks_name
++gives a meaningful name to a kstat.
++The full kstat namespace is
++.Ao
++.Fa ks_module ,
++.Fa ks_instance ,
++.Fa ks_name
++.Ac ,
++so the name only need be unique within a module.
++.It Fa ks_type
++The type of data in this kstat.
++kstat data types are discussed below.
++.It Fa ks_class
+ Each kstat can be characterized as belonging to some broad class of statistics,
+-such as disk, tape, net, vm, and streams. This field can be used as a filter to
+-extract related kstats. The following values are currently in use: \fBdisk\fR,
+-\fBtape\fR, \fBcontroller\fR, \fBnet\fR, \fBrpc\fR, \fBvm\fR, \fBkvm\fR,
+-\fBhat\fR, \fBstreams\fR, \fBkmem\fR, \fBkmem_cache\fR, \fBkstat\fR, and
+-\fBmisc\fR. (The kstat class encompasses things like \fIkstat_types\fR.)
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBks_data\fR,\fR
+-.ad
+-.br
+-.na
+-\fB\fBks_ndata\fR,\fR
+-.ad
+-.br
+-.na
+-\fB\fBks_data_size\fR\fR
+-.ad
+-.RS 16n
+-\fBks_data\fR is a pointer to the kstat's data section. The type of data stored
+-there depends on \fBks_type\fR. \fBks_ndata\fR indicates the number of data
+-records. Only some kstat types support multiple data records. Currently,
+-\fBKSTAT_TYPE_RAW\fR, \fBKSTAT_TYPE_NAMED\fR and \fBKSTAT_TYPE_TIMER\fR kstats
+-support multiple data records. \fBKSTAT_TYPE_INTR\fR and \fBKSTAT_TYPE_IO\fR
+-kstats support only one data record. \fBks_data_size\fR is the total size of
+-the data section, in bytes.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBks_snaptime\fR\fR
+-.ad
+-.RS 16n
+-The timestamp for the last data snapshot. This allows you to compute activity
+-rates:
+-.sp
+-\fBrate = (new_count - old_count) / (new_snaptime - old_snaptime);\fR
+-.RE
+-
+-.SS "kstat data types"
+-.sp
+-.LP
++such as disk, tape, net, vm, and streams.
++This field can be used as a filter to extract related kstats.
++The following values are currently in use: disk, tape, controller, net, rpc, vm,
++kvm, hat, streams, kmem, kmem_cache, kstat, and misc.
++.Po
++The kstat class encompasses things like
++.Fa kstat_types .
++.Pc
++.It Fa ks_data , Fa ks_ndata , Fa ks_data_size
++.Fa ks_data
++is a pointer to the kstat's data section.
++The type of data stored there depends on
++.Fa ks_type .
++.Fa ks_ndata
++indicates the number of data records.
++Only some kstat types support multiple data records.
++Currently,
++.Dv KSTAT_TYPE_RAW ,
++.Dv KSTAT_TYPE_NAMED ,
++and
++.Dv KSTAT_TYPE_TIMER
++kstats support multiple data records.
++.Dv KSTAT_TYPE_INTR
++and
++.Dv KSTAT_TYPE_IO
++kstats support only one data record.
++.Fa ks_data_size
++is the total size of the data section, in bytes.
++.It Fa ks_snaptime
++The timestamp for the last data snapshot.
++This allows you to compute activity rates:
++.Bd -literal
++rate = (new_count - old_count) / (new_snaptime - old_snaptime);
++.Ed
++.El
++.Ss kstat data types
+ The following types of kstats are currently available:
+-.sp
+-.in +2
+-.nf
++.Bd -literal -offset indent
+ #define KSTAT_TYPE_RAW    0   /* can be anything */
+ #define KSTAT_TYPE_NAMED  1   /* name/value pairs */
+ #define KSTAT_TYPE_INTR   2   /* interrupt statistics */
+ #define KSTAT_TYPE_IO     3   /* I/O statistics */
+ #define KSTAT_TYPE_TIMER  4   /* event timers */
+-.fi
+-.in -2
+-
+-.sp
+-.LP
++.Ed
++.Pp
+ To get a list of all kstat types currently supported in the system, tools can
+-read out the standard system kstat \fIkstat_types\fR (full name spec is
+-\fI<``unix'', 0, ``kstat_types''>\fR). This is a \fBKSTAT_TYPE_NAMED\fR kstat
+-in which the \fIname\fR field describes the type of kstat, and the \fIvalue\fR
+-field is the kstat type number (for example, \fBKSTAT_TYPE_IO\fR is type 3 --
+-see above).
+-.SS "Raw kstat"
+-.sp
+-.ne 2
+-.na
+-\fB\fBKSTAT_TYPE_RAW\fR\fR
+-.ad
+-.RS 18n
+-raw data
+-.RE
+-
+-.sp
+-.LP
+-The "raw" kstat type is just treated as an array of bytes. This is generally
+-used to export well-known structures, like \fIsysinfo\fR.
+-.SS "Name=value kstat"
+-.sp
+-.ne 2
+-.na
+-\fB\fBKSTAT_TYPE_NAMED\fR\fR
+-.ad
+-.RS 20n
+-A list of arbitrary \fIname=value\fR statistics.
+-.RE
+-
+-.sp
+-.in +2
+-.nf
++read out the standard system kstat
++.Fa kstat_types
++.Po
++full name spec is
++.Aq unix, 0, kstat_types
++.Pc .
++This is a
++.Dv KSTAT_TYPE_NAMED
++kstat in which the
++.Fa name
++field describes the type of kstat, and the
++.Fa value
++field is the kstat type number
++.Po
++for example,
++.Dv KSTAT_TYPE_IO
++is type 3 \(em see above
++.Pc .
++.Ss "Raw kstat"
++.Dv KSTAT_TYPE_RAW
++\(em raw data
++.Pp
++The
++.Dq raw
++kstat type is just treated as an array of bytes.
++This is generally used to export well-known structures, like
++.Vt sysinfo .
++.Ss "Name=value kstat"
++.Dv KSTAT_TYPE_NAMED
++\(em A list of arbitrary
++.Fa name=value
++statistics.
++.Bd -literal -offset indent
+ typedef struct kstat_named {
+    char    name[KSTAT_STRLEN];    /* name of counter */
+    uchar_t data_type;             /* data type */
+@@ -272,50 +245,46 @@ KSTAT_DATA_LONGLONG
+ KSTAT_DATA_ULONGLONG
+ KSTAT_DATA_FLOAT
+ KSTAT_DATA_DOUBLE
+-.fi
+-.in -2
+-
+-.sp
+-.LP
++.Ed
++.Pp
+ Some devices need to publish strings that exceed the maximum value for
+-\fBKSTAT_DATA_CHAR\fR in length; \fBKSTAT_DATA_STRING\fR is a data type that
+-allows arbitrary-length strings to be associated with a named kstat. The macros
+-below are the supported means to read the pointer to the string and its length.
+-.sp
+-.in +2
+-.nf
++.Dv KSTAT_DATA_CHAR
++in length;
++.Dv KSTAT_DATA_STRING
++is a data type that allows arbitrary-length strings to be associated with a
++named kstat.
++The macros below are the supported means to read the pointer to the string and
++its length.
++.Bd -literal -offset indent
+ #define KSTAT_NAMED_STR_PTR(knptr) ((knptr)->value.str.addr.ptr)
+ #define KSTAT_NAMED_STR_BUFLEN(knptr) ((knptr)->value.str.len)
+-.fi
+-.in -2
+-.sp
+-
+-.sp
+-.LP
+-\fBKSTAT_NAMED_STR_BUFLEN()\fR returns the number of bytes required to store
+-the string pointed to by \fBKSTAT_NAMED_STR_PTR()\fR; that is,
+-\fBstrlen(KSTAT_NAMED_STR_PTR()) + 1\fR.
+-.SS "Interrupt kstat"
+-.sp
+-.ne 2
+-.na
+-\fB\fBKSTAT_TYPE_INTR\fR\fR
+-.ad
+-.RS 19n
+-Interrupt statistics.
+-.RE
+-
+-.sp
+-.LP
+-An interrupt is a hard interrupt (sourced from the hardware device itself), a
+-soft interrupt (induced by the system via the use of some system interrupt
+-source), a watchdog interrupt (induced by a periodic timer call), spurious (an
+-interrupt entry point was entered but there was no interrupt to service), or
+-multiple service (an interrupt was detected and serviced just prior to
+-returning from any of the other types).
+-.sp
+-.in +2
+-.nf
++.Ed
++.Pp
++.Fn KSTAT_NAMED_STR_BUFLEN
++returns the number of bytes required to store the string pointed to by
++.Fn KSTAT_NAMED_STR_PTR ;
++that is,
++.Fo strlen
++.Fa "KSTAT_NAMED_STR_PTR() + 1"
++.Fc .
++.Ss "Interrupt kstat"
++.Dv KSTAT_TYPE_INTR
++\(em Interrupt statistics.
++.Pp
++An interrupt is a hard interrupt
++.Pq sourced from the hardware device itself ,
++a soft interrupt
++.Pq induced by the system via the use of some system interrupt source ,
++a watchdog interrupt
++.Pq induced by a periodic timer call ,
++spurious
++.Pq an interrupt entry point was entered but there was no interrupt to service ,
++or multiple service
++.Po
++an interrupt was detected and serviced just prior to returning from any of the
++other types
++.Pc .
++.Bd -literal -offset indent
+ #define KSTAT_INTR_HARD      0
+ #define KSTAT_INTR_SOFT      1
+ #define KSTAT_INTR_WATCHDOG  2
+@@ -326,25 +295,13 @@ returning from any of the other types).
+ typedef struct kstat_intr {
+    uint_t intrs[KSTAT_NUM_INTRS]; /* interrupt counters */
+ } kstat_intr_t;
+-.fi
+-.in -2
+-
+-.SS "Event timer kstat"
+-.sp
+-.ne 2
+-.na
+-\fB\fBKSTAT_TYPE_TIMER\fR\fR
+-.ad
+-.RS 20n
+-Event timer statistics.
+-.RE
+-
+-.sp
+-.LP
++.Ed
++.Ss Event timer kstat
++.Dv KSTAT_TYPE_TIMER
++\(em Event timer statistics.
++.Pp
+ These provide basic counting and timing information for any type of event.
+-.sp
+-.in +2
+-.nf
++.Bd -literal -offset indent
+ typedef struct kstat_timer {
+    char         name[KSTAT_STRLEN]; /* event name */
+    uchar_t      resv;               /* reserved */
+@@ -355,123 +312,120 @@ typedef struct kstat_timer {
+    hrtime_t     start_time;         /* previous event start time */
+    hrtime_t     stop_time;          /* previous event stop time */
+ } kstat_timer_t;
+-.fi
+-.in -2
+-
+-.SS "I/O kstat"
+-.sp
+-.ne 2
+-.na
+-\fB\fBKSTAT_TYPE_IO\fR\fR
+-.ad
+-.RS 17n
+-I/O statistics.
+-.RE
+-
+-.sp
+-.in +2
+-.nf
++.Ed
++.Ss I/O kstat
++.Dv KSTAT_TYPE_IO
++\(em I/O statistics.
++.Bd -literal -offset indent
+ typedef struct kstat_io {
+ /*
+  * Basic counters.
+  */
+-u_longlong_t     nread;      /* number of bytes read */
+-u_longlong_t     nwritten;   /* number of bytes written */
+-uint_t           reads;      /* number of read operations */
+-uint_t           writes;     /* number of write operations */
++   u_longlong_t     nread;      /* number of bytes read */
++   u_longlong_t     nwritten;   /* number of bytes written */
++   uint_t           reads;      /* number of read operations */
++   uint_t           writes;     /* number of write operations */
+ /*
+-* Accumulated time and queue length statistics.
+-*
+-* Time statistics are kept as a running sum of "active" time.
+-* Queue length statistics are kept as a running sum of the
+-* product of queue length and elapsed time at that length --
+-* that is, a Riemann sum for queue length integrated against time.
+-*
+-*               ^
+-*               |                       _________
+-*               8                       | i4    |
+-*               |                       |       |
+-*       Queue   6                       |       |
+-*       Length  |       _________       |       |
+-*               4       | i2    |_______|       |
+-*               |       |       i3              |
+-*               2_______|                       |
+-*               |    i1                         |
+-*               |_______________________________|
+-*               Time->  t1      t2      t3      t4
+-*
+-* At each change of state (entry or exit from the queue),
+-* we add the elapsed time (since the previous state change)
+-* to the active time if the queue length was non-zero during
+-* that interval; and we add the product of the elapsed time
+-* times the queue length to the running length*time sum.
+-*
+-* This method is generalizable to measuring residency
+-* in any defined system: instead of queue lengths, think
+-* of "outstanding RPC calls to server X".
+-*
+-* A large number of I/O subsystems have at least two basic
+-* "lists" of transactions they manage: one for transactions
+-* that have been accepted for processing but for which processing
+-* has yet to begin, and one for transactions which are actively
+-* being processed (but not done). For this reason, two cumulative
+-* time statistics are defined here: pre-service (wait) time,
+-* and service (run) time.
+-*
+-* The units of cumulative busy time are accumulated nanoseconds.
+-* The units of cumulative length*time products are elapsed time
+-* times queue length.
+-*/
+-hrtime_t   wtime;            /* cumulative wait (pre-service) time */
+-hrtime_t   wlentime;         /* cumulative wait length*time product*/
+-hrtime_t   wlastupdate;      /* last time wait queue changed */
+-hrtime_t   rtime;            /* cumulative run (service) time */
+-hrtime_t   rlentime;         /* cumulative run length*time product */
+-hrtime_t   rlastupdate;      /* last time run queue changed */
+-uint_t     wcnt;             /* count of elements in wait state */
+-uint_t     rcnt;             /* count of elements in run state */
++ * Accumulated time and queue length statistics.
++ *
++ * Time statistics are kept as a running sum of "active" time.
++ * Queue length statistics are kept as a running sum of the
++ * product of queue length and elapsed time at that length --
++ * that is, a Riemann sum for queue length integrated against time.
++ *
++ *               ^
++ *               |                       _________
++ *               8                       | i4    |
++ *               |                       |       |
++ *       Queue   6                       |       |
++ *       Length  |       _________       |       |
++ *               4       | i2    |_______|       |
++ *               |       |       i3              |
++ *               2_______|                       |
++ *               |    i1                         |
++ *               |_______________________________|
++ *               Time->  t1      t2      t3      t4
++ *
++ * At each change of state (entry or exit from the queue),
++ * we add the elapsed time (since the previous state change)
++ * to the active time if the queue length was non-zero during
++ * that interval; and we add the product of the elapsed time
++ * times the queue length to the running length*time sum.
++ *
++ * This method is generalizable to measuring residency
++ * in any defined system: instead of queue lengths, think
++ * of "outstanding RPC calls to server X".
++ *
++ * A large number of I/O subsystems have at least two basic
++ * "lists" of transactions they manage: one for transactions
++ * that have been accepted for processing but for which processing
++ * has yet to begin, and one for transactions which are actively
++ * being processed (but not done). For this reason, two cumulative
++ * time statistics are defined here: pre-service (wait) time,
++ * and service (run) time.
++ *
++ * The units of cumulative busy time are accumulated nanoseconds.
++ * The units of cumulative length*time products are elapsed time
++ * times queue length.
++ */
++   hrtime_t   wtime;            /* cumulative wait (pre-service) time */
++   hrtime_t   wlentime;         /* cumulative wait length*time product*/
++   hrtime_t   wlastupdate;      /* last time wait queue changed */
++   hrtime_t   rtime;            /* cumulative run (service) time */
++   hrtime_t   rlentime;         /* cumulative run length*time product */
++   hrtime_t   rlastupdate;      /* last time run queue changed */
++   uint_t     wcnt;             /* count of elements in wait state */
++   uint_t     rcnt;             /* count of elements in run state */
+ } kstat_io_t;
+-.fi
+-.in -2
+-.sp
+-
+-.SS "Using libkstat"
+-.sp
+-.LP
+-The kstat library, \fBlibkstat\fR, defines the user interface (API) to the
+-system's kstat facility.
+-.sp
+-.LP
+-You begin by opening libkstat with \fBkstat_open\fR(3KSTAT), which returns a
+-pointer to a fully initialized kstat control structure. This is your ticket to
+-subsequent libkstat operations:
+-.sp
+-.in +2
+-.nf
++.Ed
++.Ss Using libkstat
++The kstat library,
++.Sy libkstat ,
++defines the user interface
++.Pq API
++to the system's kstat facility.
++.Pp
++You begin by opening libkstat with
++.Xr kstat_open 3KSTAT ,
++which returns a pointer to a fully initialized kstat control structure.
++This is your ticket to subsequent libkstat operations:
++.Bd -literal -offset indent
+ typedef struct kstat_ctl {
+    kid_t     kc_chain_id;    /* current kstat chain ID */
+    kstat_t   *kc_chain;      /* pointer to kstat chain */
+    int       kc_kd;          /* /dev/kstat descriptor */
+ } kstat_ctl_t;
+-.fi
+-.in -2
+-
+-.sp
+-.LP
+-Only the first two fields, \fBkc_chain_id\fR and \fBkc_chain\fR, are of
+-interest to \fBlibkstat\fR clients. (\fIkc_kd\fR is the descriptor for
+-\fB/dev/kstat\fR, the kernel statistics driver. libkstat functions are built on
+-top of \fB/dev/kstat\fR \fBioctl\fR(2) primitives. Direct interaction with
+-\fB/dev/kstat\fR is strongly discouraged, since it is \fInot\fR a public
+-interface.)
+-.sp
+-.LP
+-\fBkc_chain\fR points to your copy of the kstat chain. You typically walk the
+-chain to find and process a certain kind of kstat. For example, to display all
+-\fBI/O\fR kstats:
+-.sp
+-.in +2
+-.nf
++.Ed
++.Pp
++Only the first two fields,
++.Fa kc_chain_id
++and
++.Fa kc_chain ,
++are of
++interest to
++libkstat clients.
++.Po
++.Fa kc_kd
++is the descriptor for
++.Pa /dev/kstat ,
++the kernel statistics driver.
++libkstat functions are built on top of
++.Pa /dev/kstat
++.Xr ioctl 2
++primitives.
++Direct interaction with
++.Pa /dev/kstat
++is strongly discouraged, since it is
++.Em not
++a public interface.
++.Pc
++.Pp
++.Fa kc_chain
++points to your copy of the kstat chain.
++You typically walk the chain to find and process a certain kind of kstat.
++For example, to display all
++I/O kstats:
++.Bd -literal -offset indent
+ kstat_ctl_t    *kc;
+ kstat_t        *ksp;
+ kstat_io_t     kio;
+@@ -483,47 +437,32 @@ for (ksp = kc->kc_chain; ksp != NULL; ksp = ksp->ks_next) {
+                 my_io_display(kio);
+         }
+ }
+-.fi
+-.in -2
+-
+-.sp
+-.LP
+-\fBkc_chain_id\fR is the kstat chain \fBID\fR, or \fBKCID\fR, of your copy of
+-the kstat chain. See \fBkstat_chain_update\fR(3KSTAT) for an explanation of
+-\fBKCID\fRs.
+-.SH FILES
+-.sp
+-.ne 2
+-.na
+-\fB\fB/dev/kstat\fR\fR
+-.ad
+-.RS 28n
+-kernel statistics driver
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fB/usr/include/kstat.h\fR\fR
+-.ad
+-.RS 28n
+-header
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fB/usr/include/sys/kstat.h\fR\fR
+-.ad
+-.RS 28n
+-header
+-.RE
+-
+-.SH SEE ALSO
+-.sp
+-.LP
+-\fBioctl\fR(2), \fBgethrtime\fR(3C), \fBgetloadavg\fR(3C),
+-\fBkstat_chain_update\fR(3KSTAT), \fBkstat_close\fR(3KSTAT),
+-\fBkstat_data_lookup\fR(3KSTAT), \fBkstat_lookup\fR(3KSTAT),
+-\fBkstat_open\fR(3KSTAT), \fBkstat_read\fR(3KSTAT), \fBkstat_write\fR(3KSTAT),
+-\fBattributes\fR(5)
++.Ed
++.Pp
++.Fa kc_chain_id
++is the kstat chain ID, or
++.Sy KCID ,
++of your copy of the kstat chain.
++See
++.Xr kstat_chain_update 3KSTAT
++for an explanation of KCIDs.
++.Sh FILES
++.Bl -tag -width Pa
++.It Pa /dev/kstat
++kernel statistics driver character device
++.It Pa /usr/include/kstat.h
++kstat library header file
++.It Pa /usr/include/sys/kstat.h
++system kstat header
++.El
++.Sh SEE ALSO
++.Xr ioctl 2 ,
++.Xr gethrtime 3C ,
++.Xr kstat_chain_update 3KSTAT ,
++.Xr kstat_close 3KSTAT ,
++.Xr kstat_data_lookup 3KSTAT ,
++.Xr kstat_lookup 3KSTAT ,
++.Xr kstat_open 3KSTAT ,
++.Xr kstat_read 3KSTAT ,
++.Xr kstat_write 3KSTAT ,
++.Xr attributes 5
+diff --git a/usr/src/man/man3kstat/kstat_chain_update.3kstat b/usr/src/man/man3kstat/kstat_chain_update.3kstat
+index 012a4f3b08..c15056d42e 100644
+--- a/usr/src/man/man3kstat/kstat_chain_update.3kstat
++++ b/usr/src/man/man3kstat/kstat_chain_update.3kstat
+@@ -1,113 +1,115 @@
+-'\" te
++.\"
+ .\" Copyright (c) 2004, Sun Microsystems, Inc. All Rights Reserved.
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+-.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+-.\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH KSTAT_CHAIN_UPDATE 3KSTAT "Aug 3, 2004"
+-.SH NAME
+-kstat_chain_update \- update the kstat header chain
+-.SH SYNOPSIS
+-.nf
+-\fBcc\fR [ \fIflag\fR\&.\|.\|. ] \fIfile\fR\&.\|.\|. \fB-lkstat\fR [ \fIlibrary\fR\&.\|.\|.]
+-#include <kstat.h>
+-
+-
+-
+-\fBkid_t\fR \fBkstat_chain_update\fR(\fBkstat_ctl_t *\fR\fIkc\fR);
+-.fi
+-
+-.SH DESCRIPTION
+-The \fBkstat_chain_update()\fR function brings the user's kstat header chain in
+-sync with that of the kernel. The kstat chain is a linked list of kstat headers
+-(\fBkstat_t\fR's) pointed to by \fIkc\fR->\fBkc_chain\fR, which is initialized
+-by \fBkstat_open\fR(3KSTAT). This chain constitutes a list of all kstats
+-currently in the system.
+-.sp
+-.LP
++.\" Copyright 2021 Oxide Computer Company
++.\"
++.\" The contents of this file are subject to the terms of the
++.\" Common Development and Distribution License (the "License").
++.\" You may not use this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++.\" or http://www.opensolaris.org/os/licensing.
++.\" See the License for the specific language governing permissions
++.\" and limitations under the License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each
++.\" file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++.\" If applicable, add the following below this CDDL HEADER, with the
++.\" fields enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
++.\"
++.Dd November 29, 2021
++.Dt KSTAT_CHAIN_UPDATE 3KSTAT
++.Os
++.Sh NAME
++.Nm kstat_chain_update
++.Nd update the kstat header chain
++.Sh Library
++.Lb libkstat
++.Sh SYNOPSIS
++.In kstat.h
++.Ft kid_t
++.Fo kstat_chain_update
++.Fa "kstat_ctl_t *kc"
++.Fc
++.Sh DESCRIPTION
++The
++.Fn kstat_chain_update
++function brings the user's kstat header chain in sync with that of the kernel.
++The kstat chain is a linked list of kstat headers
++.Po
++.Vt kstat_t Ns 's
++.Pc
++pointed to by
++.Ql kc->kc_chain ,
++which is initialized
++by
++.Xr kstat_open 3KSTAT .
++This chain constitutes a list of all kstats currently in the system.
++.Pp
+ During normal operation, the kernel creates new kstats and deletes old ones as
+ various device instances are added and removed, thereby causing the user's copy
+-of the kstat chain to become out of date. The \fBkstat_chain_update()\fR
++of the kstat chain to become out of date.
++The
++.Fn kstat_chain_update
+ function detects this condition by comparing the kernel's current kstat chain
+-ID (KCID), which is incremented every time the kstat chain changes, to the
+-user's KCID, \fIkc\fR->\fBkc_chain_id\fR. If the KCIDs match,
+-\fBkstat_chain_update()\fR does nothing.  Otherwise, it deletes any invalid
+-kstat headers from the user's kstat chain, adds any new ones, and sets
+-\fIkc\fR->\fBkc_chain_id\fR to the new KCID. All other kstat headers in the
+-user's kstat chain are unmodified.
+-.sp
+-.LP
+-Because of the deletion process, any \fBkstat_t\fR structures retrieved by the
+-\fBkstat_lookup\fR(3KSTAT) function or data pointers obtained through the
+-\fBkstat_data_lookup\fR(3KSTAT) function are invalidated by a call to
+-\fRkstat_chain_update\fB(). New lookup calls must be made to obtain fresh
+-structures after each chain update.
+-.SH RETURN VALUES
+-Upon successful completion, \fBkstat_chain_update()\fR returns the new KCID if
+-the kstat chain has changed and 0 if it has not changed. Otherwise, it returns
+-\(mi1 and sets \fBerrno\fR to indicate the error.
+-.SH ERRORS
+-The \fBkstat_chain_update()\fR function will fail if:
+-.sp
+-.ne 2
+-.na
+-\fB\fBEAGAIN\fR\fR
+-.ad
+-.RS 13n
++ID
++.Pq KCID ,
++which is incremented every time the kstat chain changes, to the user's KCID,
++.Ql kc->kc_chain_id .
++If the KCIDs match,
++.Fn kstat_chain_update
++does nothing.
++Otherwise, it deletes any invalid kstat headers from the user's kstat chain,
++adds any new ones, and sets
++.Ql kc->kc_chain_id
++to the new KCID.
++All other kstat headers in the user's kstat chain are unmodified.
++.Pp
++Because of the deletion process, any
++.Vt kstat_t
++structures retrieved by the
++.Xr kstat_lookup 3KSTAT
++function or data pointers obtained through the
++.Xr kstat_data_lookup 3KSTAT
++function are invalidated by a call to
++.Fn kstat_chain_update .
++New lookup calls must be made to obtain fresh structures after each chain
++update.
++.Sh RETURN VALUES
++Upon successful completion,
++.Fn kstat_chain_update
++returns the new KCID if the kstat chain has changed and 0 if it has not changed.
++Otherwise, it returns
++.Sy -1
++and sets
++.Va errno
++to indicate the error.
++.Sh FILES
++.Bl -tag -width Pa
++.It Pa /dev/kstat
++kernel statistics driver character device
++.El
++.Sh ERRORS
++The
++.Fn kstat_chain_update
++function will fail if:
++.Bl -tag -width Er
++.It Er EAGAIN
+ The kstat was temporarily unavailable for reading or writing.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBENOMEM\fR\fR
+-.ad
+-.RS 13n
++.It Er ENOMEM
+ Insufficient storage space is available.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBENXIO\fR\fR
+-.ad
+-.RS 13n
++.It Er ENXIO
+ The given kstat could not be located for reading.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBEOVERFLOW\fR\fR
+-.ad
+-.RS 13n
++.It Er EOVERFLOW
+ The data for the given kstat was too large to be stored in the structure.
+-.RE
+-
+-.SH FILES
+-.ne 2
+-.na
+-\fB\fB/dev/kstat\fR\fR
+-.ad
+-.RS 14n
+-kernel statistics driver
+-.RE
+-
+-.SH ATTRIBUTES
+-See \fBattributes\fR(5) for descriptions of the following attributes:
+-.sp
+-
+-.sp
+-.TS
+-box;
+-c | c
+-l | l .
+-ATTRIBUTE TYPE	ATTRIBUTE VALUE
+-_
+-Interface Stability	Stable
+-_
+-MT-Level	Unsafe
+-.TE
+-
+-.SH SEE ALSO
+-\fBkstat\fR(3KSTAT), \fBkstat_lookup\fR(3KSTAT), \fBkstat_open\fR(3KSTAT),
+-\fBkstat_read\fR(3KSTAT), \fBattributes\fR(5)
++.El
++.Sh INTERFACE STABILITY
++.Sy Committed
++.Sh MT-LEVEL
++.Sy Unsafe
++.Sh SEE ALSO
++.Xr kstat 3KSTAT ,
++.Xr kstat_lookup 3KSTAT ,
++.Xr kstat_open 3KSTAT ,
++.Xr kstat_read 3KSTAT ,
++.Xr attributes 5
+diff --git a/usr/src/man/man3kstat/kstat_lookup.3kstat b/usr/src/man/man3kstat/kstat_lookup.3kstat
+index 7a0f9880e7..5d22b93340 100644
+--- a/usr/src/man/man3kstat/kstat_lookup.3kstat
++++ b/usr/src/man/man3kstat/kstat_lookup.3kstat
+@@ -1,102 +1,147 @@
+-'\" te
++.\"
+ .\" Copyright (c) 2004, Sun Microsystems, Inc. All Rights Reserved.
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+-.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+-.\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH KSTAT_LOOKUP 3KSTAT "March 24, 2020"
+-.SH NAME
+-kstat_lookup, kstat_data_lookup \- find a kstat by name
+-.SH SYNOPSIS
+-.nf
+-\fBcc\fR [ \fIflag\fR\&.\|.\|. ] \fIfile\fR\&.\|.\|. \fB-lkstat\fR [ \fIlibrary\fR\&.\|.\|.]
+-#include <kstat.h>
+-
+-\fBkstat_t *\fR\fBkstat_lookup\fR(\fBkstat_ctl_t *\fR\fIkc\fR, \fBchar *\fR\fIks_module\fR, \fBint\fR \fIks_instance\fR,
+-     \fBchar *\fR\fIks_name\fR);
+-.fi
+-
+-.LP
+-.nf
+-\fBvoid *\fR\fBkstat_data_lookup\fR(\fBkstat_t *\fR\fIksp\fR, \fBchar *\fR\fIname\fR);
+-.fi
+-
+-.SH DESCRIPTION
+-The \fBkstat_lookup()\fR function traverses the kstat chain,
+-\fIkc\fR->\fBkc_chain\fR, searching for a kstat with the same \fIks_module\fR,
+-\fIks_instance\fR, and \fIks_name\fR fields; this triplet uniquely identifies a
+-kstat.  If \fIks_module\fR is \fINULL\fR, \fIks_instance\fR is  -1, or
+-\fIks_name\fR is \fINULL\fR, those fields will be ignored in the search.  For
+-example, \fBkstat_lookup(kc, NULL, -1, "foo")\fR  will find the first kstat
+-with name "foo".
+-.sp
+-.LP
+-The \fBkstat_data_lookup()\fR function searches the kstat's data section for
+-the record with the specified \fIname\fR. This operation is valid only for
+-those kstat types that have named data records: \fBKSTAT_TYPE_NAMED\fR and
+-\fBKSTAT_TYPE_TIMER\fR.
+-.SS Lifetime
+-The \fBkstat_t\fR structures and any associated data are owned by the library
+-and the corresponding handle, \fIkc\fR. That is, two callers with same library
+-handle will generally have the same memory returned to them, though this is not
+-a guaranteed part of the interface. Callers should not modify or attempt to free
+-the data associated with either. Calling the \fBkstat_chain_update\fR(3KSTAT) or
+-\fBkstat_close\fR(3KSTAT) functions on the handle \fIkc\fR will cause the
++.\" Copyright 2021 Oxide Computer Company
++.\"
++.\" The contents of this file are subject to the terms of the
++.\" Common Development and Distribution License (the "License").
++.\" You may not use this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++.\" or http://www.opensolaris.org/os/licensing.
++.\" See the License for the specific language governing permissions
++.\" and limitations under the License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each
++.\" file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++.\" If applicable, add the following below this CDDL HEADER, with the
++.\" fields enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
++.\"
++.Dd November 29, 2021
++.Dt KSTAT_LOOKUP 3KSTAT
++.Os
++.Sh NAME
++.Nm kstat_lookup ,
++.Nm kstat_data_lookup
++.Nd find a kstat by name
++.Sh LIBRARY
++.Lb libkstat
++.Sh SYNOPSIS
++.In kstat.h
++.Ft "kstat_t *"
++.Fo kstat_lookup
++.Fa "kstat_ctl_t *kc"
++.Fa "char *ks_module"
++.Fa "int ks_instance"
++.Fa "char *ks_name"
++.Fc
++.Ft "void *"
++.Fo kstat_data_lookup
++.Fa "kstat_t *ksp"
++.Fa "char *name"
++.Fc
++.Sh DESCRIPTION
++The
++.Fn kstat_lookup
++function traverses the kstat chain,
++.Ql kc->kc_chain ,
++searching for a kstat with the same
++.Fa ks_module ,
++.Fa ks_instance ,
++and
++.Fa ks_name
++fields; this triplet uniquely identifies a kstat.
++If
++.Fa ks_module ,
++is
++.Dv NULL ,
++.Fa ks_instance
++is -1, or
++.Fa ks_name
++is
++.Dv NULL ,
++those fields will be ignored in the search.
++For
++example,
++.Fo kstat_lookup
++.Fa kc ,
++.Fa NULL ,
++.Fa -1 ,
++.Fa "foo"
++.Fc
++will find the first kstat with name
++.Dq foo .
++.Pp
++The
++.Fn kstat_data_lookup
++function searches the kstat's data section for the record with the specified
++.Fa name .
++This operation is valid only for those kstat types that have named data records:
++.Dv KSTAT_TYPE_NAMED
++and
++.Dv KSTAT_TYPE_TIMER .
++.Ss Lifetime
++The
++.Vt kstat_t
++structures and any associated data are owned by the library and the
++corresponding handle,
++.Fa kc .
++That is, two callers with same library handle will generally have the same
++memory returned to them, though this is not a guaranteed part of the interface.
++Callers should not modify or attempt to free the data associated with either.
++Calling the
++.Xr kstat_chain_update 3KSTAT
++or
++.Xr kstat_close 3KSTAT
++functions on the handle
++.Fa kc
++will cause the
+ pointers returned from these functions with the same handle to be invalid.
+-.SH RETURN VALUES
+-The \fBkstat_lookup()\fR function returns a pointer to the requested kstat if
+-it is found. Otherwise it returns \fINULL\fR and sets \fBerrno\fR to indicate
+-the error.
+-.sp
+-.LP
+-The \fBkstat_data_lookup()\fR function returns a pointer to the requested data
+-record if it is found. Otherwise it returns \fINULL\fR and sets \fBerrno\fR to
+-indicate the error .
+-.SH ERRORS
+-The \fBkstat_lookup()\fR and \fBkstat_data_lookup()\fR functions will fail if:
+-.sp
+-.ne 2
+-.na
+-\fB\fBEINVAL\fR\fR
+-.ad
+-.RS 10n
++.Sh RETURN VALUES
++The
++.Fn kstat_lookup
++function returns a pointer to the requested kstat if it is found.
++Otherwise it returns
++.Dv NULL
++and sets
++.Va errno
++to indicate the error.
++.Pp
++The
++.Fn kstat_data_lookup
++function returns a pointer to the requested data record if it is found.
++Otherwise it returns
++.Dv NULL
++and sets
++.Va errno
++to indicate the error.
++.Sh FILES
++.Bl -tag -width Pa
++.It Pa /dev/kstat
++kernel statistics driver character device
++.El
++.Sh ERRORS
++The
++.Fn kstat_lookup
++and
++.Fn kstat_data_lookup
++functions will fail if:
++.Bl -tag -width Er
++.It Er EINVAL
+ An attempt was made to look up data for a kstat that was not of type
+-\fBKSTAT_TYPE_NAMED\fR or \fBKSTAT_TYPE_TIMER\fR.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBENOENT\fR\fR
+-.ad
+-.RS 10n
++.Dv KSTAT_TYPE_NAMED
++or
++.Dv KSTAT_TYPE_TIMER .
++.It Er ENOENT
+ The requested kstat could not be found.
+-.RE
+-
+-.SH FILES
+-.ne 2
+-.na
+-\fB\fB/dev/kstat\fR\fR
+-.ad
+-.RS 14n
+-kernel statistics driver
+-.RE
+-
+-.SH ATTRIBUTES
+-See \fBattributes\fR(5) for descriptions of the following attributes:
+-.sp
+-
+-.sp
+-.TS
+-box;
+-c | c
+-l | l .
+-ATTRIBUTE TYPE	ATTRIBUTE VALUE
+-_
+-Interface Stability	Stable
+-_
+-MT-Level	Unsafe
+-.TE
+-
+-.SH SEE ALSO
+-\fBkstat\fR(3KSTAT), \fBkstat_chain_update\fR(3KSTAT),
+-\fBkstat_open\fR(3KSTAT), \fBkstat_read\fR(3KSTAT), \fBattributes\fR(5)
++.El
++.Sh INTERFACE STABILITY
++.Sy Committed
++.Sh MT-LEVEL
++.Sy Unsafe
++.Sh SEE ALSO
++.Xr kstat 3KSTAT ,
++.Xr kstat_chain_update 3KSTAT ,
++.Xr kstat_open 3KSTAT ,
++.Xr kstat_read 3KSTAT ,
++.Xr attributes 5
+diff --git a/usr/src/man/man3kstat/kstat_open.3kstat b/usr/src/man/man3kstat/kstat_open.3kstat
+index e37e92a323..f1840ef19c 100644
+--- a/usr/src/man/man3kstat/kstat_open.3kstat
++++ b/usr/src/man/man3kstat/kstat_open.3kstat
+@@ -1,125 +1,119 @@
+-'\" te
++.\"
+ .\" Copyright (c) 2004, Sun Microsystems, Inc. All Rights Reserved.
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+-.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+-.\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH KSTAT_OPEN 3KSTAT "Aug 3, 2004"
+-.SH NAME
+-kstat_open, kstat_close \- initialize kernel statistics facility
+-.SH SYNOPSIS
+-.LP
+-.nf
+-\fBcc\fR[ \fIflag\fR\&.\|.\|. ] \fIfile\fR\&.\|.\|. \fB-lkstat\fR [ \fIlibrary\fR\&.\|.\|.]
+-#include <kstat.h>
+-
+-\fBkstat_ctl_t *\fR\fBkstat_open\fR(\fB\fR\fIvoid\fR);
+-.fi
+-
+-.LP
+-.nf
+-\fBint\fR \fBkstat_close\fR(\fBkstat_ctl_t *\fR\fIkc\fR);
+-.fi
+-
+-.SH DESCRIPTION
+-.sp
+-.LP
+-The \fBkstat_open()\fR function initializes a kstat control structure that
+-provides access to the kernel statistics library.  It returns a pointer to this
+-structure, which must be supplied as the \fIkc\fR argument in subsequent
+-\fBlibkstat\fR function calls.
+-.sp
+-.LP
+-The \fBkstat_close()\fR function frees all resources that were associated with
+-\fIkc\fR. This is performed automatically on \fBexit\fR(2) and \fBexecve\fR(2).
+-.SH RETURN VALUES
+-.sp
+-.LP
+-Upon successful completion, \fBkstat_open()\fR returns a pointer to a kstat
+-control structure.  Otherwise, it returns \fINULL\fR, no resources are
+-allocated, and \fBerrno\fR is set to indicate the error.
+-.sp
+-.LP
+-Upon successful completion, \fBkstat_close()\fR returns 0. Otherwise, \(mi1 is
+-returned and \fBerrno\fR is set to indicate the error.
+-.SH ERRORS
+-.sp
+-.LP
+-The \fBkstat_open()\fR function will fail if:
+-.sp
+-.ne 2
+-.na
+-\fB\fBENOMEM\fR\fR
+-.ad
+-.RS 13n
++.\" Copyright 2021 Oxide Computer Company
++.\"
++.\" The contents of this file are subject to the terms of the
++.\" Common Development and Distribution License (the "License").
++.\" You may not use this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++.\" or http://www.opensolaris.org/os/licensing.
++.\" See the License for the specific language governing permissions
++.\" and limitations under the License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each
++.\" file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++.\" If applicable, add the following below this CDDL HEADER, with the
++.\" fields enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
++.\"
++.Dd November 29, 2021
++.Dt KSTAT_OPEN 3KSTAT
++.Os
++.Sh NAME
++.Nm kstat_open ,
++.Nm kstat_close
++.Nd initialize kernel statistics facility
++.Sh LIBRARY
++.Lb libkstat
++.Sh SYNOPSIS
++.In kstat.h
++.Ft "kstat_ctl_t *"
++.Fo kstat_open
++.Fa "void"
++.Fc
++.Ft int
++.Fo kstat_close
++.Fa "kstat_ctl_t *kc"
++.Fc
++.Sh DESCRIPTION
++The
++.Fn kstat_open
++function initializes a kstat control structure that provides access to the
++kernel statistics library.
++It returns a pointer to this structure, which must be supplied as the
++.Fa kc
++argument in subsequent
++.Sy libkstat
++function calls.
++.Pp
++The
++.Fn kstat_close
++function frees all resources that were associated with
++.Fa kc .
++This is performed automatically on
++.Xr exit 2
++and
++.Xr execve 2 .
++.Sh RETURN VALUES
++Upon successful completion,
++.Fn kstat_open
++returns a pointer to a kstat control structure.
++Otherwise, it returns
++.Dv NULL ,
++no resources are allocated, and
++.Va errno
++is set to indicate the error.
++.Pp
++Upon successful completion,
++.Fn kstat_close
++returns
++.Sy 0 .
++Otherwise,
++.Sy -1
++is returned and
++.Va errno
++is set to indicate the error.
++.Sh FILES
++.Bl -tag -width Pa
++.It Pa /dev/kstat
++kernel statistics driver character device
++.El
++.Sh ERRORS
++The
++.Fn kstat_open
++function will fail if:
++.Bl -tag -width Er
++.It Er ENOMEM
+ Insufficient storage space is available.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBEAGAIN\fR\fR
+-.ad
+-.RS 13n
++.It Er EAGAIN
+ The kstat was temporarily unavailable for reading or writing.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBENXIO\fR\fR
+-.ad
+-.RS 13n
++.It Er ENXIO
+ The given kstat could not be located for reading.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBEOVERFLOW\fR\fR
+-.ad
+-.RS 13n
++.It Er EOVERFLOW
+ The data for the given kstat was too large to be stored in the structure.
+-.RE
+-
+-.sp
+-.LP
+-The \fBkstat_open()\fR function can also return the error values for
+-\fBopen\fR(2).
+-.sp
+-.LP
+-The \fBkstat_close()\fR function can also return the error values for
+-\fBclose\fR(2).
+-.SH FILES
+-.sp
+-.ne 2
+-.na
+-\fB\fB/dev/kstat\fR\fR
+-.ad
+-.RS 14n
+-kernel statistics driver
+-.RE
+-
+-.SH ATTRIBUTES
+-.sp
+-.LP
+-See \fBattributes\fR(5) for descriptions of the following attributes:
+-.sp
+-
+-.sp
+-.TS
+-box;
+-c | c
+-l | l .
+-ATTRIBUTE TYPE	ATTRIBUTE VALUE
+-_
+-Interface Stability	Stable
+-_
+-MT-Level	Unsafe
+-.TE
+-
+-.SH SEE ALSO
+-.sp
+-.LP
+-\fBclose\fR(2), \fBexecve\fR(2), \fBopen\fR(2), \fBexit\fR(2),
+-\fBkstat\fR(3KSTAT), \fBkstat_chain_update\fR(3KSTAT),
+-\fBkstat_lookup\fR(3KSTAT), \fBkstat_read\fR(3KSTAT), \fBattributes\fR(5)
++.El
++.Pp
++The
++.Fn kstat_open
++function can also return the error values for
++.Xr open 2 .
++.Pp
++The
++.Fn kstat_close
++function can also return the error values for
++.Xr close 2 .
++.Sh INTERFACE STABILITY
++.Sy Committed
++.Sh MT-LEVEL
++.Sy Unsafe
++.Sh SEE ALSO
++.Xr close 2 ,
++.Xr execve 2 ,
++.Xr exit 2 ,
++.Xr open 2 ,
++.Xr kstat 3KSTAT ,
++.Xr kstat_chain_update 3KSTAT ,
++.Xr kstat_lookup 3KSTAT ,
++.Xr kstat_read 3KSTAT ,
++.Xr attributes 5
+diff --git a/usr/src/man/man3kstat/kstat_read.3kstat b/usr/src/man/man3kstat/kstat_read.3kstat
+index ad510adb64..a9536c7b40 100644
+--- a/usr/src/man/man3kstat/kstat_read.3kstat
++++ b/usr/src/man/man3kstat/kstat_read.3kstat
+@@ -1,147 +1,130 @@
+-'\" te
++.\"
+ .\" Copyright (c) 2004, Sun Microsystems, Inc. All Rights Reserved.
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+-.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+-.\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH KSTAT_READ 3KSTAT "Aug 3, 2004"
+-.SH NAME
+-kstat_read, kstat_write \- read or write kstat data
+-.SH SYNOPSIS
+-.LP
+-.nf
+-\fBcc\fR [ \fIflag\fR\&.\|.\|. ] \fIfile\fR\&.\|.\|. \fB-lkstat\fR [ \fIlibrary\fR\&.\|.\|. ]
+-#include <kstat.h>
+-
+-\fBkid_t\fR \fBkstat_read\fR(\fBkstat_ctl_t *\fR\fIkc\fR, \fBkstat_t *\fR\fIksp\fR, \fBvoid *\fR\fIbuf\fR);
+-.fi
+-
+-.LP
+-.nf
+-\fBkid_t\fR \fBkstat_write\fR(\fBkstat_ctl_t *\fR\fIkc\fR, \fBkstat_t *\fR\fIksp\fR, \fBvoid *\fR\fIbuf\fR);
+-.fi
+-
+-.SH DESCRIPTION
+-.sp
+-.LP
+-The \fBkstat_read()\fR function gets data from the kernel for the kstat pointed
+-to by \fIksp\fR. The \fIksp\fR->\fBks_data\fR field is automatically allocated
+-(or reallocated) to be large enough to hold all of the data. The
+-\fIksp\fR->\fBks_ndata\fR field is set to the number of data fields,
+-\fIksp\fR->\fBks_data_size\fR is set to the total size of the data, and
+-\fIksp\fR->\fBks_snaptime\fR is set to the high-resolution time at which the
+-data snapshot was taken. If \fIbuf\fR is  non-null, the data is copied from
+-\fIksp\fR->\fBks_data\fR to \fIbuf\fR.
+-.sp
+-.LP
+-The \fBkstat_write()\fR function writes data from \fIbuf\fR, or from
+-\fIksp\fR->\fBks_data\fR if \fIbuf\fR is \fINULL\fR, to the corresponding kstat
+-in the kernel.  Only the superuser can use \fBkstat_write()\fR.
+-.SH RETURN VALUES
+-.sp
+-.LP
+-Upon successful completion, \fBkstat_read()\fR and \fBkstat_write()\fR return
+-the current kstat chain ID (KCID). Otherwise, they return \(mi1 and set
+-\fBerrno\fR to indicate the error.
+-.SH ERRORS
+-.sp
+-.LP
+-The \fBkstat_read()\fR and \fBkstat_write()\fR functions will fail if:
+-.sp
+-.ne 2
+-.na
+-\fB\fBEACCES\fR\fR
+-.ad
+-.RS 13n
++.\" Copyright 2021 Oxide Computer Company
++.\"
++.\" The contents of this file are subject to the terms of the
++.\" Common Development and Distribution License (the "License").
++.\" You may not use this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++.\" or http://www.opensolaris.org/os/licensing.
++.\" See the License for the specific language governing permissions
++.\" and limitations under the License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each
++.\" file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++.\" If applicable, add the following below this CDDL HEADER, with the
++.\" fields enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
++.\"
++.Dd November 29, 2021
++.Dt KSTAT_READ 3KSTAT
++.Os
++.Sh NAME
++.Nm kstat_read ,
++.Nm kstat_write
++.Nd read or write kstat data
++.Sh LIBRARY
++.Lb libkstat
++.Sh SYNOPSIS
++.In kstat.h
++.Ft kid_t
++.Fo kstat_read
++.Fa "kstat_ctl_t *kc"
++.Fa "kstat_t *ksp"
++.Fa "void *buf"
++.Fc
++.Ft kid_t
++.Fo kstat_write
++.Fa "kstat_ctl_t *kc"
++.Fa "kstat_t *ksp"
++.Fa "void *buf"
++.Fc
++.Sh DESCRIPTION
++The
++.Fn kstat_read
++function gets data from the kernel for the kstat pointed to by
++.Fa ksp .
++The
++.Ql ksp->ks_data
++field is automatically allocated
++.Pq or reallocated
++to be large enough to hold all of the data.
++The
++.Ql ksp->ks_ndata
++field is set to the number of data fields,
++.Ql ksp->ks_data_size
++is set to the total size of the data, and
++.Ql ksp->ks_snaptime
++is set to the high-resolution time at which the data snapshot was taken.
++If
++.Fa buf
++is non-null, the data is copied from
++.Ql ksp->ks_data
++to
++.Fa buf .
++.Pp
++The
++.Fn kstat_write
++function writes data from
++.Fa buf ,
++or from
++.Ql ksp->ks_data
++if
++.Fa buf
++is
++.Dv NULL
++to the corresponding kstat in the kernel.
++Only a privileged user can use
++.Fn kstat_write .
++.Sh RETURN VALUES
++Upon successful completion,
++.Fn kstat_read
++and
++.Fn kstat_write
++return the current kstat chain ID (KCID).
++Otherwise, they return
++.Sy -1
++and set
++.Va errno
++to indicate the error.
++.Sh FILES
++.Bl -tag -width Pa
++.It Pa /dev/kstat
++kernel statistics driver character device
++.El
++.Sh ERRORS
++The
++.Fn kstat_read
++and
++.Fn kstat_write
++functions will fail if:
++.Bl -tag -width Er
++.It Er EACCES
+ An attempt was made to write to a non-writable kstat.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBEAGAIN\fR\fR
+-.ad
+-.RS 13n
++.It Er EAGAIN
+ The kstat was temporarily unavailable for reading or writing.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBEINVAL\fR\fR
+-.ad
+-.RS 13n
++.It Er EINVAL
+ An attempt was made to write data to a kstat, but the number of elements or the
+ data size does not match.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBENOMEM\fR\fR
+-.ad
+-.RS 13n
++.It Er ENOMEM
+ Insufficient storage space is available.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBENXIO\fR\fR
+-.ad
+-.RS 13n
++.It Er ENXIO
+ The given kstat could not be located for reading or writing.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBEOVERFLOW\fR\fR
+-.ad
+-.RS 13n
+-The data for the given kstat was too large to be stored in the structure.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBEPERM\fR\fR
+-.ad
+-.RS 13n
+-An attempt was made to write to a kstat, but {\fBPRIV_SYS_CONFIG\fR} was not
+-asserted in the effective privilege set.
+-.RE
+-
+-.SH FILES
+-.sp
+-.ne 2
+-.na
+-\fB\fB/dev/kstat\fR\fR
+-.ad
+-.RS 14n
+-kernel statistics driver
+-.RE
+-
+-.SH ATTRIBUTES
+-.sp
+-.LP
+-See \fBattributes\fR(5) for descriptions of the following attributes:
+-.sp
+-
+-.sp
+-.TS
+-box;
+-c | c
+-l | l .
+-ATTRIBUTE TYPE	ATTRIBUTE VALUE
+-_
+-Interface Stability	Stable
+-_
+-MT-Level	Unsafe
+-.TE
+-
+-.SH SEE ALSO
+-.sp
+-.LP
+-\fBkstat\fR(3KSTAT), \fBkstat_chain_update\fR(3KSTAT),
+-\fBkstat_lookup\fR(3KSTAT), \fBkstat_open\fR(3KSTAT), \fBattributes\fR(5),
+-\fBprivileges\fR(5)
++.It Er EOVERFLOW
++.It Er EPERM
++An attempt was made to write to a kstat, but
++.Brq Dv PRIV_SYS_CONFIG
++was not asserted in the effective privilege set.
++.El
++.Sh INTERFACE STABILITY
++.Sy Committed
++.Sh MT-LEVEL
++.Sy Unsafe
++.Sh SEE ALSO
++.Xr kstat 3KSTAT ,
++.Xr kstat_chain_update 3KSTAT ,
++.Xr kstat_lookup 3KSTAT ,
++.Xr kstat_open 3KSTAT ,
++.Xr attributes 5 ,
++.Xr privileges 5
+-- 
+2.40.1
+

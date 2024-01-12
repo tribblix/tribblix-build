@@ -1,0 +1,26 @@
+From dc5774e5554edd469013b4fe1c42fbd63f5212e1 Mon Sep 17 00:00:00 2001
+From: Hans Rosenfeld <rosenfeld@grumpf.hope-2000.org>
+Date: Sat, 28 Aug 2021 15:29:33 +0200
+Subject: [PATCH] 14354 mDNSResponder spins checking interfaces Reviewed by:
+ Yuri Pankov <ypankov@tintri.com> Reviewed by: Toomas Soome <tsoome@me.com>
+ Approved by: Garrett D'Amore <garrett@damore.org>
+
+---
+ usr/src/contrib/mDNSResponder/mDNSPosix/mDNSPosix.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/usr/src/contrib/mDNSResponder/mDNSPosix/mDNSPosix.c b/usr/src/contrib/mDNSResponder/mDNSPosix/mDNSPosix.c
+index 107091456e..aafc205497 100755
+--- a/usr/src/contrib/mDNSResponder/mDNSPosix/mDNSPosix.c
++++ b/usr/src/contrib/mDNSResponder/mDNSPosix/mDNSPosix.c
+@@ -1341,6 +1341,7 @@ mDNSlocal int SetupInterfaceList(mDNS *const m)
+                 int ifIndex = if_nametoindex(i->ifa_name);
+                 if (ifIndex == 0)
+                 {
++                    i = i->ifa_next;
+                     continue;
+                 }
+                 if (i->ifa_flags & IFF_LOOPBACK)
+-- 
+2.40.1
+

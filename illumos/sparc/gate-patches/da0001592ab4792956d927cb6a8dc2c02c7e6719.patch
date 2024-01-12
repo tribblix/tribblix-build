@@ -1,0 +1,37 @@
+From da0001592ab4792956d927cb6a8dc2c02c7e6719 Mon Sep 17 00:00:00 2001
+From: Richard Lowe <richlowe@richlowe.net>
+Date: Sat, 6 Nov 2021 16:37:15 -0500
+Subject: [PATCH] 14221 logname(1) should only be delivered once Reviewed by:
+ Robert Mustacchi <rm@fingolfin.org> Reviewed by: Andy Fiddaman
+ <andy@omnios.org> Reviewed by: Toomas Soome <tsoome@me.com> Approved by:
+ Gordon Ross <gordon.w.ross@gmail.com>
+
+---
+ usr/src/cmd/ast/ksh/builtins/Makefile | 1 -
+ usr/src/cmd/ast/ksh/builtins/alias.c  | 1 -
+ 2 files changed, 2 deletions(-)
+
+diff --git a/usr/src/cmd/ast/ksh/builtins/Makefile b/usr/src/cmd/ast/ksh/builtins/Makefile
+index db529aef57a4..69dc0eeb3dfc 100644
+--- a/usr/src/cmd/ast/ksh/builtins/Makefile
++++ b/usr/src/cmd/ast/ksh/builtins/Makefile
+@@ -44,7 +44,6 @@ ALIASPROG= \
+ 	jobs \
+ 	join \
+ 	kill \
+-	logname \
+ 	paste \
+ 	print \
+ 	read \
+diff --git a/usr/src/cmd/ast/ksh/builtins/alias.c b/usr/src/cmd/ast/ksh/builtins/alias.c
+index 1516a0bf1ca5..d0ed480e121e 100644
+--- a/usr/src/cmd/ast/ksh/builtins/alias.c
++++ b/usr/src/cmd/ast/ksh/builtins/alias.c
+@@ -96,7 +96,6 @@ bfastpathrec fastpath_builtins[] =
+ 	{ "id",		b_id		},
+ 	{ "join",	b_join		},
+ 	{ "ln",		b_ln		},
+-	{ "logname",	b_logname	},
+ 	{ "md5sum",	b_md5sum	},
+ 	{ "mkdir",	b_mkdir		},
+ 	{ "mkfifo",	b_mkfifo	},

@@ -1,0 +1,30 @@
+From 3d6d4f792e72bec8b227212e65f7555396295d84 Mon Sep 17 00:00:00 2001
+From: Yuri Pankov <ypankov@tintri.com>
+Date: Wed, 29 Dec 2021 03:16:56 +0300
+Subject: [PATCH] 14342 svccfg cleanup dumps core in create_instance_list
+ Reviewed by: Alexander Eremin <aeremin@tintri.com> Reviewed by: Joyce
+ McIntosh <jmcintosh@tintri.com> Reviewed by: Jason King
+ <jason.brian.king@gmail.com> Reviewed by: Marcel Telka <marcel@telka.sk>
+ Reviewed by: Toomas Soome <tsoome@me.com> Approved by: Robert Mustacchi
+ <rm@fingolfin.org>
+
+---
+ usr/src/cmd/svc/svccfg/svccfg_libscf.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/usr/src/cmd/svc/svccfg/svccfg_libscf.c b/usr/src/cmd/svc/svccfg/svccfg_libscf.c
+index 629d7817f7..1e565d795f 100644
+--- a/usr/src/cmd/svc/svccfg/svccfg_libscf.c
++++ b/usr/src/cmd/svc/svccfg/svccfg_libscf.c
+@@ -16254,7 +16254,7 @@ create_instance_list(scf_service_t *svc, int wohandcrafted)
+ 	scf_instance_t  *inst;
+ 	scf_iter_t	*inst_iter;
+ 	uu_list_t	*instances;
+-	char		*instname;
++	char		*instname = NULL;
+ 	int		r;
+ 
+ 	inst_iter = scf_iter_create(g_hndl);
+-- 
+2.40.1
+

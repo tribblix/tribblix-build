@@ -1,0 +1,42 @@
+From 50959a0eb0e3bc8618e60f532f23b93bfc7bcad7 Mon Sep 17 00:00:00 2001
+From: Mike Zeller <mike@mikezeller.net>
+Date: Fri, 19 Aug 2022 12:24:15 -0700
+Subject: [PATCH] =?UTF-8?q?14918=20pty(4d)=20typo=20posix=5Fopenpty=20to?=
+ =?UTF-8?q?=20posix=5Fopenpt=20Reviewed=20by:=20Gerg=C5=91=20Mih=C3=A1ly?=
+ =?UTF-8?q?=20Doma=20<domag02@gmail.com>=20Reviewed=20by:=20Sachidananda?=
+ =?UTF-8?q?=20Urs=20<sacchi@gmail.com>=20Reviewed=20by:=20Toomas=20Soome?=
+ =?UTF-8?q?=20<toomas@me.com>=20Approved=20by:=20Robert=20Mustacchi=20<rm@?=
+ =?UTF-8?q?fingolfin.org>?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ usr/src/man/man4d/pty.4d | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/usr/src/man/man4d/pty.4d b/usr/src/man/man4d/pty.4d
+index 0e7cb9ad2f..d9e73c5a4b 100644
+--- a/usr/src/man/man4d/pty.4d
++++ b/usr/src/man/man4d/pty.4d
+@@ -4,7 +4,7 @@
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+ .\" Copyright 2022 Oxide Computer Company
+-.Dd February 5, 2022
++.Dd August 19, 2022
+ .Dt PTY 4D
+ .Os
+ .Sh NAME
+@@ -249,7 +249,7 @@ Pseudo-terminal subsidiary devices.
+ .El
+ .Sh SEE ALSO
+ .Xr rlogin 1 ,
+-.Xr posix_openpty 3C ,
++.Xr posix_openpt 3C ,
+ .Xr ptm 4D ,
+ .Xr termio 4I ,
+ .Xr ldterm 4M ,
+-- 
+2.42.0
+

@@ -1,0 +1,187 @@
+From db2effc6fa1e364418090bfc0ca0cfd267792bea Mon Sep 17 00:00:00 2001
+From: Robert Mustacchi <rm@joyent.com>
+Date: Wed, 16 Jan 2019 11:42:24 -0500
+Subject: [PATCH] 14200 refhash could be used outside of mpt_sas Reviewed by:
+ Yuri Pankov <ypankov@tintri.com> Reviewed by: Andy Fiddaman <andy@omnios.org>
+ Approved by: Dan McDonald <danmcd@joyent.com>
+
+---
+ usr/src/cmd/mdb/common/modules/mpt_sas/mpt_sas.c      |  2 +-
+ usr/src/uts/common/Makefile.files                     |  4 ++--
+ usr/src/uts/common/Makefile.rules                     |  4 ++++
+ usr/src/uts/common/io/scsi/adapters/mpt_sas/mptsas.c  |  2 +-
+ .../mpt_sas/mptsas_hash.c => refhash/refhash.c}       | 11 ++---------
+ .../adapters/mpt_sas/mptsas_hash.h => refhash.h}      |  8 ++++----
+ .../uts/common/sys/scsi/adapters/mpt_sas/mptsas_var.h |  2 +-
+ 7 files changed, 15 insertions(+), 18 deletions(-)
+ rename usr/src/uts/common/{io/scsi/adapters/mpt_sas/mptsas_hash.c => refhash/refhash.c} (92%)
+ rename usr/src/uts/common/sys/{scsi/adapters/mpt_sas/mptsas_hash.h => refhash.h} (91%)
+
+diff --git a/usr/src/cmd/mdb/common/modules/mpt_sas/mpt_sas.c b/usr/src/cmd/mdb/common/modules/mpt_sas/mpt_sas.c
+index ecb2aba4cc30..1a63798c93bf 100644
+--- a/usr/src/cmd/mdb/common/modules/mpt_sas/mpt_sas.c
++++ b/usr/src/cmd/mdb/common/modules/mpt_sas/mpt_sas.c
+@@ -34,6 +34,7 @@
+ #include <sys/sunmdi.h>
+ #include <sys/list.h>
+ #include <sys/scsi/scsi.h>
++#include <sys/refhash.h>
+ 
+ #pragma pack(1)
+ #include <sys/scsi/adapters/mpt_sas/mpi/mpi2_type.h>
+@@ -47,7 +48,6 @@
+ #pragma pack()
+ 
+ #include <sys/scsi/adapters/mpt_sas/mptsas_var.h>
+-#include <sys/scsi/adapters/mpt_sas/mptsas_hash.h>
+ 
+ struct {
+ 	int	value;
+diff --git a/usr/src/uts/common/Makefile.files b/usr/src/uts/common/Makefile.files
+index 08280f318f75..e610aaa2679c 100644
+--- a/usr/src/uts/common/Makefile.files
++++ b/usr/src/uts/common/Makefile.files
+@@ -294,6 +294,7 @@ GENUNIX_OBJS +=	\
+ 		rctl.o		\
+ 		rctlsys.o	\
+ 		readlink.o	\
++		refhash.o	\
+ 		refstr.o	\
+ 		rename.o	\
+ 		resolvepath.o	\
+@@ -1909,8 +1910,7 @@ ZYD_OBJS += zyd.o zyd_usb.o zyd_hw.o zyd_fw.o
+ 
+ MXFE_OBJS += mxfe.o
+ 
+-MPTSAS_OBJS += mptsas.o mptsas_hash.o mptsas_impl.o mptsas_init.o \
+-		mptsas_raid.o mptsas_smhba.o
++MPTSAS_OBJS += mptsas.o mptsas_impl.o mptsas_init.o mptsas_raid.o mptsas_smhba.o
+ 
+ SFE_OBJS += sfe.o sfe_util.o
+ 
+diff --git a/usr/src/uts/common/Makefile.rules b/usr/src/uts/common/Makefile.rules
+index 6bbede41f428..0d4ff402afe5 100644
+--- a/usr/src/uts/common/Makefile.rules
++++ b/usr/src/uts/common/Makefile.rules
+@@ -1583,6 +1583,10 @@ $(OBJS_DIR)/%.o:		$(UTSBASE)/common/pcmcia/pcs/%.c
+ 	$(COMPILE.c) -o $@ $<
+ 	$(CTFCONVERT_O)
+ 
++$(OBJS_DIR)/%.o:		$(UTSBASE)/common/refhash/%.c
++	$(COMPILE.c) -o $@ $<
++	$(CTFCONVERT_O)
++
+ $(OBJS_DIR)/%.o:		$(UTSBASE)/common/rpc/%.c
+ 	$(COMPILE.c) -o $@ $<
+ 	$(CTFCONVERT_O)
+diff --git a/usr/src/uts/common/io/scsi/adapters/mpt_sas/mptsas.c b/usr/src/uts/common/io/scsi/adapters/mpt_sas/mptsas.c
+index 66256a2aa25d..e458c611689b 100644
+--- a/usr/src/uts/common/io/scsi/adapters/mpt_sas/mptsas.c
++++ b/usr/src/uts/common/io/scsi/adapters/mpt_sas/mptsas.c
+@@ -72,6 +72,7 @@
+ #include <sys/file.h>
+ #include <sys/policy.h>
+ #include <sys/model.h>
++#include <sys/refhash.h>
+ #include <sys/sysevent.h>
+ #include <sys/sysevent/eventdefs.h>
+ #include <sys/sysevent/dr.h>
+@@ -99,7 +100,6 @@
+ #include <sys/scsi/adapters/mpt_sas/mptsas_var.h>
+ #include <sys/scsi/adapters/mpt_sas/mptsas_ioctl.h>
+ #include <sys/scsi/adapters/mpt_sas/mptsas_smhba.h>
+-#include <sys/scsi/adapters/mpt_sas/mptsas_hash.h>
+ #include <sys/raidioctl.h>
+ 
+ #include <sys/fs/dv_node.h>	/* devfs_clean */
+diff --git a/usr/src/uts/common/io/scsi/adapters/mpt_sas/mptsas_hash.c b/usr/src/uts/common/refhash/refhash.c
+similarity index 92%
+rename from usr/src/uts/common/io/scsi/adapters/mpt_sas/mptsas_hash.c
+rename to usr/src/uts/common/refhash/refhash.c
+index 8f96c2d9f186..19c5baebe564 100644
+--- a/usr/src/uts/common/io/scsi/adapters/mpt_sas/mptsas_hash.c
++++ b/usr/src/uts/common/refhash/refhash.c
+@@ -10,28 +10,22 @@
+  */
+ 
+ /*
+- * Copyright 2014 Joyent, Inc.  All rights reserved.
++ * Copyright 2015 Joyent, Inc.
+  */
+ 
+-#include <sys/scsi/adapters/mpt_sas/mptsas_hash.h>
++#include <sys/refhash.h>
+ #include <sys/sysmacros.h>
+ #include <sys/types.h>
+ #include <sys/kmem.h>
+ #include <sys/list.h>
+ #include <sys/ddi.h>
+ 
+-#ifdef lint
+-extern refhash_link_t *obj_to_link(refhash_t *, void *);
+-extern void *link_to_obj(refhash_t *, refhash_link_t *);
+-extern void *obj_to_tag(refhash_t *, void *);
+-#else
+ #define	obj_to_link(_h, _o)	\
+ 	((refhash_link_t *)(((char *)(_o)) + (_h)->rh_link_off))
+ #define	link_to_obj(_h, _l)	\
+ 	((void *)(((char *)(_l)) - (_h)->rh_link_off))
+ #define	obj_to_tag(_h, _o)	\
+ 	((void *)(((char *)(_o)) + (_h)->rh_tag_off))
+-#endif
+ 
+ refhash_t *
+ refhash_create(uint_t bucket_count, refhash_hash_f hash,
+@@ -208,7 +202,6 @@ refhash_next(refhash_t *hp, void *op)
+ boolean_t
+ refhash_obj_valid(refhash_t *hp, const void *op)
+ {
+-	/* LINTED - E_ARG_INCOMPATIBLE_WITH_ARG_L */
+ 	const refhash_link_t *lp = obj_to_link(hp, op);
+ 
+ 	return ((lp->rhl_flags & RHL_F_DEAD) != 0);
+diff --git a/usr/src/uts/common/sys/scsi/adapters/mpt_sas/mptsas_hash.h b/usr/src/uts/common/sys/refhash.h
+similarity index 91%
+rename from usr/src/uts/common/sys/scsi/adapters/mpt_sas/mptsas_hash.h
+rename to usr/src/uts/common/sys/refhash.h
+index 2069e6d3f197..b7427a454d49 100644
+--- a/usr/src/uts/common/sys/scsi/adapters/mpt_sas/mptsas_hash.h
++++ b/usr/src/uts/common/sys/refhash.h
+@@ -10,11 +10,11 @@
+  */
+ 
+ /*
+- * Copyright 2014 Joyent, Inc.  All rights reserved.
++ * Copyright 2015 Joyent, Inc.
+  */
+ 
+-#ifndef	_SYS_SCSI_ADAPTERS_MPTHASH_H
+-#define	_SYS_SCSI_ADAPTERS_MPTHASH_H
++#ifndef	_SYS_REFHASH_H
++#define	_SYS_REFHASH_H
+ 
+ #include <sys/types.h>
+ #include <sys/list.h>
+@@ -58,4 +58,4 @@ extern void *refhash_first(refhash_t *);
+ extern void *refhash_next(refhash_t *, void *);
+ extern boolean_t refhash_obj_valid(refhash_t *hp, const void *);
+ 
+-#endif	/* _SYS_SCSI_ADAPTERS_MPTHASH_H */
++#endif	/* _SYS_REFHASH_H */
+diff --git a/usr/src/uts/common/sys/scsi/adapters/mpt_sas/mptsas_var.h b/usr/src/uts/common/sys/scsi/adapters/mpt_sas/mptsas_var.h
+index ba340549c6e1..5b7a3f64425e 100644
+--- a/usr/src/uts/common/sys/scsi/adapters/mpt_sas/mptsas_var.h
++++ b/usr/src/uts/common/sys/scsi/adapters/mpt_sas/mptsas_var.h
+@@ -58,11 +58,11 @@
+ 
+ #include <sys/byteorder.h>
+ #include <sys/queue.h>
++#include <sys/refhash.h>
+ #include <sys/isa_defs.h>
+ #include <sys/sunmdi.h>
+ #include <sys/mdi_impldefs.h>
+ #include <sys/ddi_ufm.h>
+-#include <sys/scsi/adapters/mpt_sas/mptsas_hash.h>
+ #include <sys/scsi/adapters/mpt_sas/mptsas_ioctl.h>
+ #include <sys/scsi/adapters/mpt_sas/mpi/mpi2_tool.h>
+ #include <sys/scsi/adapters/mpt_sas/mpi/mpi2_cnfg.h>

@@ -1,0 +1,27 @@
+From 19141168d83c6b9692f40a6885b0c7258161ec6b Mon Sep 17 00:00:00 2001
+From: Mike Zeller <mike@mikezeller.net>
+Date: Tue, 19 Apr 2022 23:00:00 -0700
+Subject: [PATCH] 14651 select.3c error return value is wrong Reviewed by:
+ Robert Mustacchi <rm@fingolfin.org> Approved by: Richard Lowe
+ <richlowe@richlowe.net>
+
+---
+ usr/src/man/man3c/select.3c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/usr/src/man/man3c/select.3c b/usr/src/man/man3c/select.3c
+index 976f728b9d..59fa00c48c 100644
+--- a/usr/src/man/man3c/select.3c
++++ b/usr/src/man/man3c/select.3c
+@@ -441,7 +441,7 @@ and
+ return the total
+ number of bits set in the bit masks.
+ Otherwise,
+-.Sy 1
++.Sy -1
+ is returned and
+ .Dv errno
+ is set to indicate the error.
+-- 
+2.42.0
+

@@ -1,0 +1,29 @@
+From 58e7cf8311dcd6a59422313fbb06e47b9e14b779 Mon Sep 17 00:00:00 2001
+From: Robert Mustacchi <rm@fingolfin.org>
+Date: Sat, 28 Jan 2023 01:57:08 +0000
+Subject: [PATCH] 15381 fix inw(9F) synopsis Reviewed by: Andy Fiddaman
+ <illumos@fiddaman.net> Reviewed by: Peter Tribble <peter.tribble@gmail.com>
+ Reviewed by: Bill Sommerfeld <sommerfeld@alum.mit.edu> Approved by: Garrett
+ D'Amore <garrett@damore.org>
+
+---
+ usr/src/man/man9f/inb.9f | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/usr/src/man/man9f/inb.9f b/usr/src/man/man9f/inb.9f
+index 0251b69334..994d78ce28 100644
+--- a/usr/src/man/man9f/inb.9f
++++ b/usr/src/man/man9f/inb.9f
+@@ -16,8 +16,7 @@ inb, inw, inl \- read from an I/O port
+ 
+ .LP
+ .nf
+-\fBunsigned short\fR \fBinw\fR(\fBint\fR
+-\fIport\fR);
++\fBunsigned short\fR \fBinw\fR(\fBint\fR \fIport\fR);
+ .fi
+ 
+ .LP
+-- 
+2.43.0
+

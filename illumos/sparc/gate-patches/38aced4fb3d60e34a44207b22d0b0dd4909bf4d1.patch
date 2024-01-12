@@ -1,0 +1,285 @@
+From 38aced4fb3d60e34a44207b22d0b0dd4909bf4d1 Mon Sep 17 00:00:00 2001
+From: Richard Lowe <richlowe@richlowe.net>
+Date: Sat, 21 May 2022 18:13:37 -0500
+Subject: [PATCH] 14710 remove long obsolete/unused pyzfs helper script
+ Reviewed by: Yuri Pankov <ypankov@tintri.com> Reviewed by: Andy Fiddaman
+ <andy@omnios.org> Reviewed by: Peter Tribble <peter.tribble@gmail.com>
+ Approved by: Dan McDonald <danmcd@mnx.io>
+
+---
+ usr/src/cmd/Makefile                          |  2 -
+ usr/src/cmd/pyzfs/Makefile                    | 48 -----------
+ usr/src/cmd/pyzfs/pyzfs.py                    | 83 -------------------
+ usr/src/lib/brand/solaris10/zone/s10_boot.ksh | 20 +----
+ .../pkg/manifests/system-file-system-zfs.p5m  |  2 -
+ usr/src/tools/quick/make-zfs                  |  5 +-
+ 6 files changed, 5 insertions(+), 155 deletions(-)
+ delete mode 100644 usr/src/cmd/pyzfs/Makefile
+ delete mode 100644 usr/src/cmd/pyzfs/pyzfs.py
+
+diff --git a/usr/src/cmd/Makefile b/usr/src/cmd/Makefile
+index 4f496112e8..c510361f60 100644
+--- a/usr/src/cmd/Makefile
++++ b/usr/src/cmd/Makefile
+@@ -343,7 +343,6 @@ COMMON_SUBDIRS=		\
+ 	pwck		\
+ 	pwconv		\
+ 	pwd		\
+-	pyzfs		\
+ 	raidctl		\
+ 	raidz_test	\
+ 	ramdiskadm	\
+@@ -676,7 +675,6 @@ MSGSUBDIRS=		\
+ 	ptools		\
+ 	pwconv		\
+ 	pwd		\
+-	pyzfs		\
+ 	raidctl		\
+ 	ramdiskadm	\
+ 	rcap		\
+diff --git a/usr/src/cmd/pyzfs/Makefile b/usr/src/cmd/pyzfs/Makefile
+deleted file mode 100644
+index 8895ccf525..0000000000
+--- a/usr/src/cmd/pyzfs/Makefile
++++ /dev/null
+@@ -1,48 +0,0 @@
+-#
+-# CDDL HEADER START
+-#
+-# The contents of this file are subject to the terms of the
+-# Common Development and Distribution License (the "License").
+-# You may not use this file except in compliance with the License.
+-#
+-# You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+-# or http://www.opensolaris.org/os/licensing.
+-# See the License for the specific language governing permissions
+-# and limitations under the License.
+-#
+-# When distributing Covered Code, include this CDDL HEADER in each
+-# file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+-# If applicable, add the following below this CDDL HEADER, with the
+-# fields enclosed by brackets "[]" replaced with your own identifying
+-# information: Portions Copyright [yyyy] [name of copyright owner]
+-#
+-# CDDL HEADER END
+-#
+-#
+-# Copyright (c) 2009, 2010, Oracle and/or its affiliates. All rights reserved.
+-#
+-
+-include ../Makefile.cmd
+-
+-ROOTCMDDIR=	$(ROOTLIB)/zfs
+-
+-PYSRCS=		pyzfs.py
+-PYOBJS=		$(PYSRCS:%.py=%.pyc)
+-PYFILES=	$(PYSRCS) $(PYOBJS)
+-POFILE=		pyzfs.po
+-
+-ROOTLIBZFSFILES= $(PYFILES:%=$(ROOTLIB)/zfs/%)
+-
+-.KEEP_STATE:
+-
+-all: $(PYOBJS)
+-
+-install: all $(ROOTLIBZFSFILES)
+-
+-clean:
+-	$(RM) $(PYOBJS)
+-
+-$(ROOTLIB)/zfs/%: %
+-	$(INS.pyfile)
+-
+-include ../Makefile.targ
+diff --git a/usr/src/cmd/pyzfs/pyzfs.py b/usr/src/cmd/pyzfs/pyzfs.py
+deleted file mode 100644
+index efcb4e8842..0000000000
+--- a/usr/src/cmd/pyzfs/pyzfs.py
++++ /dev/null
+@@ -1,83 +0,0 @@
+-#!@PYTHON@ -Es
+-#
+-# CDDL HEADER START
+-#
+-# The contents of this file are subject to the terms of the
+-# Common Development and Distribution License (the "License").
+-# You may not use this file except in compliance with the License.
+-#
+-# You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+-# or http://www.opensolaris.org/os/licensing.
+-# See the License for the specific language governing permissions
+-# and limitations under the License.
+-#
+-# When distributing Covered Code, include this CDDL HEADER in each
+-# file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+-# If applicable, add the following below this CDDL HEADER, with the
+-# fields enclosed by brackets "[]" replaced with your own identifying
+-# information: Portions Copyright [yyyy] [name of copyright owner]
+-#
+-# CDDL HEADER END
+-#
+-# Copyright (c) 2009, 2010, Oracle and/or its affiliates. All rights reserved.
+-# Copyright 2018 OmniOS Community Edition (OmniOSce) Association.
+-#
+-
+-# Note, we want SIGINT (control-c) to exit the process quietly, to mimic
+-# the standard behavior of C programs.  The best we can do with pure
+-# Python is to run with -S (to disable "import site"), and start our
+-# program with a "try" statement.  Hopefully nobody hits ^C before our
+-# try statement is executed.
+-
+-try:
+-	import site
+-	import gettext
+-	import zfs.util
+-	import zfs.ioctl
+-	import sys
+-	import errno
+-	import solaris.misc
+-
+-	"""This is the main script for doing zfs subcommands.  It doesn't know
+-	what subcommands there are, it just looks for a module zfs.<subcommand>
+-	that implements that subcommand."""
+-
+-	try:
+-		_ = gettext.translation("SUNW_OST_OSCMD", "/usr/lib/locale",
+-		    fallback=True).gettext
+-	except:
+-		_ = solaris.misc.gettext
+-
+-	if len(sys.argv) < 2:
+-		sys.exit(_("missing subcommand argument"))
+-
+-	zfs.ioctl.set_cmdstr(" ".join(["zfs"] + sys.argv[1:]))
+-
+-	try:
+-		# import zfs.<subcommand>
+-		# subfunc =  zfs.<subcommand>.do_<subcommand>
+-
+-		subcmd = sys.argv[1]
+-		__import__("zfs." + subcmd)
+-		submod = getattr(zfs, subcmd)
+-		subfunc = getattr(submod, "do_" + subcmd)
+-	except (ImportError, AttributeError):
+-		sys.exit(_("invalid subcommand"))
+-
+-	try:
+-		subfunc()
+-	except zfs.util.ZFSError as e:
+-		print(e)
+-		sys.exit(1)
+-
+-except IOError as e:
+-	import errno
+-	import sys
+-
+-	if e.errno == errno.EPIPE:
+-		sys.exit(1)
+-	raise
+-except KeyboardInterrupt:
+-	import sys
+-
+-	sys.exit(1)
+diff --git a/usr/src/lib/brand/solaris10/zone/s10_boot.ksh b/usr/src/lib/brand/solaris10/zone/s10_boot.ksh
+index b167540087..76abb0991d 100644
+--- a/usr/src/lib/brand/solaris10/zone/s10_boot.ksh
++++ b/usr/src/lib/brand/solaris10/zone/s10_boot.ksh
+@@ -10,13 +10,13 @@
+ # or http://www.opensolaris.org/os/licensing.
+ # See the License for the specific language governing permissions
+ # and limitations under the License.
+-#    
++#
+ # When distributing Covered Code, include this CDDL HEADER in each
+ # file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+ # If applicable, add the following below this CDDL HEADER, with the
+ # fields enclosed by brackets "[]" replaced with your own identifying
+ # information: Portions Copyright [yyyy] [name of copyright owner]
+-#    
++#
+ # CDDL HEADER END
+ #
+ #
+@@ -44,7 +44,7 @@ elif [ "$arch" = "sparc" ]; then
+ 	ARCH32=
+         ARCH64=sparcv9
+ else
+-        echo "Unsupported architecture: $arch" 
++        echo "Unsupported architecture: $arch"
+         exit 2
+ fi
+ 
+@@ -84,17 +84,6 @@ replace_with_native() {
+ 	fi
+ }
+ 
+-replace_with_native_py() {
+-	path_dname=$ZONEROOT/`dirname $1`
+-
+-	[ ! -f $1 ] && printf "$w_missing" "$1"
+-
+-	if [ ! -h $path_dname -a -d $path_dname ]; then
+-		safe_replace $ZONEROOT/$1 $BRANDDIR/s10_python_wrapper $2 $3 \
+-		    remove
+-	fi
+-}
+-
+ #
+ # Create a new wrapper script that invokes s10_isaexec_wrapper in the
+ # brand (for a non-existing s10c file) pointing to the native brand file.
+@@ -241,7 +230,7 @@ if [ ! -h $ZONEROOT/usr/lib/inet -a -d $ZONEROOT/usr/lib/inet ]; then
+ 	    /lib/inet/in.mpathd 0555 root:bin remove
+ fi
+ 
+-# 
++#
+ # Create wrapper at /lib/inet/in.mpathd as well because native ifconfig
+ # looks up in.mpathd under /lib/inet.
+ #
+@@ -293,7 +282,6 @@ replace_with_native /usr/lib/fs/zfs/fstyp 0555 root:bin
+ replace_with_native /usr/lib/zfs/availdevs 0555 root:bin
+ replace_with_native /usr/sbin/df 0555 root:bin
+ replace_with_native /usr/sbin/zstreamdump 0555 root:bin
+-replace_with_native_py /usr/lib/zfs/pyzfs.py 0555 root:bin
+ 
+ #
+ # Replace automount and automountd with native wrappers.
+diff --git a/usr/src/pkg/manifests/system-file-system-zfs.p5m b/usr/src/pkg/manifests/system-file-system-zfs.p5m
+index 111fe6b028..afe1c20709 100644
+--- a/usr/src/pkg/manifests/system-file-system-zfs.p5m
++++ b/usr/src/pkg/manifests/system-file-system-zfs.p5m
+@@ -128,8 +128,6 @@ dir  path=usr/lib/sysevent/modules
+ file path=usr/lib/sysevent/modules/zfs_mod.so group=sys
+ dir  path=usr/lib/zfs
+ file path=usr/lib/zfs/availdevs mode=0555
+-file path=usr/lib/zfs/pyzfs.py mode=0555
+-file path=usr/lib/zfs/pyzfs.pyc mode=0555
+ dir  path=usr/sbin
+ $(i386_ONLY)dir path=usr/sbin/$(ARCH32)
+ dir  path=usr/sbin/$(ARCH64)
+diff --git a/usr/src/tools/quick/make-zfs b/usr/src/tools/quick/make-zfs
+index 417745b8cf..b2052cad9b 100755
+--- a/usr/src/tools/quick/make-zfs
++++ b/usr/src/tools/quick/make-zfs
+@@ -201,8 +201,7 @@ for cmd in \
+   zinject \
+   zpool \
+   ztest \
+-  zstreamdump \
+-  pyzfs
++  zstreamdump
+ do
+   (cd $SRC/cmd/$cmd && $make $1)
+ done
+@@ -336,8 +335,6 @@ sbin/zfs
+ sbin/zpool
+ usr/lib/sysevent/modules/zfs_mod.so
+ usr/lib/zfs/availdevs
+-usr/lib/zfs/pyzfs.py
+-usr/lib/zfs/pyzfs.pyc
+ usr/sbin/$arch32/zdb
+ usr/sbin/$arch64/zdb
+ usr/sbin/$arch32/zhack
+-- 
+2.42.0
+

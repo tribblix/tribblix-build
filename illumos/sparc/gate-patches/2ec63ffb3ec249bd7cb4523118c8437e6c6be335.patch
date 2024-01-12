@@ -1,0 +1,88 @@
+From 2ec63ffb3ec249bd7cb4523118c8437e6c6be335 Mon Sep 17 00:00:00 2001
+From: Andy Fiddaman <illumos@fiddaman.net>
+Date: Tue, 23 Aug 2022 11:46:18 +0000
+Subject: [PATCH] 14930 getallifaddrs() fails in shared IP zone after 3729
+ Reviewed by: Sebastian Wiedenroth <wiedi@frubar.net> Reviewed by: Gordon Ross
+ <Gordon.W.Ross@gmail.com> Reviewed by: Toomas Soome <tsoome@me.com> Approved
+ by: Robert Mustacchi <rm@fingolfin.org>
+
+---
+ usr/src/lib/libsocket/inet/getifaddrs.c | 33 ++++++++++++++++++-------
+ 1 file changed, 24 insertions(+), 9 deletions(-)
+
+diff --git a/usr/src/lib/libsocket/inet/getifaddrs.c b/usr/src/lib/libsocket/inet/getifaddrs.c
+index 2b379904de..097c56b300 100644
+--- a/usr/src/lib/libsocket/inet/getifaddrs.c
++++ b/usr/src/lib/libsocket/inet/getifaddrs.c
+@@ -318,10 +318,9 @@ getallifaddrs(sa_family_t af, struct ifaddrs **ifap, int64_t flags)
+ 	*ifap = NULL;
+ 
+ 	if ((sock4 = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ||
+-	    (sock6 = socket(AF_INET6, SOCK_DGRAM, 0)) < 0 ||
+-	    (door_fd = open(DLMGMT_DOOR, O_RDONLY)) < 0 ||
+-	    (dld_fd = open(DLD_CONTROL_DEV, O_RDWR)) < 0)
++	    (sock6 = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
+ 		goto fail;
++	}
+ 
+ 	bufsize = sizeof (dld_ioc_macaddrget_t) + nmacaddr *
+ 	    sizeof (dld_macaddrinfo_t);
+@@ -416,6 +415,19 @@ retry:
+ 
+ 	/* add AF_LINK entries */
+ 	if (af == AF_UNSPEC || af == AF_LINK) {
++		/*
++		 * A datalink management door may not be available (for example
++		 * in a shared IP zone). Only enumerate AF_LINK entries if the
++		 * door exists.
++		 */
++		door_fd = open(DLMGMT_DOOR, O_RDONLY);
++		if (door_fd < 0) {
++			if (errno == ENOENT)
++				goto nolink;
++			goto fail;
++		}
++		if ((dld_fd = open(DLD_CONTROL_DEV, O_RDWR)) < 0)
++			goto fail;
+ 
+ 		linkid = DATALINK_INVALID_LINKID;
+ 		for (;;) {
+@@ -501,12 +513,15 @@ retry:
+ 			}
+ 		}
+ 	}
++nolink:
+ 	free(buf);
+ 	free(iomp);
+ 	(void) close(sock4);
+ 	(void) close(sock6);
+-	(void) close(door_fd);
+-	(void) close(dld_fd);
++	if (door_fd >= 0)
++		(void) close(door_fd);
++	if (dld_fd >= 0)
++		(void) close(dld_fd);
+ 	return (0);
+ fail:
+ 	err = errno;
+@@ -517,13 +532,13 @@ fail:
+ 	if (err == ENXIO)
+ 		goto retry;
+ 
+-	if (sock4 != -1)
++	if (sock4 >= 0)
+ 		(void) close(sock4);
+-	if (sock6 != -1)
++	if (sock6 >= 0)
+ 		(void) close(sock6);
+-	if (door_fd != -1)
++	if (door_fd >= 0)
+ 		(void) close(door_fd);
+-	if (dld_fd != -1)
++	if (dld_fd >= 0)
+ 		(void) close(dld_fd);
+ 	errno = err;
+ 	return (-1);
+-- 
+2.42.0
+

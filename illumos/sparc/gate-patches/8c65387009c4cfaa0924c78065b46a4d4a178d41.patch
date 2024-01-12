@@ -1,0 +1,260 @@
+From 8c65387009c4cfaa0924c78065b46a4d4a178d41 Mon Sep 17 00:00:00 2001
+From: Toomas Soome <tsoome@me.com>
+Date: Tue, 25 Jan 2022 19:41:47 +0200
+Subject: [PATCH] 14451 loader: want mechanism to test if we are virtualized
+ Reviewed by: Andy Fiddaman <andy@omnios.org> Reviewed by: Jason King
+ <jason.brian.king@gmail.com> Approved by: Robert Mustacchi <rm@fingolfin.org>
+
+---
+ usr/src/boot/Makefile.version                 |  2 +-
+ usr/src/boot/lib/libstand/stand.h             |  2 +
+ usr/src/boot/lib/libstand/x86/hypervisor.c    | 51 +++++++++++++++++++
+ usr/src/boot/sys/boot/common/bootstrap.h      |  3 ++
+ usr/src/boot/sys/boot/efi/loader/main.c       |  3 ++
+ usr/src/boot/sys/boot/i386/loader/main.c      |  1 +
+ usr/src/boot/sys/boot/libstand/amd64/Makefile |  6 +++
+ usr/src/boot/sys/boot/libstand/i386/Makefile  |  6 +++
+ usr/src/common/ficl/loader.c                  | 31 +++++++++++
+ usr/src/man/man5/loader.5                     |  7 ++-
+ 10 files changed, 110 insertions(+), 2 deletions(-)
+ create mode 100644 usr/src/boot/lib/libstand/x86/hypervisor.c
+
+diff --git a/usr/src/boot/Makefile.version b/usr/src/boot/Makefile.version
+index dbad5babd0..6e0fa00d86 100644
+--- a/usr/src/boot/Makefile.version
++++ b/usr/src/boot/Makefile.version
+@@ -34,4 +34,4 @@ LOADER_VERSION = 1.1
+ # Use date like formatting here, YYYY.MM.DD.XX, without leading zeroes.
+ # The version is processed from left to right, the version number can only
+ # be increased.
+-BOOT_VERSION = $(LOADER_VERSION)-2021.12.02.1
++BOOT_VERSION = $(LOADER_VERSION)-2022.01.25.1
+diff --git a/usr/src/boot/lib/libstand/stand.h b/usr/src/boot/lib/libstand/stand.h
+index 408ebd73da..14270065e9 100644
+--- a/usr/src/boot/lib/libstand/stand.h
++++ b/usr/src/boot/lib/libstand/stand.h
+@@ -273,6 +273,8 @@ extern char	*sbrk(int incr);
+ 
+ extern void	mallocstats(void);
+ 
++const char *x86_hypervisor(void);
++
+ extern int	printf(const char *fmt, ...) __printflike(1, 2);
+ extern void	vprintf(const char *fmt, __va_list);
+ extern int	asprintf(char **buf, const char *cfmt, ...) __printflike(2, 3);
+diff --git a/usr/src/boot/lib/libstand/x86/hypervisor.c b/usr/src/boot/lib/libstand/x86/hypervisor.c
+new file mode 100644
+index 0000000000..ea28863262
+--- /dev/null
++++ b/usr/src/boot/lib/libstand/x86/hypervisor.c
+@@ -0,0 +1,51 @@
++/*
++ * Copyright (c) 2013-2019 Juniper Networks, Inc.
++ * All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ * 1. Redistributions of source code must retain the above copyright
++ *    notice, this list of conditions and the following disclaimer.
++ * 2. Redistributions in binary form must reproduce the above copyright
++ *    notice, this list of conditions and the following disclaimer in the
++ *    documentation and/or other materials provided with the distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
++ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
++ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
++ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
++ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
++ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
++ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
++ * SUCH DAMAGE.
++ */
++
++#include <sys/cdefs.h>
++
++#include <stand.h>
++#include <machine/cpufunc.h>
++#include <machine/specialreg.h>
++
++const char *
++x86_hypervisor(void)
++{
++	static union {
++		struct {
++			uint_t high;
++			char name[13];
++		} hv;
++		uint_t regs[4];
++	} u;
++
++	/* Return NULL when no hypervisor is present. */
++	do_cpuid(1, u.regs);
++	if ((u.regs[2] & CPUID2_HV) == 0)
++		return (NULL);
++	/* Return the hypervisor's identification. */
++	do_cpuid(0x40000000, u.regs);
++	return (u.hv.name);
++}
+diff --git a/usr/src/boot/sys/boot/common/bootstrap.h b/usr/src/boot/sys/boot/common/bootstrap.h
+index 1703045266..689905ae68 100644
+--- a/usr/src/boot/sys/boot/common/bootstrap.h
++++ b/usr/src/boot/sys/boot/common/bootstrap.h
+@@ -367,6 +367,9 @@ struct arch_switch
+ 
+ 	/* Probe ZFS pool(s), if needed. */
+ 	void	(*arch_zfs_probe)(void);
++
++	/* Return the hypervisor name/type or NULL if not virtualized. */
++	const char *(*arch_hypervisor)(void);
+ };
+ extern struct arch_switch archsw;
+ 
+diff --git a/usr/src/boot/sys/boot/efi/loader/main.c b/usr/src/boot/sys/boot/efi/loader/main.c
+index 9d229be58b..d8daf4ce7d 100644
+--- a/usr/src/boot/sys/boot/efi/loader/main.c
++++ b/usr/src/boot/sys/boot/efi/loader/main.c
+@@ -512,6 +512,9 @@ main(int argc, CHAR16 *argv[])
+ 	archsw.arch_readin = efi_readin;
+ 	archsw.arch_loadaddr = efi_loadaddr;
+ 	archsw.arch_free_loadaddr = efi_free_loadaddr;
++#if defined(__amd64) || defined(__i386)
++	archsw.arch_hypervisor = x86_hypervisor;
++#endif
+ 	/* Note this needs to be set before ZFS init. */
+ 	archsw.arch_zfs_probe = efi_zfs_probe;
+ 
+diff --git a/usr/src/boot/sys/boot/i386/loader/main.c b/usr/src/boot/sys/boot/i386/loader/main.c
+index 7c6fc2dcde..2659bf577d 100644
+--- a/usr/src/boot/sys/boot/i386/loader/main.c
++++ b/usr/src/boot/sys/boot/i386/loader/main.c
+@@ -159,6 +159,7 @@ main(void)
+ 	archsw.arch_isainb = isa_inb;
+ 	archsw.arch_isaoutb = isa_outb;
+ 	archsw.arch_loadaddr = i386_loadaddr;
++	archsw.arch_hypervisor = x86_hypervisor;
+ 	archsw.arch_zfs_probe = i386_zfs_probe;
+ 
+ 	/*
+diff --git a/usr/src/boot/sys/boot/libstand/amd64/Makefile b/usr/src/boot/sys/boot/libstand/amd64/Makefile
+index ec11ff2156..e79d2deef5 100644
+--- a/usr/src/boot/sys/boot/libstand/amd64/Makefile
++++ b/usr/src/boot/sys/boot/libstand/amd64/Makefile
+@@ -33,11 +33,17 @@ OBJECTS += _setjmp.o
+ SRCS += sha1-x86_64.s
+ OBJECTS += sha1-x86_64.o
+ 
++SRCS += $(SASRC)/x86/hypervisor.c
++OBJECTS += hypervisor.o
++
+ CLEANFILES += sha1-x86_64.s
+ 
+ pics/%.o: $(SASRC)/amd64/%.S
+ 	$(COMPILE.S) -o $@ $<
+ 
++pics/%.o: $(SASRC)/x86/%.c
++	$(COMPILE.c) -o $@ $<
++
+ include $(SRC)/boot/sys/boot/Makefile.lib
+ 
+ FRC:
+diff --git a/usr/src/boot/sys/boot/libstand/i386/Makefile b/usr/src/boot/sys/boot/libstand/i386/Makefile
+index aa55779a26..7902d44a86 100644
+--- a/usr/src/boot/sys/boot/libstand/i386/Makefile
++++ b/usr/src/boot/sys/boot/libstand/i386/Makefile
+@@ -31,9 +31,15 @@ CCASFLAGS +=	-m32
+ SRCS += $(SASRC)/i386/_setjmp.S
+ OBJECTS += _setjmp.o
+ 
++SRCS += $(SASRC)/x86/hypervisor.c
++OBJECTS += hypervisor.o
++
+ pics/%.o objs/%.o: $(SASRC)/i386/%.S
+ 	$(COMPILE.S) -o $@ $<
+ 
++pics/%.o objs/%.o: $(SASRC)/x86/%.c
++	$(COMPILE.c) -o $@ $<
++
+ include $(SRC)/boot/sys/boot/Makefile.lib
+ 
+ FRC:
+diff --git a/usr/src/common/ficl/loader.c b/usr/src/common/ficl/loader.c
+index c1f5c5d0eb..515330f849 100644
+--- a/usr/src/common/ficl/loader.c
++++ b/usr/src/common/ficl/loader.c
+@@ -430,6 +430,35 @@ ficlFindfile(ficlVm *pVM)
+ 	ficlStackPushPointer(ficlVmGetDataStack(pVM), fp);
+ }
+ 
++/*
++ *	isvirtualized? - Return whether the loader runs under a
++ *			hypervisor.
++ *
++ * isvirtualized? ( -- addr len flag | flag )
++ */
++static void
++ficlIsvirtualizedQ(ficlVm *pVM)
++{
++	const char *hv;
++
++	FICL_STACK_CHECK(ficlVmGetDataStack(pVM), 0, 3);
++
++#ifdef _STANDALONE
++	hv = (archsw.arch_hypervisor != NULL)
++	    ? (*archsw.arch_hypervisor)()
++	    : NULL;
++#else
++	hv = NULL;
++#endif
++	if (hv != NULL) {
++		ficlStackPushPointer(ficlVmGetDataStack(pVM), (void *)hv);
++		ficlStackPushInteger(ficlVmGetDataStack(pVM), strlen(hv));
++		ficlStackPushInteger(ficlVmGetDataStack(pVM), FICL_TRUE);
++	} else {
++		ficlStackPushInteger(ficlVmGetDataStack(pVM), FICL_FALSE);
++	}
++}
++
+ void
+ ficlCcall(ficlVm *pVM)
+ {
+@@ -1087,6 +1116,8 @@ ficlSystemCompilePlatform(ficlSystem *pSys)
+ 	    FICL_WORD_DEFAULT);
+ 	(void) ficlDictionarySetPrimitive(dp, "findfile", ficlFindfile,
+ 	    FICL_WORD_DEFAULT);
++	(void) ficlDictionarySetPrimitive(dp, "isvirtualized?",
++	    ficlIsvirtualizedQ, FICL_WORD_DEFAULT);
+ 	(void) ficlDictionarySetPrimitive(dp, "ccall", ficlCcall,
+ 	    FICL_WORD_DEFAULT);
+ 	(void) ficlDictionarySetPrimitive(dp, "uuid-from-string",
+diff --git a/usr/src/man/man5/loader.5 b/usr/src/man/man5/loader.5
+index 745197e8d0..4c8edf3d3f 100644
+--- a/usr/src/man/man5/loader.5
++++ b/usr/src/man/man5/loader.5
+@@ -23,7 +23,7 @@
+ .\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ .\" SUCH DAMAGE.
+ .\"
+-.Dd January 14, 2019
++.Dd January 25, 2022
+ .Dt LOADER 5
+ .Os
+ .Sh NAME
+@@ -687,6 +687,11 @@ Return the space remaining in the dictionary heap, in cells.
+ This is not related to the heap used by dynamic memory allocation words.
+ .It Ic inb Pq Ar port -- char
+ Reads a byte from a port.
++.It Ic isvirtualized? Pq -- Ar addr len flag | Ar flag
++Returns
++.Ic true
++and string with virtualization engine name or
++.Ic false .
+ .It Ic key Pq -- Ar char
+ Reads a single character from the console.
+ .It Ic key? Pq -- Ar flag
+-- 
+2.42.0
+

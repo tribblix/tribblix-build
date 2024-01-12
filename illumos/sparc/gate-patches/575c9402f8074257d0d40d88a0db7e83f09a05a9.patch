@@ -1,0 +1,79 @@
+From 575c9402f8074257d0d40d88a0db7e83f09a05a9 Mon Sep 17 00:00:00 2001
+From: Richard Lowe <richlowe@richlowe.net>
+Date: Thu, 19 Oct 2023 20:48:47 +0000
+Subject: [PATCH] 16003 pkg:/system/network/spdadm should be merged into
+ pkg:/system/network/sdp Reviewed by: Marcel Telka <marcel@telka.sk> Reviewed
+ by: Andy Fiddaman <illumos@fiddaman.net> Reviewed by: Peter Tribble
+ <peter.tribble@gmail.com> Approved by: Gordon Ross <gordon.w.ross@gmail.com>
+
+---
+ usr/src/pkg/manifests/driver-network-sdp.p5m  | 11 ++++++++
+ .../pkg/manifests/system-network-spdadm.p5m   | 25 ++-----------------
+ 2 files changed, 13 insertions(+), 23 deletions(-)
+
+diff --git a/usr/src/pkg/manifests/driver-network-sdp.p5m b/usr/src/pkg/manifests/driver-network-sdp.p5m
+index 60e5f56fae..80d9615367 100644
+--- a/usr/src/pkg/manifests/driver-network-sdp.p5m
++++ b/usr/src/pkg/manifests/driver-network-sdp.p5m
+@@ -47,12 +47,23 @@ file path=kernel/drv/sdp.conf group=sys
+ dir  path=kernel/socketmod group=sys
+ dir  path=kernel/socketmod/$(ARCH64) group=sys
+ file path=kernel/socketmod/$(ARCH64)/socksdp group=sys mode=0755
++dir  path=usr group=sys
++dir  path=usr/lib
++dir  path=usr/lib/rcm
++dir  path=usr/lib/rcm/scripts
++file path=usr/lib/rcm/scripts/SUNW,ibsdpu.sh mode=0555
++dir  path=usr/sbin
++file path=usr/sbin/sdpadm mode=0555
+ dir  path=usr/share/man
+ dir  path=usr/share/man/man4d
+ file path=usr/share/man/man4d/sdp.4d
++dir  path=usr/share/man/man8
++file path=usr/share/man/man8/sdpadm.8
+ driver name=sdp perms="* 0644 root sys" perms="sdp 0666 root sys"
+ legacy pkg=SUNWibsdp desc="Sun InfiniBand layered Sockets Direct Protocol" \
+     name="Sun InfiniBand layered Sockets Direct Protocol"
++legacy pkg=SUNWibsdpu desc="Sun InfiniBand Sockets Direct Protocol Admin" \
++    name="Sun InfiniBand pseudo Sockets Direct Protocol Admin"
+ license cr_Sun license=cr_Sun
+ license lic_CDDL license=lic_CDDL
+ license lic_OSBL license=lic_OSBL
+diff --git a/usr/src/pkg/manifests/system-network-spdadm.p5m b/usr/src/pkg/manifests/system-network-spdadm.p5m
+index 5bda03ee75..145ede0a4e 100644
+--- a/usr/src/pkg/manifests/system-network-spdadm.p5m
++++ b/usr/src/pkg/manifests/system-network-spdadm.p5m
+@@ -22,28 +22,7 @@
+ #
+ # Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+ #
+-
+-#
+-# The default for payload-bearing actions in this package is to appear in the
+-# global zone only.  See the include file for greater detail, as well as
+-# information about overriding the defaults.
+-#
+-<include global_zone_only_component>
+ set name=pkg.fmri value=pkg:/system/network/spdadm@$(PKGVERS)
+-set name=pkg.summary value="Sun InfiniBand pseudo Sockets Direct Protocol Admin"
+-set name=pkg.description value="Sun InfiniBand Sockets Direct Protocol Admin"
+-set name=info.classification value=org.opensolaris.category.2008:System/Hardware
++set name=pkg.renamed value=true
+ set name=variant.arch value=$(ARCH)
+-dir  path=usr group=sys
+-dir  path=usr/lib
+-dir  path=usr/lib/rcm
+-dir  path=usr/lib/rcm/scripts
+-file path=usr/lib/rcm/scripts/SUNW,ibsdpu.sh mode=0555
+-dir  path=usr/sbin
+-file path=usr/sbin/sdpadm mode=0555
+-dir  path=usr/share/man/man8
+-file path=usr/share/man/man8/sdpadm.8
+-legacy pkg=SUNWibsdpu desc="Sun InfiniBand Sockets Direct Protocol Admin" \
+-    name="Sun InfiniBand pseudo Sockets Direct Protocol Admin"
+-license cr_Sun license=cr_Sun
+-license lic_CDDL license=lic_CDDL
++depend type=require fmri=pkg:/driver/network/sdp
+-- 
+2.43.0
+

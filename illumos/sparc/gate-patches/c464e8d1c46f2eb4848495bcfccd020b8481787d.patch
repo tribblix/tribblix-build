@@ -1,0 +1,644 @@
+From c464e8d1c46f2eb4848495bcfccd020b8481787d Mon Sep 17 00:00:00 2001
+From: Dominik Hassler <hadfl@omnios.org>
+Date: Wed, 15 Mar 2023 19:09:38 +0000
+Subject: [PATCH] 15471 replace csh based which(1) with implementation in C
+ from BSD Reviewed by: Andy Fiddaman <illumos@fiddaman.net> Reviewed by:
+ Toomas Soome <tsoome@me.com> Reviewed by: Robert Mustacchi
+ <rm+illumos@fingolfin.org> Reviewed by: Bill Sommerfeld
+ <sommerfeld@alum.mit.edu> Approved by: Dan McDonald <danmcd@mnx.io>
+
+---
+ usr/src/cmd/which/Makefile          |  61 +++-----
+ usr/src/cmd/which/THIRDPARTYLICENSE |  49 +++---
+ usr/src/cmd/which/which.c           | 172 ++++++++++++++++++++
+ usr/src/cmd/which/which.csh         |  60 -------
+ usr/src/man/man1/which.1            | 233 +++++++++++++++++-----------
+ 5 files changed, 361 insertions(+), 214 deletions(-)
+ create mode 100644 usr/src/cmd/which/which.c
+ delete mode 100644 usr/src/cmd/which/which.csh
+
+diff --git a/usr/src/cmd/which/Makefile b/usr/src/cmd/which/Makefile
+index 21fb35c244..d5781aecf6 100644
+--- a/usr/src/cmd/which/Makefile
++++ b/usr/src/cmd/which/Makefile
+@@ -1,51 +1,40 @@
+ #
+-# CDDL HEADER START
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
+ #
+-# The contents of this file are subject to the terms of the
+-# Common Development and Distribution License, Version 1.0 only
+-# (the "License").  You may not use this file except in compliance
+-# with the License.
++# A full copy of the text of the CDDL should have accompanied this
++# source.  A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
+ #
+-# You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+-# or http://www.opensolaris.org/os/licensing.
+-# See the License for the specific language governing permissions
+-# and limitations under the License.
+-#
+-# When distributing Covered Code, include this CDDL HEADER in each
+-# file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+-# If applicable, add the following below this CDDL HEADER, with the
+-# fields enclosed by brackets "[]" replaced with your own identifying
+-# information: Portions Copyright [yyyy] [name of copyright owner]
+-#
+-# CDDL HEADER END
+-#
+-#
+-# ident	"%Z%%M%	%I%	%E% SMI"
+-#
+-# Copyright (c) 1990 by Sun Microsystems, Inc.
++
+ #
+-# Makefile for cmd/which
++# Copyright 2022 Oxide Computer Company
++# Copyright 2023 OmniOS Community Edition (OmniOSce) Association.
+ #
+ 
+-PROG =		which
++PROG= which
+ 
+-include		../Makefile.cmd
++include ../Makefile.cmd
++include ../Makefile.cmd.64
++include ../Makefile.ctf
+ 
++OBJS= which.o
+ 
+-# C shell build rule
+-.csh:
+-	$(RM) $@
+-	cat $< > $@
+-	chmod +x $@
++CSTD= $(CSTD_GNU99)
+ 
+-.SUFFIXES: .csh
++.KEEP_STATE:
+ 
+-.KEEP_STATE :
++$(PROG): $(OBJS)
++	$(LINK.c) -o $@ $(OBJS) $(LDLIBS)
++	$(POST_PROCESS)
+ 
+-all:		$(PROG) 
++all: $(PROG)
+ 
+-install :	all $(ROOTPROG)
++install: all $(ROOTPROG)
+ 
+-clean lint:
++clean:
++	$(RM) $(OBJS)
+ 
+-include		../Makefile.targ
++include ../Makefile.targ
+diff --git a/usr/src/cmd/which/THIRDPARTYLICENSE b/usr/src/cmd/which/THIRDPARTYLICENSE
+index 4dedd9d2a7..eeeba756e9 100644
+--- a/usr/src/cmd/which/THIRDPARTYLICENSE
++++ b/usr/src/cmd/which/THIRDPARTYLICENSE
+@@ -1,32 +1,23 @@
+-Copyright (c) 1980 Regents of the University of California.  
+-All rights reserved.
++Copyright (c) 2000 Dan Papasian.  All rights reserved.
+ 
+ Redistribution and use in source and binary forms, with or without
+-modification, are permitted provided that the following conditions are
+-met:
++modification, are permitted provided that the following conditions
++are met:
++1. Redistributions of source code must retain the above copyright
++   notice, this list of conditions and the following disclaimer.
++2. Redistributions in binary form must reproduce the above copyright
++   notice, this list of conditions and the following disclaimer in the
++   documentation and/or other materials provided with the distribution.
++3. The name of the author may not be used to endorse or promote products
++   derived from this software without specific prior written permission.
+ 
+-    1. Redistributions of source code must retain the above copyright
+-       notice, this list of conditions and the following disclaimer.
+-    2. Redistributions in binary form must reproduce the above
+-       copyright notice, this list of conditions and the following
+-       disclaimer in the documentation and/or other materials provided
+-       with the distribution.
+-    3. All advertising materials mentioning features or use of this
+-       software must display the following acknowledgement:
+-           This product includes software developed by the University
+-           of California, Berkeley and its contributors.
+-    4. Neither the name of the University nor the names of its
+-       contributors may be used to endorse or promote products derived
+-       from this software without specific prior written permission.
+-
+-THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS "AS IS" AND
+-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+-PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+-CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+-EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+-NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
++IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
++OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
++IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
++INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
++NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
++DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
++THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
++(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
++THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+diff --git a/usr/src/cmd/which/which.c b/usr/src/cmd/which/which.c
+new file mode 100644
+index 0000000000..2dc5b86475
+--- /dev/null
++++ b/usr/src/cmd/which/which.c
+@@ -0,0 +1,172 @@
++/*-
++ * SPDX-License-Identifier: BSD-3-Clause
++ *
++ * Copyright (c) 2000 Dan Papasian.  All rights reserved.
++ * Copyright 2023 OmniOS Community Edition (OmniOSce) Association.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ * 1. Redistributions of source code must retain the above copyright
++ *    notice, this list of conditions and the following disclaimer.
++ * 2. Redistributions in binary form must reproduce the above copyright
++ *    notice, this list of conditions and the following disclaimer in the
++ *    documentation and/or other materials provided with the distribution.
++ * 3. The name of the author may not be used to endorse or promote products
++ *    derived from this software without specific prior written permission.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
++ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
++ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
++ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
++ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
++ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
++ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
++ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
++ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
++ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++ */
++
++#include <sys/fcntl.h>
++#include <sys/param.h>
++#include <sys/stat.h>
++#include <err.h>
++#include <limits.h>
++#include <stdbool.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <unistd.h>
++
++#define	EXIT_USAGE	2
++
++static void	usage(void) __NORETURN;
++static bool	print_matches(char *, const char *const);
++
++static bool	silent = false;
++static bool	allpaths = false;
++
++int
++main(int argc, char **argv)
++{
++	char *p, *path;
++	size_t pathlen;
++	int opt, status;
++
++	status = EXIT_SUCCESS;
++
++	while ((opt = getopt(argc, argv, "as")) != -1) {
++		switch (opt) {
++		case 'a':
++			allpaths = true;
++			break;
++		case 's':
++			silent = true;
++			break;
++		default:
++			usage();
++			break;
++		}
++	}
++
++	argv += optind;
++	argc -= optind;
++
++	if (argc == 0)
++		exit(EXIT_SUCCESS);
++
++	if ((p = getenv("PATH")) == NULL)
++		errx(EXIT_FAILURE, "Could not find PATH in environment");
++
++	pathlen = strlen(p);
++	path = strdup(p);
++
++	if (path == NULL)
++		err(EXIT_FAILURE, "Failed to duplicate PATH");
++
++	while (argc > 0) {
++		memcpy(path, p, pathlen + 1);
++
++		if (strlen(*argv) >= FILENAME_MAX) {
++			status = EXIT_FAILURE;
++
++			warnx("operand too long '%s'", *argv);
++		} else if (!print_matches(path, *argv)) {
++			status = EXIT_FAILURE;
++
++			if (!silent) {
++				(void) printf("no %s in", *argv);
++
++				if (pathlen > 0) {
++					char *q = path;
++					const char *d;
++
++					memcpy(q, p, pathlen + 1);
++
++					while ((d = strsep(&q, ":")) != NULL) {
++						(void) printf(" %s",
++						    *d == '\0' ? "." : d);
++					}
++				}
++
++				(void) printf("\n");
++			}
++		}
++
++		argv++;
++		argc--;
++	}
++
++	free(path);
++	exit(status);
++}
++
++static void
++usage(void)
++{
++	(void) fprintf(stderr, "usage: which [-as] program ...\n");
++	exit(EXIT_USAGE);
++}
++
++static bool
++is_there(const char *const candidate)
++{
++	struct stat fin;
++
++	if (faccessat(AT_FDCWD, candidate, X_OK, AT_EACCESS) == 0 &&
++	    stat(candidate, &fin) == 0 &&
++	    S_ISREG(fin.st_mode)) {
++		if (!silent)
++			printf("%s\n", candidate);
++
++		return (true);
++	}
++
++	return (false);
++}
++
++static bool
++print_matches(char *path, const char *const filename)
++{
++	char candidate[PATH_MAX];
++	const char *d;
++	bool found = false;
++
++	if (strchr(filename, '/') != NULL)
++		return (is_there(filename));
++
++	while ((d = strsep(&path, ":")) != NULL) {
++		if (*d == '\0')
++			d = ".";
++		if (snprintf(candidate, sizeof (candidate), "%s/%s", d,
++		    filename) >= (int)sizeof (candidate))
++			continue;
++		if (is_there(candidate)) {
++			found = true;
++			if (!allpaths)
++				break;
++		}
++	}
++
++	return (found);
++}
+diff --git a/usr/src/cmd/which/which.csh b/usr/src/cmd/which/which.csh
+deleted file mode 100644
+index 023fce281c..0000000000
+--- a/usr/src/cmd/which/which.csh
++++ /dev/null
+@@ -1,60 +0,0 @@
+-#! /usr/bin/csh -f
+-#
+-# Copyright 2005 Sun Microsystems, Inc.  All rights reserved.
+-# Use is subject to license terms.
+-#
+-# Copyright (c) 1980 Regents of the University of California.
+-# All rights reserved.  The Berkeley Software License Agreement
+-# specifies the terms and conditions for redistribution.
+-#
+-#ident	"%Z%%M%	%I%	%E% SMI"
+-#
+-#       which : tells you which program you get
+-#
+-# Set prompt so .cshrc will think we're interactive and set aliases.
+-# Save and restore path to prevent .cshrc from messing it up.
+-set _which_saved_path_ = ( $path )
+-set prompt = ""
+-if ( -r ~/.cshrc && -f ~/.cshrc ) source ~/.cshrc
+-set path = ( $_which_saved_path_ )
+-unset prompt _which_saved_path_
+-set noglob
+-set exit_status = 0
+-foreach arg ( $argv )
+-    set alius = `alias $arg`
+-    switch ( $#alius )
+-        case 0 :
+-            breaksw
+-        case 1 :
+-            set arg = $alius[1]
+-            breaksw
+-        default :
+-            echo ${arg}: "      " aliased to $alius
+-            continue
+-    endsw
+-    unset found
+-    if ( "$arg:h" != "$arg:t" ) then		# head != tail, don't search
+-        if ( -e $arg ) then			# just do simple lookup
+-            echo $arg
+-        else
+-            echo $arg not found
+-	    set exit_status = 1
+-        endif
+-        continue
+-    else
+-        foreach i ( $path )
+-            if ( -x $i/$arg && ! -d $i/$arg ) then
+-                echo $i/$arg
+-                set found
+-                break
+-            endif
+-        end
+-    endif
+-    if ( ! $?found ) then
+-        echo no $arg in $path
+-	set exit_status = 1
+-    endif
+-end
+-
+-exit ${exit_status}
+-
+diff --git a/usr/src/man/man1/which.1 b/usr/src/man/man1/which.1
+index 5372d2ef91..fbd8b1041e 100644
+--- a/usr/src/man/man1/which.1
++++ b/usr/src/man/man1/which.1
+@@ -1,91 +1,146 @@
+-'\" te
+-.\" Copyright (c) 2005, Sun Microsystems, Inc.
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+-.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+-.\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH WHICH 1 "Mar 30, 2005"
+-.SH NAME
+-which \- locate a command and display its pathname or alias
+-.SH SYNOPSIS
+-.LP
+-.nf
+-\fBwhich\fR [\fIname\fR]...
+-.fi
+-
+-.SH DESCRIPTION
+-.sp
+-.LP
+-\fBwhich\fR takes a list of names and determines which alias or utility would
+-be executed had these names been given as commands.
+-.sp
+-.LP
+-For each \fIname\fR operand, if it names an alias the alias is expanded.
+-Otherwise the user's path is searched for a utility name matching \fIname\fR.
+-Aliases are taken from the user's \fB\&.cshrc\fR file. \fIpath\fR is taken from
+-the current shell   execution environment.
+-.SH OPERANDS
+-.sp
+-.LP
+-The following operand is supported:
+-.sp
+-.ne 2
+-.na
+-\fB\fIname\fR\fR
+-.ad
+-.RS 8n
++.\"
++.\" Redistribution and use in source and binary forms, with or without
++.\" modification, are permitted provided that the following conditions
++.\" are met:
++.\" 1. Redistributions of source code must retain the above copyright
++.\"    notice, this list of conditions and the following disclaimer.
++.\" 2. Redistributions in binary form must reproduce the above copyright
++.\"    notice, this list of conditions and the following disclaimer in the
++.\"    documentation and/or other materials provided with the distribution.
++.\" 3. All advertising materials mentioning features or use of this software
++.\"    must display the following acknowledgement:
++.\"      This product includes software developed by the FreeBSD Project
++.\"      its contributors.
++.\" 4. Neither the name of the FreeBSD Project nor the names of its contributors
++.\"    may be used to endorse or promote products derived from this software
++.\"    without specific prior written permission.
++.\"
++.\" THIS SOFTWARE IS PROVIDED BY THE CONTRIBUTOR ``AS IS'' AND ANY EXPRESS OR
++.\" IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
++.\" OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
++.\" IN NO EVENT SHALL THE CONTRIBUTOR BE LIABLE FOR ANY DIRECT, INDIRECT,
++.\" INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
++.\" NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
++.\" DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
++.\" THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
++.\" (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
++.\" OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++.\"
++.\" Manpage Copyright (c) 1995, Jordan Hubbard <jkh@FreeBSD.org>
++.\" Copyright 2023 OmniOS Community Edition (OmniOSce) Association.
++.\"
++.Dd March 15, 2023
++.Dt WHICH 1
++.Os
++.Sh NAME
++.Nm which
++.Nd "locate a program file in the user's path"
++.Sh SYNOPSIS
++.Nm
++.Op Fl as
++.Ar command ...
++.Sh DESCRIPTION
++The
++.Nm
++utility
++takes a list of command names and searches the path for each executable
++file that would be run had these commands actually been invoked.
++.Pp
++Some shells may provide a built-in
++.Nm
++command which is similar or identical to this utility.
++.Sh OPTIONS
++The following options are available:
++.Bl -tag -width Ar
++.It Fl a
++List all instances of executables found
++.Pq instead of just the first one of each .
++.It Fl s
++No output, just return 0 if all of the executables are found, or 1 if
++some were not found.
++.El
++.Sh OPERANDS
++The following operands are supported:
++.Bl -tag -width Ar
++.It Ar command
+ The name of a command to be located.
+-.RE
+-
+-.SH EXIT STATUS
+-.sp
+-.LP
++.El
++.Sh ENVIRONMENT
++See
++.Xr environ 7
++for descriptions of the following environment variables that affect the
++execution of
++.Nm :
++.Ev PATH .
++.Sh EXIT STATUS
+ The following exit values are returned:
+-.sp
+-.ne 2
+-.na
+-\fB\fB0\fR \fR
+-.ad
+-.RS 7n
+-Successful completion.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fB>0\fR \fR
+-.ad
+-.RS 7n
+-One or more \fIname\fR operands were not located or an error occurred.
+-.RE
+-
+-.SH FILES
+-.sp
+-.ne 2
+-.na
+-\fB\fB~/.cshrc\fR\fR
+-.ad
+-.RS 12n
+-source of aliases and path values
+-.RE
+-
+-.SH SEE ALSO
+-.sp
+-.LP
+-.BR csh (1),
+-.BR attributes (7)
+-.SH DIAGNOSTICS
+-.sp
+-.LP
+-A diagnostic is given for names which are aliased to more than a single word,
+-or if an executable file with the argument name was not found in the path.
+-.SH NOTES
+-.sp
+-.LP
+-The \fBwhich\fR utility is not a shell built-in command.
+-.SH BUGS
+-.sp
+-.LP
+-To compensate for \fB~/.cshrc\fR files in which aliases depend upon the
+-\fBprompt\fR variable being set, \fBwhich\fR sets this variable to \fBNULL.\fR
+-If the \fB~/.cshrc\fR produces output or prompts for input when \fBprompt\fR is
+-set, \fBwhich\fR can produce some strange results.
++.Bl -tag -width Sy
++.It Sy 0
++All of the provided operands were found in the path and would be executed if
++the commands were invoked.
++.It Sy 1
++One or more of the provided operands was not found in the path or would not
++be executed if the commands were invoked, or an error occurred.
++.It Sy 2
++Invalid command line options were specified.
++.El
++.Sh EXAMPLES
++.Sy Example 1
++Locate the
++.Sq ls
++and
++.Sq cp
++commands.
++.Bd -literal -offset indent
++$ /usr/bin/which ls cp
++/usr/bin/ls
++/usr/bin/cp
++.Ed
++.Pp
++.Sy Example 2
++Use a specific
++.Ev PATH
++and show all occurrences.
++.Bd -literal -offset indent
++$ PATH=/usr/bin:/usr/has/bin /usr/bin/which -a edit
++/usr/bin/edit
++/usr/has/bin/edit
++.Ed
++.Pp
++.Sy Example 3
++Executable reported multiple times.
++.Pp
++If
++.Ev PATH
++contains repeated components, the same executable can be reported
++more than once:
++.Bd -literal -offset indent
++$ PATH=/usr/bin:/usr/bin /usr/bin/which -a ls
++/usr/bin/ls
++/usr/bin/ls
++.Ed
++.Pp
++.Sy Example 4
++Do not show output.
++.Pp
++Just exit with an appropriate return code:
++.Bd -literal -offset indent
++$ /usr/bin/which -s ls cp
++$ echo $?
++0
++$ /usr/bin/which -s fakecommand
++$ echo $?
++1
++.Ed
++.Sh INTERFACE STABILITY
++The command line interface of
++.Nm
++is
++.Sy Committed .
++The output of
++.Nm
++is
++.Sy Committed .
++.Sh SEE ALSO
++.Xr find 1 ,
++.Xr environ 7
+-- 
+2.43.0
+

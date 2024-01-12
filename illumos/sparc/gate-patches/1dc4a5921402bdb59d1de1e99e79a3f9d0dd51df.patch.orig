@@ -1,0 +1,682 @@
+From 1dc4a5921402bdb59d1de1e99e79a3f9d0dd51df Mon Sep 17 00:00:00 2001
+From: Robert Mustacchi <rm@fingolfin.org>
+Date: Tue, 28 Dec 2021 18:09:06 +0000
+Subject: [PATCH] 14329 sys/atomic.h: 5066 got the order of ifdef/endif wrong
+ Reviewed by: Yuri Pankov <ypankov@tintri.com> Reviewed by: Andy Fiddaman
+ <andy@omnios.org> Approved by: Dan McDonald <danmcd@joyent.com>
+
+---
+ .../pkg/manifests/system-test-libctest.p5m    |   2 +
+ usr/src/test/libc-tests/cfg/Makefile          |   1 +
+ .../libc-tests/cfg/symbols/sys_atomic_h.cfg   | 569 ++++++++++++++++++
+ usr/src/test/libc-tests/runfiles/default.run  |   1 +
+ .../test/libc-tests/tests/symbols/Makefile    |   1 +
+ usr/src/uts/common/sys/atomic.h               |   6 +-
+ 6 files changed, 575 insertions(+), 5 deletions(-)
+ create mode 100644 usr/src/test/libc-tests/cfg/symbols/sys_atomic_h.cfg
+
+diff --git a/usr/src/pkg/manifests/system-test-libctest.p5m b/usr/src/pkg/manifests/system-test-libctest.p5m
+index 07f82a6e63..34231d2997 100644
+--- a/usr/src/pkg/manifests/system-test-libctest.p5m
++++ b/usr/src/pkg/manifests/system-test-libctest.p5m
+@@ -48,6 +48,7 @@ file path=opt/libc-tests/cfg/symbols/stdlib_h.cfg mode=0444
+ file path=opt/libc-tests/cfg/symbols/stdnoreturn_h.cfg mode=0444
+ file path=opt/libc-tests/cfg/symbols/string_h.cfg mode=0444
+ file path=opt/libc-tests/cfg/symbols/strings_h.cfg mode=0444
++file path=opt/libc-tests/cfg/symbols/sys_atomic_h.cfg mode=0444
+ file path=opt/libc-tests/cfg/symbols/sys_stat_h.cfg mode=0444
+ file path=opt/libc-tests/cfg/symbols/sys_time_h.cfg mode=0444
+ file path=opt/libc-tests/cfg/symbols/sys_timeb_h.cfg mode=0444
+@@ -197,6 +198,7 @@ hardlink path=opt/libc-tests/tests/symbols/string_h target=setup
+ hardlink path=opt/libc-tests/tests/symbols/strings_h target=setup
+ file path=opt/libc-tests/tests/symbols/symbols_test.$(ARCH) mode=0555
+ file path=opt/libc-tests/tests/symbols/symbols_test.$(ARCH64) mode=0555
++hardlink path=opt/libc-tests/tests/symbols/sys_atomic_h target=setup
+ hardlink path=opt/libc-tests/tests/symbols/sys_stat_h target=setup
+ hardlink path=opt/libc-tests/tests/symbols/sys_time_h target=setup
+ hardlink path=opt/libc-tests/tests/symbols/sys_timeb_h target=setup
+diff --git a/usr/src/test/libc-tests/cfg/Makefile b/usr/src/test/libc-tests/cfg/Makefile
+index 3f87dc9e9f..0fb1a4096a 100644
+--- a/usr/src/test/libc-tests/cfg/Makefile
++++ b/usr/src/test/libc-tests/cfg/Makefile
+@@ -35,6 +35,7 @@ CFGS = README \
+ 	symbols/stdnoreturn_h.cfg \
+ 	symbols/string_h.cfg \
+ 	symbols/strings_h.cfg \
++	symbols/sys_atomic_h.cfg \
+ 	symbols/sys_stat_h.cfg \
+ 	symbols/sys_time_h.cfg \
+ 	symbols/sys_timeb_h.cfg \
+diff --git a/usr/src/test/libc-tests/cfg/symbols/sys_atomic_h.cfg b/usr/src/test/libc-tests/cfg/symbols/sys_atomic_h.cfg
+new file mode 100644
+index 0000000000..82c115d593
+--- /dev/null
++++ b/usr/src/test/libc-tests/cfg/symbols/sys_atomic_h.cfg
+@@ -0,0 +1,569 @@
++#
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
++#
++# A full copy of the text of the CDDL should have accompanied this
++# source.  A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
++#
++
++#
++# Copyright 2022 Oxide Computer Company
++#
++
++#
++# Definitions found in sys/atomic.h. Note, this is a non-standard header
++# so including it means that everything will always be visible. This is
++# included as part of regression tests for #14329. We are currently
++# assuming the following here:
++#
++#  o _ASM_INLINES is not defined (this is generally only used in the
++#    kernel)
++#
++
++#
++# Types
++#
++
++#
++# Values.
++#
++
++#
++# Defines
++#
++
++#
++# Functions
++#
++func | atomic_inc_8					|\
++	void						|\
++	volatile uint8_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_inc_uchar					|\
++	void						|\
++	volatile uchar_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_inc_16					|\
++	void						|\
++	volatile uint16_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_inc_ushort				|\
++	void						|\
++	volatile ushort_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_inc_32					|\
++	void						|\
++	volatile uint32_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_inc_uint					|\
++	void						|\
++	volatile uint_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_inc_ulong					|\
++	void						|\
++	volatile ulong_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_inc_64					|\
++	void						|\
++	volatile uint64_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_dec_8					|\
++	void						|\
++	volatile uint8_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_dec_uchar					|\
++	void						|\
++	volatile uchar_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_dec_16					|\
++	void						|\
++	volatile uint16_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_dec_ushort				|\
++	void						|\
++	volatile ushort_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_dec_32					|\
++	void						|\
++	volatile uint32_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_dec_uint					|\
++	void						|\
++	volatile uint_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_dec_ulong					|\
++	void						|\
++	volatile ulong_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_dec_64					|\
++	void						|\
++	volatile uint64_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_add_8					|\
++	void						|\
++	volatile uint8_t *; int8_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_add_char					|\
++	void						|\
++	volatile uchar_t *; signed char			|\
++	sys/atomic.h | +ALL
++
++func | atomic_add_16					|\
++	void						|\
++	volatile uint16_t *; int16_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_add_short					|\
++	void						|\
++	volatile ushort_t *; short			|\
++	sys/atomic.h | +ALL
++
++func | atomic_add_32					|\
++	void						|\
++	volatile uint32_t *; int32_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_add_int					|\
++	void						|\
++	volatile uint_t *; int				|\
++	sys/atomic.h | +ALL
++
++func | atomic_add_ptr					|\
++	void						|\
++	volatile void *; ssize_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_add_long					|\
++	void						|\
++	volatile ulong_t *; long			|\
++	sys/atomic.h | +ALL
++
++func | atomic_add_64					|\
++	void						|\
++	volatile uint64_t *; int64_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_or_8					|\
++	void						|\
++	volatile uint8_t *; uint8_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_or_uchar					|\
++	void						|\
++	volatile uchar_t *; uchar_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_or_16					|\
++	void						|\
++	volatile uint16_t *; uint16_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_or_ushort					|\
++	void						|\
++	volatile ushort_t *; ushort_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_or_32					|\
++	void						|\
++	volatile uint32_t *; uint32_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_or_uint					|\
++	void						|\
++	volatile uint_t *; uint_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_or_ulong					|\
++	void						|\
++	volatile ulong_t *; ulong_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_or_64					|\
++	void						|\
++	volatile uint64_t *; uint64_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_and_8					|\
++	void						|\
++	volatile uint8_t *; uint8_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_and_uchar					|\
++	void						|\
++	volatile uchar_t *; uchar_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_and_16					|\
++	void						|\
++	volatile uint16_t *; uint16_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_and_ushort				|\
++	void						|\
++	volatile ushort_t *; ushort_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_and_32					|\
++	void						|\
++	volatile uint32_t *; uint32_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_and_uint					|\
++	void						|\
++	volatile uint_t *; uint_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_and_ulong					|\
++	void						|\
++	volatile ulong_t *; ulong_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_and_64					|\
++	void						|\
++	volatile uint64_t *; uint64_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_inc_8_nv					|\
++	uint8_t						|\
++	volatile uint8_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_inc_uchar_nv				|\
++	uchar_t						|\
++	volatile uchar_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_inc_16_nv					|\
++	uint16_t					|\
++	volatile uint16_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_inc_ushort_nv				|\
++	ushort_t					|\
++	volatile ushort_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_inc_32_nv					|\
++	uint32_t					|\
++	volatile uint32_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_inc_uint_nv				|\
++	uint_t						|\
++	volatile uint_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_inc_ulong_nv				|\
++	ulong_t						|\
++	volatile ulong_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_inc_64_nv					|\
++	uint64_t					|\
++	volatile uint64_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_dec_8_nv					|\
++	uint8_t						|\
++	volatile uint8_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_dec_uchar_nv				|\
++	uchar_t						|\
++	volatile uchar_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_dec_16_nv					|\
++	uint16_t					|\
++	volatile uint16_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_dec_ushort_nv				|\
++	ushort_t					|\
++	volatile ushort_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_dec_32_nv					|\
++	uint32_t					|\
++	volatile uint32_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_dec_uint_nv				|\
++	uint_t						|\
++	volatile uint_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_dec_ulong_nv				|\
++	ulong_t						|\
++	volatile ulong_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_dec_64_nv					|\
++	uint64_t					|\
++	volatile uint64_t *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_add_8_nv					|\
++	uint8_t						|\
++	volatile uint8_t *; int8_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_add_char_nv				|\
++	uchar_t						|\
++	volatile uchar_t *; signed char			|\
++	sys/atomic.h | +ALL
++
++func | atomic_add_16_nv					|\
++	uint16_t					|\
++	volatile uint16_t *; int16_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_add_short_nv				|\
++	ushort_t					|\
++	volatile ushort_t *; short			|\
++	sys/atomic.h | +ALL
++
++func | atomic_add_32_nv					|\
++	uint32_t					|\
++	volatile uint32_t *; int32_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_add_int_nv				|\
++	uint_t						|\
++	volatile uint_t *; int				|\
++	sys/atomic.h | +ALL
++
++func | atomic_add_ptr_nv				|\
++	void *						|\
++	volatile void *; ssize_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_add_long_nv				|\
++	ulong_t						|\
++	volatile ulong_t *; long			|\
++	sys/atomic.h | +ALL
++
++func | atomic_add_64_nv					|\
++	uint64_t					|\
++	volatile uint64_t *; int64_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_or_8_nv					|\
++	uint8_t						|\
++	volatile uint8_t *; uint8_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_or_uchar_nv				|\
++	uchar_t						|\
++	volatile uchar_t *; uchar_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_or_16_nv					|\
++	uint16_t					|\
++	volatile uint16_t *; uint16_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_or_ushort_nv				|\
++	ushort_t					|\
++	volatile ushort_t *; ushort_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_or_32_nv					|\
++	uint32_t					|\
++	volatile uint32_t *; uint32_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_or_uint_nv				|\
++	uint_t						|\
++	volatile uint_t *; uint_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_or_ulong_nv				|\
++	ulong_t						|\
++	volatile ulong_t *; ulong_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_or_64_nv					|\
++	uint64_t					|\
++	volatile uint64_t *; uint64_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_and_8_nv					|\
++	uint8_t						|\
++	volatile uint8_t *; uint8_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_and_uchar_nv				|\
++	uchar_t						|\
++	volatile uchar_t *; uchar_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_and_16_nv					|\
++	uint16_t					|\
++	volatile uint16_t *; uint16_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_and_ushort_nv				|\
++	ushort_t					|\
++	volatile ushort_t *; ushort_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_and_32_nv					|\
++	uint32_t					|\
++	volatile uint32_t *; uint32_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_and_uint_nv				|\
++	uint_t						|\
++	volatile uint_t *; uint_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_and_ulong_nv				|\
++	ulong_t						|\
++	volatile ulong_t *; ulong_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_and_64_nv					|\
++	uint64_t					|\
++	volatile uint64_t *; uint64_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_cas_8					|\
++	void						|\
++	volatile uint8_t *; uint8_t; uint8_t		|\
++	sys/atomic.h | +ALL
++
++func | atomic_cas_uchar					|\
++	void						|\
++	volatile uchar_t *; uchar_t; uchar_t		|\
++	sys/atomic.h | +ALL
++
++func | atomic_cas_16					|\
++	void						|\
++	volatile uint16_t *; uint16_t; uint16_t		|\
++	sys/atomic.h | +ALL
++
++func | atomic_cas_ushort				|\
++	void						|\
++	volatile ushort_t *; ushort_t; ushort_t		|\
++	sys/atomic.h | +ALL
++
++func | atomic_cas_32					|\
++	void						|\
++	volatile uint32_t *; uint32_t; uint32_t		|\
++	sys/atomic.h | +ALL
++
++func | atomic_cas_uint					|\
++	void						|\
++	volatile uint_t *; uint_t; uint_t		|\
++	sys/atomic.h | +ALL
++
++func | atomic_cas_ptr					|\
++	void						|\
++	volatile void *; void *; void *			|\
++	sys/atomic.h | +ALL
++
++func | atomic_cas_ulong					|\
++	void						|\
++	volatile ulong_t *; ulong_t; ulong_t		|\
++	sys/atomic.h | +ALL
++
++func | atomic_cas_64					|\
++	void						|\
++	volatile uint64_t *; uint64_t; uint64_t		|\
++	sys/atomic.h | +ALL
++
++func | atomic_swap_8					|\
++	void						|\
++	volatile uint8_t *; uint8_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_swap_uchar				|\
++	void						|\
++	volatile uchar_t *; uchar_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_swap_16					|\
++	void						|\
++	volatile uint16_t *; uint16_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_swap_ushort				|\
++	void						|\
++	volatile ushort_t *; ushort_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_swap_32					|\
++	void						|\
++	volatile uint32_t *; uint32_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_swap_uint					|\
++	void						|\
++	volatile uint_t *; uint_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_swap_ptr					|\
++	void						|\
++	volatile void *; void *				|\
++	sys/atomic.h | +ALL
++
++func | atomic_swap_ulong				|\
++	void						|\
++	volatile ulong_t *; ulong_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_swap_64					|\
++	void						|\
++	volatile uint64_t *; uint64_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_set_long_excl				|\
++	int						|\
++	volatile ulong_t *; uint_t			|\
++	sys/atomic.h | +ALL
++
++func | atomic_clear_long_excl				|\
++	int						|\
++	volatile ulong_t *; uint_t			|\
++	sys/atomic.h | +ALL
++
++func | membar_enter					|\
++	void						|\
++	void						|\
++	sys/atomic.h | +ALL
++
++func | membar_exit					|\
++	void						|\
++	void						|\
++	sys/atomic.h | +ALL
++
++func | membar_producer					|\
++	void						|\
++	void						|\
++	sys/atomic.h | +ALL
++
++func | membar_consumer					|\
++	void						|\
++	void						|\
++	sys/atomic.h | +ALL
+diff --git a/usr/src/test/libc-tests/runfiles/default.run b/usr/src/test/libc-tests/runfiles/default.run
+index 4b6d1a4a74..d08475b596 100644
+--- a/usr/src/test/libc-tests/runfiles/default.run
++++ b/usr/src/test/libc-tests/runfiles/default.run
+@@ -156,6 +156,7 @@ tests = [
+ 	'stdnoreturn_h',
+ 	'string_h',
+ 	'strings_h',
++	'sys_atomic_h',
+ 	'sys_stat_h',
+ 	'sys_time_h',
+ 	'sys_timeb_h',
+diff --git a/usr/src/test/libc-tests/tests/symbols/Makefile b/usr/src/test/libc-tests/tests/symbols/Makefile
+index a5eef8a3a8..8377810b83 100644
+--- a/usr/src/test/libc-tests/tests/symbols/Makefile
++++ b/usr/src/test/libc-tests/tests/symbols/Makefile
+@@ -36,6 +36,7 @@ SYMTESTS = \
+ 	stdnoreturn_h \
+ 	string_h \
+ 	strings_h \
++	sys_atomic_h \
+ 	sys_stat_h \
+ 	sys_time_h \
+ 	sys_timeb_h \
+diff --git a/usr/src/uts/common/sys/atomic.h b/usr/src/uts/common/sys/atomic.h
+index 774e8125f3..a2cb51c6ad 100644
+--- a/usr/src/uts/common/sys/atomic.h
++++ b/usr/src/uts/common/sys/atomic.h
+@@ -53,6 +53,7 @@ extern void atomic_inc_uint(volatile uint_t *);
+ extern void atomic_inc_ulong(volatile ulong_t *);
+ #if defined(_KERNEL) || defined(_INT64_TYPE)
+ extern void atomic_inc_64(volatile uint64_t *);
++#endif
+ 
+ /*
+  * Decrement target
+@@ -262,7 +263,6 @@ extern void membar_producer(void);
+  * after the available flag has been seen, i.e. it imposes load ordering.
+  */
+ extern void membar_consumer(void);
+-#endif
+ 
+ #if defined(_KERNEL)
+ 
+@@ -272,10 +272,6 @@ extern void membar_consumer(void);
+ #define	casip			atomic_cas_ulong
+ #endif
+ 
+-#if defined(__sparc)
+-extern uint8_t ldstub(uint8_t *);
+-#endif
+-
+ #endif	/* _KERNEL */
+ 
+ #ifdef	__cplusplus
+-- 
+2.40.1
+

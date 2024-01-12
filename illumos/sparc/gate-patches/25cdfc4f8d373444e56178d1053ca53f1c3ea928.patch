@@ -1,0 +1,53 @@
+From 25cdfc4f8d373444e56178d1053ca53f1c3ea928 Mon Sep 17 00:00:00 2001
+From: Denis Ovsienko <denis@ovsienko.info>
+Date: Tue, 25 Jan 2022 19:38:32 +0000
+Subject: [PATCH] 14428 formatting issues in memory(3c) man page Reviewed by:
+ Andy Fiddaman <andy@omnios.org> Approved by: Robert Mustacchi
+ <rm@fingolfin.org>
+
+---
+ usr/src/man/man3c/memory.3c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/usr/src/man/man3c/memory.3c b/usr/src/man/man3c/memory.3c
+index 5a11990914..5d4628a709 100644
+--- a/usr/src/man/man3c/memory.3c
++++ b/usr/src/man/man3c/memory.3c
+@@ -19,7 +19,7 @@
+ .\" fields enclosed by brackets "[]" replaced with your own identifying
+ .\" information: Portions Copyright [yyyy] [name of copyright owner]
+ .\"
+-.Dd August 6, 2021
++.Dd January 25, 2022
+ .Dt MEMORY 3C
+ .Os
+ .Sh NAME
+@@ -44,7 +44,7 @@
+ .Fc
+ .Ft "void *"
+ .Fo memchr
+-.Fa "void *s",
++.Fa "void *s"
+ .Fa "int c"
+ .Fa "size_t n"
+ .Fc
+@@ -75,14 +75,14 @@
+ .Fc
+ .Ft "void *"
+ .Fo memrchr
+-.Fa "void *s",
++.Fa "void *s"
+ .Fa "int c"
+ .Fa "size_t n"
+ .Fc
+ .Ft "void *"
+ .Fo memset
+ .Fa "void *s"
+-.Fa int c
++.Fa "int c"
+ .Fa "size_t n"
+ .Fc
+ .Sh DESCRIPTION
+-- 
+2.40.1
+

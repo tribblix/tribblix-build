@@ -1,0 +1,613 @@
+From 3ee592424ed4bb7b850d9adccb9f3c493ce7534b Mon Sep 17 00:00:00 2001
+From: Sebastian Wiedenroth <wiedi@frubar.net>
+Date: Thu, 19 May 2022 22:30:21 +0000
+Subject: [PATCH] 3729 getifaddrs must learn to stop worrying and love the
+ other address families Portions contributed by: Robert Mustacchi
+ <rm@fingolfin.org> Reviewed by: C Fraire <cfraire@me.com> Reviewed by: Dan
+ McDonald <danmcd@joyent.com> Approved by: Gordon Ross
+ <gordon.w.ross@gmail.com>
+
+---
+ usr/src/cmd/fs.d/nfs/statd/sm_proc.c      |   3 +
+ usr/src/head/ifaddrs.h                    |   8 +
+ usr/src/lib/libipadm/common/ipadm_addr.c  |   3 +
+ usr/src/lib/libipadm/common/ipadm_if.c    |   2 +
+ usr/src/lib/libsocket/common/mapfile-vers |   5 +
+ usr/src/lib/libsocket/inet/getifaddrs.c   | 349 ++++++++++++++++++++--
+ usr/src/man/man3socket/getifaddrs.3socket |  25 +-
+ 7 files changed, 358 insertions(+), 37 deletions(-)
+
+diff --git a/usr/src/cmd/fs.d/nfs/statd/sm_proc.c b/usr/src/cmd/fs.d/nfs/statd/sm_proc.c
+index f3e050df8c..7c1f434ab7 100644
+--- a/usr/src/cmd/fs.d/nfs/statd/sm_proc.c
++++ b/usr/src/cmd/fs.d/nfs/statd/sm_proc.c
+@@ -1353,6 +1353,9 @@ merge_ips(void)
+ 			break;
+ 		}
+ 
++		case AF_LINK:
++			continue;
++
+ 		default:
+ 			syslog(LOG_WARNING, "Unknown address family %d for "
+ 			    "interface %s", sa->sa_family, cifap->ifa_name);
+diff --git a/usr/src/head/ifaddrs.h b/usr/src/head/ifaddrs.h
+index 4202b60998..815883948b 100644
+--- a/usr/src/head/ifaddrs.h
++++ b/usr/src/head/ifaddrs.h
+@@ -20,6 +20,7 @@
+  */
+ /*
+  * Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
++ * Copyright 2022 Sebastian Wiedenroth
+  */
+ #ifndef _IFADDRS_H
+ #define	_IFADDRS_H
+@@ -65,6 +66,13 @@ struct ifaddrs {
+ };
+ #endif
+ 
++#ifdef __PRAGMA_REDEFINE_EXTNAME
++#pragma redefine_extname getifaddrs __getifaddrs
++#else
++extern int __getifaddrs(struct ifaddrs **);
++#define	getifaddrs __getifaddrs
++#endif
++
+ /*
+  * Create a linked list of `struct ifaddrs' structures, one for each
+  * network interface on the host machine.  If successful, store the
+diff --git a/usr/src/lib/libipadm/common/ipadm_addr.c b/usr/src/lib/libipadm/common/ipadm_addr.c
+index 46bb609bdb..64a6f09485 100644
+--- a/usr/src/lib/libipadm/common/ipadm_addr.c
++++ b/usr/src/lib/libipadm/common/ipadm_addr.c
+@@ -415,6 +415,9 @@ retry:
+ 	for (ifap = ifa; ifap != NULL; ifap = ifap->ifa_next) {
+ 		struct sockaddr_storage data;
+ 
++		if (ifap->ifa_addr->sa_family == AF_LINK)
++			continue;
++
+ 		(void) strlcpy(cifname, ifap->ifa_name, sizeof (cifname));
+ 		lnum = 0;
+ 		if ((sep = strrchr(cifname, ':')) != NULL) {
+diff --git a/usr/src/lib/libipadm/common/ipadm_if.c b/usr/src/lib/libipadm/common/ipadm_if.c
+index 7699937c4a..8bf65721f1 100644
+--- a/usr/src/lib/libipadm/common/ipadm_if.c
++++ b/usr/src/lib/libipadm/common/ipadm_if.c
+@@ -414,6 +414,8 @@ retry:
+ 			 * to find the interface state.
+ 			 */
+ 			for (ifap = ifa; ifap != NULL; ifap = ifap->ifa_next) {
++				if (ifap->ifa_addr->sa_family == AF_LINK)
++					continue;
+ 				if (strcmp(ifap->ifa_name, aifp->ifi_name) == 0)
+ 					break;
+ 			}
+diff --git a/usr/src/lib/libsocket/common/mapfile-vers b/usr/src/lib/libsocket/common/mapfile-vers
+index 614094c3f1..3329f3bfd3 100644
+--- a/usr/src/lib/libsocket/common/mapfile-vers
++++ b/usr/src/lib/libsocket/common/mapfile-vers
+@@ -41,6 +41,11 @@
+ 
+ $mapfile_version 2
+ 
++SYMBOL_VERSION ILLUMOS_0.3 {	# AF_LINK workaround
++    global:
++	__getifaddrs;
++} ILLUMOS_0.2;
++
+ SYMBOL_VERSION ILLUMOS_0.2 {	# reentrant ethers(3SOCKET)
+     global:
+ 	ether_aton_r;
+diff --git a/usr/src/lib/libsocket/inet/getifaddrs.c b/usr/src/lib/libsocket/inet/getifaddrs.c
+index 66dfedbd10..2b379904de 100644
+--- a/usr/src/lib/libsocket/inet/getifaddrs.c
++++ b/usr/src/lib/libsocket/inet/getifaddrs.c
+@@ -22,6 +22,7 @@
+ /*
+  * Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+  * Copyright 2017 RackTop Systems.
++ * Copyright 2022 Sebastian Wiedenroth
+  */
+ 
+ #include <netdb.h>
+@@ -29,14 +30,34 @@
+ #include <netinet/in.h>
+ #include <sys/socket.h>
+ #include <string.h>
++#include <strings.h>
+ #include <stdio.h>
+ #include <sys/sockio.h>
+ #include <sys/types.h>
+ #include <stdlib.h>
+ #include <net/if.h>
++#include <door.h>
++#include <fcntl.h>
++#include <sys/mman.h>
++#include <sys/dld_ioc.h>
++#include <sys/dld.h>
++#include <sys/dls_mgmt.h>
++#include <sys/mac.h>
++#include <sys/dlpi.h>
++#include <net/if_types.h>
+ #include <ifaddrs.h>
+ #include <libsocket_priv.h>
+ 
++/*
++ * <ifaddrs.h> directs folks towards our internal symbol, __getifaddrs. This
++ * means we cannot name the original symbol 'getifaddrs' here or it will be
++ * renamed. Instead, we use another redefine_extname to take care of this. Note,
++ * the extern declaration is required as gcc and others will only apply this for
++ * things they see an extern declaration for.
++ */
++#pragma redefine_extname getifaddrs_old getifaddrs
++extern int getifaddrs_old(struct ifaddrs **);
++
+ /*
+  * Create a linked list of `struct ifaddrs' structures, one for each
+  * address that is UP. If successful, store the list in *ifap and
+@@ -46,7 +67,7 @@
+  * only be properly freed by passing it to `freeifaddrs'.
+  */
+ int
+-getifaddrs(struct ifaddrs **ifap)
++_getifaddrs(struct ifaddrs **ifap, boolean_t can_handle_links)
+ {
+ 	int		err;
+ 	char		*cp;
+@@ -57,14 +78,57 @@ getifaddrs(struct ifaddrs **ifap)
+ 		return (-1);
+ 	}
+ 	*ifap = NULL;
+-	err = getallifaddrs(AF_UNSPEC, ifap, LIFC_ENABLED);
+-	if (err == 0) {
+-		for (curr = *ifap; curr != NULL; curr = curr->ifa_next) {
+-			if ((cp = strchr(curr->ifa_name, ':')) != NULL)
+-				*cp = '\0';
++
++	if (can_handle_links) {
++		err = getallifaddrs(AF_UNSPEC, ifap, LIFC_ENABLED);
++	} else {
++		err = getallifaddrs(AF_INET, ifap, LIFC_ENABLED);
++		if (err != 0)
++			return (err);
++
++		/* Find end of the list to append to */
++		curr = *ifap;
++		while (curr && curr->ifa_next) {
++			curr = curr->ifa_next;
+ 		}
++
++		err = getallifaddrs(AF_INET6, curr ? &curr->ifa_next : ifap,
++		    LIFC_ENABLED);
++	}
++
++	if (err != 0)
++		return (err);
++
++	for (curr = *ifap; curr != NULL; curr = curr->ifa_next) {
++		if ((cp = strchr(curr->ifa_name, ':')) != NULL)
++			*cp = '\0';
+ 	}
+-	return (err);
++
++	return (0);
++}
++
++/*
++ * Legacy symbol
++ * For a long time getifaddrs() only returned AF_INET and AF_INET6 entries.
++ * Some consumers came to expect that no other address family may be returned.
++ * To prevent existing binaries that can't handle AF_LINK entries from breaking
++ * this symbol is kept around. Consumers that want the fixed behaviour need to
++ * recompile and link to the fixed symbol.
++ */
++int
++getifaddrs_old(struct ifaddrs **ifap)
++{
++	return (_getifaddrs(ifap, B_FALSE));
++}
++
++/*
++ * Current symbol
++ * May return AF_INET, AF_INET6 and AF_LINK entries
++ */
++int
++__getifaddrs(struct ifaddrs **ifap)
++{
++	return (_getifaddrs(ifap, B_TRUE));
+ }
+ 
+ void
+@@ -79,10 +143,140 @@ freeifaddrs(struct ifaddrs *ifa)
+ 		free(curr->ifa_addr);
+ 		free(curr->ifa_netmask);
+ 		free(curr->ifa_dstaddr);
++		free(curr->ifa_data);
+ 		free(curr);
+ 	}
+ }
+ 
++static uint_t
++dlpi_iftype(uint_t dlpitype)
++{
++	switch (dlpitype) {
++	case DL_ETHER:
++		return (IFT_ETHER);
++
++	case DL_ATM:
++		return (IFT_ATM);
++
++	case DL_CSMACD:
++		return (IFT_ISO88023);
++
++	case DL_TPB:
++		return (IFT_ISO88024);
++
++	case DL_TPR:
++		return (IFT_ISO88025);
++
++	case DL_FDDI:
++		return (IFT_FDDI);
++
++	case DL_IB:
++		return (IFT_IB);
++
++	case DL_OTHER:
++		return (IFT_OTHER);
++	}
++
++	return (IFT_OTHER);
++}
++
++/*
++ * Make a door call to dlmgmtd.
++ * If successful the result is stored in rbuf and 0 returned.
++ * On errors, return -1 and set `errno'.
++ */
++static int
++dl_door_call(int door_fd, void *arg, size_t asize, void *rbuf, size_t *rsizep)
++{
++	int err;
++	door_arg_t	darg;
++	darg.data_ptr	= arg;
++	darg.data_size	= asize;
++	darg.desc_ptr	= NULL;
++	darg.desc_num	= 0;
++	darg.rbuf	= rbuf;
++	darg.rsize	= *rsizep;
++
++	if (door_call(door_fd, &darg) == -1) {
++		return (-1);
++	}
++
++	if (darg.rbuf != rbuf) {
++		/*
++		 * The size of the input rbuf was not big enough so that
++		 * the door allocated the rbuf itself. In this case, return
++		 * the required size to the caller.
++		 */
++		err = errno;
++		(void) munmap(darg.rbuf, darg.rsize);
++		*rsizep = darg.rsize;
++		errno = err;
++		return (-1);
++	} else if (darg.rsize != *rsizep) {
++		return (-1);
++	}
++	return (0);
++}
++
++
++/*
++ * Get the name from dlmgmtd by linkid.
++ * If successful the result is stored in name_retval and 0 returned.
++ * On errors, return -1 and set `errno'.
++ */
++static int
++dl_get_name(int door_fd, datalink_id_t linkid,
++    dlmgmt_getname_retval_t *name_retval)
++{
++	size_t name_sz = sizeof (*name_retval);
++	dlmgmt_door_getname_t getname;
++	bzero(&getname, sizeof (dlmgmt_door_getname_t));
++	getname.ld_cmd = DLMGMT_CMD_GETNAME;
++	getname.ld_linkid = linkid;
++
++	if (dl_door_call(door_fd, &getname, sizeof (getname), name_retval,
++	    &name_sz) < 0) {
++		return (-1);
++	}
++	if (name_retval->lr_err != 0) {
++		errno = name_retval->lr_err;
++		return (-1);
++	}
++	return (0);
++}
++
++/*
++ * Get the next link from dlmgmtd.
++ * Start iterating by passing DATALINK_INVALID_LINKID as linkid.
++ * The end is marked by next_retval.lr_linkid set to DATALINK_INVALID_LINKID.
++ * If successful the result is stored in next_retval and 0 returned.
++ * On errors, return -1 and set `errno'.
++ */
++static int
++dl_get_next(int door_fd, datalink_id_t linkid, datalink_class_t class,
++    datalink_media_t dmedia, uint32_t flags,
++    dlmgmt_getnext_retval_t *next_retval)
++{
++	size_t next_sz = sizeof (*next_retval);
++	dlmgmt_door_getnext_t getnext;
++	bzero(&getnext, sizeof (dlmgmt_door_getnext_t));
++	getnext.ld_cmd = DLMGMT_CMD_GETNEXT;
++	getnext.ld_class = class;
++	getnext.ld_dmedia = dmedia;
++	getnext.ld_flags = flags;
++	getnext.ld_linkid = linkid;
++
++	if (dl_door_call(door_fd, &getnext, sizeof (getnext), next_retval,
++	    &next_sz) < 0) {
++		return (-1);
++	}
++	if (next_retval->lr_err != 0) {
++		errno = next_retval->lr_err;
++		return (-1);
++	}
++	return (0);
++}
++
+ /*
+  * Returns all addresses configured on the system. If flags contain
+  * LIFC_ENABLED, only the addresses that are UP are returned.
+@@ -98,9 +292,21 @@ getallifaddrs(sa_family_t af, struct ifaddrs **ifap, int64_t flags)
+ 	int ret;
+ 	int s, n, numifs;
+ 	struct ifaddrs *curr, *prev;
++	struct sockaddr_dl *ifa_addr = NULL;
++	if_data_t *ifa_data = NULL;
+ 	sa_family_t lifr_af;
+-	int sock4;
+-	int sock6;
++	datalink_id_t linkid;
++	dld_ioc_attr_t dia;
++	dld_macaddrinfo_t *dmip;
++	dld_ioc_macaddrget_t *iomp = NULL;
++	dlmgmt_getnext_retval_t next_retval;
++	dlmgmt_getname_retval_t	name_retval;
++	int bufsize;
++	int nmacaddr = 1024;
++	int sock4 = -1;
++	int sock6 = -1;
++	int door_fd = -1;
++	int dld_fd = -1;
+ 	int err;
+ 
+ 	/*
+@@ -111,14 +317,16 @@ getallifaddrs(sa_family_t af, struct ifaddrs **ifap, int64_t flags)
+ 		return (EINVAL);
+ 	*ifap = NULL;
+ 
+-	if ((sock4 = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
+-		return (-1);
+-	if ((sock6 = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
+-		err = errno;
+-		close(sock4);
+-		errno = err;
+-		return (-1);
+-	}
++	if ((sock4 = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ||
++	    (sock6 = socket(AF_INET6, SOCK_DGRAM, 0)) < 0 ||
++	    (door_fd = open(DLMGMT_DOOR, O_RDONLY)) < 0 ||
++	    (dld_fd = open(DLD_CONTROL_DEV, O_RDWR)) < 0)
++		goto fail;
++
++	bufsize = sizeof (dld_ioc_macaddrget_t) + nmacaddr *
++	    sizeof (dld_macaddrinfo_t);
++	if ((iomp = calloc(1, bufsize)) == NULL)
++		goto fail;
+ 
+ retry:
+ 	/* Get all interfaces from SIOCGLIFCONF */
+@@ -205,19 +413,118 @@ retry:
+ 		}
+ 
+ 	}
++
++	/* add AF_LINK entries */
++	if (af == AF_UNSPEC || af == AF_LINK) {
++
++		linkid = DATALINK_INVALID_LINKID;
++		for (;;) {
++			if (dl_get_next(door_fd, linkid, DATALINK_CLASS_ALL,
++			    DATALINK_ANY_MEDIATYPE, DLMGMT_ACTIVE,
++			    &next_retval) != 0) {
++				break;
++			}
++
++			linkid = next_retval.lr_linkid;
++			if (linkid == DATALINK_INVALID_LINKID)
++				break;
++
++			/* get mac addr */
++			iomp->dig_size = nmacaddr * sizeof (dld_macaddrinfo_t);
++			iomp->dig_linkid = linkid;
++
++			if (ioctl(dld_fd, DLDIOC_MACADDRGET, iomp) < 0)
++				continue;
++
++			dmip = (dld_macaddrinfo_t *)(iomp + 1);
++
++			/* get name */
++			if (dl_get_name(door_fd, linkid, &name_retval) != 0)
++				continue;
++
++			/* get MTU */
++			dia.dia_linkid = linkid;
++			if (ioctl(dld_fd, DLDIOC_ATTR, &dia) < 0)
++				continue;
++
++			curr = calloc(1, sizeof (struct ifaddrs));
++			if (curr == NULL)
++				goto fail;
++
++			if (prev != NULL) {
++				prev->ifa_next = curr;
++			} else {
++				/* First node in the linked list */
++				*ifap = curr;
++			}
++			prev = curr;
++
++			if ((curr->ifa_name = strdup(name_retval.lr_link)) ==
++			    NULL)
++				goto fail;
++
++			curr->ifa_addr =
++			    calloc(1, sizeof (struct sockaddr_storage));
++			if (curr->ifa_addr == NULL)
++				goto fail;
++
++			curr->ifa_data = calloc(1, sizeof (if_data_t));
++			if (curr->ifa_data == NULL)
++				goto fail;
++
++			curr->ifa_addr->sa_family = AF_LINK;
++			ifa_addr = (struct sockaddr_dl *)curr->ifa_addr;
++			ifa_data = curr->ifa_data;
++
++			(void) memcpy(ifa_addr->sdl_data, dmip->dmi_addr,
++			    dmip->dmi_addrlen);
++			ifa_addr->sdl_alen = dmip->dmi_addrlen;
++
++			ifa_data->ifi_mtu = dia.dia_max_sdu;
++			ifa_data->ifi_type = dlpi_iftype(next_retval.lr_media);
++
++			/*
++			 * get interface index
++			 * This is only possible if the link has been plumbed.
++			 */
++			if (strlcpy(lifrl.lifr_name, name_retval.lr_link,
++			    sizeof (lifrl.lifr_name)) >=
++			    sizeof (lifrl.lifr_name))
++				continue;
++
++			if (ioctl(sock4, SIOCGLIFINDEX, (caddr_t)&lifrl) >= 0) {
++				ifa_addr->sdl_index = lifrl.lifr_index;
++			} else if (ioctl(sock6, SIOCGLIFINDEX,
++			    (caddr_t)&lifrl) >= 0) {
++				/* retry for IPv6 */
++				ifa_addr->sdl_index = lifrl.lifr_index;
++			}
++		}
++	}
+ 	free(buf);
+-	close(sock4);
+-	close(sock6);
++	free(iomp);
++	(void) close(sock4);
++	(void) close(sock6);
++	(void) close(door_fd);
++	(void) close(dld_fd);
+ 	return (0);
+ fail:
+ 	err = errno;
+ 	free(buf);
++	free(iomp);
+ 	freeifaddrs(*ifap);
+ 	*ifap = NULL;
+ 	if (err == ENXIO)
+ 		goto retry;
+-	close(sock4);
+-	close(sock6);
++
++	if (sock4 != -1)
++		(void) close(sock4);
++	if (sock6 != -1)
++		(void) close(sock6);
++	if (door_fd != -1)
++		(void) close(door_fd);
++	if (dld_fd != -1)
++		(void) close(dld_fd);
+ 	errno = err;
+ 	return (-1);
+ }
+diff --git a/usr/src/man/man3socket/getifaddrs.3socket b/usr/src/man/man3socket/getifaddrs.3socket
+index 274ae8f720..9a9c2ad13d 100644
+--- a/usr/src/man/man3socket/getifaddrs.3socket
++++ b/usr/src/man/man3socket/getifaddrs.3socket
+@@ -12,11 +12,10 @@
+ .\"
+ .\" Copyright (c) 2013, Joyent, Inc. All rights reserved.
+ .\"
+-.TH GETIFADDRS 3SOCKET "Apr 18, 2013"
++.TH GETIFADDRS 3SOCKET "Feb 1, 2022"
+ .SH NAME
+ getifaddrs, freeifaddrs \- get interface addresses
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBcc\fR [ \fIflag\fR ... ] \fIfile\fR ... \fB-lsocket\fR \fB-lnsl\fR \
+ [ \fIlibrary\fR ... ]
+@@ -36,7 +35,6 @@ getifaddrs, freeifaddrs \- get interface addresses
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBgetifaddrs\fR() function is used to obtain the list of network
+ interfaces on the local machine.  A reference to a linked list of \fBifaddrs\fR
+ structures, as defined in \fB<ifaddrs.h>\fR, is stored in the memory referenced
+@@ -97,7 +95,9 @@ for more information.
+ 
+ .sp
+ .LP
+-The \fIifa_data\fR member is presently unused.
++The \fIifa_data\fR member is specific to the address family. It is currently
++only available for AF_LINK entries where it contains a pointer to the
++\fBstruct if_data\fR (as defined in \fBif.h\fR(3HEAD)).
+ 
+ .sp
+ .LP
+@@ -105,12 +105,10 @@ The memory used by \fBgetifaddrs\fR() to back the list is dynamically allocated.
+ It should be freed using \fBfreeifaddrs\fR().
+ 
+ .SH RETURN VALUES
+-.LP
+ If successful, \fBgetifaddrs\fR() returns the value \fB0\fR; otherwise it
+ returns \fB\(mi1\fR and sets \fIerrno\fR to indicate the error.
+ 
+ .SH ERRORS
+-.LP
+ The \fBgetifaddrs\fR() function may fail and set \fIerrno\fR for any of the
+ errors specified for the library routines \fBioctl\fR(2),
+ \fBsocket\fR(3SOCKET), and \fBmalloc\fR(3C).
+@@ -128,7 +126,6 @@ MT-Level	MT-Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ .BR ioctl (2),
+ .BR malloc (3C),
+ .BR socket.h (3HEAD),
+@@ -140,12 +137,8 @@ MT-Level	MT-Safe
+ .BR ipadm (8)
+ 
+ .SH NOTES
+-.LP
+-On an illumos system, this function lists only interfaces with the \fBIFF_UP\fR
+-flag set; see \fBif_tcp\fR(4P) and \fBifconfig\fR(8) for more information.
+-
+-.SH BUGS
+-.LP
+-At present, this function only lists addresses from the \fBAF_INET\fR and
+-\fBAF_INET6\fR families.  Other families, such as \fBAF_LINK\fR, are not
+-included.
++This function lists interfaces of type AF_INET, AF_INET6, and AF_LINK.
++For AF_INET and AF_INET6 only interfaces with the \fBIFF_UP\fR
++flag set are listed; see \fBif_tcp\fR(7P) and \fBifconfig\fR(1M) for more
++information. For AF_LINK entries the interface index is only available when the
++link is plumbed.
+-- 
+2.42.0
+

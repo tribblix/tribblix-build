@@ -1,0 +1,65 @@
+From eabc1bc5e61dbfdd2fc3cb588315c864d621d500 Mon Sep 17 00:00:00 2001
+From: Robert Mustacchi <rm@fingolfin.org>
+Date: Tue, 23 Nov 2021 04:32:05 +0000
+Subject: [PATCH] 14274 fix a few broken pkg aliases Reviewed by: Andy Fiddaman
+ <andy@omnios.org> Approved by: Rich Lowe <richlowe@richlowe.net>
+
+---
+ usr/src/pkg/manifests/driver-network-dmfe.p5m    | 3 +--
+ usr/src/pkg/manifests/driver-network-upf.p5m     | 6 +++---
+ usr/src/pkg/manifests/system-kernel-platform.p5m | 1 -
+ 3 files changed, 4 insertions(+), 6 deletions(-)
+
+diff --git a/usr/src/pkg/manifests/driver-network-dmfe.p5m b/usr/src/pkg/manifests/driver-network-dmfe.p5m
+index 070f7308e4..de16d9370c 100644
+--- a/usr/src/pkg/manifests/driver-network-dmfe.p5m
++++ b/usr/src/pkg/manifests/driver-network-dmfe.p5m
+@@ -45,8 +45,7 @@ dir  path=usr/share/man/man7d
+ file path=usr/share/man/man7d/dmfe.7d
+ driver name=dmfe perms="* 0666 root sys" clone_perms="dmfe 0666 root sys" \
+     alias=pci108e,9102 \
+-    alias=pci1282,9102 \
+-    alias=pci128h,9102
++    alias=pci1282,9102
+ legacy pkg=SUNWdmfe desc="Davicom 9102 Fast Ethernet Network Adapter Driver" \
+     name="Davicom 9102 Fast Ethernet Driver"
+ license cr_Sun license=cr_Sun
+diff --git a/usr/src/pkg/manifests/driver-network-upf.p5m b/usr/src/pkg/manifests/driver-network-upf.p5m
+index e0aa9a3a10..895c2c51db 100644
+--- a/usr/src/pkg/manifests/driver-network-upf.p5m
++++ b/usr/src/pkg/manifests/driver-network-upf.p5m
+@@ -83,6 +83,8 @@ driver name=upf perms="* 0666 root sys" clone_perms="upf 0666 root sys" \
+     alias=usb8dd,988 \
+     alias=usb8dd,8511 \
+     alias=usb951,a \
++    alias=usbb39,109 \
++    alias=usbb39,901 \
+     alias=usbdb7,2 \
+     alias=usbe66,400c \
+     alias=usb1044,8002 \
+@@ -95,9 +97,7 @@ driver name=upf perms="* 0666 root sys" clone_perms="upf 0666 root sys" \
+     alias=usb2001,4003 \
+     alias=usb2001,400b \
+     alias=usb2001,4102 \
+-    alias=usb2001,abc1 \
+-    alias=usbb3p,109 \
+-    alias=usbb3p,901
++    alias=usb2001,abc1
+ license usr/src/uts/common/io/upf/THIRDPARTYLICENSE \
+     license=usr/src/uts/common/io/upf/THIRDPARTYLICENSE
+ depend type=require fmri=driver/usb/usbgem
+diff --git a/usr/src/pkg/manifests/system-kernel-platform.p5m b/usr/src/pkg/manifests/system-kernel-platform.p5m
+index 115c250117..a7318e04e4 100644
+--- a/usr/src/pkg/manifests/system-kernel-platform.p5m
++++ b/usr/src/pkg/manifests/system-kernel-platform.p5m
+@@ -981,7 +981,6 @@ $(sparc_ONLY)driver name=pcipsy class=pci \
+     alias=pci108e,8000 \
+     alias=pci108e,a000 \
+     alias=pci108e,a001 \
+-    alias=pci \
+     alias=pciclass,060000
+ $(sparc_ONLY)driver name=pcisch class=pci \
+     alias=pci108e,8001 \
+-- 
+2.40.1
+

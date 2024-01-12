@@ -1,0 +1,2526 @@
+From df5cd018c34371890eeeb8c930245b9323e8aa25 Mon Sep 17 00:00:00 2001
+From: Robert Mustacchi <rm@fingolfin.org>
+Date: Tue, 18 Jan 2022 00:05:21 +0000
+Subject: [PATCH] =?UTF-8?q?14418=20mman.h=20symbol=20visibility=20is=20a?=
+ =?UTF-8?q?=20mess=20Reviewed=20by:=20Gerg=C5=91=20Mih=C3=A1ly=20Doma=20<d?=
+ =?UTF-8?q?omag02@gmail.com>=20Reviewed=20by:=20Rich=20Lowe=20<richlowe@ri?=
+ =?UTF-8?q?chlowe.net>=20Approved=20by:=20Dan=20McDonald=20<danmcd@joyent.?=
+ =?UTF-8?q?com>?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ usr/src/cmd/audio/utilities/AudioFile.cc      |   5 -
+ usr/src/lib/libc/port/gen/madvise.c           |   4 +-
+ usr/src/lib/libc/port/gen/mlock.c             |   8 +-
+ usr/src/lib/libc/port/gen/munlock.c           |   8 +-
+ usr/src/lib/libc/port/threads/scalls.c        |  18 +-
+ usr/src/lib/madv/common/madv.c                |   8 +-
+ usr/src/man/man2/memcntl.2                    | 820 +++++++++---------
+ usr/src/man/man3c/madvise.3c                  | 465 +++++-----
+ usr/src/man/man3c/mlock.3c                    | 339 ++++----
+ .../pkg/manifests/system-test-libctest.p5m    |   2 +
+ usr/src/test/libc-tests/cfg/Makefile          |   1 +
+ usr/src/test/libc-tests/cfg/compilation.cfg   |   3 +-
+ .../libc-tests/cfg/symbols/sys_mman_h.cfg     | 162 ++++
+ usr/src/test/libc-tests/runfiles/default.run  |   1 +
+ .../test/libc-tests/tests/symbols/Makefile    |   1 +
+ usr/src/uts/common/sys/feature_tests.h        |  19 +
+ usr/src/uts/common/sys/mman.h                 | 170 ++--
+ 17 files changed, 1100 insertions(+), 934 deletions(-)
+ create mode 100644 usr/src/test/libc-tests/cfg/symbols/sys_mman_h.cfg
+
+diff --git a/usr/src/cmd/audio/utilities/AudioFile.cc b/usr/src/cmd/audio/utilities/AudioFile.cc
+index c2f03deba3..542fa19783 100644
+--- a/usr/src/cmd/audio/utilities/AudioFile.cc
++++ b/usr/src/cmd/audio/utilities/AudioFile.cc
+@@ -24,8 +24,6 @@
+  * Use is subject to license terms.
+  */
+ 
+-#pragma ident	"%Z%%M%	%I%	%E% SMI"
+-
+ #include <stdlib.h>
+ #include <stdio.h>
+ #include <unistd.h>
+@@ -43,9 +41,6 @@
+ #include <libaudio.h>
+ #include <audio_hdr.h>
+ 
+-// XX64  This should go away when <sys/mman.h> gets fixed.
+-extern "C" int madvise(caddr_t, size_t, int);
+-
+ // class AudioFile methods
+ 
+ 
+diff --git a/usr/src/lib/libc/port/gen/madvise.c b/usr/src/lib/libc/port/gen/madvise.c
+index 240c750ab6..01e035b369 100644
+--- a/usr/src/lib/libc/port/gen/madvise.c
++++ b/usr/src/lib/libc/port/gen/madvise.c
+@@ -24,8 +24,6 @@
+  * Use is subject to license terms.
+  */
+ 
+-#pragma ident	"%Z%%M%	%I%	%E% SMI"
+-
+ #include "lint.h"
+ #include <sys/types.h>
+ #include <sys/mman.h>
+@@ -35,7 +33,7 @@
+  * management of the memory resources of a particular application.
+  */
+ int
+-madvise(caddr_t addr, size_t len, int advice)
++madvise(void *addr, size_t len, int advice)
+ {
+ 	return (memcntl(addr, len, MC_ADVISE, (caddr_t)(intptr_t)advice, 0, 0));
+ }
+diff --git a/usr/src/lib/libc/port/gen/mlock.c b/usr/src/lib/libc/port/gen/mlock.c
+index 10f641dd9d..c1ad03da44 100644
+--- a/usr/src/lib/libc/port/gen/mlock.c
++++ b/usr/src/lib/libc/port/gen/mlock.c
+@@ -25,9 +25,7 @@
+  */
+ 
+ /*	Copyright (c) 1988 AT&T	*/
+-/*	  All Rights Reserved  	*/
+-
+-#pragma ident	"%Z%%M%	%I%	%E% SMI"
++/*	  All Rights Reserved	*/
+ 
+ #pragma weak _mlock = mlock
+ 
+@@ -39,7 +37,7 @@
+  * Function to lock address range in memory.
+  */
+ int
+-mlock(caddr_t addr, size_t len)
++mlock(const void *addr, size_t len)
+ {
+-	return (memcntl(addr, len, MC_LOCK, 0, 0, 0));
++	return (memcntl((void *)addr, len, MC_LOCK, 0, 0, 0));
+ }
+diff --git a/usr/src/lib/libc/port/gen/munlock.c b/usr/src/lib/libc/port/gen/munlock.c
+index 9757df0e41..8edbfc79d0 100644
+--- a/usr/src/lib/libc/port/gen/munlock.c
++++ b/usr/src/lib/libc/port/gen/munlock.c
+@@ -25,9 +25,7 @@
+  */
+ 
+ /*	Copyright (c) 1988 AT&T	*/
+-/*	  All Rights Reserved  	*/
+-
+-#pragma ident	"%Z%%M%	%I%	%E% SMI"
++/*	  All Rights Reserved	*/
+ 
+ #pragma weak _munlock = munlock
+ 
+@@ -40,7 +38,7 @@
+  */
+ 
+ int
+-munlock(caddr_t addr, size_t len)
++munlock(const void *addr, size_t len)
+ {
+-	return (memcntl(addr, len, MC_UNLOCK, 0, 0, 0));
++	return (memcntl((void *)addr, len, MC_UNLOCK, 0, 0, 0));
+ }
+diff --git a/usr/src/lib/libc/port/threads/scalls.c b/usr/src/lib/libc/port/threads/scalls.c
+index 4a62ea76b9..b45468f77a 100644
+--- a/usr/src/lib/libc/port/threads/scalls.c
++++ b/usr/src/lib/libc/port/threads/scalls.c
+@@ -527,7 +527,7 @@ write(int fd, const void *buf, size_t size)
+ 
+ int
+ getmsg(int fd, struct strbuf *ctlptr, struct strbuf *dataptr,
+-	int *flagsp)
++    int *flagsp)
+ {
+ 	extern int __getmsg(int, struct strbuf *, struct strbuf *, int *);
+ 	int rv;
+@@ -537,7 +537,7 @@ getmsg(int fd, struct strbuf *ctlptr, struct strbuf *dataptr,
+ 
+ int
+ getpmsg(int fd, struct strbuf *ctlptr, struct strbuf *dataptr,
+-	int *bandp, int *flagsp)
++    int *bandp, int *flagsp)
+ {
+ 	extern int __getpmsg(int, struct strbuf *, struct strbuf *,
+ 	    int *, int *);
+@@ -548,7 +548,7 @@ getpmsg(int fd, struct strbuf *ctlptr, struct strbuf *dataptr,
+ 
+ int
+ putmsg(int fd, const struct strbuf *ctlptr,
+-	const struct strbuf *dataptr, int flags)
++    const struct strbuf *dataptr, int flags)
+ {
+ 	extern int __putmsg(int, const struct strbuf *,
+ 	    const struct strbuf *, int);
+@@ -559,7 +559,7 @@ putmsg(int fd, const struct strbuf *ctlptr,
+ 
+ int
+ __xpg4_putmsg(int fd, const struct strbuf *ctlptr,
+-	const struct strbuf *dataptr, int flags)
++    const struct strbuf *dataptr, int flags)
+ {
+ 	extern int __putmsg(int, const struct strbuf *,
+ 	    const struct strbuf *, int);
+@@ -570,7 +570,7 @@ __xpg4_putmsg(int fd, const struct strbuf *ctlptr,
+ 
+ int
+ putpmsg(int fd, const struct strbuf *ctlptr,
+-	const struct strbuf *dataptr, int band, int flags)
++    const struct strbuf *dataptr, int band, int flags)
+ {
+ 	extern int __putpmsg(int, const struct strbuf *,
+ 	    const struct strbuf *, int, int);
+@@ -581,7 +581,7 @@ putpmsg(int fd, const struct strbuf *ctlptr,
+ 
+ int
+ __xpg4_putpmsg(int fd, const struct strbuf *ctlptr,
+-	const struct strbuf *dataptr, int band, int flags)
++    const struct strbuf *dataptr, int band, int flags)
+ {
+ 	extern int __putpmsg(int, const struct strbuf *,
+ 	    const struct strbuf *, int, int);
+@@ -607,7 +607,7 @@ nanosleep(const timespec_t *rqtp, timespec_t *rmtp)
+ 
+ int
+ clock_nanosleep(clockid_t clock_id, int flags,
+-	const timespec_t *rqtp, timespec_t *rmtp)
++    const timespec_t *rqtp, timespec_t *rmtp)
+ {
+ 	timespec_t reltime;
+ 	hrtime_t start;
+@@ -810,7 +810,7 @@ msgsnd(int msqid, const void *msgp, size_t msgsz, int msgflg)
+ }
+ 
+ int
+-msync(caddr_t addr, size_t len, int flags)
++msync(void *addr, size_t len, int flags)
+ {
+ 	extern int __msync(caddr_t, size_t, int);
+ 	int rv;
+@@ -1007,7 +1007,7 @@ sigsuspend(const sigset_t *set)
+ 
+ int
+ _pollsys(struct pollfd *fds, nfds_t nfd, const timespec_t *timeout,
+-	const sigset_t *sigmask)
++    const sigset_t *sigmask)
+ {
+ 	extern int __pollsys(struct pollfd *, nfds_t, const timespec_t *,
+ 	    const sigset_t *);
+diff --git a/usr/src/lib/madv/common/madv.c b/usr/src/lib/madv/common/madv.c
+index 756825ee34..12a33a19b6 100644
+--- a/usr/src/lib/madv/common/madv.c
++++ b/usr/src/lib/madv/common/madv.c
+@@ -721,8 +721,8 @@ shmat(int shmid, const void *shmaddr, int shmflag)
+ /*
+  * mmap interpose
+  */
+-caddr_t
+-mmap(caddr_t addr, size_t len, int prot, int flags, int fd, off_t pos)
++void *
++mmap(void *addr, size_t len, int prot, int flags, int fd, off_t pos)
+ {
+ 	static caddr_t (*mmapfunc)() = NULL;
+ 	caddr_t result;
+@@ -774,8 +774,8 @@ mmap(caddr_t addr, size_t len, int prot, int flags, int fd, off_t pos)
+ /*
+  * mmap64 interpose
+  */
+-caddr_t
+-mmap64(caddr_t addr, size_t len, int prot, int flags, int fd, off64_t pos)
++void *
++mmap64(void *addr, size_t len, int prot, int flags, int fd, off64_t pos)
+ {
+ 	static caddr_t (*mmap64func)();
+ 	caddr_t result;
+diff --git a/usr/src/man/man2/memcntl.2 b/usr/src/man/man2/memcntl.2
+index 49ae7f2d7d..b102be9fcb 100644
+--- a/usr/src/man/man2/memcntl.2
++++ b/usr/src/man/man2/memcntl.2
+@@ -1,433 +1,449 @@
+-'\" te
++.\"
++.\" Copyright 2022 Oxide Computer Company
+ .\" Copyright (c) 2007, Sun Microsystems, Inc. All Rights Reserved
+ .\" Copyright 1989 AT&T
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+-.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+-.\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH MEMCNTL 2 "May 13, 2017"
+-.SH NAME
+-memcntl \- memory management control
+-.SH SYNOPSIS
+-.LP
+-.nf
+-#include <sys/types.h>
+-#include <sys/mman.h>
+-
+-\fBint\fR \fBmemcntl\fR(\fBcaddr_t\fR \fIaddr\fR, \fBsize_t\fR \fIlen\fR, \fBint\fR \fIcmd\fR, \fBcaddr_t\fR \fIarg\fR,
+-     \fBint\fR \fIattr\fR, \fBint\fR \fImask\fR);
+-.fi
+-
+-.SH DESCRIPTION
+-.LP
+-The \fBmemcntl()\fR function allows the calling process to apply a variety of
+-control operations over the address space identified by the mappings
+-established for the address range [\fIaddr\fR, \fIaddr\fR + \fIlen\fR).
+-.sp
+-.LP
+-The \fIaddr\fR argument must be a multiple of the pagesize as returned by
+-\fBsysconf\fR(3C). The scope of the control operations can be further defined
+-with additional selection criteria (in the form of attributes) according to the
+-bit pattern contained in \fIattr\fR.
+-.sp
+-.LP
++.\"
++.\" The contents of this file are subject to the terms of the
++.\" Common Development and Distribution License (the "License").
++.\" You may not use this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++.\" or http://www.opensolaris.org/os/licensing.
++.\" See the License for the specific language governing permissions
++.\" and limitations under the License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each
++.\" file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++.\" If applicable, add the following below this CDDL HEADER, with the
++.\" fields enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
++.\"
++.Dd March 13, 2022
++.Dt MEMCNTL 2
++.Os
++.Sh NAME
++.Nm memcntl
++.Nd memory management control
++.Sh SYNOPSIS
++.In sys/types.h
++.In sys/mman.h
++.Ft int
++.Fo memcntl
++.Fa "void *addr"
++.Fa "size_t len"
++.Fa "int cmd"
++.Fa "void *arg"
++.Fa "int attr"
++.Fa "int mask"
++.Fc
++.Sh DESCRIPTION
++The
++.Fn memcntl
++function allows the calling process to apply a variety of control operations
++over the address space identified by the mappings established for the address
++range [
++.Fa addr ,
++.Fa addr
+++
++.Fa len
++).
++.Pp
++The
++.Fa addr
++argument must be a multiple of the pagesize as returned by
++.Xr sysconf 3C .
++The scope of the control operations can be further defined with additional
++selection criteria
++.Pq in the form of attributes
++according to the bit pattern contained in
++.Fa attr .
++.Pp
+ The following attributes specify page mapping selection criteria:
+-.sp
+-.ne 2
+-.na
+-\fB\fBSHARED\fR\fR
+-.ad
+-.RS 11n
++.Bl -tag -width Ds -offset indent
++.It Dv MEMCNTL_SHARED
+ Page is mapped shared.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBPRIVATE\fR\fR
+-.ad
+-.RS 11n
++.It Dv MEMCNTL_PRIVATE
+ Page is mapped private.
+-.RE
+-
+-.sp
+-.LP
+-The following attributes specify page protection selection criteria. The
+-selection criteria are constructed by a bitwise OR operation on the attribute
+-bits and must match exactly.
+-.sp
+-.ne 2
+-.na
+-\fB\fBPROT_READ\fR\fR
+-.ad
+-.RS 14n
++.El
++.Pp
++The following attributes specify page protection selection criteria.
++The selection criteria are constructed by a bitwise OR operation on the
++attribute bits and must match exactly.
++.Bl -tag -width Ds -offset indent
++.It Dv PROT_READ
+ Page can be read.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBPROT_WRITE\fR\fR
+-.ad
+-.RS 14n
++.It Dv PROT_WRITE
+ Page can be written.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBPROT_EXEC\fR\fR
+-.ad
+-.RS 14n
++.It Dv PROT_EXEC
+ Page can be executed.
+-.RE
+-
+-.sp
+-.LP
++.El
++.Pp
+ The following criteria may also be specified:
+-.sp
+-.ne 2
+-.na
+-\fB\fBPROC_TEXT\fR\fR
+-.ad
+-.RS 13n
++.Bl -tag -width Ds -offset indent
++.It Dv PROC_TEXT
+ Process text.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBPROC_DATA\fR\fR
+-.ad
+-.RS 13n
++.It Dv PROC_DATA
+ Process data.
+-.RE
+-
+-.sp
+-.LP
+-The \fBPROC_TEXT\fR attribute specifies all privately mapped segments with read
+-and execute permission, and the \fBPROC_DATA\fR attribute specifies all
+-privately mapped segments with write permission.
+-.sp
+-.LP
++.El
++.Pp
++The
++.Dv PROC_TEXT
++attribute specifies all privately mapped segments with read and execute
++permission, and the
++.Dv PROC_DATA
++attribute specifies all privately mapped segments with write permission.
++.Pp
+ Selection criteria can be used to describe various abstract memory objects
+-within the address space on which to operate. If an operation shall not be
+-constrained by the selection criteria, \fIattr\fR must have the value \fB0\fR.
+-.sp
+-.LP
+-The operation to be performed is identified by the argument \fIcmd\fR. The
+-symbolic names for the operations are defined in <\fBsys/mman.h\fR> as follows:
+-.sp
+-.ne 2
+-.na
+-\fB\fBMC_LOCK\fR\fR
+-.ad
+-.sp .6
+-.RS 4n
+-Lock in memory all pages in the range with attributes \fIattr\fR. A given page
+-may be locked multiple times through different mappings; however, within a
+-given mapping, page locks do not nest. Multiple lock operations on the same
+-address in the same process will all be removed with a single unlock operation.
+-A page locked in one process and mapped in another (or visible through a
+-different mapping in the locking process) is locked in memory as long as the
+-locking process does neither an implicit nor explicit unlock operation. If a
+-locked mapping is removed, or a page is deleted through file removal or
+-truncation, an unlock operation is implicitly performed. If a writable
+-\fBMAP_PRIVATE\fR page in the address range is changed, the lock will be
+-transferred to the private page.
+-.sp
+-The \fIarg\fR argument is not used, but must be 0 to ensure compatibility with
+-potential future enhancements.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBMC_LOCKAS\fR\fR
+-.ad
+-.sp .6
+-.RS 4n
++within the address space on which to operate.
++If an operation shall not be constrained by the selection criteria,
++.Fa attr
++must have the value
++.Sy 0 .
++.Pp
++The operation to be performed is identified by the argument
++.Fa cmd .
++The symbolic names for the operations are defined in
++.In sys/mman.h
++as follows:
++.Bl -tag -width Ds -offset indent
++.It Dv MC_LOCK
++Lock in memory all pages in the range with attributes
++.Fa attr .
++A given page may be locked multiple times through different mappings; however,
++within a given mapping, page locks do not nest.
++Multiple lock operations on the same address in the same process will all be
++removed with a single unlock operation.
++A page locked in one process and mapped in another
++.Pq or visible through a different mapping in the locking process
++is locked in memory as long as the locking process does neither an implicit nor
++explicit unlock operation.
++If a locked mapping is removed, or a page is deleted through file removal or
++truncation, an unlock operation is implicitly performed.
++If a writable
++.Dv MAP_PRIVATE
++page in the address range is changed, the lock will be transferred to the
++private page.
++.Pp
++The
++.Fa arg
++argument is not used, but must be
++.Dv NULL
++to ensure compatibility with potential future enhancements.
++.It Dv MC_LOCKAS
+ Lock in memory all pages mapped by the address space with attributes
+-\fIattr\fR. The \fIaddr\fR and \fIlen\fR arguments are not used, but must be
+-\fINULL\fR and \fB0\fR respectively, to ensure compatibility with potential
+-future enhancements.  The \fIarg\fR argument is a bit pattern built from the
+-flags:
+-.sp
+-.ne 2
+-.na
+-\fB\fBMCL_CURRENT\fR\fR
+-.ad
+-.RS 15n
++.Fa attr .
++The
++.Fa addr
++and
++.Fa len
++arguments are not used, but must be
++.Dv NULL
++and
++.Sy 0
++respectively, to ensure compatibility with potential future enhancements.
++The
++.Fa arg
++argument is a bit pattern built from the flags:
++.Bl -tag -width Ds
++.It Dv MCL_CURRENT
+ Lock current mappings.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBMCL_FUTURE\fR\fR
+-.ad
+-.RS 15n
++.It Dv MCL_FUTURE
+ Lock future mappings.
+-.RE
+-
+-The value of \fIarg\fR determines whether the pages to be locked are those
+-currently mapped by the address space, those that will be mapped in the future,
+-or both. If \fBMCL_FUTURE\fR is specified, then all mappings subsequently added
+-to the address space will be locked, provided sufficient memory is available.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBMC_SYNC\fR\fR
+-.ad
+-.sp .6
+-.RS 4n
++.El
++.Pp
++The value of
++.Fa arg
++determines whether the pages to be locked are those currently mapped by the
++address space, those that will be mapped in the future, or both.
++If
++.Dv MCL_FUTURE
++is specified, then all mappings subsequently added to the address space will be
++locked, provided sufficient memory is available.
++.It Dv MC_SYNC
+ Write to their backing storage locations all modified pages in the range with
+-attributes \fIattr\fR. Optionally, invalidate cache copies. The backing storage
+-for a modified \fBMAP_SHARED\fR mapping is the file the page is mapped to; the
+-backing storage for a modified \fBMAP_PRIVATE\fR mapping is its swap area. The
+-\fIarg\fR argument is a bit pattern built from the flags used to control the
+-behavior of the operation:
+-.sp
+-.ne 2
+-.na
+-\fB\fBMS_ASYNC\fR\fR
+-.ad
+-.RS 17n
++attributes
++.Fa attr .
++Optionally, invalidate cache copies.
++The backing storage for a modified
++.Dv MAP_SHARED
++mapping is the file the page is mapped to; the backing storage for a modified
++.Dv MAP_PRIVATE
++mapping is its swap area.
++The
++.Fa arg
++argument is a bit pattern built from the flags used to control the behavior of
++the operation:
++.Bl -tag -width Ds
++.It Dv MS_ASYNC
+ Perform asynchronous writes.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBMS_SYNC\fR\fR
+-.ad
+-.RS 17n
++The function returns immediately once all write operations are scheduled
++.Po unless
++.Dv MS_SYNC
++is also specified
++.Pc .
++.It Dv MS_SYNC
+ Perform synchronous writes.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBMS_INVALIDATE\fR\fR
+-.ad
+-.RS 17n
+-Invalidate mappings.
+-.RE
+-
+-\fBMS_ASYNC\fR Return immediately once all write operations are scheduled; with
+-\fBMS_SYNC\fR the function will not return until all write operations are
+-completed.
+-.sp
+-\fBMS_INVALIDATE\fR Invalidate all cached copies of data in memory, so that
+-further references to the pages will be obtained by the system from their
+-backing storage locations. This operation should be used by applications that
+-require a memory object to be in a known state.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBMC_UNLOCK\fR\fR
+-.ad
+-.sp .6
+-.RS 4n
+-Unlock all pages in the range with attributes \fIattr\fR. The \fIarg\fR
+-argument is not used, but must be \fB0\fR to ensure compatibility with
+-potential future enhancements.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBMC_UNLOCKAS\fR\fR
+-.ad
+-.sp .6
+-.RS 4n
++The function will not return until all write operations are completed.
++.It Dv MS_INVALIDATE
++Invalidate all cached copies of data in memory, so that further references to
++the pages will be obtained by the system from their backing storage locations.
++This operation should be used by applications that require a memory object to be
++in a known state.
++.El
++.It Dv MC_UNLOCK
++Unlock all pages in the range with attributes
++.Fa attr .
++The
++.Fa arg
++argument is not used, but must be
++.Dv NULL
++to ensure compatibility with potential future enhancements.
++.It Dv MC_UNLOCKAS
+ Remove address space memory locks and locks on all pages in the address space
+-with attributes \fIattr\fR. The \fIaddr\fR, \fIlen\fR, and \fIarg\fR arguments
+-are not used, but must be \fINULL\fR, 0 and 0, respectively, to ensure
+-compatibility with potential future enhancements.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBMC_HAT_ADVISE\fR\fR
+-.ad
+-.sp .6
+-.RS 4n
+-Advise system how a region of user-mapped memory will be accessed. The
+-\fIarg\fR argument is interpreted as a "\fBstruct memcntl_mha *\fR". The
+-following members are defined in a \fBstruct memcntl_mha\fR:
+-.sp
+-.in +2
+-.nf
++with attributes
++.Fa attr .
++The
++.Fa addr ,
++.Fa len ,
++and
++.Fa arg
++arguments are not used, but must be
++.Dv NULL ,
++0, and
++.Dv NULL ,
++respectively, to ensure compatibility with potential future enhancements.
++.It Dv MC_HAT_ADVISE
++Advise system how a region of user-mapped memory will be accessed.
++The
++.Fa arg
++argument is interpreted as a
++.Dq Vt struct memcntl_mha * .
++The following members are defined in a
++.Vt struct memcntl_mha :
++.Bd -literal -offset indent
+ uint_t mha_cmd;
+ uint_t mha_flags;
+ size_t mha_pagesize;
+-.fi
+-.in -2
+-
+-The accepted values for \fBmha_cmd\fR are:
+-.sp
+-.in +2
+-.nf
++.Ed
++.Pp
++The accepted values for
++.Vt mha_cmd
++are:
++.Bd -literal -offset indent
+ MHA_MAPSIZE_VA
+ MHA_MAPSIZE_STACK
+ MHA_MAPSIZE_BSSBRK
+-.fi
+-.in -2
+-
+-The \fBmha_flags\fR member is reserved for future use and must always be set to
+-0. The \fBmha_pagesize\fR member must be a valid size as obtained from
+-\fBgetpagesizes\fR(3C) or the constant value 0 to allow the system to choose an
+-appropriate hardware address translation mapping size.
+-.sp
+-\fBMHA_MAPSIZE_VA\fR sets the preferred hardware address translation mapping
+-size of the region of memory from \fIaddr\fR to \fIaddr\fR + \fIlen\fR. Both
+-\fIaddr\fR and \fIlen\fR must be aligned to an \fBmha_pagesize\fR boundary. The
+-entire virtual address region from \fIaddr\fR to \fIaddr\fR + \fIlen\fR must
+-not have any holes. Permissions within each \fBmha_pagesize\fR-aligned portion
+-of the region must be consistent. When a size of 0 is specified, the system
+-selects an appropriate size based on the size and alignment of the memory
+-region, type of processor, and other considerations.
+-.sp
+-\fBMHA_MAPSIZE_STACK\fR sets the preferred hardware address translation mapping
+-size of the process main thread stack segment. The \fIaddr\fR and \fIlen\fR
+-arguments must be \fINULL\fR and 0, respectively.
+-.sp
+-\fBMHA_MAPSIZE_BSSBRK\fR sets the preferred hardware address translation
+-mapping size of the process heap. The \fIaddr\fR and \fIlen\fR arguments must
+-be \fINULL\fR and 0, respectively. See the NOTES section of the \fBppgsz\fR(1)
++.Ed
++.Pp
++The
++.Fa mha_flags
++member is reserved for future use and must always be set to 0.
++The
++.Fa mha_pagesize
++member must be a valid size as obtained from
++.Xr getpagesizes 3C
++or the constant value 0 to allow the system to choose an appropriate hardware
++address translation mapping size.
++.Pp
++.Dv MHA_MAPSIZE_VA
++sets the preferred hardware address translation mapping size of the region of
++memory from
++.Fa addr
++to
++.Fa addr
+++
++.Fa len .
++Both
++.Fa addr
++and
++.Fa len
++must be aligned to an
++.Fa mha_pagesize
++boundary.
++The entire virtual address region from
++.Fa addr
++to
++.Fa addr
+++
++.Fa len
++must not have any holes.
++Permissions within each
++.Fa mha_pagesize Ns -aligned
++portion of the region must be consistent.
++When a size of 0 is specified, the system selects an appropriate size based on
++the size and alignment of the memory region, type of processor, and other
++considerations.
++.Pp
++.Dv MHA_MAPSIZE_STACK
++sets the preferred hardware address translation mapping size of the process main
++thread stack segment.
++The
++.Fa addr
++and
++.Fa len
++arguments must be
++.Dv NULL
++and 0, respectively.
++.Pp
++.Dv MHA_MAPSIZE_BSSBRK
++sets the preferred hardware address translation mapping size of the process
++heap.
++The
++.Fa addr
++and
++.Fa len
++arguments must be
++.Dv NULL
++and 0, respectively.
++See the NOTES section of the
++.Xr ppgsz 1
+ manual page for additional information on process heap alignment.
+-.sp
+-The \fIattr\fR argument must be 0 for all \fBMC_HAT_ADVISE\fR operations.
+-.RE
+-
+-.sp
+-.LP
+-The \fImask\fR argument must be \fB0\fR; it is reserved for future use.
+-.sp
+-.LP
++.Pp
++The
++.Fa attr
++argument must be 0 for all
++.Dv MC_HAT_ADVISE
++operations.
++.El
++.Pp
++The
++.Fa mask
++argument must be 0; it is reserved for future use.
++.Pp
+ Locks established with the lock operations are not inherited by a child process
+-after \fBfork\fR(2). The \fBmemcntl()\fR function fails if it attempts to lock
+-more memory than a system-specific limit.
+-.sp
+-.LP
++after
++.Xr fork 2 .
++The
++.Fn memcntl
++function fails if it attempts to lock more memory than a system-specific limit.
++.Pp
+ Due to the potential impact on system resources, the operations
+-\fBMC_LOCKAS\fR, \fBMC_LOCK\fR, \fBMC_UNLOCKAS\fR, and \fBMC_UNLOCK\fR are
+-restricted to privileged processes.
+-.SH USAGE
+-.LP
+-The \fBmemcntl()\fR function subsumes the operations of \fBplock\fR(3C).
+-.sp
+-.LP
+-\fBMC_HAT_ADVISE\fR is intended to improve performance of applications that use
+-large amounts of memory on processors that support multiple hardware address
+-translation mapping sizes; however, it should be used with care. Not all
+-processors support all sizes with equal efficiency. Use of larger sizes may
+-also introduce extra overhead that could reduce performance or available
+-memory.  Using large sizes for one application may reduce available resources
+-for other applications and result in slower system wide performance.
+-.SH RETURN VALUES
+-.LP
+-Upon successful completion, \fBmemcntl()\fR returns \fB0\fR; otherwise, it
+-returns \fB\(mi1\fR and sets \fBerrno\fR to indicate an error.
+-.SH ERRORS
+-.LP
+-The \fBmemcntl()\fR function will fail if:
+-.sp
+-.ne 2
+-.na
+-\fB\fBEAGAIN\fR\fR
+-.ad
+-.RS 10n
++.Dv MC_LOCKAS ,
++.Dv MC_LOCK ,
++.Dv MC_UNLOCKAS ,
++and
++.Dv MC_UNLOCK
++are restricted to privileged processes.
++.Sh USAGE
++The
++.Fn memcntl
++function subsumes the operations of
++.Xr plock 3C .
++.Pp
++.Dv MC_HAT_ADVISE
++is intended to improve performance of applications that use large amounts of
++memory on processors that support multiple hardware address translation mapping
++sizes; however, it should be used with care.
++Not all processors support all sizes with equal efficiency.
++Use of larger sizes may also introduce extra overhead that could reduce
++performance or available memory.
++Using large sizes for one application may reduce available resources for other
++applications and result in slower system wide performance.
++.Sh RETURN VALUES
++Upon successful completion,
++.Fn memcntl
++returns
++.Sy 0 .
++Otherwise, it returns
++.Sy -1
++and sets
++.Va errno
++to indicate an error.
++.Sh ERRORS
++The
++.Fn memcntl
++function will fail if:
++.Bl -tag -width Er
++.It Er EAGAIN
+ When the selection criteria match, some or all of the memory identified by the
+-operation could not be locked when \fBMC_LOCK\fR or \fBMC_LOCKAS\fR was
+-specified, some or all mappings in the address range [\fIaddr\fR, \fIaddr\fR +
+-\fIlen\fR) are locked for I/O when \fBMC_HAT_ADVISE\fR was specified, or the
+-system has insufficient resources when \fBMC_HAT_ADVISE\fR was specified.
+-.sp
+-The \fIcmd\fR is \fBMC_LOCK\fR or \fBMC_LOCKAS\fR and locking the memory
+-identified by this operation would exceed a limit or resource control on locked
+-memory.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBEBUSY\fR\fR
+-.ad
+-.RS 10n
++operation could not be locked when
++.Dv MC_LOCK
++or
++.Dv MC_LOCKAS
++was specified, some or all mappings in the address range
++.Pf [ Fa addr ,
++.Fa addr
+++
++.Fa len Ns
++) are locked for I/O when
++.Dv MC_HAT_ADVISE
++was specified, or the system has insufficient resources when
++.Dv MC_HAT_ADVISE
++was specified.
++.Pp
++The
++.Fa cmd
++is
++.Dv MC_LOCK
++or
++.Dv MC_LOCKAS
++and locking the memory identified by this operation would exceed a limit or
++resource control on locked memory.
++.It Er EBUSY
+ When the selection criteria match, some or all of the addresses in the range
+-[\fIaddr, addr + len\fR) are locked and \fBMC_SYNC\fR with the
+-\fBMS_INVALIDATE\fR option was specified.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBEINVAL\fR\fR
+-.ad
+-.RS 10n
+-The \fIaddr\fR argument specifies invalid selection criteria or is not a
+-multiple of the page size as returned by \fBsysconf\fR(3C); the \fIaddr\fR
+-and/or \fIlen\fR argument does not have the value \fB0\fR when \fBMC_LOCKAS\fR
+-or \fBMC_UNLOCKAS\fR is specified; the \fIarg\fR argument is not valid for the
+-function specified; \fBmha_pagesize\fR or \fBmha_cmd\fR is invalid; or
+-\fBMC_HAT_ADVISE\fR is specified and not all pages in the specified region have
+-the same access permissions within the given size boundaries.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBENOMEM\fR\fR
+-.ad
+-.RS 10n
++.Pf [ Fa addr ,
++.Fa addr
+++
++.Fa len Ns
++) are locked and
++.Dv MC_SYNC with the
++.Dv MS_INVALIDATE
++option was specified.
++.It Er EINVAL
++The
++.Fa addr
++argument specifies invalid selection criteria or is not a multiple of the page
++size as returned by
++.Xr sysconf 3C ;
++the
++.Fa addr
++and/or
++.Fa len
++argument does not have the value 0 when
++.Dv MC_LOCKAS
++or
++.Dv MC_UNLOCKAS
++is specified; the
++.Fa arg
++argument is not valid for the function specified;
++.Fa mha_pagesize
++or
++.Fa mha_cmd
++is invalid; or
++.Dv MC_HAT_ADVISE
++is specified and not all pages in the specified region have the same access
++permissions within the given size boundaries.
++.It Er ENOMEM
+ When the selection criteria match, some or all of the addresses in the range
+-[\fIaddr\fR, \fIaddr\fR + \fIlen\fR) are invalid for the address space of a
+-process or specify one or more pages which are not mapped.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBEPERM\fR\fR
+-.ad
+-.RS 10n
+-The {\fBPRIV_PROC_LOCK_MEMORY\fR} privilege is not asserted in the effective
+-set of the calling process and \fBMC_LOCK\fR, \fBMC_LOCKAS\fR, \fBMC_UNLOCK\fR,
+-or \fBMC_UNLOCKAS\fR was specified.
+-.RE
+-
+-.SH ATTRIBUTES
+-.LP
+-See \fBattributes\fR(7) for descriptions of the following attributes:
+-.sp
+-
+-.sp
+-.TS
+-box;
+-c | c
+-l | l .
+-ATTRIBUTE TYPE	ATTRIBUTE VALUE
+-_
+-MT-Level	MT-Safe
+-.TE
+-
+-.SH SEE ALSO
+-.LP
+-.BR ppgsz (1),
+-.BR fork (2),
+-.BR mmap (2),
+-.BR mprotect (2),
+-.BR getpagesizes (3C),
+-.BR mlock (3C),
+-.BR mlockall (3C),
+-.BR msync (3C),
+-.BR plock (3C),
+-.BR sysconf (3C),
+-.BR attributes (7),
+-.BR privileges (7)
++.Pf [ Fa addr ,
++.Fa addr
+++
++.Fa len Ns
++) are invalid for the address space of a process or specify one or more pages
++which are not mapped.
++.It Er EPERM
++The
++.Brq Dv PRIV_PROC_LOCK_MEMORY
++privilege is not asserted in the effective set of the calling process and
++.Dv MC_LOCK ,
++.Dv MC_LOCKAS ,
++.Dv MC_UNLOCK ,
++or
++.Dv MC_UNLOCKAS
++was specified.
++.El
++.Sh MT-LEVEL
++.Sy MT-Safe
++.Sh SEE ALSO
++.Xr ppgsz 1 ,
++.Xr fork 2 ,
++.Xr mmap 2 ,
++.Xr mprotect 2 ,
++.Xr getpagesizes 3C ,
++.Xr mlock 3C ,
++.Xr mlockall 3C ,
++.Xr msync 3C ,
++.Xr plock 3C ,
++.Xr sysconf 3C ,
++.Xr attributes 7 ,
++.Xr privileges 7
+diff --git a/usr/src/man/man3c/madvise.3c b/usr/src/man/man3c/madvise.3c
+index c6d39ab8d4..dd523a2c0c 100644
+--- a/usr/src/man/man3c/madvise.3c
++++ b/usr/src/man/man3c/madvise.3c
+@@ -1,36 +1,62 @@
+-'\" te
++.\"
++.\" Copyright 2022 Oxide Computer Company
+ .\" Copyright (c) 2005, Sun Microsystems, Inc. All Right Reserved.
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+-.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+-.\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH MADVISE 3C "Mar 28, 2016"
+-.SH NAME
+-madvise \- provide advice to VM system
+-.SH SYNOPSIS
+-.LP
+-.nf
+-#include <sys/types.h>
+-#include <sys/mman.h>
+-
+-\fBint\fR \fBmadvise\fR(\fBcaddr_t\fR \fIaddr\fR, \fBsize_t\fR \fIlen\fR, \fBint\fR \fIadvice\fR);
+-.fi
+-
+-.SH DESCRIPTION
+-.LP
+-The \fBmadvise()\fR function advises the kernel that a region of user mapped
+-memory in the range [\fIaddr\fR, \fIaddr\fR + \fIlen\fR) will be accessed
+-following a type of pattern. The kernel uses this information to optimize the
+-procedure for manipulating and maintaining the resources associated with the
+-specified mapping range. In general (and true to the name of the function),
+-the advice is merely advisory, and the only user-visible ramifications
+-are in terms of performance, not semantics. Note that
+-\fBMADV_PURGE\fR is an exception to this; see below for details.
+-.sp
+-.LP
+-Values for \fIadvice\fR are defined in <\fBsys/mman.h\fR> as:
+-.sp
+-.in +2
+-.nf
++.\"
++.\" The contents of this file are subject to the terms of the
++.\" Common Development and Distribution License (the "License").
++.\" You may not use this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++.\" or http://www.opensolaris.org/os/licensing.
++.\" See the License for the specific language governing permissions
++.\" and limitations under the License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each
++.\" file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++.\" If applicable, add the following below this CDDL HEADER, with the
++.\" fields enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
++.\"
++.Dd March 13, 2022
++.Dt MADVISE 3C
++.Os
++.Sh NAME
++.Nm madvise
++.Nd provide advice to VM system
++.Sh SYNOPSIS
++.In sys/types.h
++.In sys/mman.h
++.Ft int
++.Fo madviase
++.Fa "void *addr"
++.Fa "size_t len"
++.Fa "int advice"
++.Fc
++.Sh DESCRIPTION
++The
++.Fn madvise
++function advises the kernel that a region of user mapped memory in the range
++.Pf [ Fa addr ,
++.Fa addr
+++
++.Fa len Ns
++) will be accessed following a type of pattern.
++The kernel uses this information to optimize the procedure for manipulating and
++maintaining the resources associated with the specified mapping range.
++In general
++.Pq and true to the name of the function ,
++the advice is merely advisory, and the only user-visible ramifications are in
++terms of performance, not semantics.
++Note that
++.Dv MADV_PURGE
++is an exception to this; see below for details.
++.Pp
++Values for
++.Fa advice
++are defined in
++.In sys/mman.h
++as:
++.Bd -literal -offset indent
+ #define MADV_NORMAL           0x0  /* No further special treatment */
+ #define MADV_RANDOM           0x1  /* Expect random page references */
+ #define MADV_SEQUENTIAL       0x2  /* Expect sequential page references */
+@@ -41,246 +67,175 @@ Values for \fIadvice\fR are defined in <\fBsys/mman.h\fR> as:
+ #define MADV_ACCESS_LWP       0x7  /* next LWP to access heavily */
+ #define MADV_ACCESS_MANY      0x8  /* many processes to access heavily */
+ #define MADV_PURGE            0x9  /* contents will be purged */
+-.fi
+-.in -2
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBMADV_NORMAL\fR\fR
+-.ad
+-.RS 23n
++.Ed
++.Bl -tag -width Ds
++.It Dv MADV_NORMAL
+ This is the default system characteristic where accessing memory within the
+-address range causes the system to read data from the mapped file. The kernel
+-reads all data from files into pages which are retained for a period of time as
+-a "cache." System pages can be a scarce resource, so the kernel steals pages
+-from other mappings when needed. This is a likely occurrence, but adversely
+-affects system performance only if a large amount of memory is accessed.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBMADV_RANDOM\fR\fR
+-.ad
+-.RS 23n
++address range causes the system to read data from the mapped file.
++The kernel reads all data from files into pages which are retained for a period
++of time as a
++.Dq cache .
++System pages can be a scarce resource, so the kernel steals pages from other
++mappings when needed.
++This is a likely occurrence, but adversely affects system performance only if a
++large amount of memory is accessed.
++.It Dv MADV_RANDOM
+ Tell the kernel to read in a minimum amount of data from a mapped file on any
+-single particular access. If  \fBMADV_NORMAL\fR is in effect when an address of
+-a mapped file is accessed, the system tries to read in as much data from the
+-file as reasonable, in anticipation of other accesses within a certain
+-locality.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBMADV_SEQUENTIAL\fR\fR
+-.ad
+-.RS 23n
++single particular access.
++If
++.Dv MADV_NORMAL
++is in effect when an address of a mapped file is accessed, the system tries to
++read in as much data from the file as reasonable, in anticipation of other
++accesses within a certain locality.
++.It Dv MADV_SEQUENTIAL
+ Tell the system that addresses in this range are likely to be accessed only
+ once, so the system will free the resources mapping the address range as
+ quickly as possible.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBMADV_WILLNEED\fR\fR
+-.ad
+-.RS 23n
++.It Dv MADV_WILLNEED
+ Tell the system that a certain address range is definitely needed so the kernel
+-will start reading the specified range into memory. This can benefit programs
+-wanting to minimize the time needed to access memory the first time, as the
+-kernel would need to read in from the file.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBMADV_DONTNEED\fR\fR
+-.ad
+-.RS 23n
++will start reading the specified range into memory.
++This can benefit programs wanting to minimize the time needed to access memory
++the first time, as the kernel would need to read in from the file.
++.It Dv MADV_DONTNEED
+ Tell the kernel that the specified address range is no longer needed, so the
+ system starts to free the resources associated with the address range.
+-While the semantics of \fBMADV_DONTNEED\fR are similar to other systems,
+-they differ significantly from the semantics on Linux, where
+-\fBMADV_DONTNEED\fR will actually synchronously purge the address range,
+-and subsequent faults will load from either backing store or be
+-zero-filled on demand. If the peculiar Linux semantics are
+-desired, \fBMADV_PURGE\fR should be used in lieu of \fBMADV_DONTNEED\fR.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBMADV_FREE\fR\fR
+-.ad
+-.RS 23n
++While the semantics of
++.Dv MADV_DONTNEED
++are similar to other systems, they differ significantly from the semantics on
++Linux, where
++.Dv MADV_DONTNEED
++will actually synchronously purge the address range, and subsequent faults will
++load from either backing store or be zero-filled on demand.
++If the peculiar Linux semantics are desired,
++.Dv MADV_PURGE
++should be used in lieu of
++.Dv MADV_DONTNEED .
++.It Dv MADV_FREE
+ Tell the kernel that contents in the specified address range are no longer
+-important and the range will be overwritten. When there is demand for memory,
+-the system will free pages associated with the specified address range. In this
+-instance, the next time a page in the address range is referenced, it will
+-contain all zeroes.  Otherwise, it will contain the data that was there prior
+-to the \fBMADV_FREE\fR call. References made to the address range will not make
+-the system read from backing store (swap space) until the page is modified
+-again.
+-.sp
++important and the range will be overwritten.
++When there is demand for memory, the system will free pages associated with the
++specified address range.
++In this instance, the next time a page in the address range is referenced, it
++will contain all zeroes.
++Otherwise, it will contain the data that was there prior to the
++.Dv MADV_FREE
++call.
++References made to the address range will not make the system read from backing
++store
++.Pq swap space
++until the page is modified again.
++.Pp
+ This value cannot be used on mappings that have underlying file objects.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBMADV_PURGE\fR\fR
+-.ad
+-.RS 23n
+-Tell the kernel to purge the specified address range.  The mapping will
+-be retained, but the pages themselves will be destroyed; subsequent
+-faults on the range will result in the page being read from backing
+-store (if file-backed) or being zero-filled on demand (if anonymous).  Note
+-that these semantics are generally inferior to \fBMADV_FREE\fR, which gives the
+-system more flexibility and results in better performance
+-when pages are, in fact, reused by the caller. Indeed, \fBMADV_PURGE\fR only
+-exists to provide an equivalent to the unfortunate
+-\fBMADV_DONTNEED\fR semantics found in Linux, upon which some programs
+-have (regrettably) come to depend. In de novo applications,
+-\fBMADV_PURGE\fR should be avoided; \fBMADV_FREE\fR should always be
+-preferred.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBMADV_ACCESS_LWP\fR\fR
+-.ad
+-.RS 23n
++.It Dv MADV_PURGE
++Tell the kernel to purge the specified address range.
++The mapping will be retained, but the pages themselves will be destroyed;
++subsequent faults on the range will result in the page being read from backing
++store
++.Pq if file-backed
++or being zero-filled on demand
++.Pq if anonymous .
++Note that these semantics are generally inferior to
++.Dv MADV_FREE ,
++which gives the system more flexibility and results in better performance when
++pages are, in fact, reused by the caller.
++Indeed,
++.Dv MADV_PURGE
++only exists to provide an equivalent to the unfortunate
++.Dv MADV_DONTNEED
++semantics found in Linux, upon which some programs have
++.Pq regrettably
++come to depend.
++In de novo applications,
++.Dv MADV_PURGE
++should be avoided;
++.Dv MADV_FREE
++should always be preferred.
++.It Dv MADV_ACCESS_LWP
+ Tell the kernel that the next LWP to touch the specified address range will
+ access it most heavily, so the kernel should try to allocate the memory and
+ other resources for this range and the LWP accordingly.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBMADV_ACCESS_MANY\fR\fR
+-.ad
+-.RS 23n
++.It Dv MADV_ACCESS_MANY
+ Tell the kernel that many processes and/or LWPs will access the specified
+ address range randomly across the machine, so the kernel should try to allocate
+ the memory and other resources for this range accordingly.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBMADV_ACCESS_DEFAULT\fR\fR
+-.ad
+-.RS 23n
++.It Dv MADV_ACCESS_DEFAULT
+ Reset the kernel's expectation for how the specified range will be accessed to
+ the default.
+-.RE
+-
+-.sp
+-.LP
+-The \fBmadvise()\fR function should be used by applications with specific
+-knowledge of their access patterns over a memory object, such as a mapped file,
+-to increase system performance.
+-.SH RETURN VALUES
+-.LP
+-Upon successful completion, \fBmadvise()\fR returns \fB0\fR; otherwise, it
+-returns \fB\(mi1\fR and sets \fBerrno\fR to indicate the error.
+-.SH ERRORS
+-.ne 2
+-.na
+-\fB\fBEAGAIN\fR\fR
+-.ad
+-.RS 10n
+-Some or all mappings  in the  address  range [\fIaddr\fR,  \fIaddr\fR  +
+-\fIlen\fR) are locked for I/O.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBEBUSY\fR\fR
+-.ad
+-.RS 10n
+-Some or all of the addresses in the range [\fIaddr\fR, \fIaddr\fR + \fIlen\fR)
+-are locked and \fBMS_SYNC\fR with the \fBMS_INVALIDATE\fR option is specified.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBEFAULT\fR\fR
+-.ad
+-.RS 10n
++.El
++.Pp
++The
++.Fn madvise
++function should be used by applications with specific knowledge of their access
++patterns over a memory object, such as a mapped file, to increase system
++performance.
++.Sh RETURN VALUES
++Upon successful completion,
++.Fn madvise
++returns
++.Sy 0 ;
++otherwise, it returns
++.Sy -1
++and sets
++.Va errno
++to indicate the error.
++.Sh ERRORS
++.Bl -tag -width Er
++.It Er EAGAIN
++Some or all mappings in the address range
++.Pf [ Fa addr ,
++.Fa addr
+++
++.Fa len Ns
++) are locked for I/O.
++.It Er EBUSY
++.ad
++Some or all of the addresses in the range
++.Pf [ Fa addr ,
++.Fa addr
+++
++.Fa len Ns
++) are locked and
++.Dv MS_SYNC
++with the
++.Dv MS_INVALIDATE
++option is specified.
++.It Er EFAULT
+ Some or all of the addresses in the specified range could not be read into
+-memory from the underlying object when performing \fBMADV_WILLNEED\fR. The
+-\fBmadvise()\fR function could return prior to this condition being detected,
+-in which case \fBerrno\fR will not be set to \fBEFAULT\fR.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBEINVAL\fR\fR
+-.ad
+-.RS 10n
+-The \fIaddr\fR argument is not a multiple of the page size as returned by
+-\fBsysconf\fR(3C), the length of the specified address range is equal to 0, or
+-the \fIadvice\fR argument was invalid.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBEIO\fR\fR
+-.ad
+-.RS 10n
++memory from the underlying object when performing
++.Dv MADV_WILLNEED .
++The
++.Fn madvise
++function could return prior to this condition being detected, in which case
++.Va errno
++will not be set to
++.Er EFAULT .
++.It Er EINVAL
++The
++.Fa addr
++argument is not a multiple of the page size as returned by
++.Xr sysconf 3C ,
++the length of the specified address range is equal to 0, or the
++.Fa advice
++argument was invalid.
++.It Er EIO
+ An I/O error occurred while reading from or writing to the file system.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBENOMEM\fR\fR
+-.ad
+-.RS 10n
+-Addresses in the range [\fIaddr\fR, \fIaddr\fR + \fIlen\fR) are outside the
+-valid range for the address space of a process, or specify one or more pages
+-that are not mapped.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBESTALE\fR\fR
+-.ad
+-.RS 10n
+-Stale \fBNFS\fR file handle.
+-.RE
+-
+-.SH ATTRIBUTES
+-.LP
+-See \fBattributes\fR(7) for descriptions of the following attributes:
+-.sp
+-
+-.sp
+-.TS
+-box;
+-c | c
+-l | l .
+-ATTRIBUTE TYPE	ATTRIBUTE VALUE
+-_
+-Interface Stability	Stable
+-_
+-MT-Level	MT-Safe
+-.TE
+-
+-.SH SEE ALSO
+-.LP
+-.BR meminfo (2),
+-.BR mmap (2),
+-.BR sysconf (3C),
+-.BR attributes (7)
++.It Er ENOMEM
++Addresses in the range
++.Pf [ Fa addr ,
++.Fa addr
+++
++.Fa len Ns
++) are outside the valid range for the address space of a process, or specify one
++or more pages that are not mapped.
++.It Er ESTALE
++Stale NFS file handle.
++.El
++.Sh INTERFACE STABILITY
++.Sy Committed
++.Sh MT-LEVEL
++.Sy MT-Safe
++.Sh SEE ALSO
++.Xr meminfo 2 ,
++.Xr mmap 2 ,
++.Xr sysconf 3C ,
++.Xr attributes 7
+diff --git a/usr/src/man/man3c/mlock.3c b/usr/src/man/man3c/mlock.3c
+index 692d94d623..6cda515ef3 100644
+--- a/usr/src/man/man3c/mlock.3c
++++ b/usr/src/man/man3c/mlock.3c
+@@ -1,175 +1,178 @@
+-'\" te
++.\"
++.\" Copyright 2022 Oxide Computer Company
+ .\" Copyright (c) 2007, Sun Microsystems, Inc.  All Rights Reserved.
+ .\" Copyright 1989 AT&T
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+-.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+-.\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH MLOCK 3C "Apr 10, 2007"
+-.SH NAME
+-mlock, munlock \- lock or unlock pages in memory
+-.SH SYNOPSIS
+-.LP
+-.nf
+-#include <sys/mman.h>
+-
+-\fBint\fR \fBmlock\fR(\fBcaddr_t\fR \fIaddr\fR, \fBsize_t\fR \fIlen\fR);
+-.fi
+-
+-.LP
+-.nf
+-\fBint\fR \fBmunlock\fR(\fBcaddr_t\fR \fIaddr\fR, \fBsize_t\fR \fIlen\fR);
+-.fi
+-
+-.SS "Standard conforming"
+-.LP
+-.nf
+-#include <sys/mman.h>
+-
+-\fBint\fR \fBmlock\fR(\fBconst void *\fR \fIaddr\fR, \fBsize_t\fR \fIlen\fR);
+-.fi
+-
+-.LP
+-.nf
+-\fBint\fR \fBmunlock\fR(\fBconst void *\fR \fIaddr\fR, \fBsize_t\fR \fIlen\fR);
+-.fi
+-
+-.SH DESCRIPTION
+-.sp
+-.LP
+-The  \fBmlock()\fR function uses the mappings established for the address range
+-[\fIaddr, addr + len\fR) to identify pages to be locked in memory. If the page
+-identified by a mapping changes, such as occurs when a copy of a writable
+-\fBMAP_PRIVATE\fR page is made upon the first store, the lock will be
+-transferred to the newly copied private page.
+-.sp
+-.LP
+-The \fBmunlock()\fR function removes locks established with \fBmlock()\fR.
+-.sp
+-.LP
+-A given page may be locked multiple times by executing an \fBmlock()\fR through
+-different mappings. That is, if two different processes lock the same page,
+-then the page will remain locked until both processes remove their locks.
+-However, within a given mapping, page locks do not nest \(mi multiple
+-\fBmlock()\fR operations on the same address in the same process will all be
+-removed with a single \fBmunlock()\fR. Of course, a page locked in one process
+-and mapped in another (or visible through a different mapping in the locking
+-process) is still locked in memory. This fact can be used to create
+-applications that do nothing other than lock important data in memory, thereby
+-avoiding page I/O faults on references from other processes in the system.
+-.sp
+-.LP
++.\"
++.\" The contents of this file are subject to the terms of the
++.\" Common Development and Distribution License (the "License").
++.\" You may not use this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++.\" or http://www.opensolaris.org/os/licensing.
++.\" See the License for the specific language governing permissions
++.\" and limitations under the License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each
++.\" file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++.\" If applicable, add the following below this CDDL HEADER, with the
++.\" fields enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
++.\"
++.Dd March 13, 2022
++.Dt MLOCK 3C
++.Os
++.Sh NAME
++.Nm mlock ,
++.Nm munlock
++.Nd lock or unlock pages in memory
++.Sh SYNOPSIS
++.In sys/mman.h
++.Ft int
++.Fo mlock
++.Fa "const void *addr"
++.Fa "size_t len"
++.Fc
++.Ft int
++.Fo munlock
++.Fa "const void *addr"
++.Fa "size_t len"
++.Fc
++.Sh DESCRIPTION
++The
++.Fn mlock
++function uses the mappings established for the address range
++.Pf [ Fa addr ,
++.Fa addr
+++
++.Fa len Ns
++) to identify pages to be locked in memory.
++If the page identified by a mapping changes, such as occurs when a copy of a
++writable
++.Dv MAP_PRIVATE
++page is made upon the first store, the lock will be transferred to the newly
++copied private page.
++.Pp
++The
++.Fn munlock
++function removes locks established with
++.Fn mlock .
++.Pp
++A given page may be locked multiple times by executing an
++.Fn mlock
++through different mappings.
++That is, if two different processes lock the same page, then the page will
++remain locked until both processes remove their locks.
++However, within a given mapping, page locks do not nest \(em multiple
++.Fn mlock
++operations on the same address in the same process will all be removed with a
++single
++.Fn munlock .
++Of course, a page locked in one process and mapped in another
++.Pq or visible through a different mapping in the locking process
++is still locked in memory.
++This fact can be used to create applications that do nothing other than lock
++important data in memory, thereby avoiding page I/O faults on references from
++other processes in the system.
++.Pp
+ The contents of the locked pages will not be transferred to or from disk except
+-when explicitly requested by one of the locking processes. This guarantee
+-applies only to the mapped data, and not to any associated data structures
+-(file descriptors and on-disk metadata, among others).
+-.sp
+-.LP
+-If the mapping through which an \fBmlock()\fR has been performed is removed, an
+-\fBmunlock()\fR is implicitly performed. An \fBmunlock()\fR is also performed
+-implicitly when a page is deleted through file removal or truncation.
+-.sp
+-.LP
+-Locks established with \fBmlock()\fR are not inherited by a child process after
+-a  \fBfork()\fR and are not nested.
+-.sp
+-.LP
+-Attempts to \fBmlock()\fR more memory than a system-specific limit will fail.
+-.SH RETURN VALUES
+-.sp
+-.LP
+-Upon successful completion, the  \fBmlock()\fR and  \fBmunlock()\fR functions
+-return \fB0\fR.  Otherwise, no changes are made to any locks in the address
+-space of the process, the functions return \fB\(mi1\fR and set \fBerrno\fR to
+-indicate the error.
+-.SH ERRORS
+-.sp
+-.LP
+-The \fBmlock()\fR and  \fBmunlock()\fR functions will fail if:
+-.sp
+-.ne 2
+-.na
+-\fB\fBEINVAL\fR\fR
+-.ad
+-.RS 10n
+-The \fIaddr\fR argument is not a multiple of the page size as returned by
+-\fBsysconf\fR(3C).
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBENOMEM\fR\fR
+-.ad
+-.RS 10n
+-Addresses in the range [\fIaddr, addr + len\fR) are invalid for the address
+-space of a process, or specify one or more pages which are not mapped.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBENOSYS\fR\fR
+-.ad
+-.RS 10n
++when explicitly requested by one of the locking processes.
++This guarantee applies only to the mapped data, and not to any associated data
++structures
++.Pq file descriptors and on-disk metadata, among others .
++.Pp
++If the mapping through which an
++.Fn mlock
++has been performed is removed, an
++.Fn munlock
++is implicitly performed.
++An
++.Fn munlock
++is also performed implicitly when a page is deleted through file removal or
++truncation.
++.Pp
++Locks established with
++.Fn mlock
++are not inherited by a child process after
++a
++.Xr fork 2
++and are not nested.
++.Pp
++Attempts to
++.Fn mlock
++more memory than a system-specific limit will fail.
++.Sh RETURN VALUES
++Upon successful completion, the
++.Fn mlock
++and
++.Fn munlock
++functions return
++.Sy 0 .
++Otherwise, no changes are made to any locks in the address space of the process,
++the functions return
++.Sy -1
++and set
++.Va errno
++to indicate the error.
++.Sh ERRORS
++The
++.Fn mlock
++and
++.Fn munlock
++functions will fail if:
++.Bl -tag -width Er
++.It Er EINVAL
++The
++.Fa addr
++argument is not a multiple of the page size as returned by
++.Xr sysconf 3C .
++.It Er ENOMEM
++Addresses in the range
++.Pf [ Fa addr ,
++.Fa addr
+++
++.Fa len Ns
++) are invalid for the address space of a process, or specify one or more pages
++which are not mapped.
++.It Er ENOSYS
+ The system does not support this memory locking interface.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fBEPERM\fR\fR
+-.ad
+-.RS 10n
+-The {\fBPRIV_PROC_LOCK_MEMORY\fR} privilege is not asserted in the effective
+-set of the calling process.
+-.RE
+-
+-.sp
+-.LP
+-The \fBmlock()\fR function will fail if:
+-.sp
+-.ne 2
+-.na
+-\fB\fBEAGAIN\fR\fR
++.It Er EPERM
++The
++.Brq PRIV_PROC_LOCK_MEMORY
++privilege is not asserted in the effective set of the calling process.
++.El
++.Pp
++The
++.Fn mlock
++function will fail if:
++.Bl -tag -width Er
++.It Er EAGAIN
+ .ad
+-.RS 10n
+-Some or all of the memory identified by the range [\fIaddr, addr + len\fR)
+-could not be locked because of insufficient system resources or because of a
++Some or all of the memory identified by the range
++.Pf [ Fa addr ,
++.Fa addr
+++
++.Fa len Ns
++) could not be locked because of insufficient system resources or because of a
+ limit or resource control on locked memory.
+-.RE
+-
+-.SH USAGE
+-.sp
+-.LP
+-Because of the impact on system resources, the use of \fBmlock()\fR and
+-\fBmunlock()\fR is restricted to users with the {\fBPRIV_PROC_LOCK_MEMORY\fR}
++.El
++.Sh USAGE
++Because of the impact on system resources, the use of
++.Fn mlock
++and
++.Fn munlock
++is restricted to users with the
++.Brq PRIV_PROC_LOCK_MEMORY
+ privilege.
+-.SH ATTRIBUTES
+-.sp
+-.LP
+-See \fBattributes\fR(7) for descriptions of the following attributes:
+-.sp
+-
+-.sp
+-.TS
+-box;
+-c | c
+-l | l .
+-ATTRIBUTE TYPE	ATTRIBUTE VALUE
+-_
+-Interface Stability	Standard
+-_
+-MT-Level	MT-Safe
+-.TE
+-
+-.SH SEE ALSO
+-.sp
+-.LP
+-.BR fork (2),
+-.BR memcntl (2),
+-.BR mmap (2),
+-.BR mlockall (3C),
+-.BR plock (3C),
+-.BR sysconf (3C),
+-.BR attributes (7),
+-.BR standards (7)
++.Sh INTERFACE STABILITY
++.Sy Committed
++.Sh MT-LEVEL
++.Sy MT-Safe
++.Sh SEE ALSO
++.Xr fork 2 ,
++.Xr memcntl 2 ,
++.Xr mmap 2 ,
++.Xr mlockall 3C ,
++.Xr plock 3C ,
++.Xr sysconf 3C ,
++.Xr attributes 7 ,
++.Xr standards 7
+diff --git a/usr/src/pkg/manifests/system-test-libctest.p5m b/usr/src/pkg/manifests/system-test-libctest.p5m
+index 34231d2997..197013accc 100644
+--- a/usr/src/pkg/manifests/system-test-libctest.p5m
++++ b/usr/src/pkg/manifests/system-test-libctest.p5m
+@@ -49,6 +49,7 @@ file path=opt/libc-tests/cfg/symbols/stdnoreturn_h.cfg mode=0444
+ file path=opt/libc-tests/cfg/symbols/string_h.cfg mode=0444
+ file path=opt/libc-tests/cfg/symbols/strings_h.cfg mode=0444
+ file path=opt/libc-tests/cfg/symbols/sys_atomic_h.cfg mode=0444
++file path=opt/libc-tests/cfg/symbols/sys_mman_h.cfg mode=0444
+ file path=opt/libc-tests/cfg/symbols/sys_stat_h.cfg mode=0444
+ file path=opt/libc-tests/cfg/symbols/sys_time_h.cfg mode=0444
+ file path=opt/libc-tests/cfg/symbols/sys_timeb_h.cfg mode=0444
+@@ -199,6 +200,7 @@ hardlink path=opt/libc-tests/tests/symbols/strings_h target=setup
+ file path=opt/libc-tests/tests/symbols/symbols_test.$(ARCH) mode=0555
+ file path=opt/libc-tests/tests/symbols/symbols_test.$(ARCH64) mode=0555
+ hardlink path=opt/libc-tests/tests/symbols/sys_atomic_h target=setup
++hardlink path=opt/libc-tests/tests/symbols/sys_mman_h target=setup
+ hardlink path=opt/libc-tests/tests/symbols/sys_stat_h target=setup
+ hardlink path=opt/libc-tests/tests/symbols/sys_time_h target=setup
+ hardlink path=opt/libc-tests/tests/symbols/sys_timeb_h target=setup
+diff --git a/usr/src/test/libc-tests/cfg/Makefile b/usr/src/test/libc-tests/cfg/Makefile
+index 0fb1a4096a..e1d83c43b3 100644
+--- a/usr/src/test/libc-tests/cfg/Makefile
++++ b/usr/src/test/libc-tests/cfg/Makefile
+@@ -36,6 +36,7 @@ CFGS = README \
+ 	symbols/string_h.cfg \
+ 	symbols/strings_h.cfg \
+ 	symbols/sys_atomic_h.cfg \
++	symbols/sys_mman_h.cfg \
+ 	symbols/sys_stat_h.cfg \
+ 	symbols/sys_time_h.cfg \
+ 	symbols/sys_timeb_h.cfg \
+diff --git a/usr/src/test/libc-tests/cfg/compilation.cfg b/usr/src/test/libc-tests/cfg/compilation.cfg
+index 1219844a0c..ec7e35660e 100644
+--- a/usr/src/test/libc-tests/cfg/compilation.cfg
++++ b/usr/src/test/libc-tests/cfg/compilation.cfg
+@@ -73,7 +73,8 @@ env_group | SUS+	| SUSv1+
+ env_group | XPG4+	| XPG4 SUSv1+
+ env_group | XPG3+	| XPG3 XPG4+
+ env_group | C99+	| C99 C11 POSIX-2001+ SUSv3+
+-env_group | C+		| C90 C99 C11 POSIX+ SUS+
++env_group | STDC	| C90 C99 C11
++env_group | C+		| STDC POSIX+ SUS+
+ env_group | ALL		| C+
+ 
+ #
+diff --git a/usr/src/test/libc-tests/cfg/symbols/sys_mman_h.cfg b/usr/src/test/libc-tests/cfg/symbols/sys_mman_h.cfg
+new file mode 100644
+index 0000000000..e9c8c1d5a5
+--- /dev/null
++++ b/usr/src/test/libc-tests/cfg/symbols/sys_mman_h.cfg
+@@ -0,0 +1,162 @@
++#
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
++#
++# A full copy of the text of the CDDL should have accompanied this
++# source.  A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
++#
++
++#
++# Copyright 2022 Oxide Computer Company
++#
++
++#
++# Historical note: This header has never been part of ISO C. The
++# visibility rules were always specific to versions of POSIX/XPG.
++# Applications have assumed that these are visible even in a strict ISO
++# C environment, which we honor because this header isn't part of the
++# standard. See <sys/mman.h> for more details, but this is why you see
++# the STDC group here for things that aren't standardized, as we want
++# to make sure we don't regress that support.
++#
++
++#
++# Types
++#
++
++#
++# Values.
++#
++value	| PROT_READ	| int	| sys/mman.h	| +ALL
++value	| PROT_WRITE	| int	| sys/mman.h	| +ALL
++value	| PROT_EXEC	| int	| sys/mman.h	| +ALL
++value	| PROT_NONE	| int	| sys/mman.h	| +ALL
++value	| MAP_SHARED	| int	| sys/mman.h	| +ALL
++value	| MAP_PRIVATE	| int	| sys/mman.h	| +ALL
++value	| MAP_FILE	| int	| sys/mman.h	| +ALL
++value	| MAP_FIXED	| int	| sys/mman.h	| +ALL
++value	| MAP_NORESERVE	| int	| sys/mman.h	| +ALL
++value	| MAP_ANON	| int	| sys/mman.h	| +ALL
++value	| MAP_ALIGN	| int	| sys/mman.h	| +ALL
++value	| MAP_TEXT	| int	| sys/mman.h	| +ALL
++value	| MAP_INITDATA	| int	| sys/mman.h	| +ALL
++
++value	| MCL_CURRENT	| int	| sys/mman.h	| STDC POSIX-1993+ SUSv2+
++value	| MCL_FUTURE	| int	| sys/mman.h	| STDC POSIX-1993+ SUSv2+
++
++
++value	| POSIX_MADV_NORMAL	| int	| sys/mman.h	| STDC SUSv3+
++value	| POSIX_MADV_RANDOM	| int	| sys/mman.h	| STDC SUSv3+
++value	| POSIX_MADV_SEQUENTIAL	| int	| sys/mman.h	| STDC SUSv3+
++value	| POSIX_MADV_WILLNEED	| int	| sys/mman.h	| STDC SUSv3+
++value	| POSIX_MADV_DONTNEED	| int	| sys/mman.h	| STDC SUSv3+
++
++value	| MAP_FAILED	| void *	| sys/mman.h	| +ALL
++
++#
++# Defines
++#
++
++#
++# Functions
++#
++
++#
++# This first group of functions basically should always be visible.
++#
++func | mmap						|\
++	void *						|\
++	void *; size_t; int; int; int; off_t		|\
++	sys/mman.h | +ALL
++
++func | munmap						|\
++	int						|\
++	void *; size_t					|\
++	sys/mman.h | +ALL
++
++func | mprotect						|\
++	int						|\
++	void *; size_t; int				|\
++	sys/mman.h | +ALL
++
++func | msync						|\
++	int						|\
++	void *; size_t; int				|\
++	sys/mman.h | +ALL
++
++
++#
++# This next group of functions were added in the realtime POSIX extensions, e.g.
++# they should be in POSIX at POSIX-1993. However, they weren't part of XPG until
++# XPG5, aka what we call SUSv2 in these tests.
++#
++func | mlock						|\
++	int						|\
++	void *; size_t					|\
++	sys/mman.h | STDC POSIX-1993+ SUSv2+
++
++func | munlock						|\
++	int						|\
++	void *; size_t					|\
++	sys/mman.h | STDC POSIX-1993+ SUSv2+
++
++func | mlockall						|\
++	int						|\
++	int						|\
++	sys/mman.h | STDC POSIX-1993+ SUSv2+
++
++func | munlockall					|\
++	int						|\
++	void						|\
++	sys/mman.h | STDC POSIX-1993+ SUSv2+
++
++func | shm_open						|\
++	int						|\
++	const char *; int; mode_t			|\
++	sys/mman.h | STDC POSIX-1993+ SUSv2+
++
++func | shm_unlink					|\
++	int						|\
++	const char *					|\
++	sys/mman.h | STDC POSIX-1993+ SUSv2+
++
++#
++# Added in XPG6
++#
++func | posix_madvise					|\
++	int						|\
++	void *; size_t; int				|\
++	sys/mman.h | STDC SUSv3+
++
++#
++# Our various extensions. No visibility expected in a standards environment. We
++# do a handful of these with the assumption that as long as a few in the block
++# are OK, the rest should be.
++#
++func | mincore						|\
++	int						|\
++	caddr_t; size_t; char *				|\
++	sys/mman.h | -ALL STDC
++
++func | memcntl						|\
++	int						|\
++	void *; size_t; int; void *; int; int		|\
++	sys/mman.h | -ALL STDC
++
++func | madvise						|\
++	int						|\
++	void *; size_t; int				|\
++	sys/mman.h | -ALL STDC
++
++func | getpagesizes					|\
++	int						|\
++	size_t *; int					|\
++	sys/mman.h | -ALL STDC
++
++func | getpagesizes2					|\
++	int						|\
++	size_t *; int					|\
++	sys/mman.h | -ALL STDC
+diff --git a/usr/src/test/libc-tests/runfiles/default.run b/usr/src/test/libc-tests/runfiles/default.run
+index 891f558865..f3139ced56 100644
+--- a/usr/src/test/libc-tests/runfiles/default.run
++++ b/usr/src/test/libc-tests/runfiles/default.run
+@@ -157,6 +157,7 @@ tests = [
+ 	'string_h',
+ 	'strings_h',
+ 	'sys_atomic_h',
++	'sys_mman_h',
+ 	'sys_stat_h',
+ 	'sys_time_h',
+ 	'sys_timeb_h',
+diff --git a/usr/src/test/libc-tests/tests/symbols/Makefile b/usr/src/test/libc-tests/tests/symbols/Makefile
+index 8377810b83..8e30245adf 100644
+--- a/usr/src/test/libc-tests/tests/symbols/Makefile
++++ b/usr/src/test/libc-tests/tests/symbols/Makefile
+@@ -37,6 +37,7 @@ SYMTESTS = \
+ 	string_h \
+ 	strings_h \
+ 	sys_atomic_h \
++	sys_mman_h \
+ 	sys_stat_h \
+ 	sys_time_h \
+ 	sys_timeb_h \
+diff --git a/usr/src/uts/common/sys/feature_tests.h b/usr/src/uts/common/sys/feature_tests.h
+index 728060e7ec..4422c8bb4e 100644
+--- a/usr/src/uts/common/sys/feature_tests.h
++++ b/usr/src/uts/common/sys/feature_tests.h
+@@ -22,6 +22,7 @@
+ /*
+  * Copyright 2013 Garrett D'Amore <garrett@damore.org>
+  * Copyright 2016 Joyent, Inc.
++ * Copyright 2022 Oxide Computer Company
+  *
+  * Copyright 2006 Sun Microsystems, Inc.  All rights reserved.
+  * Use is subject to license terms.
+@@ -167,6 +168,24 @@ extern "C" {
+ #define	_STRICT_SYMBOLS
+ #endif
+ 
++/*
++ * This is a variant of _STRICT_SYMBOLS that is meant to cover headers that are
++ * governed by POSIX, but have not been governed by ISO C. One can go two ways
++ * on what should happen if an application actively includes (not transitively)
++ * a header that isn't part of the ISO C spec, we opt to say that if someone has
++ * gone out of there way then they're doing it for a reason and that is an act
++ * of non-compliance and therefore it's not up to us to hide away every symbol.
++ *
++ * In general, prefer using _STRICT_SYMBOLS, but this is here in particular for
++ * cases where in the past we have only used a POSIX related check and we don't
++ * wish to make something stricter. Often applications are relying on the
++ * ability to, or more realistically unwittingly, have _STRICT_STDC declared and
++ * still use these interfaces.
++ */
++#if (defined(__XOPEN_OR_POSIX) && !defined(__EXTENSIONS__))
++#define	_STRICT_POSIX
++#endif
++
+ /*
+  * Large file interfaces:
+  *
+diff --git a/usr/src/uts/common/sys/mman.h b/usr/src/uts/common/sys/mman.h
+index 0d49a2ff4d..66c22a1f28 100644
+--- a/usr/src/uts/common/sys/mman.h
++++ b/usr/src/uts/common/sys/mman.h
+@@ -26,6 +26,7 @@
+  * Copyright 2008 Sun Microsystems, Inc.  All rights reserved.
+  * Use is subject to license terms.
+  * Copyright 2015 Joyent, Inc.  All rights reserved.
++ * Copyright 2022 Oxide Computer Company
+  */
+ 
+ /*	Copyright (c) 1983, 1984, 1985, 1986, 1987, 1988, 1989 AT&T	*/
+@@ -46,6 +47,15 @@
+ 
+ #include <sys/feature_tests.h>
+ 
++/*
++ * <sys/mman.h> has had a bit of a tortured symbol visibility history. In
++ * particular, when things were honored under __EXTENSIONS__ or not in the past
++ * wasn't very consistent. As this was not a header that was part of ISO-C it
++ * traditionally just checked around XOPEN/POSIX related feature tests. This
++ * makes the use of the standard _STRICT_POSIX something that actually is more
++ * restrictive than previously was used.
++ */
++
+ #ifdef	__cplusplus
+ extern "C" {
+ #endif
+@@ -68,7 +78,7 @@ extern "C" {
+ #define	PROT_EXEC	0x4		/* pages can be executed */
+ 
+ #ifdef	_KERNEL
+-#define	PROT_USER	0x8		/* pages are user accessable */
++#define	PROT_USER	0x8		/* pages are user accessible */
+ #define	PROT_ZFOD	(PROT_READ | PROT_WRITE | PROT_EXEC | PROT_USER)
+ #define	PROT_ALL	(PROT_READ | PROT_WRITE | PROT_EXEC | PROT_USER)
+ #endif	/* _KERNEL */
+@@ -93,25 +103,19 @@ extern "C" {
+ #define	MAP_TEXT	0x400		/* map code segment */
+ #define	MAP_INITDATA	0x800		/* map data segment */
+ 
++/*
++ * Internal to the kernel, extensions to mmap flags.
++ */
+ #ifdef _KERNEL
+ #define	_MAP_TEXTREPL	0x1000
+ #define	_MAP_RANDOMIZE	0x2000
+ #endif /* _KERNEL */
+ 
+-#if	(_POSIX_C_SOURCE <= 2) && !defined(_XPG4_2)
+-/* these flags are used by memcntl */
+-#define	PROC_TEXT	(PROT_EXEC | PROT_READ)
+-#define	PROC_DATA	(PROT_READ | PROT_WRITE | PROT_EXEC)
+-#define	SHARED		0x10
+-#define	PRIVATE		0x20
+-#define	VALID_ATTR  (PROT_READ|PROT_WRITE|PROT_EXEC|SHARED|PRIVATE)
+-#endif	/* (_POSIX_C_SOURCE <= 2) && !defined(_XPG4_2) */
+-
+-#if	(_POSIX_C_SOURCE <= 2) || defined(_XPG4_2)
+-#ifdef	_KERNEL
+-#define	PROT_EXCL	0x20
+-#endif	/* _KERNEL */
+-
++/*
++ * Extensions to mmap flags. These are available in the default compilation
++ * environment, but not in a strict environment.
++ */
++#if !defined(_STRICT_POSIX)
+ #define	_MAP_LOW32	0x80	/* force mapping in lower 4G of address space */
+ #define	MAP_32BIT	_MAP_LOW32
+ 
+@@ -125,10 +129,9 @@ extern "C" {
+  * unless the MAP_FIXED flag is given.
+  */
+ #define	_MAP_NEW	0x80000000	/* users should not need to use this */
+-#endif	/* (_POSIX_C_SOURCE <= 2) */
++#endif	/* !defined(_STRICT_POSIX) */
+ 
+-
+-#if !defined(__XOPEN_OR_POSIX) || defined(__EXTENSIONS__)
++#if !defined(_STRICT_POSIX)
+ /* External flags for mmapobj syscall (Exclusive of MAP_* flags above) */
+ #define	MMOBJ_PADDING		0x10000
+ #define	MMOBJ_INTERPRET		0x20000
+@@ -190,7 +193,7 @@ typedef struct mmapobj_result32 {
+ } mmapobj_result32_t;
+ #endif	/* defined(_KERNEL) || defined(_SYSCALL32) */
+ #endif	/* !defined(_ASM) */
+-#endif	/* !defined(__XOPEN_OR_POSIX) || defined(__EXTENSIONS__) */
++#endif	/* !defined(_STRICT_POSIX) */
+ 
+ #if	!defined(_ASM) && !defined(_KERNEL)
+ /*
+@@ -223,34 +226,50 @@ typedef struct mmapobj_result32 {
+ #endif
+ 
+ /*
+- * Except for old binaries mmap() will return the resultant
+- * address of mapping on success and (caddr_t)-1 on error.
++ * Except for old binaries mmap() will return the resultant address of mapping
++ * on success and (void *)-1 on error.  illumos traditionally used a 'caddr_t'
++ * instead of a void * and did not require certain addresses to be const.
++ *
++ * Note, the following group of symbols are always visible since we have always
++ * exposed them and they appear to have been defined in most relevant versions
++ * of the specifications. While these are not strictly defined in ISO C, this
++ * header isn't a part of it and it isn't our job to guard against that.
+  */
+-#if (_POSIX_C_SOURCE > 2) || defined(_XPG4_2)
+ extern void *mmap(void *, size_t, int, int, int, off_t);
+ extern int munmap(void *, size_t);
+ extern int mprotect(void *, size_t, int);
+ extern int msync(void *, size_t, int);
+-#if (!defined(_XPG4_2) || (_POSIX_C_SOURCE > 2)) || defined(__EXTENSIONS__)
+-extern int mlock(const void *, size_t);
+-extern int munlock(const void *, size_t);
+-#endif	/* (!defined(_XPG4_2) || (_POSIX_C_SOURCE > 2))... */
+-/* transitional large file interface version */
++
+ #if	defined(_LARGEFILE64_SOURCE) && !((_FILE_OFFSET_BITS == 64) && \
+ 	    !defined(__PRAGMA_REDEFINE_EXTNAME))
+ extern void *mmap64(void *, size_t, int, int, int, off64_t);
+-#endif	/* _LARGEFILE64_SOURCE... */
+-#else	/* (_POSIX_C_SOURCE > 2) || defined(_XPG4_2) */
+-extern caddr_t mmap(caddr_t, size_t, int, int, int, off_t);
+-extern int munmap(caddr_t, size_t);
+-extern int mprotect(caddr_t, size_t, int);
+-extern int msync(caddr_t, size_t, int);
+-extern int mlock(caddr_t, size_t);
+-extern int munlock(caddr_t, size_t);
++#endif  /* _LARGEFILE64_SOURCE... */
++
++/*
++ * These functions were all part of the older POSIX realtime suite and didn't
++ * make it into XPG until v5.
++ */
++
++#if !defined(_STRICT_POSIX) || (_POSIX_C_SOURCE > 2) || defined(_XPG5)
++extern int mlock(const void *, size_t);
++extern int munlock(const void *, size_t);
++extern int mlockall(int);
++extern int munlockall(void);
++extern int shm_open(const char *, int, mode_t);
++extern int shm_unlink(const char *);
++#endif	/* !_STRICT_POSIX || _POSIX_C_SOURCE > 2 || _XPG5 */
++
++#if !defined(_STRICT_POSIX) || defined(_XPG6)
++extern int posix_madvise(void *, size_t, int);
++#endif
++
++/*
++ * The following are extensions that we have added.
++ */
++#if !defined(_STRICT_POSIX)
+ extern int mincore(caddr_t, size_t, char *);
+-extern int memcntl(caddr_t, size_t, int, caddr_t, int, int);
+-extern int madvise(caddr_t, size_t, int);
+-#if !defined(__XOPEN_OR_POSIX) || defined(__EXTENSIONS__)
++extern int memcntl(void *, size_t, int, void *, int, int);
++extern int madvise(void *, size_t, int);
+ extern int getpagesizes(size_t *, int);
+ extern int getpagesizes2(size_t *, int);
+ extern int mmapobj(int, uint_t, mmapobj_result_t *, uint_t *, void *);
+@@ -259,52 +278,34 @@ extern int mmapobj(int, uint_t, mmapobj_result_t *, uint_t *, void *);
+ extern int meminfo(const uint64_t *, int, const uint_t *, int, uint64_t *,
+ 	uint_t *);
+ #endif /* defined(_INT64_TYPE) */
+-#endif /* !defined(__XOPEN_OR_POSIX) || defined(__EXTENSIONS__) */
+-/* transitional large file interface version */
+-#ifdef	_LARGEFILE64_SOURCE
+-extern caddr_t mmap64(caddr_t, size_t, int, int, int, off64_t);
+-#endif
+-#endif	/* (_POSIX_C_SOURCE > 2)  || defined(_XPG4_2) */
+-
+-#if (!defined(_XPG4_2) || (_POSIX_C_SOURCE > 2)) || defined(__EXTENSIONS__)
+-extern int mlockall(int);
+-extern int munlockall(void);
+-extern int shm_open(const char *, int, mode_t);
+-extern int shm_unlink(const char *);
+-#endif
++#endif /* !defined(_STRICT_POSIX) */
+ 
+-#if !defined(__XOPEN_OR_POSIX) || defined(_XPG6) || defined(__EXTENSIONS__)
+-extern int posix_madvise(void *, size_t, int);
+-#endif
+ 
+ /* mmap failure value */
+ #define	MAP_FAILED	((void *) -1)
+ 
+-
+ #endif	/* !_ASM && !_KERNEL */
+ 
+-#if !defined(__XOPEN_OR_POSIX) || defined(__EXTENSIONS__)
++#if !defined(_STRICT_POSIX)
+ #if !defined(_ASM)
+ /*
+  * structure for memcntl hat advise operations.
+  */
+ struct memcntl_mha {
+-	uint_t 		mha_cmd;	/* command(s) */
++	uint_t		mha_cmd;	/* command(s) */
+ 	uint_t		mha_flags;
+ 	size_t		mha_pagesize;
+ };
+ 
+ #if defined(_SYSCALL32)
+ struct memcntl_mha32 {
+-	uint_t 		mha_cmd;	/* command(s) */
++	uint_t		mha_cmd;	/* command(s) */
+ 	uint_t		mha_flags;
+ 	size32_t	mha_pagesize;
+ };
+ #endif	/* _SYSCALL32 */
+ #endif	/* !defined(_ASM) */
+-#endif	/* !defined(__XOPEN_OR_POSIX) || defined(__EXTENSIONS__) */
+ 
+-#if	(_POSIX_C_SOURCE <= 2) && !defined(_XPG4_2) || defined(__EXTENSIONS__)
+ /*
+  * advice to madvise
+  *
+@@ -322,9 +323,9 @@ struct memcntl_mha32 {
+ #define	MADV_ACCESS_MANY	8	/* many processes to access heavily */
+ #define	MADV_PURGE		9	/* contents will be purged */
+ 
+-#endif	/* (_POSIX_C_SOURCE <= 2) && !defined(_XPG4_2) ...  */
++#endif	/* !defined(_STRICT_POSIX) */
+ 
+-#if !defined(__XOPEN_OR_POSIX) || defined(_XPG6) || defined(__EXTENSIONS__)
++#if !defined(_STRICT_POSIX) || defined(_XPG6)
+ /* advice to posix_madvise */
+ /* these values must be kept in sync with the MADV_* values, above */
+ #define	POSIX_MADV_NORMAL	0	/* MADV_NORMAL */
+@@ -334,15 +335,41 @@ struct memcntl_mha32 {
+ #define	POSIX_MADV_DONTNEED	4	/* MADV_DONTNEED */
+ #endif
+ 
+-/* flags to msync */
++/* flags to msync, always visible to match the function */
+ #define	MS_OLDSYNC	0x0		/* old value of MS_SYNC */
+ 					/* modified for UNIX98 compliance */
+ #define	MS_SYNC		0x4		/* wait for msync */
+ #define	MS_ASYNC	0x1		/* return immediately */
+ #define	MS_INVALIDATE	0x2		/* invalidate caches */
+ 
+-#if	(_POSIX_C_SOURCE <= 2) && !defined(_XPG4_2) || defined(__EXTENSIONS__)
+-/* functions to mctl */
++#if !defined(_STRICT_POSIX) || (_POSIX_C_SOURCE > 2) || defined(_XPG5)
++/* flags to mlockall */
++#define	MCL_CURRENT	0x1		/* lock current mappings */
++#define	MCL_FUTURE	0x2		/* lock future mappings */
++#endif	/* !_STRICT_POSIX || _POSIX_C_SOURCE > 2 || _XPG5 */
++
++/*
++ * The following flags are older variants used by memcntl that if more generally
++ * visible under more generous rules basically conflict all over the place due
++ * to the use of common words. As such, these retain their original feature
++ * guards, as weird as they may be.
++ */
++#if	(_POSIX_C_SOURCE <= 2) && !defined(_XPG4_2)
++#define	SHARED		0x10	/* Use MEMCNTL_SHARED */
++#define	PRIVATE		0x20	/* Use MEMCNTL_PRIVATE */
++#define	VALID_ATTR	(PROT_READ|PROT_WRITE|PROT_EXEC|SHARED|PRIVATE)
++#endif	/* (_POSIX_C_SOURCE <= 2) && !defined(_XPG4_2) */
++
++#if !defined(_STRICT_POSIX)
++/* these flags are used by memcntl */
++#define	PROC_TEXT		(PROT_EXEC | PROT_READ)
++#define	PROC_DATA		(PROT_READ | PROT_WRITE | PROT_EXEC)
++#define	MEMCNTL_SHARED		0x10
++#define	MENCNTL_PRIVATE		0x20
++#define	MEMCNTL_VALID_ATTR	(PROT_READ |PROT_WRITE |PROT_EXEC | \
++				    MEMCNTL_SHARED | MEMCNTL_PRIVATE)
++
++/* functions to memcntl */
+ #define	MC_SYNC		1		/* sync with backing store */
+ #define	MC_LOCK		2		/* lock pages in memory */
+ #define	MC_UNLOCK	3		/* unlock pages from memory */
+@@ -359,17 +386,6 @@ struct memcntl_mha32 {
+ 					/* brk area and brk area itself */
+ #define	MHA_MAPSIZE_STACK	0x4	/* set preferred page size */
+ 					/* processes main stack */
+-
+-#endif	/* (_POSIX_C_SOURCE <= 2) && !defined(_XPG4_2) ... */
+-
+-#if (!defined(_XPG4_2) || (_POSIX_C_SOURCE > 2)) || defined(__EXTENSIONS__)
+-/* flags to mlockall */
+-#define	MCL_CURRENT	0x1		/* lock current mappings */
+-#define	MCL_FUTURE	0x2		/* lock future mappings */
+-#endif /* (!defined(_XPG4_2) || (_POSIX_C_SOURCE)) || defined(__EXTENSIONS__) */
+-
+-#if !defined(__XOPEN_OR_POSIX) || defined(__EXTENSIONS__)
+-
+ /* definitions for meminfosys syscall */
+ #define	MISYS_MEMINFO		0x0
+ 
+@@ -420,7 +436,7 @@ typedef struct meminfo32 {
+ /* maximum number of request types */
+ #define	MAX_MEMINFO_REQ	31
+ 
+-#endif /* !defined(__XOPEN_OR_POSIX) || defined(__EXTENSIONS__) */
++#endif /* !defined(_STRICT_POSIX) */
+ 
+ #ifdef	__cplusplus
+ }
+-- 
+2.42.0
+

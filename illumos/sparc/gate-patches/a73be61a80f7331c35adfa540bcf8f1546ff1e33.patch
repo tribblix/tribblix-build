@@ -1,0 +1,5154 @@
+From a73be61a80f7331c35adfa540bcf8f1546ff1e33 Mon Sep 17 00:00:00 2001
+From: Hans Rosenfeld <rosenfeld@grumpf.hope-2000.org>
+Date: Wed, 4 Aug 2021 15:22:53 +0200
+Subject: [PATCH] 2554 ipadm needs IPMP configuration support Contributed by:
+ Ivan Krivonos <ivan.krivonos@nexenta.com> Contributed by: Yuri Pankov
+ <yuri.pankov@nexenta.com> Reviewed by: C Fraire <cfraire@me.com> Reviewed by:
+ Yuri Pankov <ypankov@tintri.com> Reviewed by: Andy Fiddaman
+ <andyf@omnios.com> Reviewed by: Ryan Goodfellow
+ <ryan.goodfellow@oxide.computer> Approved by: Richard Lowe
+ <richlowe@richlowe.net>
+
+---
+ usr/src/cmd/Makefile.check                    |   3 +-
+ usr/src/cmd/cmd-inet/lib/ipmgmtd/Makefile     |   8 +-
+ .../cmd/cmd-inet/lib/ipmgmtd/ipmgmt_door.c    | 290 ++++---
+ .../cmd/cmd-inet/lib/ipmgmtd/ipmgmt_impl.h    |  25 +-
+ .../cmd/cmd-inet/lib/ipmgmtd/ipmgmt_main.c    |  27 +-
+ .../cmd/cmd-inet/lib/ipmgmtd/ipmgmt_persist.c | 451 +++++++++--
+ .../cmd/cmd-inet/usr.lib/in.mpathd/Makefile   |  17 +-
+ .../cmd/cmd-inet/usr.lib/in.mpathd/net-ipmp   |  31 +
+ .../usr.lib/in.mpathd/network-ipmp.xml        |  78 ++
+ usr/src/cmd/cmd-inet/usr.sbin/ipadm/Makefile  |   5 +-
+ usr/src/cmd/cmd-inet/usr.sbin/ipadm/ipadm.c   | 333 +++++++--
+ usr/src/cmd/rcm_daemon/common/ip_rcm.c        |   8 +-
+ usr/src/cmd/svc/milestone/net-init            |  16 +-
+ usr/src/cmd/svc/milestone/net-physical        |  42 +-
+ usr/src/lib/Makefile                          |   3 +-
+ usr/src/lib/libipadm/Makefile.com             |   3 +-
+ usr/src/lib/libipadm/common/ipadm_addr.c      | 169 +++--
+ usr/src/lib/libipadm/common/ipadm_if.c        | 706 +++++++++++++++---
+ usr/src/lib/libipadm/common/ipadm_ipmgmt.h    |  71 +-
+ usr/src/lib/libipadm/common/ipadm_persist.c   | 236 +++++-
+ usr/src/lib/libipadm/common/ipadm_prop.c      |  53 +-
+ usr/src/lib/libipadm/common/libipadm.c        | 164 ++--
+ usr/src/lib/libipadm/common/libipadm.h        |  46 +-
+ usr/src/lib/libipadm/common/libipadm_impl.h   |  24 +-
+ usr/src/lib/libipadm/common/mapfile-vers      |   3 +
+ usr/src/man/man1m/ipadm.1m                    | 316 +++++---
+ usr/src/pkg/manifests/SUNWcs.p5m              |   4 +-
+ 27 files changed, 2413 insertions(+), 719 deletions(-)
+ create mode 100644 usr/src/cmd/cmd-inet/usr.lib/in.mpathd/net-ipmp
+ create mode 100644 usr/src/cmd/cmd-inet/usr.lib/in.mpathd/network-ipmp.xml
+
+diff --git a/usr/src/cmd/Makefile.check b/usr/src/cmd/Makefile.check
+index a5e450b5ea06..7d2fbe66c058 100644
+--- a/usr/src/cmd/Makefile.check
++++ b/usr/src/cmd/Makefile.check
+@@ -22,8 +22,8 @@
+ #
+ # Copyright (c) 2009, 2010, Oracle and/or its affiliates. All rights reserved.
+ # Copyright 2014 Garrett D'Amore <garrett@damore.org>
+-# Copyright 2017 Nexenta Systems, Inc.
+ # Copyright 2019 Peter Tribble
++# Copyright 2021 Tintri by DDN, Inc. All rights reserved.
+ #
+ 
+ include ../Makefile.master
+@@ -86,6 +86,7 @@ MANIFEST_SUBDIRS=			\
+ 	cmd-inet/usr.lib/in.daytimed	\
+ 	cmd-inet/usr.lib/in.discardd	\
+ 	cmd-inet/usr.lib/in.echod	\
++	cmd-inet/usr.lib/in.mpathd	\
+ 	cmd-inet/usr.lib/in.ndpd	\
+ 	cmd-inet/usr.lib/in.ripngd	\
+ 	cmd-inet/usr.lib/in.timed	\
+diff --git a/usr/src/cmd/cmd-inet/lib/ipmgmtd/Makefile b/usr/src/cmd/cmd-inet/lib/ipmgmtd/Makefile
+index f9ae4eacdccf..1c32ce2ff18c 100644
+--- a/usr/src/cmd/cmd-inet/lib/ipmgmtd/Makefile
++++ b/usr/src/cmd/cmd-inet/lib/ipmgmtd/Makefile
+@@ -17,8 +17,11 @@
+ # information: Portions Copyright [yyyy] [name of copyright owner]
+ #
+ # CDDL HEADER END
++#
++
+ #
+ # Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
++# Copyright 2021 Tintri by DDN, Inc. All rights reserved.
+ #
+ 
+ # Needed for ROOTFS_LIBDIR definition
+@@ -38,9 +41,6 @@ ROOTCFGDIR=		$(ROOTETC)/ipadm
+ ROOTCFGFILES=		$(CFGFILES:%=$(ROOTCFGDIR)/%)
+ ROOTMANIFESTDIR=	$(ROOTSVCNETWORK)
+ 
+-CERRWARN += -_gcc=-Wno-switch
+-CERRWARN += $(CNOWARN_UNINIT)
+-
+ $(ROOTCFGFILES)	:= OWNER= ipadm
+ $(ROOTCFGFILES)	:= GROUP= sys
+ $(ROOTCFGFILES)	:= FILEMODE= 644
+@@ -85,4 +85,4 @@ $(ROOTCFGDIR):
+ $(ROOTCFGDIR)/%: $(ROOTCFGDIR) %
+ 	$(INS.file)
+ 
+-include 	../../../Makefile.targ
++include	../../../Makefile.targ
+diff --git a/usr/src/cmd/cmd-inet/lib/ipmgmtd/ipmgmt_door.c b/usr/src/cmd/cmd-inet/lib/ipmgmtd/ipmgmt_door.c
+index 92e3f73f555a..b446b2ffa40d 100644
+--- a/usr/src/cmd/cmd-inet/lib/ipmgmtd/ipmgmt_door.c
++++ b/usr/src/cmd/cmd-inet/lib/ipmgmtd/ipmgmt_door.c
+@@ -43,6 +43,9 @@
+ #include <libnvpair.h>
+ #include "ipmgmt_impl.h"
+ 
++
++static void ipmgmt_common_handler(char *, char *, db_wfunc_t *);
++
+ /* Handler declaration for each door command */
+ typedef void ipmgmt_door_handler_t(void *argp);
+ 
+@@ -56,7 +59,8 @@ static ipmgmt_door_handler_t	ipmgmt_getaddr_handler,
+ 				ipmgmt_resetif_handler,
+ 				ipmgmt_resetprop_handler,
+ 				ipmgmt_setaddr_handler,
+-				ipmgmt_setprop_handler;
++				ipmgmt_setprop_handler,
++				ipmgmt_ipmp_update_handler;
+ 
+ typedef struct ipmgmt_door_info_s {
+ 	uint_t			idi_cmd;
+@@ -81,6 +85,7 @@ static ipmgmt_door_info_t i_ipmgmt_door_info_tbl[] = {
+ 	{ IPMGMT_CMD_ADDROBJ_ADD,	B_TRUE,  ipmgmt_aobjop_handler },
+ 	{ IPMGMT_CMD_AOBJNAME2ADDROBJ,	B_FALSE, ipmgmt_aobjop_handler },
+ 	{ IPMGMT_CMD_LIF2ADDROBJ,	B_FALSE, ipmgmt_aobjop_handler },
++	{ IPMGMT_CMD_IPMP_UPDATE,	B_FALSE, ipmgmt_ipmp_update_handler},
+ 	{ 0, 0, NULL },
+ };
+ 
+@@ -593,6 +598,10 @@ ipmgmt_resetif_handler(void *argp)
+ 
+ 	cbarg.cb_family = rargp->ia_family;
+ 	cbarg.cb_ifname = rargp->ia_ifname;
++
++	cbarg.cb_ipv4exists = B_TRUE;
++	cbarg.cb_ipv6exists = B_TRUE;
++
+ 	if (flags & IPMGMT_PERSIST)
+ 		err = ipmgmt_db_walk(ipmgmt_db_resetif, &cbarg,
+ 		    IPADM_DB_DELETE);
+@@ -654,59 +663,10 @@ ipmgmt_resetaddr_handler(void *argp)
+ static void
+ ipmgmt_getaddr_handler(void *argp)
+ {
+-	size_t			buflen, onvlsize;
+-	char			*buf, *onvlbuf;
+-	ipmgmt_getaddr_arg_t	*gargp = argp;
+-	ipmgmt_getaddr_cbarg_t	cbarg;
+-	ipmgmt_get_rval_t	rval, *rvalp = &rval;
+-	int			err = 0;
+-
+-	cbarg.cb_ifname = gargp->ia_ifname;
+-	cbarg.cb_aobjname = gargp->ia_aobjname;
+-	cbarg.cb_ocnt = 0;
+-	if (nvlist_alloc(&cbarg.cb_onvl, NV_UNIQUE_NAME, 0) != 0)
+-		goto fail;
+-	err = ipmgmt_db_walk(ipmgmt_db_getaddr, &cbarg, IPADM_DB_READ);
+-	if (err == ENOENT && cbarg.cb_ocnt > 0) {
+-		/*
+-		 * If there is atleast one entry in the nvlist,
+-		 * do not return error.
+-		 */
+-		err = 0;
+-	}
+-	if (err != 0)
+-		goto fail;
+-
+-	if ((err = nvlist_size(cbarg.cb_onvl, &onvlsize,
+-	    NV_ENCODE_NATIVE)) != 0) {
+-		goto fail;
+-	}
+-
+-	if (onvlsize > (UINT32_MAX - sizeof (ipmgmt_get_rval_t)))
+-		goto fail;
+-
+-	buflen = onvlsize + sizeof (ipmgmt_get_rval_t);
+-	/*
+-	 * We cannot use malloc() here because door_return never returns, and
+-	 * memory allocated by malloc() would get leaked. Use alloca() instead.
+-	 */
+-	buf = alloca(buflen);
+-	onvlbuf = buf + sizeof (ipmgmt_get_rval_t);
+-	if ((err = nvlist_pack(cbarg.cb_onvl, &onvlbuf, &onvlsize,
+-	    NV_ENCODE_NATIVE, 0)) != 0) {
+-		goto fail;
+-	}
+-	nvlist_free(cbarg.cb_onvl);
+-	rvalp = (ipmgmt_get_rval_t *)(void *)buf;
+-	rvalp->ir_err = 0;
+-	rvalp->ir_nvlsize = onvlsize;
++	ipmgmt_getaddr_arg_t    *gargp = argp;
+ 
+-	(void) door_return(buf, buflen, NULL, 0);
+-	return;
+-fail:
+-	nvlist_free(cbarg.cb_onvl);
+-	rvalp->ir_err = err;
+-	(void) door_return((char *)rvalp, sizeof (*rvalp), NULL, 0);
++	ipmgmt_common_handler(gargp->ia_ifname, gargp->ia_aobjname,
++	    ipmgmt_db_getaddr);
+ }
+ 
+ /*
+@@ -727,65 +687,20 @@ ipmgmt_resetprop_handler(void *argp)
+ }
+ 
+ /*
+- * Handles the door command IPMGMT_CMD_GETIF. It retrieves the name of all the
+- * persisted interfaces and the IP protocols (IPv4 or IPv6) they support.
++ * Handles the door command IPMGMT_CMD_GETIF. It retrieves the names of all
++ * persisted interfaces and the IP protocol families (IPv4 or IPv6) they
++ * support. Returns the info as a nvlist using door_return() from
++ * ipmgmt_common_handler().
+  */
+ static void
+ ipmgmt_getif_handler(void *argp)
+ {
+-	ipmgmt_getif_arg_t	*getif = argp;
+-	ipmgmt_getif_rval_t	*rvalp;
+-	ipmgmt_retval_t		rval;
+-	ipmgmt_getif_cbarg_t	cbarg;
+-	ipadm_if_info_list_t	*ifl, *curifl;
+-	ipadm_if_info_t		*ifp, *rifp;
+-	int			i, err = 0, count = 0;
+-	size_t			rbufsize;
++	ipmgmt_getif_arg_t  *getif = argp;
+ 
+ 	assert(getif->ia_cmd == IPMGMT_CMD_GETIF);
+ 
+-	bzero(&cbarg, sizeof (cbarg));
+-	cbarg.cb_ifname = getif->ia_ifname;
+-	err = ipmgmt_db_walk(ipmgmt_db_getif, &cbarg, IPADM_DB_READ);
+-	if (err == ENOENT && cbarg.cb_ifinfo) {
+-		/*
+-		 * If there is atleast one entry in the nvlist,
+-		 * do not return error.
+-		 */
+-		err = 0;
+-	}
+-	if (err != 0) {
+-		rval.ir_err = err;
+-		(void) door_return((char *)&rval, sizeof (rval), NULL, 0);
+-		return;
+-	}
+-
+-	/* allocate sufficient buffer to return the interface info */
+-	for (ifl = cbarg.cb_ifinfo; ifl != NULL; ifl = ifl->ifil_next)
+-		++count;
+-	rbufsize = sizeof (*rvalp) + count * sizeof (*ifp);
+-	rvalp = alloca(rbufsize);
+-	bzero(rvalp, rbufsize);
+-
+-	rvalp->ir_ifcnt = count;
+-	rifp = rvalp->ir_ifinfo;
+-	ifl = cbarg.cb_ifinfo;
+-
+-	/*
+-	 * copy the interface info to buffer allocated on stack. The reason
+-	 * we do this is to avoid memory leak, as door_return() would never
+-	 * return
+-	 */
+-	for (i = 0; i < count; i++) {
+-		ifp = &ifl->ifil_ifi;
+-		rifp = rvalp->ir_ifinfo + i;
+-		(void) bcopy(ifp, rifp, sizeof (*rifp));
+-		curifl = ifl->ifil_next;
+-		free(ifl);
+-		ifl = curifl;
+-	}
+-	rvalp->ir_err = err;
+-	(void) door_return((char *)rvalp, rbufsize, NULL, 0);
++	ipmgmt_common_handler(getif->ia_ifname, NULL,
++	    ipmgmt_db_getif);
+ }
+ 
+ /*
+@@ -819,7 +734,7 @@ ipmgmt_initif_handler(void *argp)
+ 	err = ipmgmt_db_walk(ipmgmt_db_initif, &cbarg, IPADM_DB_READ);
+ 	if (err == ENOENT && cbarg.cb_ocnt > 0) {
+ 		/*
+-		 * If there is atleast one entry in the nvlist,
++		 * If there is at least one entry in the nvlist,
+ 		 * do not return error.
+ 		 */
+ 		err = 0;
+@@ -863,10 +778,10 @@ int
+ ipmgmt_persist_if(ipmgmt_if_arg_t *sargp)
+ {
+ 	ipadm_dbwrite_cbarg_t	cb;
+-	uint32_t		flags = sargp->ia_flags;
+-	nvlist_t		*nvl = NULL;
+-	int			err = 0;
+-	char			strval[IPMGMT_STRSIZE];
++	uint32_t	flags = sargp->ia_flags;
++	nvlist_t	*nvl = NULL;
++	char	strval[IPMGMT_STRSIZE];
++	int	err = 0;
+ 
+ 	if (!(flags & IPMGMT_PERSIST) || sargp->ia_family == AF_UNSPEC ||
+ 	    sargp->ia_ifname[0] == '\0') {
+@@ -875,16 +790,163 @@ ipmgmt_persist_if(ipmgmt_if_arg_t *sargp)
+ 	}
+ 	if ((err = nvlist_alloc(&nvl, NV_UNIQUE_NAME, 0)) != 0)
+ 		goto ret;
++
+ 	if ((err = nvlist_add_string(nvl, IPADM_NVP_IFNAME,
+ 	    sargp->ia_ifname)) != 0)
+ 		goto ret;
+-	(void) snprintf(strval, IPMGMT_STRSIZE, "%d", sargp->ia_family);
+-	if ((err = nvlist_add_string(nvl, IPADM_NVP_FAMILY, strval)) != 0)
++
++	if ((err = ipmgmt_update_family_nvp(nvl, sargp->ia_family,
++	    IPMGMT_APPEND)) != 0)
+ 		goto ret;
++
++	(void) snprintf(strval, IPMGMT_STRSIZE, "%d", sargp->ia_ifclass);
++	if ((err = nvlist_add_string(nvl, IPADM_NVP_IFCLASS, strval)) != 0)
++		goto ret;
++
+ 	cb.dbw_nvl = nvl;
+-	cb.dbw_flags = 0;
+-	err = ipmgmt_db_walk(ipmgmt_db_add, &cb, IPADM_DB_WRITE);
++	cb.dbw_flags = IPMGMT_APPEND | IPMGMT_UPDATE_IF;
++	err = ipmgmt_db_walk(ipmgmt_db_update_if, &cb, IPADM_DB_WRITE);
+ ret:
+ 	nvlist_free(nvl);
+ 	return (err);
+ }
++
++/*
++ * The helper for ipmgmt_getif_handler and ipmgmt_getaddr_handler
++ */
++static void
++ipmgmt_common_handler(char *if_name, char *aobj_name, db_wfunc_t worker)
++{
++	size_t			buflen, onvlsize;
++	char			*buf, *onvlbuf;
++	ipmgmt_get_cbarg_t	cbarg;
++	ipmgmt_get_rval_t	rval, *rvalp = &rval;
++	int			err = 0;
++
++	cbarg.cb_ifname = if_name;
++	cbarg.cb_aobjname = aobj_name;
++	cbarg.cb_ocnt = 0;
++
++	if (nvlist_alloc(&cbarg.cb_onvl, NV_UNIQUE_NAME, 0) != 0)
++		goto fail;
++
++	err = ipmgmt_db_walk(worker, &cbarg, IPADM_DB_READ);
++	if (err == ENOENT && cbarg.cb_ocnt > 0) {
++		/*
++		 * If there is at least one entry in the nvlist,
++		 * do not return error.
++		 */
++		err = 0;
++	}
++	if (err != 0)
++		goto fail;
++
++	if ((err = nvlist_size(cbarg.cb_onvl, &onvlsize,
++	    NV_ENCODE_NATIVE)) != 0)
++		goto fail;
++
++	if (onvlsize > (UINT32_MAX - sizeof (ipmgmt_get_rval_t)))
++		goto fail;
++
++	buflen = onvlsize + sizeof (ipmgmt_get_rval_t);
++	/*
++	 * We cannot use malloc() here because door_return never returns, and
++	 * memory allocated by malloc() would get leaked. Use alloca() instead.
++	 */
++	buf = alloca(buflen);
++	onvlbuf = buf + sizeof (ipmgmt_get_rval_t);
++	if ((err = nvlist_pack(cbarg.cb_onvl, &onvlbuf,
++	    &onvlsize, NV_ENCODE_NATIVE, 0)) != 0)
++		goto fail;
++
++	nvlist_free(cbarg.cb_onvl);
++	rvalp = (ipmgmt_get_rval_t *)(void *)buf;
++	rvalp->ir_err = 0;
++	rvalp->ir_nvlsize = onvlsize;
++
++	(void) door_return(buf, buflen, NULL, 0);
++
++fail:
++	nvlist_free(cbarg.cb_onvl);
++	rvalp->ir_err = err;
++	(void) door_return((char *)rvalp, sizeof (*rvalp), NULL, 0);
++}
++
++/*
++ * Handles the door command IPMGMT_CMD_IPMP_UPDATE
++ */
++static void
++ipmgmt_ipmp_update_handler(void *argp)
++{
++	ipmgmt_ipmp_update_arg_t *uargp = argp;
++	ipmgmt_retval_t	rval;
++	ipadm_dbwrite_cbarg_t	cb;
++
++	boolean_t	gif_exists;
++	char		gifname[LIFNAMSIZ];
++	nvlist_t	*nvl = NULL;
++	uint32_t	flags = uargp->ia_flags;
++	int		err = 0;
++
++	assert(uargp->ia_cmd == IPMGMT_CMD_IPMP_UPDATE);
++
++	gif_exists = ipmgmt_persist_if_exists(uargp->ia_gifname,
++	    AF_UNSPEC);
++
++	if (!ipmgmt_persist_if_exists(uargp->ia_mifname, AF_UNSPEC)) {
++		err = EINVAL;
++		goto ret;
++	}
++
++	ipmgmt_get_group_interface(uargp->ia_mifname, gifname, LIFNAMSIZ);
++
++	if (flags & IPMGMT_APPEND) {
++		/* Group interface should be available in the DB */
++		if (!gif_exists) {
++			err = ENOENT;
++			goto ret;
++		}
++
++		if (gifname[0] != '\0') {
++			err = EEXIST;
++			goto ret;
++		}
++	}
++
++	if (flags & IPMGMT_REMOVE) {
++		/* We cannot remove something that does not exist */
++		if (!gif_exists || gifname[0] == '\0') {
++			err = ENOENT;
++			goto ret;
++		}
++		if (strcmp(uargp->ia_gifname, gifname) != 0) {
++			err = EINVAL;
++			goto ret;
++		}
++	}
++
++	if (flags & IPMGMT_PERSIST) {
++		if ((err = nvlist_alloc(&nvl, NV_UNIQUE_NAME, 0)) != 0)
++			goto ret;
++
++		if ((err = nvlist_add_string(nvl, IPADM_NVP_IFNAME,
++		    uargp->ia_gifname)) != 0)
++			goto ret;
++
++		if ((err = nvlist_add_string(nvl, IPADM_NVP_MIFNAMES,
++		    uargp->ia_mifname)) != 0)
++			goto ret;
++
++		if ((err = nvlist_add_string(nvl, IPADM_NVP_GIFNAME,
++		    uargp->ia_gifname)) != 0)
++			goto ret;
++
++		cb.dbw_nvl = nvl;
++		cb.dbw_flags = flags | IPMGMT_UPDATE_IF | IPMGMT_UPDATE_IPMP;
++		err = ipmgmt_db_walk(ipmgmt_db_update_if, &cb, IPADM_DB_WRITE);
++	}
++ret:
++	nvlist_free(nvl);
++	rval.ir_err = err;
++	(void) door_return((char *)&rval, sizeof (rval), NULL, 0);
++}
+diff --git a/usr/src/cmd/cmd-inet/lib/ipmgmtd/ipmgmt_impl.h b/usr/src/cmd/cmd-inet/lib/ipmgmtd/ipmgmt_impl.h
+index 968fa779232e..fe7e95a87e19 100644
+--- a/usr/src/cmd/cmd-inet/lib/ipmgmtd/ipmgmt_impl.h
++++ b/usr/src/cmd/cmd-inet/lib/ipmgmtd/ipmgmt_impl.h
+@@ -22,7 +22,7 @@
+ /*
+  * Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+  * Copyright (c) 2016, Chris Fraire <cfraire@me.com>.
+- * Copyright 2021, Tintri by DDN. All rights reserved.
++ * Copyright 2021 Tintri by DDN, Inc. All rights reserved.
+  */
+ 
+ #ifndef	_IPMGMT_IMPL_H
+@@ -51,6 +51,8 @@ extern void	ipmgmt_log(int, const char *, ...);
+ extern int	ipmgmt_cpfile(const char *, const char *, boolean_t);
+ 
+ /* ipmgmt_persist.c */
++extern boolean_t ipmgmt_persist_if_exists(const char *, sa_family_t);
++extern void ipmgmt_get_group_interface(const char *, char *, size_t);
+ 
+ /*
+  * following are the list of DB walker callback functions and the callback
+@@ -60,25 +62,22 @@ extern int	ipmgmt_cpfile(const char *, const char *, boolean_t);
+ extern db_wfunc_t	ipmgmt_db_getprop, ipmgmt_db_resetprop;
+ 
+ /* following functions take ipadm_dbwrite_cbarg_t as callback argument */
+-extern db_wfunc_t	ipmgmt_db_add, ipmgmt_db_update;
++extern db_wfunc_t	ipmgmt_db_add, ipmgmt_db_update, ipmgmt_db_update_if;
+ 
+ typedef struct {
+-	char			*cb_ifname;
+-	ipadm_if_info_list_t	*cb_ifinfo;
+-} ipmgmt_getif_cbarg_t;
+-extern db_wfunc_t	ipmgmt_db_getif;
+-
+-typedef struct {
+-	char		*cb_aobjname;
+-	char		*cb_ifname;
++	char	*cb_ifname;
++	char	*cb_aobjname;
+ 	nvlist_t	*cb_onvl;
+-	int		cb_ocnt;
+-} ipmgmt_getaddr_cbarg_t;
++	int	cb_ocnt;
++} ipmgmt_get_cbarg_t;
++extern db_wfunc_t	ipmgmt_db_getif;
+ extern db_wfunc_t	ipmgmt_db_getaddr;
+ 
+ typedef struct {
+ 	sa_family_t	cb_family;
+ 	char		*cb_ifname;
++	boolean_t	cb_ipv4exists;
++	boolean_t	cb_ipv6exists;
+ } ipmgmt_if_cbarg_t;
+ extern db_wfunc_t	ipmgmt_db_setif, ipmgmt_db_resetif;
+ 
+@@ -182,6 +181,8 @@ typedef struct scf_resources {
+ 	scf_transaction_entry_t	*sr_ent;
+ } scf_resources_t;
+ 
++extern int		ipmgmt_update_family_nvp(nvlist_t *,
++			    sa_family_t, uint_t);
+ extern int		ipmgmt_db_walk(db_wfunc_t *, void *, ipadm_db_op_t);
+ extern int		ipmgmt_aobjmap_op(ipmgmt_aobjmap_t *, uint32_t);
+ extern boolean_t	ipmgmt_aobjmap_init(void *, nvlist_t *, char *,
+diff --git a/usr/src/cmd/cmd-inet/lib/ipmgmtd/ipmgmt_main.c b/usr/src/cmd/cmd-inet/lib/ipmgmtd/ipmgmt_main.c
+index e3a8d3e817c1..3573ca40caf0 100644
+--- a/usr/src/cmd/cmd-inet/lib/ipmgmtd/ipmgmt_main.c
++++ b/usr/src/cmd/cmd-inet/lib/ipmgmtd/ipmgmt_main.c
+@@ -21,7 +21,7 @@
+ 
+ /*
+  * Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+- * Copyright 2021, Tintri by DDN. All rights reserved.
++ * Copyright 2021 Tintri by DDN, Inc. All rights reserved.
+  */
+ 
+ /*
+@@ -521,31 +521,6 @@ main(int argc, char *argv[])
+ 	return (EXIT_FAILURE);
+ }
+ 
+-/*
+- * Return TRUE if `ifname' has persistent configuration for the `af' address
+- * family in the datastore
+- */
+-static boolean_t
+-ipmgmt_persist_if_exists(char *ifname, sa_family_t af)
+-{
+-	ipmgmt_getif_cbarg_t cbarg;
+-	boolean_t exists = B_FALSE;
+-	ipadm_if_info_t *ifp;
+-
+-	bzero(&cbarg, sizeof (cbarg));
+-	cbarg.cb_ifname = ifname;
+-	(void) ipmgmt_db_walk(ipmgmt_db_getif, &cbarg, IPADM_DB_READ);
+-	if (cbarg.cb_ifinfo != NULL) {
+-		ifp = &cbarg.cb_ifinfo->ifil_ifi;
+-		if ((af == AF_INET && (ifp->ifi_pflags & IFIF_IPV4)) ||
+-		    (af == AF_INET6 && (ifp->ifi_pflags & IFIF_IPV6))) {
+-			exists = B_TRUE;
+-		}
+-	}
+-	free(cbarg.cb_ifinfo);
+-	return (exists);
+-}
+-
+ /*
+  * Persist any NGZ interfaces assigned to us from the global zone if they do
+  * not already exist in the persistent db. We need to
+diff --git a/usr/src/cmd/cmd-inet/lib/ipmgmtd/ipmgmt_persist.c b/usr/src/cmd/cmd-inet/lib/ipmgmtd/ipmgmt_persist.c
+index 5f9d24df7a27..cf9e30e8191a 100644
+--- a/usr/src/cmd/cmd-inet/lib/ipmgmtd/ipmgmt_persist.c
++++ b/usr/src/cmd/cmd-inet/lib/ipmgmtd/ipmgmt_persist.c
+@@ -24,7 +24,7 @@
+  * Copyright 2018 Joyent, Inc.
+  * Copyright 2016 Argo Technologie SA.
+  * Copyright (c) 2016-2017, Chris Fraire <cfraire@me.com>.
+- * Copyright 2021, Tintri by DDN. All rights reserved.
++ * Copyright 2021 Tintri by DDN, Inc. All rights reserved.
+  */
+ 
+ /*
+@@ -81,6 +81,161 @@ extern pthread_rwlock_t ipmgmt_dbconf_lock;
+ /* signifies whether volatile copy of data store is in use */
+ static boolean_t ipmgmt_rdonly_root = B_FALSE;
+ 
++typedef int ipmgmt_if_updater_func_t(nvlist_t *, nvpair_t *, uint_t);
++
++static ipmgmt_if_updater_func_t ipmgmt_if_family_updater;
++static ipmgmt_if_updater_func_t ipmgmt_if_groupmembers_updater;
++
++static int ipmgmt_get_ifinfo_nvl(const char *ifname, nvlist_t **if_info_nvl);
++
++typedef struct {
++	const char	*name;
++	ipmgmt_if_updater_func_t	*func;
++} ipmgmt_if_updater_ent_t;
++
++static ipmgmt_if_updater_ent_t ipmgmt_if_updater_ent[] = {
++	{IPADM_NVP_FAMILIES, ipmgmt_if_family_updater},
++	{IPADM_NVP_MIFNAMES, ipmgmt_if_groupmembers_updater},
++	{NULL, NULL}
++};
++
++static ipmgmt_if_updater_ent_t *
++ipmgmt_find_if_field_updater(const char *field_name)
++{
++	int i;
++
++	for (i = 0; ipmgmt_if_updater_ent[i].name != NULL; i++) {
++		if (strcmp(field_name, ipmgmt_if_updater_ent[i].name) == 0) {
++			break;
++		}
++	}
++
++	return (&ipmgmt_if_updater_ent[i]);
++}
++
++static int
++ipmgmt_if_groupmembers_updater(nvlist_t *db_nvl, nvpair_t *member_nvp,
++    uint_t flags)
++{
++	char	**members;
++	char	*member;
++	char	**out_members;
++	uint_t  nelem = 0, cnt = 0;
++	int	err;
++
++	if ((err = nvpair_value_string(member_nvp, &member)) != 0)
++		return (err);
++
++	err = nvlist_lookup_string_array(db_nvl, IPADM_NVP_MIFNAMES,
++	    &members, &nelem);
++
++	if (err != 0 && (flags & IPMGMT_REMOVE))
++		return (ENOENT);
++
++	/*
++	 * Reserve one extra slot for IPMGMT_APPEND.
++	 * Probably not worth conditionalizing.
++	 */
++	out_members = calloc(nelem + 1, sizeof (char *));
++	if (out_members == NULL)
++		return (ENOMEM);
++
++	while (nelem-- > 0) {
++		if ((flags & IPMGMT_REMOVE) &&
++		    (strcmp(member, members[nelem]) == 0))
++			continue;
++
++		if ((out_members[cnt] = strdup(members[nelem])) == NULL) {
++			err = ENOMEM;
++			goto fail;
++		}
++
++		cnt++;
++	}
++
++	if (flags & IPMGMT_APPEND) {
++		if ((out_members[cnt] = strdup(member)) == NULL) {
++			err = ENOMEM;
++			goto fail;
++		}
++		cnt++;
++	}
++
++	if (cnt == 0) {
++		err = nvlist_remove(db_nvl, IPADM_NVP_MIFNAMES,
++		    DATA_TYPE_STRING_ARRAY);
++	} else {
++		err = nvlist_add_string_array(db_nvl, IPADM_NVP_MIFNAMES,
++		    out_members, cnt);
++	}
++
++fail:
++	while (cnt--)
++		free(out_members[cnt]);
++
++	free(out_members);
++
++	return (err);
++}
++
++static int
++ipmgmt_if_family_updater(nvlist_t *db_nvl, nvpair_t *families_nvp, uint_t flags)
++{
++	uint16_t *families;
++	uint_t  nelem = 0;
++	int	err;
++
++	if ((err = nvpair_value_uint16_array(families_nvp, &families,
++	    &nelem)) != 0)
++		return (err);
++
++	return (ipmgmt_update_family_nvp(db_nvl, families[0], flags));
++}
++
++int
++ipmgmt_update_family_nvp(nvlist_t *nvl, sa_family_t af, uint_t flags)
++{
++	uint16_t	*families = NULL;
++	uint16_t	out_families[2];
++	uint_t	nelem = 0, cnt;
++	int	err;
++
++	err = nvlist_lookup_uint16_array(nvl, IPADM_NVP_FAMILIES,
++	    &families, &nelem);
++	if (err != 0 && (flags & IPMGMT_REMOVE)) {
++		return (ENOENT);
++	}
++
++	if (flags & IPMGMT_APPEND) {
++		if (families != NULL) {
++			if (nelem == 2 || families[0] == af) {
++				return (EEXIST);
++			}
++			out_families[0] = families[0];
++			out_families[1] = af;
++			cnt = 2;
++		} else {
++			out_families[0] = af;
++			cnt = 1;
++		}
++	} else {
++		assert(nelem == 1 || nelem == 2);
++		cnt = 0;
++		while (nelem-- > 0) {
++			if (families[nelem] != af) {
++				out_families[cnt] = families[nelem];
++				cnt++;
++			}
++		}
++	}
++
++	if (cnt != 0) {
++		return (nvlist_add_uint16_array(nvl, IPADM_NVP_FAMILIES,
++		    out_families, cnt));
++	}
++	return (nvlist_remove(nvl, IPADM_NVP_FAMILIES, DATA_TYPE_UINT16_ARRAY));
++}
++
+ /*
+  * Checks if the database nvl, `db_nvl' contains and matches ALL of the passed
+  * in private nvpairs `proto', `ifname' & `aobjname'.
+@@ -329,7 +484,7 @@ boolean_t
+ ipmgmt_db_getaddr(void *arg, nvlist_t *db_nvl, char *buf, size_t buflen,
+     int *errp)
+ {
+-	ipmgmt_getaddr_cbarg_t	*cbarg = arg;
++	ipmgmt_get_cbarg_t	*cbarg = arg;
+ 	char		*db_aobjname = NULL;
+ 	char		*db_ifname = NULL;
+ 	nvlist_t	*db_addr = NULL;
+@@ -556,57 +711,130 @@ ipmgmt_db_update(void *arg, nvlist_t *db_nvl, char *buf, size_t buflen,
+ }
+ 
+ /*
+- * For the given `cbarg->cb_ifname' interface, retrieves any persistent
+- * interface information (used in 'ipadm show-if')
++ * This function is used to update a DB line that describes
++ * an interface, its family and group interface
++ *
+  */
+-/* ARGSUSED */
+ boolean_t
+-ipmgmt_db_getif(void *arg, nvlist_t *db_nvl, char *buf, size_t buflen,
++ipmgmt_db_update_if(void *arg, nvlist_t *db_nvl, char *buf, size_t buflen,
+     int *errp)
+ {
+-	ipmgmt_getif_cbarg_t	*cbarg = arg;
+-	char			*ifname = cbarg->cb_ifname;
+-	char			*intf = NULL;
+-	ipadm_if_info_list_t	*ifl = NULL;
+-	ipadm_if_info_t		*ifp;
+-	sa_family_t		af;
+-	char			*afstr;
++	ipadm_dbwrite_cbarg_t *cb = arg;
++	ipmgmt_if_updater_ent_t *updater;
++	nvlist_t	*in_nvl = cb->dbw_nvl;
++	uint_t		flags = cb->dbw_flags;
++	nvpair_t	*nvp;
++	char		*name;
++	char		*db_ifname;
++	char		*gifname = NULL;
++	char		*mifname = NULL;
+ 
+ 	*errp = 0;
+-	if (nvlist_lookup_string(db_nvl, IPADM_NVP_FAMILY, &afstr) != 0 ||
+-	    nvlist_lookup_string(db_nvl, IPADM_NVP_IFNAME, &intf) != 0 ||
+-	    (ifname[0] != '\0' && strcmp(ifname, intf) != 0)) {
++
++	/* Only one flag */
++	if ((flags & (IPMGMT_APPEND | IPMGMT_REMOVE)) == 0 ||
++	    ((flags & IPMGMT_APPEND) && (flags & IPMGMT_REMOVE))) {
++		*errp = EINVAL;
++		return (B_FALSE);
++	}
++
++	if (!nvlist_exists(db_nvl, IPADM_NVP_FAMILIES))
+ 		return (B_TRUE);
++
++	if (nvlist_exists(db_nvl, IPADM_NVP_IFCLASS) &&
++	    nvlist_lookup_string(db_nvl, IPADM_NVP_IFNAME, &db_ifname) == 0 &&
++	    nvlist_lookup_string(in_nvl, IPADM_NVP_GIFNAME, &gifname) == 0 &&
++	    nvlist_lookup_string(in_nvl, IPADM_NVP_MIFNAMES, &mifname) == 0 &&
++	    strcmp(db_ifname, mifname) == 0) {
++		if (flags & IPMGMT_APPEND) {
++			if ((*errp = nvlist_add_string(db_nvl,
++			    IPADM_NVP_GIFNAME, gifname)) != 0)
++				return (B_FALSE);
++		} else {
++			if ((*errp = nvlist_remove(db_nvl, IPADM_NVP_GIFNAME,
++			    DATA_TYPE_STRING)) != 0)
++				return (B_FALSE);
++		}
++		cb->dbw_flags &= ~IPMGMT_UPDATE_IPMP;
++		goto done;
+ 	}
+-	af = atoi(afstr);
+-	for (ifl = cbarg->cb_ifinfo; ifl != NULL; ifl = ifl->ifil_next) {
+-		ifp = &ifl->ifil_ifi;
+-		if (strcmp(ifp->ifi_name, intf) == 0)
+-			break;
++
++	if (!ipmgmt_nvlist_intersects(db_nvl, in_nvl))
++		return (B_TRUE);
++
++	for (nvp = nvlist_next_nvpair(in_nvl, NULL); nvp != NULL;
++	    nvp = nvlist_next_nvpair(in_nvl, nvp)) {
++		name = nvpair_name(nvp);
++		if (strcmp(name, IPADM_NVP_FAMILIES) != 0 &&
++		    strcmp(name, IPADM_NVP_MIFNAMES) != 0)
++			continue;
++
++		updater = ipmgmt_find_if_field_updater(name);
++		assert(updater != NULL);
++		*errp = (*updater->func)(db_nvl, nvp, flags);
++		if (*errp != 0)
++			return (B_FALSE);
+ 	}
+-	if (ifl == NULL) {
+-		ipadm_if_info_list_t *new;
+ 
+-		if ((new = calloc(1, sizeof (*new))) == NULL) {
+-			*errp = ENOMEM;
+-			return (B_FALSE); /* don't continue the walk */
+-		}
+-		new->ifil_next = cbarg->cb_ifinfo;
+-		cbarg->cb_ifinfo = new;
+-		ifp = &new->ifil_ifi;
+-		(void) strlcpy(ifp->ifi_name, intf, sizeof (ifp->ifi_name));
++	cb->dbw_flags &= ~IPMGMT_UPDATE_IF;
++
++done:
++	(void) memset(buf, 0, buflen);
++	if (ipadm_nvlist2str(db_nvl, buf, buflen) == 0) {
++		*errp = EOVERFLOW;
++		return (B_FALSE);
+ 	}
+ 
+-	if (af == AF_INET) {
+-		ifp->ifi_pflags |= IFIF_IPV4;
+-	} else {
+-		assert(af == AF_INET6);
+-		ifp->ifi_pflags |= IFIF_IPV6;
++	/* we finished all operations, so do not continue */
++	if ((cb->dbw_flags & (IPMGMT_UPDATE_IF | IPMGMT_UPDATE_IPMP)) == 0)
++		return (B_FALSE);
++
++	return (B_TRUE);
++}
++
++/*
++ * For the given `cbarg->cb_ifname' interface, retrieve the nvlist that
++ * represents the persistent interface information.
++ * The nvlist contains:
++ *      IPADM_NVP_IFNAME
++ *      IPADM_NVP_FAMILIES
++ *      IPADM_NVP_IF_CLASS
++ *
++ * (used in 'ipadm show-if')
++ */
++/* ARGSUSED */
++boolean_t
++ipmgmt_db_getif(void *arg, nvlist_t *db_nvl, char *buf, size_t buflen,
++    int *errp)
++{
++	ipmgmt_get_cbarg_t *cbarg = arg;
++	char		*ifname = cbarg->cb_ifname;
++	nvpair_t	*nvp;
++	char		*db_ifname = NULL;
++	boolean_t	families = B_FALSE;
++
++	/* Parse db nvlist */
++	for (nvp = nvlist_next_nvpair(db_nvl, NULL); nvp != NULL;
++	    nvp = nvlist_next_nvpair(db_nvl, nvp)) {
++		if (strcmp(nvpair_name(nvp), IPADM_NVP_IFNAME) == 0) {
++			(void) nvpair_value_string(nvp, &db_ifname);
++		} else if (strcmp(nvpair_name(nvp), IPADM_NVP_FAMILIES) == 0) {
++			families = B_TRUE;
++		}
+ 	}
+ 
+-	/* Terminate the walk if we found both v4 and v6 interfaces. */
+-	if (ifname[0] != '\0' && (ifp->ifi_pflags & IFIF_IPV4) &&
+-	    (ifp->ifi_pflags & IFIF_IPV6))
++	if (db_ifname == NULL || !families)
++		return (B_TRUE);
++
++	if (ifname != NULL && ifname[0] != '\0' &&
++	    strcmp(ifname, db_ifname) != 0)
++		return (B_TRUE);
++
++	*errp = nvlist_add_nvlist(cbarg->cb_onvl, db_ifname, db_nvl);
++	if (*errp == 0)
++		cbarg->cb_ocnt++;
++
++	if (ifname != NULL && ifname[0] != '\0')
+ 		return (B_FALSE);
+ 
+ 	return (B_TRUE);
+@@ -625,7 +853,6 @@ ipmgmt_db_resetif(void *arg, nvlist_t *db_nvl, char *buf, size_t buflen,
+ 	boolean_t	isv6 = (cbarg->cb_family == AF_INET6);
+ 	char		*ifname = cbarg->cb_ifname;
+ 	char		*modstr = NULL;
+-	char		*afstr;
+ 	char		*aobjname;
+ 	uint_t		proto;
+ 	ipmgmt_aobjmap_t *head;
+@@ -636,9 +863,31 @@ ipmgmt_db_resetif(void *arg, nvlist_t *db_nvl, char *buf, size_t buflen,
+ 	if (!ipmgmt_nvlist_contains(db_nvl, NULL, ifname, NULL))
+ 		return (B_TRUE);
+ 
+-	if (nvlist_lookup_string(db_nvl, IPADM_NVP_FAMILY, &afstr) == 0) {
+-		if (atoi(afstr) == cbarg->cb_family)
++	if (nvlist_exists(db_nvl, IPADM_NVP_FAMILIES)) {
++
++		if ((*errp = ipmgmt_update_family_nvp(db_nvl, cbarg->cb_family,
++		    IPMGMT_REMOVE)) != 0) {
++			return (B_FALSE);
++		}
++
++		if (cbarg->cb_family == AF_INET) {
++			cbarg->cb_ipv4exists = B_FALSE;
++		} else {
++			assert(cbarg->cb_family == AF_INET6);
++			cbarg->cb_ipv6exists = B_FALSE;
++		}
++		if (!nvlist_exists(db_nvl, IPADM_NVP_FAMILIES)) {
++			cbarg->cb_ipv4exists = B_FALSE;
++			cbarg->cb_ipv6exists = B_FALSE;
+ 			goto delete;
++		}
++		/* Otherwise need to reconstruct this string */
++		(void) memset(buf, 0, buflen);
++		if (ipadm_nvlist2str(db_nvl, buf, buflen) == 0) {
++			/* buffer overflow */
++			*errp = EOVERFLOW;
++			return (B_FALSE);
++		}
+ 		return (B_TRUE);
+ 	}
+ 
+@@ -694,8 +943,8 @@ ipmgmt_db_resetif(void *arg, nvlist_t *db_nvl, char *buf, size_t buflen,
+ 				goto delete;
+ 			break;
+ 		case MOD_PROTO_IP:
+-			/* this should never be the case, today */
+-			assert(0);
++			if (!cbarg->cb_ipv4exists && !cbarg->cb_ipv6exists)
++				goto delete;
+ 			break;
+ 		}
+ 	}
+@@ -895,7 +1144,7 @@ ipmgmt_aobjmap_op(ipmgmt_aobjmap_t *nodep, uint32_t op)
+ 	ipmgmt_aobjmap_t	*head, *prev, *matched = NULL;
+ 	boolean_t		update = B_TRUE;
+ 	int			err = 0;
+-	ipadm_db_op_t		db_op;
++	ipadm_db_op_t		db_op = IPADM_DB_READ;
+ 
+ 	(void) pthread_rwlock_wrlock(&aobjmap.aobjmap_rwlock);
+ 
+@@ -1371,7 +1620,7 @@ ipmgmt_db_init(void *cbarg, nvlist_t *db_nvl, char *buf, size_t buflen,
+     int *errp)
+ {
+ 	ipadm_handle_t	iph = cbarg;
+-	nvpair_t	*nvp, *pnvp;
++	nvpair_t	*nvp, *pnvp = NULL;
+ 	char		*strval = NULL, *name, *mod = NULL, *pname;
+ 	char		tmpstr[IPMGMT_STRSIZE];
+ 	uint_t		proto;
+@@ -1398,7 +1647,7 @@ ipmgmt_db_init(void *cbarg, nvlist_t *db_nvl, char *buf, size_t buflen,
+ 		}
+ 	}
+ 
+-	/* if we are here than we found a global property */
++	/* If we are here then we have found a global property */
+ 	assert(mod != NULL);
+ 	assert(nvpair_type(pnvp) == DATA_TYPE_STRING);
+ 
+@@ -1587,6 +1836,8 @@ ipmgmt_get_scfprop(scf_resources_t *res, const char *pgname, const char *pname,
+ 	case SCF_TYPE_ASTRING:
+ 		*(char **)pval = scf_simple_prop_next_astring(prop);
+ 		break;
++	default:
++		break;
+ 	}
+ ret:
+ 	scf_simple_prop_free(prop);
+@@ -1710,3 +1961,109 @@ ipmgmt_update_dbver(scf_resources_t *res)
+ 	(void) ipmgmt_set_scfprop(res, IPMGMTD_APP_PG,
+ 	    IPMGMTD_PROP_DBVER, &version, SCF_TYPE_INTEGER);
+ }
++
++/*
++ * Return TRUE if `ifname' has persistent configuration for the `af' address
++ * family in the datastore.
++ * It is possible to call the function with af == AF_UNSPEC, so in this case
++ * the function returns TRUE if either AF_INET or AF_INET6 interface exists
++ */
++boolean_t
++ipmgmt_persist_if_exists(const char *ifname, sa_family_t af)
++{
++	boolean_t exists = B_FALSE;
++	nvlist_t    *if_info_nvl;
++	uint16_t    *families = NULL;
++	sa_family_t af_db;
++	uint_t	nelem = 0;
++
++	if (ipmgmt_get_ifinfo_nvl(ifname, &if_info_nvl) != 0)
++		goto done;
++
++	if (nvlist_lookup_uint16_array(if_info_nvl, IPADM_NVP_FAMILIES,
++	    &families, &nelem) != 0)
++		goto done;
++
++	while (nelem-- > 0) {
++		af_db = families[nelem];
++		if (af_db == af || (af == AF_UNSPEC &&
++		    (af_db == AF_INET || af_db == AF_INET6))) {
++			exists = B_TRUE;
++			break;
++		}
++	}
++
++done:
++	if (if_info_nvl != NULL)
++		nvlist_free(if_info_nvl);
++
++	return (exists);
++}
++
++/*
++ * Retrieves the membership information for the requested mif_name
++ * if mif_name is a member of a IPMP group, then gif_name will contain
++ * the name of IPMP group interface, otherwise the variable will be empty
++ */
++void
++ipmgmt_get_group_interface(const char *mif_name, char *gif_name, size_t size)
++{
++	char	*gif_name_from_nvl;
++	nvlist_t	*if_info_nvl;
++
++	gif_name[0] = '\0';
++
++	if (ipmgmt_get_ifinfo_nvl(mif_name, &if_info_nvl) != 0)
++		goto done;
++
++	if (nvlist_lookup_string(if_info_nvl, IPADM_NVP_GIFNAME,
++	    &gif_name_from_nvl) != 0)
++		goto done;
++
++	(void) strlcpy(gif_name, gif_name_from_nvl, size);
++
++done:
++	if (if_info_nvl != NULL)
++		nvlist_free(if_info_nvl);
++}
++
++static int
++ipmgmt_get_ifinfo_nvl(const char *ifname, nvlist_t **if_info_nvl)
++{
++	ipmgmt_get_cbarg_t cbarg;
++	nvpair_t    *nvp;
++	nvlist_t    *nvl;
++	int	err;
++
++	cbarg.cb_ifname = NULL;
++	cbarg.cb_aobjname = NULL;
++	cbarg.cb_ocnt = 0;
++
++	if ((err = nvlist_alloc(&cbarg.cb_onvl, NV_UNIQUE_NAME, 0)) != 0)
++		goto done;
++
++	err = ipmgmt_db_walk(ipmgmt_db_getif, &cbarg, IPADM_DB_READ);
++	if (err == ENOENT && cbarg.cb_ocnt > 0)
++		err = 0;
++
++	if (err != 0)
++		goto done;
++
++	for (nvp = nvlist_next_nvpair(cbarg.cb_onvl, NULL); nvp != NULL;
++	    nvp = nvlist_next_nvpair(cbarg.cb_onvl, nvp)) {
++
++		if (strcmp(nvpair_name(nvp), ifname) != 0)
++			continue;
++
++		if ((err = nvpair_value_nvlist(nvp, &nvl)) != 0 ||
++		    (err = nvlist_dup(nvl, if_info_nvl, NV_UNIQUE_NAME)) != 0)
++			*if_info_nvl = NULL;
++
++		break;
++	}
++
++done:
++	nvlist_free(cbarg.cb_onvl);
++
++	return (err);
++}
+diff --git a/usr/src/cmd/cmd-inet/usr.lib/in.mpathd/Makefile b/usr/src/cmd/cmd-inet/usr.lib/in.mpathd/Makefile
+index 3668af100b82..d63134dae88b 100644
+--- a/usr/src/cmd/cmd-inet/usr.lib/in.mpathd/Makefile
++++ b/usr/src/cmd/cmd-inet/usr.lib/in.mpathd/Makefile
+@@ -22,16 +22,21 @@
+ # Copyright 2009 Sun Microsystems, Inc.  All rights reserved.
+ # Use is subject to license terms.
+ #
++# Copyright 2021 Tintri by DDN, Inc. All rights reserved.
++#
+ 
+ PROG		= in.mpathd
+ ROOTFS_PROG	= $(PROG)
+ OBJS		= mpd_tables.o mpd_main.o mpd_probe.o
+ SRCS		= $(OBJS:%.o=%.c)
+ DEFAULTFILES	= mpathd.dfl
++SVCMETHOD	= net-ipmp
++MANIFEST	= network-ipmp.xml
+ 
+ include ../../../Makefile.cmd
+ 
+ ROOTCMDDIR	= $(ROOT)/lib/inet
++ROOTMANIFESTDIR	= $(ROOTSVCNETWORK)
+ 
+ POFILE		= $(PROG).po
+ POFILES		= $(SRCS:%.c=%.po)
+@@ -63,15 +68,9 @@ $(PROG):	$(OBJS)
+ 		$(LINK.c) -o $@ $(OBJS) $(LDLIBS) $(CTFMERGE_HOOK)
+ 		$(POST_PROCESS)
+ 
+-include ../Makefile.lib
+-
+-$(ROOTLIBINETPROG):
+-		$(RM) $@; $(SYMLINK) ../../../lib/inet/$(PROG) $@
+-
+-$(ROOTSBINPROG):
+-		$(RM) $@; $(SYMLINK) ../lib/inet/$(PROG) $@
++check:		$(CHKMANIFEST)
+ 
+-install:	all $(ROOTLIBINETPROG) $(ROOTSBINPROG) $(ROOTCMD) \
++install:	all $(ROOTCMD) $(ROOTMANIFEST) $(ROOTSVCMETHOD) \
+ 		$(ROOTETCDEFAULTFILES)
+ 
+ clean:
+@@ -79,7 +78,7 @@ clean:
+ 
+ lint:		lint_SRCS
+ 
+-$(POFILE): 	$(POFILES)
++$(POFILE):	$(POFILES)
+ 		$(RM) $@
+ 		$(CAT) $(POFILES) > $@
+ 
+diff --git a/usr/src/cmd/cmd-inet/usr.lib/in.mpathd/net-ipmp b/usr/src/cmd/cmd-inet/usr.lib/in.mpathd/net-ipmp
+new file mode 100644
+index 000000000000..be4263a74bea
+--- /dev/null
++++ b/usr/src/cmd/cmd-inet/usr.lib/in.mpathd/net-ipmp
+@@ -0,0 +1,31 @@
++#!/sbin/sh
++#
++#
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
++#
++# A full copy of the text of the CDDL should have accompanied this
++# source.  A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
++#
++
++#
++# Copyright 2021 Tintri by DDN, Inc. All rights reserved.
++#
++
++. /lib/svc/share/smf_include.sh
++
++if [ -z "$SMF_FMRI" ]; then
++        echo "this script can only be invoked by smf(5)"
++        exit $SMF_EXIT_ERR_NOSMF
++fi
++
++smf_configure_ip || exit $SMF_EXIT_ERR_FATAL
++
++if /lib/inet/in.mpathd; then
++        exit $SMF_EXIT_OK
++else
++        exit $SMF_EXIT_ERR_FATAL
++fi
+diff --git a/usr/src/cmd/cmd-inet/usr.lib/in.mpathd/network-ipmp.xml b/usr/src/cmd/cmd-inet/usr.lib/in.mpathd/network-ipmp.xml
+new file mode 100644
+index 000000000000..282bf5b4dfad
+--- /dev/null
++++ b/usr/src/cmd/cmd-inet/usr.lib/in.mpathd/network-ipmp.xml
+@@ -0,0 +1,78 @@
++<?xml version='1.0'?>
++<!DOCTYPE service_bundle SYSTEM '/usr/share/lib/xml/dtd/service_bundle.dtd.1'>
++
++<!--
++ Copyright 2021 Tintri by DDN, Inc. All rights reserved.
++
++ This file and its contents are supplied under the terms of the
++ Common Development and Distribution License ("CDDL"), version 1.0.
++ You may only use this file in accordance with the terms of version
++ 1.0 of the CDDL.
++
++ A full copy of the text of the CDDL should have accompanied this
++ source.  A copy of the CDDL is also available via the Internet at
++ http://www.illumos.org/license/CDDL.
++
++        NOTE:  This service manifest is not editable; its contents will
++        be overwritten by package or patch operations, including
++        operating system upgrade.  Make customizations in a different
++        file.
++-->
++
++<service_bundle type='manifest' name='SUNWcsr:ipmp'>
++
++<service
++	name='network/ipmp'
++	type='service'
++	version='1'>
++
++	<create_default_instance enabled='true' />
++
++	<dependency name='loopback' grouping='require_all' restart_on='none'
++	    type='service'>
++		<service_fmri value='svc:/network/loopback' />
++	</dependency>
++
++	<dependent name='network-physical' grouping='optional_all'
++	    restart_on='none'>
++		<service_fmri value='svc:/network/physical:default' />
++	</dependent>
++
++	<exec_method type='method' name='start' exec='/lib/svc/method/net-ipmp'
++	    timeout_seconds='60'>
++	</exec_method>
++
++	<exec_method type='method' name='stop' exec=':kill'
++	    timeout_seconds='60'>
++	</exec_method>
++
++	<exec_method type='method' name='refresh' exec=':kill -HUP'
++	    timeout_seconds='60'>
++	</exec_method>
++
++	<property_group name='config' type='application'>
++		<propval name='action_authorization' type='astring'
++		    value='solaris.smf.manage.ipmp' />
++	</property_group>
++
++	<property_group name='general' type='framework'>
++		<propval name='action_authorization' type='astring'
++		    value='solaris.smf.manage.ipmp' />
++		<propval name='value_authorization' type='astring'
++		    value='solaris.smf.manage.ipmp' />
++	</property_group>
++
++	<stability value='Unstable' />
++
++	<template>
++		<common_name>
++			<loctext xml:lang='C'>
++				IP MultiPathing
++			</loctext>
++		</common_name>
++		<documentation>
++			<manpage title='in.mpathd' section='1M' />
++		</documentation>
++	</template>
++</service>
++</service_bundle>
+diff --git a/usr/src/cmd/cmd-inet/usr.sbin/ipadm/Makefile b/usr/src/cmd/cmd-inet/usr.sbin/ipadm/Makefile
+index 801fb4015849..c9337fb75b2b 100644
+--- a/usr/src/cmd/cmd-inet/usr.sbin/ipadm/Makefile
++++ b/usr/src/cmd/cmd-inet/usr.sbin/ipadm/Makefile
+@@ -23,6 +23,9 @@
+ # Use is subject to license terms.
+ #
+ # Copyright 2020 Joyent, Inc.
++# Copyright 2021 Tintri by DDN, Inc. All rights reserved.
++#
++#
+ 
+ PROG =		ipadm
+ ROOTFS_PROG =	$(PROG)
+@@ -39,7 +42,7 @@ COMMONSRCS=	$(CMDINETCOMMONDIR)/$(COMMONOBJS:%.o=%.c)
+ SRCS=		$(LOCALSRCS) $(COMMONSRCS)
+ 
+ CPPFLAGS +=	-I$(CMDINETCOMMONDIR)
+-LDLIBS +=       -lofmt -linetutil -lipadm -lnvpair
++LDLIBS +=       -lofmt -linetutil -lipadm -lnvpair -lipmp -lcmdutils
+ LINTFLAGS +=	-m
+ 
+ ROOTUSRSBINLINKS = $(PROG:%=$(ROOTUSRSBIN)/%)
+diff --git a/usr/src/cmd/cmd-inet/usr.sbin/ipadm/ipadm.c b/usr/src/cmd/cmd-inet/usr.sbin/ipadm/ipadm.c
+index e48b32733f14..1a1aa5e5ac48 100644
+--- a/usr/src/cmd/cmd-inet/usr.sbin/ipadm/ipadm.c
++++ b/usr/src/cmd/cmd-inet/usr.sbin/ipadm/ipadm.c
+@@ -21,11 +21,10 @@
+ 
+ /*
+  * Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+- * Copyright 2017 Nexenta Systems, Inc.
+  * Copyright (c) 2018, Joyent, Inc.
+  * Copyright 2017 Gary Mills
+  * Copyright (c) 2016, Chris Fraire <cfraire@me.com>.
+- * Copyright 2021, Tintri by DDN. All rights reserved.
++ * Copyright 2021 Tintri by DDN, Inc. All rights reserved.
+  * Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
+  */
+ 
+@@ -40,6 +39,8 @@
+ #include <libdllink.h>
+ #include <libinetutil.h>
+ #include <libipadm.h>
++#include <ipmp.h>
++#include <ipmp_admin.h>
+ #include <locale.h>
+ #include <netdb.h>
+ #include <netinet/in.h>
+@@ -53,21 +54,25 @@
+ #include <sys/stat.h>
+ #include <sys/types.h>
+ #include <zone.h>
++#include <sys/list.h>
++#include <stddef.h>
+ 
+ #define	STR_UNKNOWN_VAL	"?"
+ #define	LIFC_DEFAULT	(LIFC_NOXMIT | LIFC_TEMPORARY | LIFC_ALLZONES |\
+ 			LIFC_UNDER_IPMP)
+ 
++static void do_create_ip_common(int, char **, const char *, uint32_t);
++
+ typedef void cmdfunc_t(int, char **, const char *);
+ static cmdfunc_t do_help;
+-static cmdfunc_t do_create_if, do_delete_if, do_enable_if, do_disable_if;
+-static cmdfunc_t do_show_if;
+-static cmdfunc_t do_set_prop, do_show_prop, do_set_ifprop;
+-static cmdfunc_t do_show_ifprop, do_reset_ifprop, do_reset_prop;
+-static cmdfunc_t do_show_addrprop, do_set_addrprop, do_reset_addrprop;
+-static cmdfunc_t do_create_addr, do_delete_addr, do_show_addr;
+-static cmdfunc_t do_enable_addr, do_disable_addr;
+-static cmdfunc_t do_up_addr, do_down_addr, do_refresh_addr;
++static cmdfunc_t do_create_ip, do_delete_ip;
++static cmdfunc_t do_create_ipmp, do_add_ipmp, do_remove_ipmp;
++static cmdfunc_t do_disable_if, do_enable_if, do_show_if;
++static cmdfunc_t do_set_ifprop, do_reset_ifprop, do_show_ifprop;
++static cmdfunc_t do_create_addr, do_delete_addr, do_show_addr, do_refresh_addr;
++static cmdfunc_t do_disable_addr, do_enable_addr, do_down_addr, do_up_addr;
++static cmdfunc_t do_set_addrprop, do_reset_addrprop, do_show_addrprop;
++static cmdfunc_t do_set_prop, do_reset_prop, do_show_prop;
+ 
+ typedef struct	cmd {
+ 	char		*c_name;
+@@ -78,12 +83,28 @@ typedef struct	cmd {
+ static cmd_t	cmds[] = {
+ 	{ "help",	do_help,	NULL },
+ 	/* interface management related sub-commands */
+-	{ "create-if",	do_create_if,	"\tcreate-if\t[-t] <interface>"	},
+-	{ "disable-if",	do_disable_if,	"\tdisable-if\t-t <interface>"	},
+-	{ "enable-if",	do_enable_if,	"\tenable-if\t-t <interface>"	},
+-	{ "delete-if",	do_delete_if,	"\tdelete-if\t<interface>"	},
+-	{ "show-if",	do_show_if,
++	{ "create-if", do_create_ip, "\tcreate-if\t[-t] <interface>"	},
++	{ "create-ip", do_create_ip, "\tcreate-ip\t[-t] <interface>"	},
++	{ "delete-if", do_delete_ip, "\tdelete-if\t<interface>\n"	},
++	{ "delete-ip", do_delete_ip, "\tdelete-ip\t<interface>\n"	},
++
++	{ "create-ipmp", do_create_ipmp,
++	    "\tcreate-ipmp\t[-t] [-i <interface>[,<interface>]...] "
++	    "<ipmp-interface>"						},
++	{ "delete-ipmp", do_delete_ip,
++	    "\tdelete-ipmp\t<ipmp-interface>"				},
++	{ "add-ipmp", do_add_ipmp,
++	    "\tadd-ipmp\t[-t] -i <interface>[,<interface>]... "
++	    "<ipmp-interface>"						},
++	{ "remove-ipmp", do_remove_ipmp,
++	    "\tremove-ipmp\t[-t] -i <interface>[,<interface>]... "
++	    "<ipmp-interface>\n"					},
++
++	{ "disable-if", do_disable_if, "\tdisable-if\t-t <interface>"	},
++	{ "enable-if", do_enable_if, "\tenable-if\t-t <interface>"	},
++	{ "show-if", do_show_if,
+ 	    "\tshow-if\t\t[[-p] -o <field>,...] [<interface>]\n"	},
++
+ 	{ "set-ifprop",	do_set_ifprop,
+ 	    "\tset-ifprop\t[-t] -p <prop>=<value[,...]> -m <protocol> "
+ 	    "<interface>"						},
+@@ -101,14 +122,15 @@ static cmd_t	cmds[] = {
+ 	    "\t\t\t[-1] [-h <hostname>] <addrobj>\n"
+ 	    "\tcreate-addr\t[-t] -T addrconf [-i interface-id]\n"
+ 	    "\t\t\t[-p {stateful|stateless}={yes|no}] <addrobj>" },
+-	{ "down-addr",	do_down_addr,	"\tdown-addr\t[-t] <addrobj>"	},
+-	{ "up-addr",	do_up_addr,	"\tup-addr\t\t[-t] <addrobj>"	},
+-	{ "disable-addr", do_disable_addr, "\tdisable-addr\t-t <addrobj>" },
+-	{ "enable-addr", do_enable_addr, "\tenable-addr\t-t <addrobj>"	},
+-	{ "refresh-addr", do_refresh_addr, "\trefresh-addr\t[-i] <addrobj>" },
+ 	{ "delete-addr", do_delete_addr, "\tdelete-addr\t[-r] <addrobj>" },
+-	{ "show-addr",	do_show_addr,
+-	    "\tshow-addr\t[[-p] -o <field>,...] [<addrobj>]\n"		},
++	{ "show-addr", do_show_addr,
++	    "\tshow-addr\t[[-p] -o <field>,...] [<addrobj>]"		},
++	{ "refresh-addr", do_refresh_addr, "\trefresh-addr\t[-i] <addrobj>" },
++	{ "down-addr", do_down_addr, "\tdown-addr\t[-t] <addrobj>"	},
++	{ "up-addr", do_up_addr, "\tup-addr\t\t[-t] <addrobj>"	},
++	{ "disable-addr", do_disable_addr, "\tdisable-addr\t-t <addrobj>" },
++	{ "enable-addr", do_enable_addr, "\tenable-addr\t-t <addrobj>\n" },
++
+ 	{ "set-addrprop", do_set_addrprop,
+ 	    "\tset-addrprop\t[-t] -p <prop>=<value[,...]> <addrobj>"	},
+ 	{ "reset-addrprop", do_reset_addrprop,
+@@ -118,11 +140,11 @@ static cmd_t	cmds[] = {
+ 	    "<addrobj>\n"						},
+ 
+ 	/* protocol properties related sub-commands */
+-	{ "set-prop",	do_set_prop,
++	{ "set-prop", do_set_prop,
+ 	    "\tset-prop\t[-t] -p <prop>[+|-]=<value[,...]> <protocol>"	},
+-	{ "reset-prop",	do_reset_prop,
++	{ "reset-prop", do_reset_prop,
+ 	    "\treset-prop\t[-t] -p <prop> <protocol>"			},
+-	{ "show-prop",	do_show_prop,
++	{ "show-prop", do_show_prop,
+ 	    "\tshow-prop\t[[-c] -o <field>,...] [-p <prop>,...]"
+ 	    " [protocol]"						}
+ };
+@@ -282,7 +304,7 @@ typedef struct show_addr_args_s {
+ 
+ typedef struct show_if_args_s {
+ 	show_if_state_t *si_state;
+-	ipadm_if_info_list_t *si_info;
++	ipadm_if_info_t *si_info;
+ } show_if_args_t;
+ 
+ typedef enum {
+@@ -296,6 +318,7 @@ typedef enum {
+ 
+ typedef enum {
+ 	SI_IFNAME,
++	SI_IFCLASS,
+ 	SI_STATE,
+ 	SI_CURRENT,
+ 	SI_PERSISTENT
+@@ -315,6 +338,7 @@ static ofmt_field_t show_addr_fields[] = {
+ static ofmt_field_t show_if_fields[] = {
+ /* name,	field width,	id,		callback */
+ { "IFNAME",	11,		SI_IFNAME,	print_si_cb},
++{ "CLASS",	10,		SI_IFCLASS,	print_si_cb},
+ { "STATE",	9,		SI_STATE,	print_si_cb},
+ { "CURRENT",	13,		SI_CURRENT,	print_si_cb},
+ { "PERSISTENT",	11,		SI_PERSISTENT,	print_si_cb},
+@@ -328,6 +352,11 @@ typedef struct intf_mask {
+ 	uint64_t	mask;
+ } fmask_t;
+ 
++typedef enum {
++    IPMP_ADD_MEMBER,
++    IPMP_REMOVE_MEMBER
++} ipmp_action_t;
++
+ /*
+  * Handle to libipadm. Opened in main() before the sub-command specific
+  * function is called and is closed before the program exits.
+@@ -349,6 +378,9 @@ static void	warn_ipadmerr(ipadm_status_t, const char *, ...);
+ static void	ipadm_check_propstr(const char *, boolean_t, const char *);
+ static void	process_misc_addrargs(int, char **, const char *, int *,
+ 		    uint32_t *);
++static void	do_action_ipmp(char *, ipadm_ipmp_members_t *, ipmp_action_t,
++    uint32_t);
++
+ 
+ static void
+ usage(int ret)
+@@ -419,19 +451,17 @@ main(int argc, char *argv[])
+ }
+ 
+ /*
+- * Create an IP interface for which no saved configuration exists in the
+- * persistent store.
++ * Create regular IP interface or IPMP group interface
+  */
+ static void
+-do_create_if(int argc, char *argv[], const char *use)
++do_create_ip_common(int argc, char *argv[], const char *use, uint32_t flags)
+ {
+ 	ipadm_status_t	status;
+ 	int		option;
+-	uint32_t	flags = IPADM_OPT_PERSIST|IPADM_OPT_ACTIVE;
+ 
+ 	opterr = 0;
+-	while ((option = getopt_long(argc, argv, ":t", if_longopts,
+-	    NULL)) != -1) {
++	while ((option = getopt_long(argc, argv,
++	    ":t", if_longopts, NULL)) != -1) {
+ 		switch (option) {
+ 		case 't':
+ 			/*
+@@ -444,8 +474,12 @@ do_create_if(int argc, char *argv[], const char *use)
+ 			die_opterr(optopt, option, use);
+ 		}
+ 	}
+-	if (optind != (argc - 1))
+-		die("Usage: %s", use);
++	if (optind != (argc - 1)) {
++		if (use != NULL)
++			die("usage: %s", use);
++		else
++			die(NULL);
++	}
+ 	status = ipadm_create_if(iph, argv[optind], AF_UNSPEC, flags);
+ 	if (status != IPADM_SUCCESS) {
+ 		die("Could not create %s : %s",
+@@ -453,6 +487,185 @@ do_create_if(int argc, char *argv[], const char *use)
+ 	}
+ }
+ 
++/*
++ * Helpers to parse options into ipadm_ipmp_members_t list, and to free it.
++ */
++static ipadm_ipmp_members_t *
++get_ipmp_members(int argc, char *argv[], const char *use, uint32_t *flags)
++{
++	ipadm_ipmp_members_t *members = NULL;
++	ipadm_ipmp_member_t *member;
++	char *ifname;
++	int option;
++
++
++	opterr = 0;
++	while ((option = getopt_long(argc, argv, ":i:", if_longopts, NULL)) !=
++	    -1) {
++		switch (option) {
++		case 't':
++			*flags &= ~IPADM_OPT_PERSIST;
++			break;
++		case 'i':
++			if (members == NULL) {
++				members = calloc(1,
++				    sizeof (ipadm_ipmp_members_t));
++				if (members == NULL)
++					die("insufficient memory");
++				list_create(members,
++				    sizeof (ipadm_ipmp_member_t),
++				    offsetof(ipadm_ipmp_member_t, node));
++			}
++
++			for (ifname = strtok(optarg, ",");
++			    ifname != NULL;
++			    ifname = strtok(NULL, ",")) {
++				if ((member = calloc(1,
++				    sizeof (ipadm_ipmp_member_t))) == NULL)
++					die("insufficient memory");
++
++				if (strlcpy(member->if_name, ifname,
++				    sizeof (member->if_name)) >= LIFNAMSIZ)
++					die("Incorrect length of interface "
++					    "name: %s", ifname);
++
++				list_insert_tail(members, member);
++			}
++			break;
++		default:
++			die_opterr(optopt, option, use);
++		}
++	}
++
++	if (optind != (argc - 1))
++		die("Usage: %s", use);
++
++	if (members != NULL && list_is_empty(members)) {
++		free(members);
++		members = NULL;
++	}
++
++	return (members);
++}
++
++static void
++free_ipmp_members(ipadm_ipmp_members_t *members)
++{
++	ipadm_ipmp_member_t *member;
++
++	while ((member = list_remove_head(members)) != NULL)
++		free(member);
++
++	list_destroy(members);
++
++	free(members);
++}
++
++/*
++ * Create an IPMP group interface for which no saved configuration
++ * exists in the persistent store.
++ */
++static void
++do_create_ipmp(int argc, char *argv[], const char *use)
++{
++	uint32_t flags = IPADM_OPT_PERSIST | IPADM_OPT_ACTIVE | IPADM_OPT_IPMP;
++	ipadm_ipmp_members_t *members = NULL;
++	ipmp_handle_t ipmp_handle;
++	int retval;
++
++	retval = ipmp_open(&ipmp_handle);
++	if (retval != IPMP_SUCCESS) {
++		die("Could not create IPMP handle: %s",
++		    ipadm_status2str(retval));
++	}
++
++	retval = ipmp_ping_daemon(ipmp_handle);
++	ipmp_close(ipmp_handle);
++
++	if (retval != IPMP_SUCCESS) {
++		die("Cannot ping in.mpathd: %s", ipmp_errmsg(retval));
++	}
++
++	members = get_ipmp_members(argc, argv, use, &flags);
++
++	do_create_ip_common(argc, argv, use, flags);
++
++	if (members != NULL) {
++		do_action_ipmp(argv[optind], members, IPMP_ADD_MEMBER, flags);
++		free_ipmp_members(members);
++	}
++}
++
++static void
++do_add_ipmp(int argc, char *argv[], const char *use)
++{
++	uint32_t flags = IPADM_OPT_PERSIST | IPADM_OPT_ACTIVE;
++	ipadm_ipmp_members_t *members;
++
++	members = get_ipmp_members(argc, argv, use, &flags);
++
++	if (members == NULL)
++		die_opterr(optopt, ':', use);
++
++	do_action_ipmp(argv[optind], members, IPMP_ADD_MEMBER, flags);
++	free_ipmp_members(members);
++}
++
++static void
++do_remove_ipmp(int argc, char *argv[], const char *use)
++{
++	uint32_t flags = IPADM_OPT_PERSIST | IPADM_OPT_ACTIVE;
++	ipadm_ipmp_members_t *members;
++
++	members = get_ipmp_members(argc, argv, use, &flags);
++
++	if (members == NULL)
++		die_opterr(optopt, ':', use);
++
++	do_action_ipmp(argv[optind], members, IPMP_REMOVE_MEMBER, flags);
++	free_ipmp_members(members);
++}
++
++static void
++do_action_ipmp(char *ipmp, ipadm_ipmp_members_t *members, ipmp_action_t action,
++    uint32_t flags)
++{
++	ipadm_status_t (*func)(ipadm_handle_t, const char *, const char *,
++	    uint32_t);
++	ipadm_status_t  status;
++	ipadm_ipmp_member_t *member;
++	char *ifname;
++	const char *msg;
++
++	if (action == IPMP_ADD_MEMBER) {
++		func = ipadm_add_ipmp_member;
++		msg = "Cannot add interface '%s' to IPMP interface '%s': %s";
++	} else {
++		func = ipadm_remove_ipmp_member;
++		msg = "Cannot remove interface '%s' from IPMP interface '%s': "
++		    "%s";
++	}
++
++	while ((member = list_remove_head(members)) != NULL) {
++		ifname = member->if_name;
++
++		status = func(iph, ipmp, ifname, flags);
++		if (status != IPADM_SUCCESS)
++			die(msg, ifname, ipmp, ipadm_status2str(status));
++	}
++}
++
++/*
++ * Create an IP interface for which no saved configuration exists in the
++ * persistent store.
++ */
++static void
++do_create_ip(int argc, char *argv[], const char *use)
++{
++	do_create_ip_common(argc, argv, use,
++	    IPADM_OPT_PERSIST | IPADM_OPT_ACTIVE);
++}
++
+ /*
+  * Enable an IP interface based on the persistent configuration for
+  * that interface.
+@@ -480,7 +693,7 @@ do_enable_if(int argc, char *argv[], const char *use)
+  * Remove an IP interface from both active and persistent configuration.
+  */
+ static void
+-do_delete_if(int argc, char *argv[], const char *use)
++do_delete_ip(int argc, char *argv[], const char *use)
+ {
+ 	ipadm_status_t	status;
+ 	uint32_t	flags = IPADM_OPT_ACTIVE|IPADM_OPT_PERSIST;
+@@ -687,7 +900,7 @@ do_show_ifprop(int argc, char **argv, const char *use)
+ 	uint_t		proto;
+ 	boolean_t	m_arg = _B_FALSE;
+ 	char		*protostr;
+-	ipadm_if_info_list_t *ifinfo, *ifl;
++	ipadm_if_info_t	*ifinfo, *ifp;
+ 	ipadm_status_t	status;
+ 	show_prop_state_t state;
+ 
+@@ -751,9 +964,8 @@ do_show_ifprop(int argc, char **argv, const char *use)
+ 	if (status != IPADM_SUCCESS)
+ 		die("Error retrieving interface(s): %s",
+ 		    ipadm_status2str(status));
+-	for (ifl = ifinfo; ifl != NULL; ifl = ifl->ifil_next) {
+-		(void) strlcpy(state.sps_ifname, ifl->ifil_ifi.ifi_name,
+-		    LIFNAMSIZ);
++	for (ifp = ifinfo; ifp != NULL; ifp = ifp->ifi_next) {
++		(void) strlcpy(state.sps_ifname, ifp->ifi_name, LIFNAMSIZ);
+ 		state.sps_proto = proto;
+ 		show_properties(&state, IPADMPROP_CLASS_IF);
+ 	}
+@@ -1057,14 +1269,16 @@ die(const char *format, ...)
+ {
+ 	va_list alist;
+ 
+-	format = gettext(format);
+-	(void) fprintf(stderr, "%s: ", progname);
++	if (format != NULL) {
++		format = gettext(format);
++		(void) fprintf(stderr, "%s: ", progname);
+ 
+-	va_start(alist, format);
+-	(void) vfprintf(stderr, format, alist);
+-	va_end(alist);
++		va_start(alist, format);
++		(void) vfprintf(stderr, format, alist);
++		va_end(alist);
+ 
+-	(void) putchar('\n');
++		(void) putchar('\n');
++	}
+ 
+ 	ipadm_destroy_addrobj(ipaddr);
+ 	ipadm_close(iph);
+@@ -1624,7 +1838,7 @@ flags2str(uint64_t flags, fmask_t *tbl, boolean_t is_bits,
+ static boolean_t
+ is_from_gz(const char *lifname)
+ {
+-	ipadm_if_info_list_t	*if_info;
++	ipadm_if_info_t		*if_info;
+ 	char			phyname[LIFNAMSIZ], *cp;
+ 	boolean_t		ret = _B_FALSE;
+ 	ipadm_status_t		status;
+@@ -1647,7 +1861,7 @@ is_from_gz(const char *lifname)
+ 	if (status != IPADM_SUCCESS)
+ 		return (ret);
+ 
+-	if (if_info->ifil_ifi.ifi_cflags & IFIF_L3PROTECT)
++	if (if_info->ifi_cflags & IFIF_L3PROTECT)
+ 		ret = _B_TRUE;
+ 	ipadm_free_if_info(if_info);
+ 	return (ret);
+@@ -1902,8 +2116,8 @@ static boolean_t
+ print_si_cb(ofmt_arg_t *ofarg, char *buf, uint_t bufsize)
+ {
+ 	show_if_args_t		*arg = ofarg->ofmt_cbarg;
+-	ipadm_if_info_list_t	*ifinfo = arg->si_info;
+-	char			*ifname = ifinfo->ifil_ifi.ifi_name;
++	ipadm_if_info_t		*ifinfo = arg->si_info;
++	char			*ifname = ifinfo->ifi_name;
+ 	fmask_t intf_state[] = {
+ 		{ "ok",		IFIS_OK,	IPADM_ALL_BITS},
+ 		{ "down",	IFIS_DOWN,	IPADM_ALL_BITS},
+@@ -1933,22 +2147,33 @@ print_si_cb(ofmt_arg_t *ofarg, char *buf, uint_t bufsize)
+ 		{ "6",	IFIF_IPV6,		IFIF_IPV6	},
+ 		{ NULL,	0,			0		}
+ 	};
++	fmask_t intf_class[] = {
++		{ "IP",		IPADM_IF_CLASS_REGULAR, IPADM_ALL_BITS},
++		{ "IPMP",	IPADM_IF_CLASS_IPMP,    IPADM_ALL_BITS},
++		{ "VIRTUAL",	IPADM_IF_CLASS_VIRTUAL, IPADM_ALL_BITS},
++		{ "UNKNOWN",	IPADM_IF_CLASS_UNKNOWN, IPADM_ALL_BITS},
++		{ NULL,	0,	0}
++	};
+ 
+ 	buf[0] = '\0';
+ 	switch (ofarg->ofmt_id) {
+ 	case SI_IFNAME:
+ 		(void) snprintf(buf, bufsize, "%s", ifname);
+ 		break;
++	case SI_IFCLASS:
++		flags2str(ifinfo->ifi_class, intf_class, _B_FALSE,
++		    buf, bufsize);
++		break;
+ 	case SI_STATE:
+-		flags2str(ifinfo->ifil_ifi.ifi_state, intf_state, _B_FALSE,
++		flags2str(ifinfo->ifi_state, intf_state, _B_FALSE,
+ 		    buf, bufsize);
+ 		break;
+ 	case SI_CURRENT:
+-		flags2str(ifinfo->ifil_ifi.ifi_cflags, intf_cflags, _B_TRUE,
++		flags2str(ifinfo->ifi_cflags, intf_cflags, _B_TRUE,
+ 		    buf, bufsize);
+ 		break;
+ 	case SI_PERSISTENT:
+-		flags2str(ifinfo->ifil_ifi.ifi_pflags, intf_pflags, _B_TRUE,
++		flags2str(ifinfo->ifi_pflags, intf_pflags, _B_TRUE,
+ 		    buf, bufsize);
+ 		break;
+ 	default:
+@@ -1969,7 +2194,7 @@ do_show_if(int argc, char *argv[], const char *use)
+ 	ipadm_status_t		status;
+ 	show_if_state_t		state;
+ 	char			*fields_str = NULL;
+-	ipadm_if_info_list_t	*if_info, *ptr;
++	ipadm_if_info_t		*if_info, *ptr;
+ 	show_if_args_t		sargs;
+ 	int			option;
+ 	ofmt_handle_t		ofmt;
+@@ -2014,7 +2239,7 @@ do_show_if(int argc, char *argv[], const char *use)
+ 		    ipadm_status2str(status));
+ 	}
+ 
+-	for (ptr = if_info; ptr != NULL; ptr = ptr->ifil_next) {
++	for (ptr = if_info; ptr != NULL; ptr = ptr->ifi_next) {
+ 		sargs.si_info = ptr;
+ 		ofmt_print(state.si_ofmt, &sargs);
+ 	}
+diff --git a/usr/src/cmd/rcm_daemon/common/ip_rcm.c b/usr/src/cmd/rcm_daemon/common/ip_rcm.c
+index 7d2eeec9b7ba..3c86f2b86892 100644
+--- a/usr/src/cmd/rcm_daemon/common/ip_rcm.c
++++ b/usr/src/cmd/rcm_daemon/common/ip_rcm.c
+@@ -20,7 +20,7 @@
+  */
+ /*
+  * Copyright (c) 2000, 2010, Oracle and/or its affiliates. All rights reserved.
+- * Copyright 2021, Tintri by DDN. All rights reserved.
++ * Copyright 2021 Tintri by DDN, Inc. All rights reserved.
+  */
+ 
+ /*
+@@ -2374,7 +2374,7 @@ if_configure_ipadm(datalink_id_t linkid)
+ {
+ 	char ifinst[MAXLINKNAMELEN];
+ 	boolean_t found;
+-	ipadm_if_info_list_t *ifinfo, *ptr;
++	ipadm_if_info_t *ifinfo, *ptr;
+ 	ipadm_status_t status;
+ 
+ 	assert(linkid != DATALINK_INVALID_LINKID);
+@@ -2399,8 +2399,8 @@ if_configure_ipadm(datalink_id_t linkid)
+ 	}
+ 	if (ifinfo != NULL) {
+ 		found = B_FALSE;
+-		for (ptr = ifinfo; ptr != NULL; ptr = ptr->ifil_next) {
+-			if (strncmp(ptr->ifil_ifi.ifi_name, ifinst,
++		for (ptr = ifinfo; ptr != NULL; ptr = ptr->ifi_next) {
++			if (strncmp(ptr->ifi_name, ifinst,
+ 			    sizeof (ifinst)) == 0) {
+ 				found = B_TRUE;
+ 				break;
+diff --git a/usr/src/cmd/svc/milestone/net-init b/usr/src/cmd/svc/milestone/net-init
+index ad2ff3d9636f..ea59624007a5 100644
+--- a/usr/src/cmd/svc/milestone/net-init
++++ b/usr/src/cmd/svc/milestone/net-init
+@@ -23,6 +23,8 @@
+ # Copyright 2009 Sun Microsystems, Inc.  All rights reserved.
+ # Use is subject to license terms.
+ #
++# Copyright 2021 Tintri by DDN, Inc. All rights reserved.
++#
+ # This is the second phase of TCP/IP configuration.  The first part is
+ # run by the svc:/network/physical service and includes configuring the
+ # interfaces and setting the machine's hostname.  The svc:/network/initial
+@@ -38,8 +40,8 @@
+ 
+ #
+ # In a shared-IP zone we need this service to be up, but all of the work
+-# it tries to do is irrelevant (and will actually lead to the service 
+-# failing if we try to do it), so just bail out. 
++# it tries to do is irrelevant (and will actually lead to the service
++# failing if we try to do it), so just bail out.
+ # In the global zone and exclusive-IP zones we proceed.
+ #
+ smf_configure_ip || exit $SMF_EXIT_OK
+@@ -49,16 +51,6 @@ if [ -f /etc/inet/ipaddrsel.conf ]; then
+ 	/usr/sbin/ipaddrsel -f /etc/inet/ipaddrsel.conf
+ fi
+ 
+-#
+-# If explicit IPMP groups are being used, in.mpathd will already be started.
+-# However, if TRACK_INTERFACES_ONLY_WITH_GROUPS=no and no explicit IPMP
+-# groups have been configured, then it still needs to be started.  So, fire
+-# it up in "adopt" mode; if there are no interfaces it needs to manage, it
+-# will automatically exit.
+-#
+-/usr/bin/pgrep -x -u 0 -z `smf_zonename` in.mpathd >/dev/null 2>&1 || \
+-    /usr/lib/inet/in.mpathd -a
+-
+ #
+ # Set the RFC 1948 entropy, regardless of if I'm using it or not.  If present,
+ # use the encrypted root password as a source of entropy.  Otherwise,
+diff --git a/usr/src/cmd/svc/milestone/net-physical b/usr/src/cmd/svc/milestone/net-physical
+index 89784dcbbc19..2d7d76d9b0f7 100644
+--- a/usr/src/cmd/svc/milestone/net-physical
++++ b/usr/src/cmd/svc/milestone/net-physical
+@@ -19,12 +19,13 @@
+ #
+ # CDDL HEADER END
+ #
+-#
+-# Copyright (c) 1999, 2010, Oracle and/or its affiliates. All rights reserved.
+-# Copyright 2012 Milan Jurik. All rights reserved.
++
+ #
+ # Copyright (c) 1984, 1986, 1987, 1988, 1989 AT&T.
+ # All rights reserved.
++# Copyright (c) 1999, 2010, Oracle and/or its affiliates. All rights reserved.
++# Copyright 2012 Milan Jurik. All rights reserved.
++# Copyright 2021 Tintri by DDN, Inc. All rights reserved.
+ #
+ 
+ . /lib/svc/share/smf_include.sh
+@@ -32,8 +33,8 @@
+ 
+ #
+ # In a shared-IP zone we need this service to be up, but all of the work
+-# it tries to do is irrelevant (and will actually lead to the service 
+-# failing if we try to do it), so just bail out. 
++# it tries to do is irrelevant (and will actually lead to the service
++# failing if we try to do it), so just bail out.
+ # In the global zone and exclusive-IP zones we proceed.
+ #
+ smf_configure_ip || exit $SMF_EXIT_OK
+@@ -50,14 +51,14 @@ if smf_is_globalzone; then
+ 	# Update PVID on interfaces configured with VLAN 1
+ 	update_pvid
+ 
+-	# 
++	#
+ 	# Upgrade handling. The upgrade file consists of a series of dladm(1M)
+ 	# commands. Note that after we are done, we cannot rename the upgrade
+ 	# script file as the file system is still read-only at this point.
+ 	# Defer this to the manifest-import service.
+ 	#
+ 	upgrade_script=/var/svc/profile/upgrade_datalink
+-	if [ -f "${upgrade_script}" ]; then 
++	if [ -f "${upgrade_script}" ]; then
+ 		. "${upgrade_script}"
+ 	fi
+ 
+@@ -230,11 +231,11 @@ fi
+ if [ -n "$ipmp_list" ]; then
+ 	set -- $ipmp_list
+ 	while [ $# -gt 0 ]; do
+-	    	if /sbin/ifconfig $1 ipmp; then
++		if /sbin/ifconfig $1 ipmp; then
+ 			ipmp_created="$ipmp_created $1"
+ 		else
+ 			ipmp_failed="$ipmp_failed $1"
+-		fi	
++		fi
+ 		shift
+ 	done
+ 	[ -n "$ipmp_failed" ] && warn_failed_ifs "create IPv4 IPMP" \
+@@ -296,17 +297,32 @@ fi
+ if [ -n "$ipmp6_list" ]; then
+ 	set -- $ipmp6_list
+ 	while [ $# -gt 0 ]; do
+-	    	if /sbin/ifconfig $1 inet6 ipmp; then
++		if /sbin/ifconfig $1 inet6 ipmp; then
+ 			ipmp6_created="$ipmp6_created $1"
+ 		else
+ 			ipmp6_failed="$ipmp6_failed $1"
+- 		fi
++		fi
+ 		shift
+ 	done
+ 	[ -n "$ipmp6_failed" ] && warn_failed_ifs "create IPv6 IPMP" \
+ 	    "$ipmp6_failed"
+ fi
+ 
++#
++# Upgrade ipadm.conf.
++#
++if /usr/bin/grep -q _family /etc/ipadm/ipadm.conf; then
++	oldifs=$(/usr/bin/sed -En \
++	    's/^_ifname=([a-z0-9]+);_family=[0-9]+;$/\1/p' \
++	    /etc/ipadm/ipadm.conf | /usr/bin/sort -u)
++	/usr/bin/sed -i '/_family/d' /etc/ipadm/ipadm.conf
++	for oldif in $oldifs; do
++		/usr/bin/printf \
++		    "_ifname=%s;_ifclass=0;_families=2,26;\n" \
++		    $oldif >> /etc/ipadm/ipadm.conf
++	done
++fi
++
+ #
+ # Finally configure interfaces set up with ipadm. Any /etc/hostname*.intf
+ # files take precedence over ipadm defined configurations except when
+@@ -333,7 +349,7 @@ for showif_output in `/sbin/ipadm show-if -p -o ifname,state,current`; do
+ 			    "ignoring ipadm configuration" > /dev/msglog
+ 			continue;
+ 		else
+-			echo "Ignoring /etc/hostname*.$intf" > /dev/msglog 
++			echo "Ignoring /etc/hostname*.$intf" > /dev/msglog
+ 			/sbin/ifconfig $intf unplumb > /dev/null 2>&1
+ 			/sbin/ifconfig $intf inet6 unplumb > /dev/null 2>&1
+ 		fi
+@@ -524,7 +540,7 @@ fi
+ 
+ # Any non-loopback IPv4 interfaces with usable addresses up?
+ if [ -n "`/sbin/ifconfig -a4u`" ]; then
+-    	/sbin/ifconfig -a4u | while read intf addr rest; do
++	/sbin/ifconfig -a4u | while read intf addr rest; do
+ 		[ $intf = inet ] && [ $addr != 127.0.0.1 ] &&
+ 		[ $addr != 0.0.0.0 ] && exit $SMF_EXIT_OK
+ 	done && exit $SMF_EXIT_OK
+diff --git a/usr/src/lib/Makefile b/usr/src/lib/Makefile
+index f1e6b2115842..44aaf6a3df06 100644
+--- a/usr/src/lib/Makefile
++++ b/usr/src/lib/Makefile
+@@ -631,7 +631,8 @@ libidspace:	libumem
+ libinetsvc:	libscf
+ libinetutil:	libsocket
+ libinstzones:	libzonecfg libcontract
+-libipadm:	libinetutil libdlpi libdhcpagent libdladm libsecdb libdhcputil
++libipadm:	libinetutil libdlpi libdhcpagent libdladm libsecdb libdhcputil \
++		libcmdutils
+ libipmi:	libm libnvpair libsocket libnsl
+ libipmp:	libinetutil
+ libipsecutil:	libtecla libtsol libkmf
+diff --git a/usr/src/lib/libipadm/Makefile.com b/usr/src/lib/libipadm/Makefile.com
+index 80c052fffdc0..aed875db48a6 100644
+--- a/usr/src/lib/libipadm/Makefile.com
++++ b/usr/src/lib/libipadm/Makefile.com
+@@ -22,6 +22,7 @@
+ # Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+ # Copyright (c) 2016, Chris Fraire <cfraire@me.com>.
+ # Copyright (c) 2018, Joyent, Inc.
++# Copyright 2021 Tintri by DDN, Inc. All rights reserved.
+ #
+ 
+ LIBRARY = libipadm.a
+@@ -36,7 +37,7 @@ include ../../Makefile.rootfs
+ 
+ LIBS =		$(DYNLIB)
+ LDLIBS +=	-lc -linetutil -lsocket -ldlpi -lnvpair -ldhcpagent \
+-		-ldladm -lsecdb -ldhcputil
++		-ldladm -lsecdb -ldhcputil -lipmp -lcmdutils
+ 
+ SRCDIR =	../common
+ 
+diff --git a/usr/src/lib/libipadm/common/ipadm_addr.c b/usr/src/lib/libipadm/common/ipadm_addr.c
+index 4bca7ecb4fab..6bdfc487d33b 100644
+--- a/usr/src/lib/libipadm/common/ipadm_addr.c
++++ b/usr/src/lib/libipadm/common/ipadm_addr.c
+@@ -18,10 +18,12 @@
+  *
+  * CDDL HEADER END
+  */
++
+ /*
+  * Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+  * Copyright (c) 2013 by Delphix. All rights reserved.
+  * Copyright (c) 2016-2017, Chris Fraire <cfraire@me.com>.
++ * Copyright 2021 Tintri by DDN, Inc. All rights reserved.
+  */
+ 
+ /*
+@@ -282,8 +284,11 @@ i_ipadm_get_static_addr_db(ipadm_handle_t iph, ipadm_addrobj_t ipaddr)
+ 		    nvlist_exists(anvl, IPADM_NVP_IPV6ADDR))
+ 			break;
+ 	}
++	nvlist_free(onvl);
++
+ 	if (nvp == NULL)
+-		goto fail;
++		return (IPADM_NOTFOUND);
++
+ 	for (nvp = nvlist_next_nvpair(anvl, NULL);
+ 	    nvp != NULL; nvp = nvlist_next_nvpair(anvl, nvp)) {
+ 		name = nvpair_name(nvp);
+@@ -296,16 +301,13 @@ i_ipadm_get_static_addr_db(ipadm_handle_t iph, ipadm_addrobj_t ipaddr)
+ 		}
+ 	}
+ 	assert(af != AF_UNSPEC);
++
+ 	if (nvpair_value_nvlist(nvp, &nvladdr) != 0 ||
+ 	    nvlist_lookup_string(nvladdr, IPADM_NVP_IPADDRHNAME, &sname) != 0 ||
+-	    ipadm_set_addr(ipaddr, sname, af) != IPADM_SUCCESS) {
+-		goto fail;
+-	}
+-	nvlist_free(onvl);
++	    ipadm_set_addr(ipaddr, sname, af) != IPADM_SUCCESS)
++		return (IPADM_NOTFOUND);
++
+ 	return (IPADM_SUCCESS);
+-fail:
+-	nvlist_free(onvl);
+-	return (IPADM_NOTFOUND);
+ }
+ 
+ /*
+@@ -383,7 +385,7 @@ ipadm_delete_aobjname(ipadm_handle_t iph, const char *ifname, sa_family_t af,
+  * Gets all the addresses from active configuration and populates the
+  * address information in `addrinfo'.
+  */
+-static ipadm_status_t
++ipadm_status_t
+ i_ipadm_active_addr_info(ipadm_handle_t iph, const char *ifname,
+     ipadm_addr_info_t **addrinfo, uint32_t ipadm_flags, int64_t lifc_flags)
+ {
+@@ -1713,7 +1715,6 @@ ipadm_set_addrprop(ipadm_handle_t iph, const char *pname,
+ 	if ((pflags & IPADM_OPT_PERSIST) &&
+ 	    !(ipaddr.ipadm_flags & IPMGMT_PERSIST))
+ 		return (IPADM_TEMPORARY_OBJ);
+-
+ 	/*
+ 	 * Currently, setting an address property on an address object of type
+ 	 * IPADM_ADDR_IPV6_ADDRCONF is not supported. Supporting it involves
+@@ -2409,11 +2410,9 @@ ipadm_create_addrobj(ipadm_addr_type_t type, const char *aobjname,
+ 	/* Check if the interface name is valid. */
+ 	if (!ifparse_ifspec(ifname, &ifsp))
+ 		return (IPADM_INVALID_ARG);
+-
+ 	/* Check if the given addrobj name is valid. */
+ 	if (aname != NULL && !i_ipadm_is_user_aobjname_valid(aname))
+ 		return (IPADM_INVALID_ARG);
+-
+ 	if ((newaddr = calloc(1, sizeof (struct ipadm_addrobj_s))) == NULL)
+ 		return (IPADM_NO_MEMORY);
+ 
+@@ -2595,10 +2594,6 @@ i_ipadm_get_db_addr(ipadm_handle_t iph, const char *ifname,
+     const char *aobjname, nvlist_t **onvl)
+ {
+ 	ipmgmt_getaddr_arg_t	garg;
+-	ipmgmt_get_rval_t	*rvalp;
+-	int			err;
+-	size_t			nvlsize;
+-	char			*nvlbuf;
+ 
+ 	/* Populate the door_call argument structure */
+ 	bzero(&garg, sizeof (garg));
+@@ -2609,16 +2604,7 @@ i_ipadm_get_db_addr(ipadm_handle_t iph, const char *ifname,
+ 	if (ifname != NULL)
+ 		(void) strlcpy(garg.ia_ifname, ifname, sizeof (garg.ia_ifname));
+ 
+-	rvalp = malloc(sizeof (ipmgmt_get_rval_t));
+-	err = ipadm_door_call(iph, &garg, sizeof (garg), (void **)&rvalp,
+-	    sizeof (*rvalp), B_TRUE);
+-	if (err == 0) {
+-		nvlsize = rvalp->ir_nvlsize;
+-		nvlbuf = (char *)rvalp + sizeof (ipmgmt_get_rval_t);
+-		err = nvlist_unpack(nvlbuf, nvlsize, onvl, 0);
+-	}
+-	free(rvalp);
+-	return (ipadm_errno2status(err));
++	return (i_ipadm_call_ipmgmtd(iph, (void *) &garg, sizeof (garg), onvl));
+ }
+ 
+ /*
+@@ -2654,6 +2640,8 @@ ipadm_create_addr(ipadm_handle_t iph, ipadm_addrobj_t addr, uint32_t flags)
+ 	struct lifreq		lifr;
+ 	uint64_t		ifflags;
+ 	boolean_t		is_boot = (iph->iph_flags & IPH_IPMGMTD);
++	boolean_t		is_ipmp;
++	char			gifname[LIFGRNAMSIZ];
+ 
+ 	/* check for solaris.network.interface.config authorization */
+ 	if (!ipadm_check_auth())
+@@ -2663,7 +2651,6 @@ ipadm_create_addr(ipadm_handle_t iph, ipadm_addrobj_t addr, uint32_t flags)
+ 	status = i_ipadm_validate_create_addr(iph, addr, flags);
+ 	if (status != IPADM_SUCCESS)
+ 		return (status);
+-
+ 	/*
+ 	 * For Legacy case, check if an addrobj already exists for the
+ 	 * given logical interface name. If one does not exist,
+@@ -2798,6 +2785,17 @@ ipadm_create_addr(ipadm_handle_t iph, ipadm_addrobj_t addr, uint32_t flags)
+ 			return (IPADM_SUCCESS);
+ 	}
+ 
++	/*
++	 * If interface is an IPMP group member, move it out of the group before
++	 * performing any operations on it.
++	 */
++	if ((is_ipmp = i_ipadm_is_under_ipmp(iph, addr->ipadm_ifname))) {
++		(void) i_ipadm_get_groupname_active(iph, addr->ipadm_ifname,
++		    gifname, sizeof (gifname));
++		(void) i_ipadm_set_groupname_active(iph, addr->ipadm_ifname,
++		    "");
++	}
++
+ 	/* Create the address. */
+ 	type = addr->ipadm_atype;
+ 	switch (type) {
+@@ -2815,6 +2813,12 @@ ipadm_create_addr(ipadm_handle_t iph, ipadm_addrobj_t addr, uint32_t flags)
+ 		break;
+ 	}
+ 
++	/* Move the underlying IPMP interface back to the group */
++	if (is_ipmp) {
++		(void) i_ipadm_set_groupname_active(iph, addr->ipadm_ifname,
++		    gifname);
++	}
++
+ 	/*
+ 	 * If address was not created successfully, unplumb the interface
+ 	 * if it was plumbed implicitly in this function and remove the
+@@ -2887,25 +2891,10 @@ i_ipadm_create_addr(ipadm_handle_t iph, ipadm_addrobj_t ipaddr, uint32_t flags)
+ 	 * Create a new logical interface if needed; otherwise, just
+ 	 * use the 0th logical interface.
+ 	 */
+-retry:
+ 	if (!(iph->iph_flags & IPH_LEGACY)) {
+ 		status = i_ipadm_do_addif(iph, ipaddr);
+ 		if (status != IPADM_SUCCESS)
+ 			return (status);
+-		/*
+-		 * We don't have to set the lifnum for IPH_INIT case, because
+-		 * there is no placeholder created for the address object in
+-		 * this case. For IPH_LEGACY, we don't do this because the
+-		 * lifnum is given by the caller and it will be set in the
+-		 * end while we call the i_ipadm_addr_persist().
+-		 */
+-		if (!(iph->iph_flags & IPH_INIT)) {
+-			status = i_ipadm_setlifnum_addrobj(iph, ipaddr);
+-			if (status == IPADM_ADDROBJ_EXISTS)
+-				goto retry;
+-			if (status != IPADM_SUCCESS)
+-				return (status);
+-		}
+ 	}
+ 	i_ipadm_addrobj2lifname(ipaddr, lifr.lifr_name,
+ 	    sizeof (lifr.lifr_name));
+@@ -2929,7 +2918,18 @@ i_ipadm_create_addr(ipadm_handle_t iph, ipadm_addrobj_t ipaddr, uint32_t flags)
+ 	}
+ 
+ 	if (flags & IPADM_OPT_UP) {
+-		status = i_ipadm_set_flags(iph, lifr.lifr_name, af, IFF_UP, 0);
++		uint32_t	iff_flags = IFF_UP;
++
++		/*
++		 * Set the NOFAILOVER flag only on underlying IPMP interface
++		 * and not the IPMP group interface itself.
++		 */
++		if (i_ipadm_is_under_ipmp(iph, lifr.lifr_name) &&
++		    !i_ipadm_is_ipmp(iph, lifr.lifr_name))
++			iff_flags |= IFF_NOFAILOVER;
++
++		status = i_ipadm_set_flags(iph, lifr.lifr_name,
++		    af, iff_flags, 0);
+ 
+ 		/*
+ 		 * IPADM_DAD_FOUND is a soft-error for create-addr.
+@@ -2964,6 +2964,7 @@ i_ipadm_create_addr(ipadm_handle_t iph, ipadm_addrobj_t ipaddr, uint32_t flags)
+ ret:
+ 	if (status != IPADM_SUCCESS && !legacy)
+ 		(void) i_ipadm_delete_addr(iph, ipaddr);
++
+ 	return (status);
+ }
+ 
+@@ -2990,6 +2991,8 @@ ipadm_delete_addr(ipadm_handle_t iph, const char *aobjname, uint32_t flags)
+ 	ipadm_status_t		status;
+ 	struct ipadm_addrobj_s	ipaddr;
+ 	boolean_t		release = ((flags & IPADM_OPT_RELEASE) != 0);
++	boolean_t		is_ipmp = B_FALSE;
++	char			gifname[LIFGRNAMSIZ];
+ 
+ 	/* check for solaris.network.interface.config authorization */
+ 	if (!ipadm_check_auth())
+@@ -3028,6 +3031,19 @@ ipadm_delete_addr(ipadm_handle_t iph, const char *aobjname, uint32_t flags)
+ 	 * kernel.
+ 	 */
+ 	if (ipaddr.ipadm_flags & IPMGMT_ACTIVE) {
++
++		/*
++		 * If interface is an IPMP group member, move it out of the
++		 * group before performing any operations on it.
++		 */
++		if ((is_ipmp = i_ipadm_is_under_ipmp(iph,
++		    ipaddr.ipadm_ifname))) {
++			(void) i_ipadm_get_groupname_active(iph,
++			    ipaddr.ipadm_ifname, gifname, sizeof (gifname));
++			(void) i_ipadm_set_groupname_active(iph,
++			    ipaddr.ipadm_ifname, "");
++		}
++
+ 		switch (ipaddr.ipadm_atype) {
+ 		case IPADM_ADDR_STATIC:
+ 			status = i_ipadm_delete_addr(iph, &ipaddr);
+@@ -3056,7 +3072,7 @@ ipadm_delete_addr(ipadm_handle_t iph, const char *aobjname, uint32_t flags)
+ 		if (status == IPADM_ENXIO)
+ 			status = IPADM_SUCCESS;
+ 		else if (status != IPADM_SUCCESS)
+-			return (status);
++			goto out;
+ 	}
+ 
+ 	if (!(ipaddr.ipadm_flags & IPMGMT_PERSIST) &&
+@@ -3064,9 +3080,22 @@ ipadm_delete_addr(ipadm_handle_t iph, const char *aobjname, uint32_t flags)
+ 		flags &= ~IPADM_OPT_PERSIST;
+ 	}
+ 	status = i_ipadm_delete_addrobj(iph, &ipaddr, flags);
+-	if (status == IPADM_NOTFOUND)
+-		return (status);
+-	return (IPADM_SUCCESS);
++
++	if (status != IPADM_NOTFOUND)
++		status = IPADM_SUCCESS;
++
++out:
++	/*
++	 * Move the underlying IPMP interface back to the group.
++	 * This cannot be done until the persistent configuration has been
++	 * deleted as it will otherwise cause the active configuration to be
++	 * restored.
++	 */
++	if (is_ipmp) {
++		(void) i_ipadm_set_groupname_active(iph,
++		    ipaddr.ipadm_ifname, gifname);
++	}
++	return (status);
+ }
+ 
+ /*
+@@ -3568,15 +3597,18 @@ i_ipadm_updown_common(ipadm_handle_t iph, const char *aobjname,
+ 
+ 	if (!(ipaddr->ipadm_flags & IPMGMT_ACTIVE))
+ 		return (IPADM_OP_DISABLE_OBJ);
++
+ 	if ((ipadm_flags & IPADM_OPT_PERSIST) &&
+ 	    !(ipaddr->ipadm_flags & IPMGMT_PERSIST))
+ 		return (IPADM_TEMPORARY_OBJ);
++
+ 	if (ipaddr->ipadm_atype == IPADM_ADDR_IPV6_ADDRCONF ||
+ 	    (ipaddr->ipadm_atype == IPADM_ADDR_DHCP &&
+ 	    (ipadm_flags & IPADM_OPT_PERSIST)))
+ 		return (IPADM_NOTSUP);
+ 
+ 	i_ipadm_addrobj2lifname(ipaddr, lifname, sizeof (lifname));
++
+ 	return (i_ipadm_get_flags(iph, lifname, ipaddr->ipadm_af, ifflags));
+ }
+ 
+@@ -3803,8 +3835,13 @@ i_ipadm_validate_create_addr(ipadm_handle_t iph, ipadm_addrobj_t ipaddr,
+ 
+ 	ifname = ipaddr->ipadm_ifname;
+ 
+-	if (i_ipadm_is_ipmp(iph, ifname) || i_ipadm_is_under_ipmp(iph, ifname))
+-		return (IPADM_NOTSUP);
++	/*
++	 * Do not go further when we are under ipmp.
++	 * The interface is plumbed up and we are going to add
++	 * NOFAILOVER address to make in.mpathd happy.
++	 */
++	if (i_ipadm_is_under_ipmp(iph, ifname))
++		return (IPADM_SUCCESS);
+ 
+ 	af = ipaddr->ipadm_af;
+ 	af_exists = ipadm_if_enabled(iph, ifname, af);
+@@ -3828,16 +3865,10 @@ i_ipadm_validate_create_addr(ipadm_handle_t iph, ipadm_addrobj_t ipaddr,
+ 	status = i_ipadm_if_pexists(iph, ifname, af, &p_exists);
+ 	if (status != IPADM_SUCCESS)
+ 		return (status);
++
+ 	if (!a_exists && p_exists)
+ 		return (IPADM_OP_DISABLE_OBJ);
+-	if ((flags & IPADM_OPT_PERSIST) && a_exists && !p_exists) {
+-		/*
+-		 * If address has to be created persistently,
+-		 * and the interface does not exist in the persistent
+-		 * store but in active config, fail.
+-		 */
+-		return (IPADM_TEMPORARY_OBJ);
+-	}
++
+ 	if (af_exists) {
+ 		status = i_ipadm_get_flags(iph, ifname, af, &ifflags);
+ 		if (status != IPADM_SUCCESS)
+@@ -3957,6 +3988,8 @@ ipadm_enable_addr(ipadm_handle_t iph, const char *aobjname, uint32_t flags)
+ 
+ 	for (nvp = nvlist_next_nvpair(addrnvl, NULL); nvp != NULL;
+ 	    nvp = nvlist_next_nvpair(addrnvl, nvp)) {
++		boolean_t set_init = B_FALSE;
++
+ 		if (nvpair_value_nvlist(nvp, &nvl) != 0)
+ 			continue;
+ 
+@@ -3968,9 +4001,27 @@ ipadm_enable_addr(ipadm_handle_t iph, const char *aobjname, uint32_t flags)
+ 			if (status != IPADM_SUCCESS)
+ 				continue;
+ 		}
+-		iph->iph_flags |= IPH_INIT;
++
++		/*
++		 * ipadm_enable_addr() is never a persistent operation. We need
++		 * to set IPH_INIT because ipmgmtd daemon does not have to write
++		 * the address to the persistent db. The address is already
++		 * available in the persistent db and we are here to re-enable
++		 * the persistent configuration.
++		 *
++		 * But we need to make sure we're not accidentally clearing an
++		 * IPH_INIT flag that was already set when we were called.
++		 */
++		if ((iph->iph_flags & IPH_INIT) == 0) {
++			iph->iph_flags |= IPH_INIT;
++			set_init = B_TRUE;
++		}
++
+ 		status = i_ipadm_init_addrobj(iph, nvl);
+-		iph->iph_flags &= ~IPH_INIT;
++
++		if (set_init)
++			iph->iph_flags &= ~IPH_INIT;
++
+ 		if (status != IPADM_SUCCESS)
+ 			break;
+ 	}
+diff --git a/usr/src/lib/libipadm/common/ipadm_if.c b/usr/src/lib/libipadm/common/ipadm_if.c
+index c140f4ca4064..73508c0d34ac 100644
+--- a/usr/src/lib/libipadm/common/ipadm_if.c
++++ b/usr/src/lib/libipadm/common/ipadm_if.c
+@@ -18,13 +18,15 @@
+  *
+  * CDDL HEADER END
+  */
++
+ /*
+  * Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+- * Copyright 2021, Tintry by DDN. All rights reserved.
++ * Copyright 2021 Tintri by DDN, Inc. All rights reserved.
+  */
+ 
+ #include <errno.h>
+ #include <sys/sockio.h>
++#include <sys/list.h>
+ #include <string.h>
+ #include <assert.h>
+ #include <unistd.h>
+@@ -37,6 +39,7 @@
+ #include <limits.h>
+ #include <zone.h>
+ #include <ipadm_ndpd.h>
++#include <ipmp_query.h>
+ #include "libipadm_impl.h"
+ 
+ static ipadm_status_t	i_ipadm_slifname_arp(char *, uint64_t, int);
+@@ -45,7 +48,22 @@ static ipadm_status_t	i_ipadm_slifname(ipadm_handle_t, char *, char *,
+ static ipadm_status_t	i_ipadm_create_ipmp_peer(ipadm_handle_t, char *,
+ 			    sa_family_t);
+ static ipadm_status_t	i_ipadm_persist_if(ipadm_handle_t, const char *,
+-			    sa_family_t);
++			    sa_family_t, uint32_t);
++static ipadm_status_t   i_ipadm_allocate_ifinfo(ipadm_if_info_t **);
++static ipadm_status_t	i_ipadm_get_db_if(ipadm_handle_t, const char *,
++			    nvlist_t **);
++static ipadm_status_t i_ipadm_nvl2ifinfo(nvlist_t *, ipadm_if_info_t **);
++static ipadm_status_t i_ipadm_fill_cmembers(char *, ipadm_ipmp_members_t *);
++static ipadm_status_t i_ipadm_fill_pmembers(nvlist_t *, ipadm_ipmp_members_t *);
++static ipadm_status_t i_ipadm_add_persistent_if_info(ipadm_if_info_t *,
++		    ipadm_if_info_t *);
++static void i_ipadm_free_ipmp_members(ipadm_ipmp_members_t *);
++static ipadm_status_t i_ipadm_persist_update_ipmp(ipadm_handle_t, const char *,
++	const char *,
++	ipadm_ipmp_op_t);
++static ipadm_status_t i_ipadm_update_ipmp(ipadm_handle_t, const char *,
++	const char *, uint32_t,
++	ipadm_ipmp_op_t);
+ 
+ /*
+  * Returns B_FALSE if the interface in `ifname' has at least one address that is
+@@ -83,17 +101,17 @@ i_ipadm_is_if_down(char *ifname, struct ifaddrs *ifa)
+  */
+ static ipadm_status_t
+ i_ipadm_active_if_info(ipadm_handle_t iph, const char *ifname,
+-    ipadm_if_info_list_t **if_info, int64_t lifc_flags)
++    ipadm_if_info_t **if_info, int64_t lifc_flags)
+ {
+ 	struct lifreq	*buf;
+ 	struct lifreq	*lifrp;
+ 	struct lifreq	lifrl;
+-	ipadm_if_info_list_t *ifl, *last = NULL;
++	ipadm_if_info_t	*last = NULL;
+ 	ipadm_if_info_t	*ifp;
+ 	int		s;
+ 	int		n;
+ 	int		numifs;
+-	ipadm_status_t	status;
++	ipadm_status_t	status = IPADM_SUCCESS;
+ 
+ 	*if_info = NULL;
+ 	/*
+@@ -118,26 +136,23 @@ i_ipadm_active_if_info(ipadm_handle_t iph, const char *ifname,
+ 		 * Check if the interface already exists in our list.
+ 		 * If it already exists, we need to update its flags.
+ 		 */
+-		for (ifl = *if_info; ifl != NULL; ifl = ifl->ifil_next) {
+-			ifp = &ifl->ifil_ifi;
++		for (ifp = *if_info; ifp != NULL; ifp = ifp->ifi_next) {
+ 			if (strcmp(lifrp->lifr_name, ifp->ifi_name) == 0)
+ 				break;
+ 		}
+-		if (ifl == NULL) {
+-			ifl = calloc(1, sizeof (ipadm_if_info_list_t));
+-			if (ifl == NULL) {
+-				status = ipadm_errno2status(errno);
+-				goto fail;
+-			}
+-			ifp = &ifl->ifil_ifi;
++		if (ifp == NULL) {
++			if ((status =
++			    i_ipadm_allocate_ifinfo(&ifp)) != IPADM_SUCCESS)
++					break;
++
+ 			(void) strlcpy(ifp->ifi_name, lifrp->lifr_name,
+ 			    sizeof (ifp->ifi_name));
+-			/* Update the `ifil_next' pointer for this new node */
++			/* Update the `ifi_next' pointer for this new node */
+ 			if (*if_info == NULL)
+-				*if_info = ifl;
++				*if_info = ifp;
+ 			else
+-				last->ifil_next = ifl;
+-			last = ifl;
++				last->ifi_next = ifp;
++			last = ifp;
+ 		}
+ 
+ 		/*
+@@ -150,16 +165,24 @@ i_ipadm_active_if_info(ipadm_handle_t iph, const char *ifname,
+ 		    iph->iph_sock : iph->iph_sock6;
+ 		if (ioctl(s, SIOCGLIFFLAGS, (caddr_t)&lifrl) < 0)
+ 			continue;
++
++		/* a regular interface by default */
++		ifp->ifi_class = IPADM_IF_CLASS_REGULAR;
++
+ 		if (lifrl.lifr_flags & IFF_BROADCAST)
+ 			ifp->ifi_cflags |= IFIF_BROADCAST;
+ 		if (lifrl.lifr_flags & IFF_MULTICAST)
+ 			ifp->ifi_cflags |= IFIF_MULTICAST;
+ 		if (lifrl.lifr_flags & IFF_POINTOPOINT)
+ 			ifp->ifi_cflags |= IFIF_POINTOPOINT;
+-		if (lifrl.lifr_flags & IFF_VIRTUAL)
++		if (lifrl.lifr_flags & IFF_VIRTUAL) {
+ 			ifp->ifi_cflags |= IFIF_VIRTUAL;
+-		if (lifrl.lifr_flags & IFF_IPMP)
++			ifp->ifi_class = IPADM_IF_CLASS_VIRTUAL;
++		}
++		if (lifrl.lifr_flags & IFF_IPMP) {
+ 			ifp->ifi_cflags |= IFIF_IPMP;
++			ifp->ifi_class = IPADM_IF_CLASS_IPMP;
++		}
+ 		if (lifrl.lifr_flags & IFF_STANDBY)
+ 			ifp->ifi_cflags |= IFIF_STANDBY;
+ 		if (lifrl.lifr_flags & IFF_INACTIVE)
+@@ -174,13 +197,25 @@ i_ipadm_active_if_info(ipadm_handle_t iph, const char *ifname,
+ 			ifp->ifi_cflags |= IFIF_IPV6;
+ 		if (lifrl.lifr_flags & IFF_L3PROTECT)
+ 			ifp->ifi_cflags |= IFIF_L3PROTECT;
++
++		/*
++		 * Retrieve active IPMP members. This may fail in in.mpathd if
++		 * the IPMP interface has just been created with no members.
++		 * Hence, ignore errors, cmembers will just be empty.
++		 */
++		if (ifp->ifi_class == IPADM_IF_CLASS_IPMP) {
++			if (ioctl(s, SIOCGLIFGROUPNAME, (caddr_t)&lifrl) == 0) {
++				(void) i_ipadm_fill_cmembers(
++				    lifrl.lifr_groupname,
++				    &ifp->ifi_ipmp_cmembers);
++			}
++		}
+ 	}
+ 	free(buf);
+-	return (IPADM_SUCCESS);
+-fail:
+-	free(buf);
+-	ipadm_free_if_info(*if_info);
+-	*if_info = NULL;
++	if (status != IPADM_SUCCESS) {
++		ipadm_free_if_info(*if_info);
++		*if_info = NULL;
++	}
+ 	return (status);
+ }
+ 
+@@ -191,53 +226,152 @@ i_ipadm_active_if_info(ipadm_handle_t iph, const char *ifname,
+  */
+ static ipadm_status_t
+ i_ipadm_persist_if_info(ipadm_handle_t iph, const char *ifname,
+-    ipadm_if_info_list_t **if_info)
++    ipadm_if_info_t **if_info)
+ {
+-	ipadm_status_t		status = IPADM_SUCCESS;
+-	ipmgmt_getif_arg_t	getif;
+-	ipmgmt_getif_rval_t	*rvalp;
+-	ipadm_if_info_t		*ifp;
+-	ipadm_if_info_list_t	*curr, *prev = NULL;
+-	int			i = 0, err = 0;
+-
+-	bzero(&getif, sizeof (getif));
+-	if (ifname != NULL)
+-		(void) strlcpy(getif.ia_ifname, ifname, LIFNAMSIZ);
+-	getif.ia_cmd = IPMGMT_CMD_GETIF;
++	ipadm_status_t	status = IPADM_SUCCESS;
++	nvlist_t	*ifs_info_nvl;
+ 
+ 	*if_info = NULL;
+ 
+-	if ((rvalp = malloc(sizeof (ipmgmt_getif_rval_t))) == NULL)
+-		return (ipadm_errno2status(errno));
+-	err = ipadm_door_call(iph, &getif, sizeof (getif), (void **)&rvalp,
+-	    sizeof (*rvalp), B_TRUE);
+-	if (err == ENOENT) {
+-		free(rvalp);
+-		if (ifname != NULL)
+-			return (ipadm_errno2status(err));
+-		return (IPADM_SUCCESS);
+-	} else if (err != 0) {
+-		free(rvalp);
+-		return (ipadm_errno2status(err));
+-	}
++	if ((status = i_ipadm_get_db_if(iph,
++	    ifname, &ifs_info_nvl)) != IPADM_SUCCESS)
++		return (status);
+ 
+-	ifp = rvalp->ir_ifinfo;
+-	for (i = 0; i < rvalp->ir_ifcnt; i++) {
+-		ifp = rvalp->ir_ifinfo + i;
+-		if ((curr = malloc(sizeof (*curr))) == NULL) {
+-			status = ipadm_errno2status(errno);
+-			ipadm_free_if_info(prev);
++	assert(ifs_info_nvl != NULL);
++
++	return (i_ipadm_nvl2ifinfo(ifs_info_nvl, if_info));
++}
++
++static ipadm_status_t
++i_ipadm_nvl2ifinfo(nvlist_t *ifs_info_nvl, ipadm_if_info_t **if_info)
++{
++	ipadm_if_info_t *ific = NULL, *ifil = NULL;
++	nvlist_t	*if_info_nvl;
++	nvpair_t	*nvp;
++	char		*strval;
++	ipadm_status_t	status = IPADM_SUCCESS;
++	uint16_t	*families;
++	uint_t		nelem = 0;
++
++	for (nvp = nvlist_next_nvpair(ifs_info_nvl, NULL); nvp != NULL;
++	    nvp = nvlist_next_nvpair(ifs_info_nvl, nvp)) {
++		if (nvpair_value_nvlist(nvp, &if_info_nvl) != 0)
++			continue;
++
++		status = i_ipadm_allocate_ifinfo(&ific);
++		if (status != IPADM_SUCCESS) {
++			ipadm_free_if_info(*if_info);
+ 			break;
+ 		}
+-		(void) bcopy(ifp, &curr->ifil_ifi, sizeof (*ifp));
+-		curr->ifil_next = prev;
+-		prev = curr;
++		if (nvlist_lookup_string(if_info_nvl, IPADM_NVP_IFNAME,
++		    &strval) != 0) {
++			ipadm_free_if_info(ific);
++			ific = NULL;
++			continue;
++		}
++		(void) strlcpy(ific->ifi_name, strval,
++		    sizeof (ific->ifi_name));
++
++		if (nvlist_lookup_uint16_array(if_info_nvl,
++		    IPADM_NVP_FAMILIES, &families, &nelem) == 0) {
++			while (nelem-- > 0) {
++				if (families[nelem] == AF_INET)
++					ific->ifi_pflags |= IFIF_IPV4;
++				else if (families[nelem] == AF_INET6)
++					ific->ifi_pflags |= IFIF_IPV6;
++			}
++		}
++
++		if (nvlist_lookup_string(if_info_nvl,
++		    IPADM_NVP_IFCLASS, &strval) == 0)
++			ific->ifi_class = atoi(strval);
++		else
++			ific->ifi_class = IPADM_IF_CLASS_REGULAR;
++
++		if (ific->ifi_class == IPADM_IF_CLASS_IPMP)
++			/* do not expect any failures there */
++			(void) i_ipadm_fill_pmembers(if_info_nvl,
++			    &ific->ifi_ipmp_pmembers);
++
++		if (*if_info == NULL)
++			*if_info = ific;
++		else
++			ifil->ifi_next = ific;
++		ifil = ific;
+ 	}
+-	*if_info = curr;
+-	free(rvalp);
++
++	nvlist_free(ifs_info_nvl);
+ 	return (status);
+ }
+ 
++/*
++ * Fill the ipadm_if_info_t->ifi_ipmp_pmembers by info from
++ * ipadm DB
++ */
++static ipadm_status_t
++i_ipadm_fill_pmembers(nvlist_t *if_info_nvl, ipadm_ipmp_members_t *pmembers)
++{
++	uint_t	nelem = 0;
++	char	**members;
++	ipadm_ipmp_member_t *ipmp_member;
++
++	if (nvlist_lookup_string_array(if_info_nvl, IPADM_NVP_MIFNAMES,
++	    &members, &nelem) != 0)
++		return (IPADM_SUCCESS);
++
++	while (nelem-- > 0) {
++		if ((ipmp_member = calloc(1,
++		    sizeof (ipadm_ipmp_member_t))) == NULL)
++			return (ipadm_errno2status(errno));
++
++		(void) strlcpy(ipmp_member->if_name, members[nelem],
++		    sizeof (ipmp_member->if_name));
++		list_insert_tail(pmembers, ipmp_member);
++	}
++	return (IPADM_SUCCESS);
++}
++
++/*
++ * Fill the ipadm_if_info_t->ifi_ipmp_cmembers by info from
++ * kernel (libipmp is used to retrieve the required info)
++ */
++static ipadm_status_t
++i_ipadm_fill_cmembers(char *grname, ipadm_ipmp_members_t *cmembers)
++{
++	ipmp_handle_t ipmp_handle;
++	ipmp_groupinfo_t *grinfo;
++	ipmp_iflist_t *iflistp;
++	ipadm_ipmp_member_t *ipmp_member;
++	ipadm_status_t ipadm_status = IPADM_SUCCESS;
++	int i;
++
++	if (ipmp_open(&ipmp_handle) != IPMP_SUCCESS)
++		return (IPADM_FAILURE);
++
++	if (ipmp_getgroupinfo(ipmp_handle, grname, &grinfo) != IPMP_SUCCESS) {
++		ipadm_status = IPADM_FAILURE;
++		goto fail2;
++	}
++
++	iflistp = grinfo->gr_iflistp;
++	for (i = 0; i < iflistp->il_nif; i++) {
++		if ((ipmp_member = calloc(1,
++		    sizeof (ipadm_ipmp_member_t))) == NULL) {
++			ipadm_status = ipadm_errno2status(errno);
++			goto fail1;
++		}
++		(void) strlcpy(ipmp_member->if_name, iflistp->il_ifs[i],
++		    sizeof (ipmp_member->if_name));
++		list_insert_tail(cmembers, ipmp_member);
++	}
++
++fail1:
++	ipmp_freegroupinfo(grinfo);
++fail2:
++	ipmp_close(ipmp_handle);
++	return (ipadm_status);
++}
++
+ /*
+  * Collects information for `ifname' if one is specified from both
+  * active and persistent config in `if_info'. If no `ifname' is specified,
+@@ -246,16 +380,14 @@ i_ipadm_persist_if_info(ipadm_handle_t iph, const char *ifname,
+  */
+ ipadm_status_t
+ i_ipadm_get_all_if_info(ipadm_handle_t iph, const char *ifname,
+-    ipadm_if_info_list_t **if_info, int64_t lifc_flags)
++    ipadm_if_info_t **if_info, int64_t lifc_flags)
+ {
+ 	ipadm_status_t	status;
+-	ipadm_if_info_list_t *aifinfo = NULL;
+-	ipadm_if_info_list_t *pifinfo = NULL;
+-	ipadm_if_info_list_t *last = NULL;
+-	ipadm_if_info_list_t *aifl;
+-	ipadm_if_info_list_t *pifl;
++	ipadm_if_info_t	*aifinfo = NULL;
++	ipadm_if_info_t	*pifinfo = NULL;
+ 	ipadm_if_info_t	*aifp;
+ 	ipadm_if_info_t	*pifp;
++	ipadm_if_info_t	*last = NULL;
+ 	struct ifaddrs	*ifa;
+ 	struct ifaddrs	*ifap;
+ 
+@@ -275,9 +407,7 @@ i_ipadm_get_all_if_info(ipadm_handle_t iph, const char *ifname,
+ 			status = ipadm_errno2status(errno);
+ 			goto fail;
+ 		}
+-		for (aifl = aifinfo; aifl != NULL; aifl = aifl->ifil_next) {
+-			aifp = &aifl->ifil_ifi;
+-
++		for (aifp = aifinfo; aifp != NULL; aifp = aifp->ifi_next) {
+ 			/*
+ 			 * Find the `ifaddrs' structure from `ifa'
+ 			 * for this interface. We need the IFF_* flags
+@@ -307,8 +437,8 @@ i_ipadm_get_all_if_info(ipadm_handle_t iph, const char *ifname,
+ 				aifp->ifi_state = IFIS_DOWN;
+ 			else
+ 				aifp->ifi_state = IFIS_OK;
+-			if (aifl->ifil_next == NULL)
+-				last = aifl;
++			if (aifp->ifi_next == NULL)
++				last = aifp;
+ 		}
+ 		freeifaddrs(ifa);
+ 	}
+@@ -322,37 +452,55 @@ i_ipadm_get_all_if_info(ipadm_handle_t iph, const char *ifname,
+ 	}
+ 	if (status != IPADM_SUCCESS)
+ 		goto fail;
++
+ 	/*
+-	 * If a persistent interface is also found in `aifinfo', update
++	 * Process the persistent interface information.
++	 *
++	 * First try to get the persistent "standby" property, as that isn't
++	 * retrieved by i_ipadm_persist_if_info().
++	 *
++	 * Next, if a persistent interface is also found in `aifinfo', update
+ 	 * its entry in `aifinfo' with the persistent information from
+ 	 * `pifinfo'. If an interface is found in `pifinfo', but not in
+ 	 * `aifinfo', it means that this interface was disabled. We should
+ 	 * add this interface to `aifinfo' and set it state to IFIF_DISABLED.
+ 	 */
+-	for (pifl = pifinfo; pifl != NULL; pifl = pifl->ifil_next) {
+-		pifp = &pifl->ifil_ifi;
+-		for (aifl = aifinfo; aifl != NULL; aifl = aifl->ifil_next) {
+-			aifp = &aifl->ifil_ifi;
++	for (pifp = pifinfo; pifp != NULL; pifp = pifp->ifi_next) {
++		char buf[10] = "";
++		uint_t bufsize = sizeof (buf);
++
++		status = ipadm_get_ifprop(iph, pifp->ifi_name, "standby", buf,
++		    &bufsize, MOD_PROTO_IP, IPADM_OPT_PERSIST);
++
++		if (status == IPADM_SUCCESS && strcmp(buf, "on") == 0)
++			pifp->ifi_pflags |= IFIF_STANDBY;
++
++		for (aifp = aifinfo; aifp != NULL; aifp = aifp->ifi_next) {
+ 			if (strcmp(aifp->ifi_name, pifp->ifi_name) == 0) {
+-				aifp->ifi_pflags = pifp->ifi_pflags;
+ 				break;
+ 			}
+ 		}
+-		if (aifl == NULL) {
+-			aifl = malloc(sizeof (ipadm_if_info_list_t));
+-			if (aifl == NULL) {
+-				status = ipadm_errno2status(errno);
++
++		if (aifp == NULL) {
++			if ((status =
++			    i_ipadm_allocate_ifinfo(&aifp)) != IPADM_SUCCESS)
+ 				goto fail;
+-			}
+-			*aifl = *pifl;
+-			aifl->ifil_next = NULL;
+-			aifl->ifil_ifi.ifi_state = IFIS_DISABLED;
++
++			(void) strlcpy(aifp->ifi_name, pifp->ifi_name,
++			    sizeof (aifp->ifi_name));
++
++			aifp->ifi_next = NULL;
++			aifp->ifi_state = IFIS_DISABLED;
+ 			if (last != NULL)
+-				last->ifil_next = aifl;
++				last->ifi_next = aifp;
+ 			else
+-				aifinfo = aifl;
+-			last = aifl;
++				aifinfo = aifp;
++			last = aifp;
+ 		}
++
++		if ((status = i_ipadm_add_persistent_if_info(aifp,
++		    pifp)) != IPADM_SUCCESS)
++			goto fail;
+ 	}
+ 	*if_info = aifinfo;
+ 	ipadm_free_if_info(pifinfo);
+@@ -364,6 +512,75 @@ i_ipadm_get_all_if_info(ipadm_handle_t iph, const char *ifname,
+ 	return (status);
+ }
+ 
++/*
++ * Updates active if_info by data from persistent if_info
++ */
++static ipadm_status_t
++i_ipadm_add_persistent_if_info(ipadm_if_info_t *aifp, ipadm_if_info_t *pifp)
++{
++	ipadm_ipmp_member_t *pp_ipmp_member, *ap_ipmp_member;
++
++	ipadm_ipmp_members_t *apmembers = &aifp->ifi_ipmp_pmembers;
++	ipadm_ipmp_members_t *ppmembers = &pifp->ifi_ipmp_pmembers;
++
++	aifp->ifi_pflags = pifp->ifi_pflags;
++	aifp->ifi_class = pifp->ifi_class;
++
++	for (pp_ipmp_member = list_head(ppmembers); pp_ipmp_member;
++	    pp_ipmp_member = list_next(ppmembers, pp_ipmp_member)) {
++		if ((ap_ipmp_member = calloc(1,
++		    sizeof (ipadm_ipmp_member_t))) == NULL)
++			return (ipadm_errno2status(errno));
++
++		(void) strlcpy(ap_ipmp_member->if_name,
++		    pp_ipmp_member->if_name,
++		    sizeof (ap_ipmp_member->if_name));
++
++		list_insert_tail(apmembers, ap_ipmp_member);
++	}
++	return (IPADM_SUCCESS);
++}
++
++static ipadm_status_t
++i_ipadm_allocate_ifinfo(ipadm_if_info_t **if_info)
++{
++	*if_info = calloc(1, sizeof (ipadm_if_info_t));
++	if (*if_info == NULL)
++		return (ipadm_errno2status(errno));
++
++	/* List of active (current) members */
++	list_create(&((*if_info)->ifi_ipmp_cmembers),
++	    sizeof (ipadm_ipmp_member_t),
++	    offsetof(ipadm_ipmp_member_t, node));
++
++	/* List of persistent members */
++	list_create(&((*if_info)->ifi_ipmp_pmembers),
++	    sizeof (ipadm_ipmp_member_t),
++	    offsetof(ipadm_ipmp_member_t, node));
++
++	return (IPADM_SUCCESS);
++}
++
++/*
++ * Reads all the interface lines from the persistent DB into the nvlist `onvl',
++ * when `ifname' is NULL.
++ * If an `ifname' is specified, then the interface line corresponding to
++ * that name will be returned.
++ */
++static ipadm_status_t
++i_ipadm_get_db_if(ipadm_handle_t iph, const char *ifname, nvlist_t **onvl)
++{
++	ipmgmt_getif_arg_t	garg;
++
++	/* Populate the door_call argument structure */
++	bzero(&garg, sizeof (garg));
++	garg.ia_cmd = IPMGMT_CMD_GETIF;
++	if (ifname != NULL)
++		(void) strlcpy(garg.ia_ifname, ifname, sizeof (garg.ia_ifname));
++
++	return (i_ipadm_call_ipmgmtd(iph, (void *) &garg, sizeof (garg), onvl));
++}
++
+ int
+ i_ipadm_get_lnum(const char *ifname)
+ {
+@@ -385,7 +602,7 @@ ipadm_status_t
+ i_ipadm_if_pexists(ipadm_handle_t iph, const char *ifname, sa_family_t af,
+     boolean_t *exists)
+ {
+-	ipadm_if_info_list_t	*ifinfo;
++	ipadm_if_info_t	*ifinfo;
+ 	ipadm_status_t	status;
+ 
+ 	/*
+@@ -400,10 +617,10 @@ i_ipadm_if_pexists(ipadm_handle_t iph, const char *ifname, sa_family_t af,
+ 	status = i_ipadm_persist_if_info(iph, ifname, &ifinfo);
+ 	if (status == IPADM_SUCCESS) {
+ 		*exists = ((af == AF_INET &&
+-		    (ifinfo->ifil_ifi.ifi_pflags & IFIF_IPV4)) ||
++		    (ifinfo->ifi_pflags & IFIF_IPV4)) ||
+ 		    (af == AF_INET6 &&
+-		    (ifinfo->ifil_ifi.ifi_pflags & IFIF_IPV6)));
+-		free(ifinfo);
++		    (ifinfo->ifi_pflags & IFIF_IPV6)));
++		ipadm_free_if_info(ifinfo);
+ 	} else if (status == IPADM_NOTFOUND) {
+ 		status = IPADM_SUCCESS;
+ 		*exists = B_FALSE;
+@@ -742,7 +959,8 @@ i_ipadm_plumb_if(ipadm_handle_t iph, char *ifname, sa_family_t af,
+ 			if (ioctl(sock, SIOCSLIFADDR, (caddr_t)&lifr) < 0)
+ 				return (ipadm_errno2status(errno));
+ 			if (is_persistent) {
+-				status = i_ipadm_persist_if(iph, ifname, af);
++				status = i_ipadm_persist_if(iph,
++				    ifname, af, ipadm_flags);
+ 				if (status != IPADM_SUCCESS) {
+ 					(void) i_ipadm_delete_if(iph, ifname,
+ 					    af, IPADM_OPT_ACTIVE);
+@@ -923,7 +1141,8 @@ i_ipadm_plumb_if(ipadm_handle_t iph, char *ifname, sa_family_t af,
+ 		 * interface in persistent DB.
+ 		 */
+ 		if (is_persistent) {
+-			status = i_ipadm_persist_if(iph, newif, af);
++			status = i_ipadm_persist_if(iph,
++			    newif, af, ipadm_flags);
+ 			if (status != IPADM_SUCCESS) {
+ 				(void) i_ipadm_delete_if(iph, newif, af,
+ 				    IPADM_OPT_ACTIVE);
+@@ -1156,13 +1375,19 @@ i_ipadm_unplumb_if(ipadm_handle_t iph, const char *ifname, sa_family_t af)
+  * persistent DB.
+  */
+ static ipadm_status_t
+-i_ipadm_persist_if(ipadm_handle_t iph, const char *ifname, sa_family_t af)
++i_ipadm_persist_if(ipadm_handle_t iph, const char *ifname, sa_family_t af,
++    uint32_t ipadm_flags)
+ {
+ 	ipmgmt_if_arg_t		ifarg;
+ 	int			err;
+ 
+ 	(void) strlcpy(ifarg.ia_ifname, ifname, sizeof (ifarg.ia_ifname));
+ 	ifarg.ia_family = af;
++	if (ipadm_flags & IPADM_OPT_IPMP)
++		ifarg.ia_ifclass = IPADM_IF_CLASS_IPMP;
++	else
++		ifarg.ia_ifclass = IPADM_IF_CLASS_REGULAR;
++
+ 	ifarg.ia_cmd = IPMGMT_CMD_SETIF;
+ 	ifarg.ia_flags = IPMGMT_PERSIST;
+ 	err = ipadm_door_call(iph, &ifarg, sizeof (ifarg), NULL, 0, B_FALSE);
+@@ -1355,6 +1580,109 @@ ipadm_create_if(ipadm_handle_t iph, char *ifname, sa_family_t af,
+ 	return (IPADM_SUCCESS);
+ }
+ 
++ipadm_status_t
++ipadm_add_ipmp_member(ipadm_handle_t iph, const char *gifname,
++    const char *mifname, uint32_t ipadm_flags)
++{
++	return (i_ipadm_update_ipmp(iph, gifname, mifname,
++	    ipadm_flags, IPADM_ADD_IPMP));
++}
++
++ipadm_status_t
++ipadm_remove_ipmp_member(ipadm_handle_t iph, const char *gifname,
++    const char *mifname, uint32_t ipadm_flags)
++{
++	return (i_ipadm_update_ipmp(iph, gifname, mifname,
++	    ipadm_flags, IPADM_REMOVE_IPMP));
++}
++
++/*
++ * Updates active IPMP configuration according to the specified
++ * command. It also persists the configuration if IPADM_OPT_PERSIST
++ * is set in `ipadm_flags'.
++ */
++static ipadm_status_t
++i_ipadm_update_ipmp(ipadm_handle_t iph, const char *gifname,
++    const char *mifname, uint32_t ipadm_flags, ipadm_ipmp_op_t op)
++{
++	ipadm_status_t status;
++	char	groupname1[LIFGRNAMSIZ];
++	char	groupname2[LIFGRNAMSIZ];
++
++	/* Check for the required authorization */
++	if (!ipadm_check_auth())
++		return (IPADM_EAUTH);
++
++	if (!(ipadm_flags & IPADM_OPT_ACTIVE) ||
++	    gifname == NULL || mifname == NULL)
++		return (IPADM_INVALID_ARG);
++
++	if (!ipadm_if_enabled(iph, gifname, AF_UNSPEC) ||
++	    !ipadm_if_enabled(iph, mifname, AF_UNSPEC))
++		return (IPADM_OP_DISABLE_OBJ);
++
++	if (!i_ipadm_is_ipmp(iph, gifname))
++		return (IPADM_INVALID_ARG);
++
++	if (op == IPADM_ADD_IPMP && i_ipadm_is_under_ipmp(iph, mifname))
++		return (IPADM_IF_INUSE);
++
++	if ((status = i_ipadm_get_groupname_active(iph, gifname,
++	    groupname2, sizeof (groupname2))) != IPADM_SUCCESS)
++		return (status);
++
++	if (op == IPADM_REMOVE_IPMP) {
++		if ((status = i_ipadm_get_groupname_active(iph, mifname,
++		    groupname1, sizeof (groupname1))) != IPADM_SUCCESS)
++			return (status);
++
++		if (groupname1[0] == '\0' ||
++		    strcmp(groupname1, groupname2) != 0)
++			return (IPADM_INVALID_ARG);
++
++		groupname2[0] = '\0';
++	}
++
++	if ((ipadm_flags & IPADM_OPT_PERSIST) &&
++	    (status = i_ipadm_persist_update_ipmp(iph, gifname,
++	    mifname, op)) != IPADM_SUCCESS)
++		return (status);
++
++	return (i_ipadm_set_groupname_active(iph, mifname, groupname2));
++}
++
++/*
++ * Call the ipmgmtd to update the IPMP configuration in ipadm DB.
++ * After this call the DB will know that mifname is under gifname and
++ * gifname has a member, which name is mifname.
++ */
++static ipadm_status_t
++i_ipadm_persist_update_ipmp(ipadm_handle_t iph, const char *gifname,
++    const char *mifname, ipadm_ipmp_op_t op)
++{
++	ipmgmt_ipmp_update_arg_t args;
++	int err;
++
++	assert(op == IPADM_ADD_IPMP || op == IPADM_REMOVE_IPMP);
++
++	bzero(&args, sizeof (ipmgmt_ipmp_update_arg_t));
++
++	args.ia_cmd = IPMGMT_CMD_IPMP_UPDATE;
++
++	(void) strlcpy(args.ia_gifname, gifname, sizeof (args.ia_gifname));
++	(void) strlcpy(args.ia_mifname, mifname, sizeof (args.ia_mifname));
++
++	if (op == IPADM_ADD_IPMP)
++		args.ia_flags = IPMGMT_APPEND;
++	else
++		args.ia_flags = IPMGMT_REMOVE;
++
++	args.ia_flags |= IPMGMT_PERSIST;
++
++	err = ipadm_door_call(iph, &args, sizeof (args), NULL, 0, B_FALSE);
++	return (ipadm_errno2status(err));
++}
++
+ /*
+  * Deletes the interface in `ifname'. Removes both IPv4 and IPv6 interfaces
+  * when `af' = AF_UNSPEC.
+@@ -1426,7 +1754,7 @@ ipadm_delete_if(ipadm_handle_t iph, const char *ifname, sa_family_t af,
+  */
+ ipadm_status_t
+ ipadm_if_info(ipadm_handle_t iph, const char *ifname,
+-    ipadm_if_info_list_t **if_info, uint32_t flags, int64_t lifc_flags)
++    ipadm_if_info_t **if_info, uint32_t flags, int64_t lifc_flags)
+ {
+ 	ipadm_status_t	status;
+ 	ifspec_t	ifsp;
+@@ -1452,16 +1780,29 @@ ipadm_if_info(ipadm_handle_t iph, const char *ifname,
+  * Frees the linked list allocated by ipadm_if_info().
+  */
+ void
+-ipadm_free_if_info(ipadm_if_info_list_t *ifinfo)
++ipadm_free_if_info(ipadm_if_info_t *ifinfo)
+ {
+-	ipadm_if_info_list_t	*ifinfo_next;
++	ipadm_if_info_t	*ifinfo_next;
+ 
+ 	for (; ifinfo != NULL; ifinfo = ifinfo_next) {
+-		ifinfo_next = ifinfo->ifil_next;
++		ifinfo_next = ifinfo->ifi_next;
++		i_ipadm_free_ipmp_members(&ifinfo->ifi_ipmp_cmembers);
++		i_ipadm_free_ipmp_members(&ifinfo->ifi_ipmp_pmembers);
+ 		free(ifinfo);
+ 	}
+ }
+ 
++static void
++i_ipadm_free_ipmp_members(ipadm_ipmp_members_t *ipmp_members)
++{
++	ipadm_ipmp_member_t *ipmp_member;
++
++	while ((ipmp_member = list_remove_head(ipmp_members)) != NULL)
++		free(ipmp_member);
++
++	list_destroy(ipmp_members);
++}
++
+ /*
+  * Re-enable the interface `ifname' based on the saved configuration
+  * for `ifname'.
+@@ -1469,6 +1810,7 @@ ipadm_free_if_info(ipadm_if_info_list_t *ifinfo)
+ ipadm_status_t
+ ipadm_enable_if(ipadm_handle_t iph, const char *ifname, uint32_t flags)
+ {
++	boolean_t	set_init = B_FALSE;
+ 	nvlist_t	*ifnvl;
+ 	ipadm_status_t	status;
+ 	ifspec_t	ifsp;
+@@ -1489,9 +1831,9 @@ ipadm_enable_if(ipadm_handle_t iph, const char *ifname, uint32_t flags)
+ 	 * Return early by checking if the interface is already enabled.
+ 	 */
+ 	if (ipadm_if_enabled(iph, ifname, AF_INET) &&
+-	    ipadm_if_enabled(iph, ifname, AF_INET6)) {
++	    ipadm_if_enabled(iph, ifname, AF_INET6))
+ 		return (IPADM_IF_EXISTS);
+-	}
++
+ 	/*
+ 	 * Enable the interface and restore all its interface properties
+ 	 * and address objects.
+@@ -1504,13 +1846,23 @@ ipadm_enable_if(ipadm_handle_t iph, const char *ifname, uint32_t flags)
+ 	/*
+ 	 * ipadm_enable_if() does exactly what ipadm_init_ifs() does,
+ 	 * but only for one interface. We need to set IPH_INIT because
+-	 * ipmgmtd daemon does not have to write the interface to persistent
+-	 * db. The interface is already available in persistent db
+-	 * and we are here to re-enable the persistent configuration.
++	 * ipmgmtd daemon does not have to write the interface to the
++	 * persistent db. The interface is already available in the
++	 * persistent db and we are here to re-enable the persistent
++	 * configuration.
++	 *
++	 * But we need to make sure we're not accidentally clearing an
++	 * IPH_INIT flag that was already set when we were called.
+ 	 */
+-	iph->iph_flags |= IPH_INIT;
++	if ((iph->iph_flags & IPH_INIT) == 0) {
++		iph->iph_flags |= IPH_INIT;
++		set_init = B_TRUE;
++	}
++
+ 	status = i_ipadm_init_ifobj(iph, ifname, ifnvl);
+-	iph->iph_flags &= ~IPH_INIT;
++
++	if (set_init)
++		iph->iph_flags &= ~IPH_INIT;
+ 
+ 	nvlist_free(ifnvl);
+ 	return (status);
+@@ -1558,10 +1910,13 @@ ipadm_disable_if(ipadm_handle_t iph, const char *ifname, uint32_t flags)
+ }
+ 
+ /*
+- * This workaround is until libipadm supports IPMP and is required whenever an
+- * interface is moved into an IPMP group. Since libipadm doesn't support IPMP
+- * yet, we will have to update the daemon's in-memory mapping of
+- * `aobjname' to 'lifnum'.
++ * FIXME Remove this when ifconfig(1M) is updated to use IPMP support
++ * in libipadm.
++ */
++/*
++ * This workaround is required by ifconfig(1M) whenever an
++ * interface is moved into an IPMP group to update the daemon's
++ * in-memory mapping of `aobjname' to 'lifnum'.
+  *
+  * For `IPMGMT_ACTIVE' case, i_ipadm_delete_ifobj() would only fail if
+  * door_call(3C) fails. Also, there is no use in returning error because
+@@ -1573,3 +1928,132 @@ ipadm_if_move(ipadm_handle_t iph, const char *ifname)
+ 	(void) i_ipadm_delete_ifobj(iph, ifname, AF_INET, B_FALSE);
+ 	(void) i_ipadm_delete_ifobj(iph, ifname, AF_INET6, B_FALSE);
+ }
++
++ipadm_status_t
++i_ipadm_set_groupname_active(ipadm_handle_t iph, const char *ifname,
++    const char *groupname)
++{
++	struct lifreq   lifr;
++	ipadm_addr_info_t *addrinfo, *ia;
++	ipadm_status_t	status = IPADM_SUCCESS;
++
++	(void) memset(&lifr, 0, sizeof (lifr));
++
++	(void) strlcpy(lifr.lifr_name, ifname, sizeof (lifr.lifr_name));
++	(void) strlcpy(lifr.lifr_groupname, groupname,
++	    sizeof (lifr.lifr_groupname));
++
++	/* Disable all addresses on the interface */
++	(void) i_ipadm_active_addr_info(iph, ifname, &addrinfo,
++	    IPADM_OPT_ACTIVE | IPADM_OPT_ZEROADDR, IFF_UP | IFF_DUPLICATE);
++
++	for (ia = addrinfo; ia != NULL; ia = IA_NEXT(ia)) {
++		if (strlen(ia->ia_aobjname) > 0) {
++			(void) ipadm_disable_addr(iph, ia->ia_aobjname, 0);
++		} else {
++			/*
++			 * There's an address on this interfaces with no
++			 * corresponding addrobj. Just clear IFF_UP.
++			 */
++			(void) i_ipadm_set_flags(iph, ifname,
++			    addrinfo->ia_ifa.ifa_addr->sa_family, 0, IFF_UP);
++		}
++	}
++
++	if (ioctl(iph->iph_sock, SIOCSLIFGROUPNAME, (caddr_t)&lifr) == -1 &&
++	    ioctl(iph->iph_sock6, SIOCSLIFGROUPNAME, (caddr_t)&lifr) == -1)
++		status = ipadm_errno2status(errno);
++
++	/* Enable all addresses on the interface */
++	for (ia = addrinfo; ia != NULL; ia = IA_NEXT(ia)) {
++		if (strlen(ia->ia_aobjname) > 0) {
++			(void) ipadm_enable_addr(iph, ia->ia_aobjname, 0);
++		} else {
++			/*
++			 * There's an address on this interfaces with no
++			 * corresponding addrobj. Just set IFF_UP.
++			 */
++			(void) i_ipadm_set_flags(iph, ifname,
++			    addrinfo->ia_ifa.ifa_addr->sa_family, IFF_UP, 0);
++		}
++	}
++
++	if (status == IPADM_SUCCESS) {
++		if (groupname[0] == '\0') {
++			/*
++			 * If interface was removed from IPMP group, unset the
++			 * DEPRECATED and NOFAILOVER flags.
++			 */
++			(void) i_ipadm_set_flags(iph, ifname, AF_INET, 0,
++			    IFF_DEPRECATED | IFF_NOFAILOVER);
++			(void) i_ipadm_set_flags(iph, ifname, AF_INET6, 0,
++			    IFF_DEPRECATED | IFF_NOFAILOVER);
++		} else if (addrinfo == NULL) {
++			/*
++			 * If interface was added to IPMP group and there are no
++			 * active addresses, explicitly bring it up to be used
++			 * for link-based IPMP configuration.
++			 */
++			(void) i_ipadm_set_flags(iph, ifname, AF_INET,
++			    IFF_UP, 0);
++			(void) i_ipadm_set_flags(iph, ifname, AF_INET6,
++			    IFF_UP, 0);
++		}
++	}
++
++	ipadm_free_addr_info(addrinfo);
++
++	return (status);
++}
++
++ipadm_status_t
++i_ipadm_get_groupname_active(ipadm_handle_t iph, const char *ifname,
++    char *groupname, size_t size)
++{
++	struct lifreq   lifr;
++
++	(void) memset(&lifr, 0, sizeof (lifr));
++
++	(void) strlcpy(lifr.lifr_name, ifname, sizeof (lifr.lifr_name));
++
++	if (ioctl(iph->iph_sock, SIOCGLIFGROUPNAME, (caddr_t)&lifr) == -1 &&
++	    ioctl(iph->iph_sock6, SIOCGLIFGROUPNAME, (caddr_t)&lifr) == -1)
++		return (ipadm_errno2status(errno));
++
++	(void) strlcpy(groupname, lifr.lifr_groupname, size);
++
++	return (IPADM_SUCCESS);
++}
++
++/*
++ * Returns B_TRUE if `ifname' represents an IPMP underlying interface.
++ */
++boolean_t
++i_ipadm_is_under_ipmp(ipadm_handle_t iph, const char *ifname)
++{
++
++	char	groupname[LIFGRNAMSIZ];
++
++	if (i_ipadm_get_groupname_active(iph, ifname, groupname,
++	    sizeof (groupname)) != IPADM_SUCCESS ||
++	    groupname[0] == '\0' ||
++	    strcmp(ifname, groupname) == 0)
++		return (B_FALSE);
++
++	return (B_TRUE);
++}
++
++/*
++ * Returns B_TRUE if `ifname' represents an IPMP group interface.
++ */
++boolean_t
++i_ipadm_is_ipmp(ipadm_handle_t iph, const char *ifname)
++{
++	uint64_t flags;
++
++	if (i_ipadm_get_flags(iph, ifname, AF_INET, &flags) != IPADM_SUCCESS &&
++	    i_ipadm_get_flags(iph, ifname, AF_INET6, &flags) != IPADM_SUCCESS)
++		return (B_FALSE);
++
++	return ((flags & IFF_IPMP) != 0);
++}
+diff --git a/usr/src/lib/libipadm/common/ipadm_ipmgmt.h b/usr/src/lib/libipadm/common/ipadm_ipmgmt.h
+index 4c6c66de9656..4a5c408b57f6 100644
+--- a/usr/src/lib/libipadm/common/ipadm_ipmgmt.h
++++ b/usr/src/lib/libipadm/common/ipadm_ipmgmt.h
+@@ -58,6 +58,10 @@ extern "C" {
+  */
+ #define	IPADM_NVP_PROTONAME	"_protocol"	/* protocol name */
+ #define	IPADM_NVP_IFNAME	"_ifname"	/* interface name */
++#define	IPADM_NVP_IFCLASS	"_ifclass"	/* interface class */
++#define	IPADM_NVP_FAMILIES	"_families"	/* interface families */
++#define	IPADM_NVP_GIFNAME	"_gifname"	/* IPMP group interface name */
++#define	IPADM_NVP_MIFNAMES	"_mifnames"	/* IPMP group members */
+ #define	IPADM_NVP_AOBJNAME	"_aobjname"	/* addrobj name */
+ #define	IPADM_NVP_FAMILY	"_family"	/* address family */
+ #define	IPADM_NVP_IPV4ADDR	"_ipv4addr"	/* name of IPv4 addr nvlist */
+@@ -109,6 +113,38 @@ typedef	struct	ipadm_dbwrite_cbarg_s {
+ #define	IPMGMT_DOOR		"/etc/svc/volatile/ipadm/ipmgmt_door"
+ #define	MAXPROTONAMELEN		32
+ 
++/*
++ * ia_flags used inside the arguments for interface/address commands
++ *
++ *	- APPEND updates the multi-valued ipadm DB entry with a new value
++ *	- REMOVE updates the multi-valued ipadm DB entry by removing a value
++ *	- ACTIVE updates the running configuration
++ *	- PERSIST updates the permanent data store
++ *	- INIT indicates that operation being performed is under init context
++ *	- PROPS_ONLY indicates the update changes the running configuration of
++ *	  "props" data on the interface/address object. The props are cached
++ *	  there on the parent, so a PROPS_ONLY change does not affect the
++ *	  ACTIVE/PERSIST state of the parent.
++ *
++ * These two flags are used by ipmgmt_db_update_if function,
++ * because it can be used to update more that one DB line
++ * and we need to be sure that we finished all operations,
++ * after the operation has finished the related flag is cleared
++ *
++ *  - UPDATE_IF - used when we need to update IPADM_NVP_FAMILIES and
++ *                IPADM_NVP_MIFNAMES fields
++ *  - UPDATE_IPMP - used when we need to update IPADM_NVP_GIFNAME
++ */
++#define	IPMGMT_APPEND	0x00000001
++#define	IPMGMT_REMOVE	0x00000002
++#define	IPMGMT_ACTIVE	0x00000004
++#define	IPMGMT_PERSIST	0x00000008
++#define	IPMGMT_INIT	0x00000010
++#define	IPMGMT_PROPS_ONLY   0x00000020
++#define	IPMGMT_UPDATE_IF    0x00000040
++#define	IPMGMT_UPDATE_IPMP  0x00000080
++
++
+ /* door call command type */
+ typedef enum {
+ 	IPMGMT_CMD_SETPROP = 1,		/* persist property */
+@@ -125,7 +161,8 @@ typedef enum {
+ 	IPMGMT_CMD_ADDROBJ_SETLIFNUM,	/* set lifnum on the addrobj */
+ 	IPMGMT_CMD_ADDROBJ_ADD,		/* add addr. object to addrobj map */
+ 	IPMGMT_CMD_LIF2ADDROBJ,		/* lifname to addrobj mapping */
+-	IPMGMT_CMD_AOBJNAME2ADDROBJ	/* aobjname to addrobj mapping */
++	IPMGMT_CMD_AOBJNAME2ADDROBJ,	/* aobjname to addrobj mapping */
++	IPMGMT_CMD_IPMP_UPDATE  /* update IPMP group members */
+ } ipmgmt_door_cmd_type_t;
+ 
+ /*
+@@ -147,13 +184,6 @@ typedef struct ipmgmt_prop_arg_s {
+ 	char			ia_pname[MAXPROPNAMELEN];
+ 	char			ia_pval[MAXPROPVALLEN];
+ } ipmgmt_prop_arg_t;
+-/*
+- * ia_flags used in ipmgmt_prop_arg_t.
+- *	- APPEND updates the multi-valued property entry with a new value
+- *	- REDUCE updates the multi-valued property entry by removing a value
+- */
+-#define	IPMGMT_APPEND	0x00000001
+-#define	IPMGMT_REMOVE	0x00000002
+ 
+ /*
+  * ipadm_addr_type_t-specific values that are cached in ipmgmtd and can
+@@ -182,6 +212,7 @@ typedef struct ipmgmt_if_arg_s {
+ 	uint32_t		ia_flags;
+ 	char			ia_ifname[LIFNAMSIZ];
+ 	sa_family_t		ia_family;
++	ipadm_if_class_t	ia_ifclass;
+ } ipmgmt_if_arg_t;
+ 
+ /* IPMGMT_CMD_INITIF door_call argument structure */
+@@ -193,6 +224,14 @@ typedef struct ipmgmt_initif_arg_s {
+ 	/* packed nvl follows */
+ } ipmgmt_initif_arg_t;
+ 
++/* IPMGMT_CMD_IPMP_UPDATE door_call argument structure */
++typedef struct ipmgmt_ipmp_update_arg_s {
++	ipmgmt_door_cmd_type_t	ia_cmd;
++	uint32_t	ia_flags;
++	char		ia_gifname[LIFNAMSIZ]; /* group interface name */
++	char	ia_mifname[LIFNAMSIZ]; /* group's member interface name */
++} ipmgmt_ipmp_update_arg_t;
++
+ /* IPMGMT_CMD_SETADDR door_call argument */
+ typedef struct ipmgmt_setaddr_arg_s {
+ 	ipmgmt_door_cmd_type_t	ia_cmd;
+@@ -232,22 +271,6 @@ typedef struct ipmgmt_aobjop_arg_s {
+ 	ipadm_addr_type_t	ia_atype;
+ } ipmgmt_aobjop_arg_t;
+ 
+-/*
+- * ia_flags used inside the arguments for interface/address commands
+- *	- ACTIVE updates the running configuration
+- *	- PERSIST updates the permanent data store
+- *	- INIT	indicates that operation being performed is under init
+- *		    context
+- *	- PROPS_ONLY indicates the update changes the running configuration of
+- *		    "props" data on the interface/address object. The props are
+- *		    cached there on the parent, so a PROPS_ONLY change does not
+- *		    affect the ACTIVE/PERSIST state of the parent.
+- */
+-#define	IPMGMT_ACTIVE		0x00000001
+-#define	IPMGMT_PERSIST		0x00000002
+-#define	IPMGMT_INIT		0x00000004
+-#define	IPMGMT_PROPS_ONLY		0x00000008
+-
+ /* door call return value */
+ typedef struct ipmgmt_retval_s {
+ 	int32_t	ir_err;
+diff --git a/usr/src/lib/libipadm/common/ipadm_persist.c b/usr/src/lib/libipadm/common/ipadm_persist.c
+index 3043d5e51eb9..557e29fb3eca 100644
+--- a/usr/src/lib/libipadm/common/ipadm_persist.c
++++ b/usr/src/lib/libipadm/common/ipadm_persist.c
+@@ -20,6 +20,7 @@
+  */
+ /*
+  * Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
++ * Copyright 2021 Tintri by DDN, Inc. All rights reserved.
+  */
+ 
+ /*
+@@ -51,6 +52,12 @@
+  *			wait:	DATA_TYPE_INT32
+  *			primary: DATA_TYPE_BOOLEAN
+  *
++ *  IPADM_NVP_FAMILIES - value holds interface families and when converted
++ *	       to nvlist, will be a DATA_TYPE_UINT16_ARRAY
++ *
++ *  IPADM_NVP_MIFNAMES - value holds IPMP group members and when converted
++ *	       to nvlist, will be a DATA_TYPE_STRING_ARRAY
++ *
+  *  default  - value is a single entity and when converted to nvlist, will
+  *	       contain nvpair of type DATA_TYPE_STRING. nvpairs private to
+  *	       ipadm are of this type. Further the property name and property
+@@ -88,21 +95,23 @@ static int ipadm_process_db_line(db_wfunc_t *, void *, FILE *fp, FILE *nfp,
+ /*
+  * convert nvpair to a "name=value" string for writing to the DB.
+  */
+-typedef size_t  ipadm_wfunc_t(nvpair_t *, char *, size_t);
++typedef size_t ipadm_wfunc_t(nvpair_t *, char *, size_t);
+ 
+ /*
+  * ipadm_rfunc_t takes (`name', `value') and adds the appropriately typed
+  * nvpair to the nvlist.
+  */
+-typedef void  ipadm_rfunc_t(nvlist_t *, char *name, char *value);
++typedef ipadm_status_t ipadm_rfunc_t(nvlist_t *, char *, char *);
+ 
+ static ipadm_rfunc_t	i_ipadm_str_dbline2nvl, i_ipadm_ip4_dbline2nvl,
+ 			i_ipadm_ip6_dbline2nvl, i_ipadm_intfid_dbline2nvl,
+-			i_ipadm_dhcp_dbline2nvl;
++			i_ipadm_dhcp_dbline2nvl, i_ipadm_families_dbline2nvl,
++			i_ipadm_groupmembers_dbline2nvl;
+ 
+ static ipadm_wfunc_t	i_ipadm_str_nvp2dbline, i_ipadm_ip4_nvp2dbline,
+ 			i_ipadm_ip6_nvp2dbline, i_ipadm_intfid_nvp2dbline,
+-			i_ipadm_dhcp_nvp2dbline;
++			i_ipadm_dhcp_nvp2dbline, i_ipadm_families_nvp2dbline,
++			i_ipadm_groupmembers_nvp2dbline;
+ 
+ /*
+  * table of function pointers to read/write formatted entries from/to
+@@ -120,6 +129,10 @@ static ipadm_conf_ent_t ipadm_conf_ent[] = {
+ 	{ IPADM_NVP_INTFID, i_ipadm_intfid_nvp2dbline,
+ 	    i_ipadm_intfid_dbline2nvl },
+ 	{ IPADM_NVP_DHCP, i_ipadm_dhcp_nvp2dbline, i_ipadm_dhcp_dbline2nvl },
++	{ IPADM_NVP_FAMILIES, i_ipadm_families_nvp2dbline,
++	    i_ipadm_families_dbline2nvl },
++	{ IPADM_NVP_MIFNAMES, i_ipadm_groupmembers_nvp2dbline,
++	    i_ipadm_groupmembers_dbline2nvl},
+ 	{ NULL,	i_ipadm_str_nvp2dbline,	i_ipadm_str_dbline2nvl }
+ };
+ 
+@@ -259,7 +272,7 @@ static size_t
+ i_ipadm_dhcp_nvp2dbline(nvpair_t *nvp, char *buf, size_t buflen)
+ {
+ 	char		addrbuf[IPADM_STRSIZE];
+-	int32_t 	wait;
++	int32_t		wait;
+ 	boolean_t	primary;
+ 	nvlist_t	*v;
+ 
+@@ -328,13 +341,13 @@ ipadm_nvlist2str(nvlist_t *nvl, char *buf, size_t buflen)
+  * Adds a nvpair, using the `name' and `value', to the nvlist in `nvl'.
+  * The value will be interpreted as explained at the top of this file.
+  */
+-static void
++static ipadm_status_t
+ i_ipadm_add_nvpair(nvlist_t *nvl, char *name, char *value)
+ {
+ 	ipadm_conf_ent_t	*ipent;
+ 
+ 	ipent = i_ipadm_find_conf_type(name);
+-	(*ipent->ipent_rfunc)(nvl, name, value);
++	return ((*ipent->ipent_rfunc)(nvl, name, value));
+ }
+ 
+ /*
+@@ -467,14 +480,18 @@ i_ipadm_add_dhcp2nvl(nvlist_t *nvl, boolean_t primary, int32_t wait)
+ /*
+  * Add (name, value) as an nvpair of type DATA_TYPE_STRING to nvlist.
+  */
+-static void
++static ipadm_status_t
+ i_ipadm_str_dbline2nvl(nvlist_t *nvl, char *name, char *value)
+ {
++	int err;
++
+ 	/* if value is NULL create an empty node */
+ 	if (value == NULL)
+-		(void) nvlist_add_string(nvl, name, "");
++		err = nvlist_add_string(nvl, name, "");
+ 	else
+-		(void) nvlist_add_string(nvl, name, value);
++		err = nvlist_add_string(nvl, name, value);
++
++	return (ipadm_errno2status(err));
+ }
+ 
+ /*
+@@ -484,7 +501,7 @@ i_ipadm_str_dbline2nvl(nvlist_t *nvl, char *name, char *value)
+  * This function will add an nvlist with the hostname information in
+  * nvpairs to the nvlist in `nvl'.
+  */
+-static void
++static ipadm_status_t
+ i_ipadm_ip4_dbline2nvl(nvlist_t *nvl, char *name, char *value)
+ {
+ 	char			*cp, *hname;
+@@ -507,7 +524,7 @@ i_ipadm_ip4_dbline2nvl(nvlist_t *nvl, char *name, char *value)
+ 		(void) strlcpy(ipaddr.ipadm_static_dname, cp,
+ 		    sizeof (ipaddr.ipadm_static_dname));
+ 	}
+-	(void) i_ipadm_add_ipaddr2nvl(nvl, &ipaddr);
++	return (i_ipadm_add_ipaddr2nvl(nvl, &ipaddr));
+ }
+ 
+ /*
+@@ -517,7 +534,7 @@ i_ipadm_ip4_dbline2nvl(nvlist_t *nvl, char *name, char *value)
+  * This function will add an nvlist with the hostname information in
+  * nvpairs to the nvlist in `nvl'.
+  */
+-static void
++static ipadm_status_t
+ i_ipadm_ip6_dbline2nvl(nvlist_t *nvl, char *name, char *value)
+ {
+ 	char			*cp, *hname;
+@@ -540,7 +557,7 @@ i_ipadm_ip6_dbline2nvl(nvlist_t *nvl, char *name, char *value)
+ 		(void) strlcpy(ipaddr.ipadm_static_dname, cp,
+ 		    sizeof (ipaddr.ipadm_static_dname));
+ 	}
+-	(void) i_ipadm_add_ipaddr2nvl(nvl, &ipaddr);
++	return (i_ipadm_add_ipaddr2nvl(nvl, &ipaddr));
+ }
+ 
+ /*
+@@ -548,7 +565,7 @@ i_ipadm_ip6_dbline2nvl(nvlist_t *nvl, char *name, char *value)
+  * This function will add an nvlist with the address object information in
+  * nvpairs to the nvlist in `nvl'.
+  */
+-static void
++static ipadm_status_t
+ i_ipadm_intfid_dbline2nvl(nvlist_t *nvl, char *name, char *value)
+ {
+ 	char			*cp;
+@@ -577,7 +594,7 @@ i_ipadm_intfid_dbline2nvl(nvlist_t *nvl, char *name, char *value)
+ 	errno = 0;
+ 	ipaddr.ipadm_intfidlen = (uint32_t)strtoul(prefixlen, &endp, 10);
+ 	if (*endp != '\0' || errno != 0)
+-		return;
++		return (ipadm_errno2status(errno));
+ 
+ 	stateless = cp;
+ 	stateful = strchr(stateless, ',');
+@@ -587,7 +604,7 @@ i_ipadm_intfid_dbline2nvl(nvlist_t *nvl, char *name, char *value)
+ 	ipaddr.ipadm_stateful = (strcmp(stateful, "yes") == 0);
+ 
+ 	/* Add all of it to the given nvlist */
+-	(void) i_ipadm_add_intfid2nvl(nvl, &ipaddr);
++	return (i_ipadm_add_intfid2nvl(nvl, &ipaddr));
+ }
+ 
+ /*
+@@ -595,7 +612,7 @@ i_ipadm_intfid_dbline2nvl(nvlist_t *nvl, char *name, char *value)
+  * This function will add an nvlist with the dhcp address object information in
+  * nvpairs to the nvlist in `nvl'.
+  */
+-static void
++static ipadm_status_t
+ i_ipadm_dhcp_dbline2nvl(nvlist_t *nvl, char *name, char *value)
+ {
+ 	char		*cp;
+@@ -610,39 +627,194 @@ i_ipadm_dhcp_dbline2nvl(nvlist_t *nvl, char *name, char *value)
+ 	errno = 0;
+ 	wait_time = strtol(value, &endp, 10);
+ 	if (*endp != '\0' || errno != 0)
+-		return;
++		return (ipadm_errno2status(errno));
+ 	primary = (strcmp(cp, "yes") == 0);
+-	(void) i_ipadm_add_dhcp2nvl(nvl, primary, (int32_t)wait_time);
++	return (i_ipadm_add_dhcp2nvl(nvl, primary, (int32_t)wait_time));
++}
++
++/*
++ * Input 'nvp': name = IPADM_NVP_FAMILIES and value = array of 'uint16_t'
++ *
++ *
++ */
++static size_t
++i_ipadm_families_nvp2dbline(nvpair_t *nvp, char *buf, size_t buflen)
++{
++	uint_t nelem = 0;
++	uint16_t *elem;
++
++	assert(nvpair_type(nvp) == DATA_TYPE_UINT16_ARRAY);
++
++	if (nvpair_value_uint16_array(nvp,
++	    &elem, &nelem) != 0) {
++		buf[0] = '\0';
++		return (0);
++	}
++
++	assert(nelem != 0 || nelem > 2);
++
++	if (nelem == 1) {
++		return (snprintf(buf, buflen, "%s=%d",
++		    nvpair_name(nvp), elem[0]));
++	} else {
++		return (snprintf(buf, buflen, "%s=%d,%d",
++		    nvpair_name(nvp), elem[0], elem[1]));
++	}
++}
++
++/*
++ * name = IPADM_NVP_FAMILIES and value = <FAMILY>[,FAMILY]
++ *
++ * output nvp: name = IPADM_NVP_FAMILIES and value = array of 'uint16_t'
++ *
++ */
++static ipadm_status_t
++i_ipadm_families_dbline2nvl(nvlist_t *nvl, char *name, char *value)
++{
++	uint16_t	families[2];
++	uint_t	nelem = 0;
++	char	*val, *lasts;
++
++	if ((val = strtok_r(value,
++	    ",", &lasts)) != NULL) {
++		families[0] = atoi(val);
++		nelem++;
++		if ((val = strtok_r(NULL,
++		    ",", &lasts)) != NULL) {
++			families[1] = atoi(val);
++			nelem++;
++		}
++		return (ipadm_errno2status(nvlist_add_uint16_array(nvl,
++		    IPADM_NVP_FAMILIES, families, nelem)));
++	}
++
++	return (IPADM_INVALID_ARG);
++}
++
++/*
++ * input nvp: name = IPADM_NVP_MIFNAMES and value = array of 'char *'
++ *
++ *
++ */
++static size_t
++i_ipadm_groupmembers_nvp2dbline(nvpair_t *nvp, char *buf, size_t buflen)
++{
++	uint_t nelem = 0;
++	char **elem;
++	size_t n;
++
++	assert(nvpair_type(nvp) == DATA_TYPE_STRING_ARRAY);
++
++	if (nvpair_value_string_array(nvp,
++	    &elem, &nelem) != 0) {
++		buf[0] = '\0';
++		return (0);
++	}
++
++	assert(nelem != 0);
++
++	n = snprintf(buf, buflen, "%s=", IPADM_NVP_MIFNAMES);
++	if (n >= buflen)
++		return (n);
++
++	while (nelem-- > 0) {
++		n = strlcat(buf, elem[nelem], buflen);
++		if (nelem > 0)
++			n = strlcat(buf, ",", buflen);
++
++		if (n > buflen)
++			return (n);
++	}
++
++	return (n);
++}
++
++/*
++ * name = IPADM_NVP_MIFNAMES and value = <if_name>[,if_name]
++ *
++ * output nvp: name = IPADM_NVP_MIFNAMES and value = array of 'char *'
++ */
++static ipadm_status_t
++i_ipadm_groupmembers_dbline2nvl(nvlist_t *nvl, char *name, char *value)
++{
++	char	**members = NULL;
++	char	*member = NULL;
++	char	*val, *lasts;
++	uint_t	m_cnt = 0;
++	ipadm_status_t	ret = IPADM_SUCCESS;
++
++	assert(strcmp(name, IPADM_NVP_MIFNAMES) == 0 && value != NULL);
++
++	for (val = strtok_r(value, ",", &lasts);
++	    val != NULL;
++	    val = strtok_r(NULL, ",", &lasts)) {
++		if ((m_cnt % 4) == 0) {
++			char **tmp = recallocarray(members, m_cnt, m_cnt + 4,
++			    sizeof (char *));
++
++			if (tmp == NULL) {
++				ret = IPADM_NO_MEMORY;
++				goto fail;
++			}
++
++			members = tmp;
++		}
++
++		member = calloc(1, LIFNAMSIZ);
++
++		if (member == NULL) {
++			ret = IPADM_NO_MEMORY;
++			goto fail;
++		}
++
++		(void) strlcpy(member, val, LIFNAMSIZ);
++		members[m_cnt++] = member;
++
++	}
++
++	if ((ret = ipadm_errno2status(nvlist_add_string_array(nvl,
++	    IPADM_NVP_MIFNAMES, members, m_cnt))) != IPADM_SUCCESS)
++		goto fail;
++
++fail:
++	while (m_cnt-- > 0) {
++		free(members[m_cnt]);
++	}
++
++	free(members);
++
++	return (ret);
+ }
+ 
+ /*
+  * Parses the buffer, for name-value pairs and creates nvlist. The value
+  * is always considered to be a string.
+  */
+-int
++ipadm_status_t
+ ipadm_str2nvlist(const char *inbuf, nvlist_t **ipnvl, uint_t flags)
+ {
++	ipadm_status_t	status;
+ 	char	*nv, *name, *val, *buf, *cp, *sep;
+ 	int	err;
+ 
+ 	if (inbuf == NULL || inbuf[0] == '\0' || ipnvl == NULL)
+-		return (EINVAL);
++		return (IPADM_INVALID_ARG);
+ 	*ipnvl = NULL;
+ 
+ 	/*
+ 	 * If IPADM_NORVAL is set, then `inbuf' should be comma delimited values
+ 	 */
+ 	if ((flags & IPADM_NORVAL) && strchr(inbuf, '=') != NULL)
+-		return (EINVAL);
++		return (IPADM_INVALID_ARG);
+ 
+ 	if ((cp = buf = strdup(inbuf)) == NULL)
+-		return (errno);
++		return (ipadm_errno2status(errno));
+ 
+ 	while (isspace(*buf))
+ 		buf++;
+ 
+ 	if (*buf == '\0') {
+-		err = EINVAL;
++		status = IPADM_INVALID_ARG;
+ 		goto fail;
+ 	}
+ 
+@@ -658,22 +830,26 @@ ipadm_str2nvlist(const char *inbuf, nvlist_t **ipnvl, uint_t flags)
+ 		if ((val = strchr(nv, '=')) != NULL)
+ 			*val++ = '\0';
+ 		if (*ipnvl == NULL &&
+-		    (err = nvlist_alloc(ipnvl, NV_UNIQUE_NAME, 0)) != 0)
++		    (err = nvlist_alloc(ipnvl, NV_UNIQUE_NAME, 0)) != 0) {
++			status = ipadm_errno2status(err);
+ 			goto fail;
++		}
+ 		if (nvlist_exists(*ipnvl, name)) {
+-			err = EEXIST;
++			status = IPADM_EXISTS;
+ 			goto fail;
+ 		}
+ 		/* Add the extracted nvpair to the nvlist `ipnvl'. */
+-		(void) i_ipadm_add_nvpair(*ipnvl, name, val);
++		status = i_ipadm_add_nvpair(*ipnvl, name, val);
++		if (status != IPADM_SUCCESS)
++			goto fail;
+ 	}
+ 	free(cp);
+-	return (0);
++	return (IPADM_SUCCESS);
+ fail:
+ 	free(cp);
+ 	nvlist_free(*ipnvl);
+ 	*ipnvl = NULL;
+-	return (err);
++	return (status);
+ }
+ 
+ /*
+diff --git a/usr/src/lib/libipadm/common/ipadm_prop.c b/usr/src/lib/libipadm/common/ipadm_prop.c
+index 4fc0dc08514f..889e5e2ca22d 100644
+--- a/usr/src/lib/libipadm/common/ipadm_prop.c
++++ b/usr/src/lib/libipadm/common/ipadm_prop.c
+@@ -18,9 +18,11 @@
+  *
+  * CDDL HEADER END
+  */
++
+ /*
+  * Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+  * Copyright (c) 2013, 2017 by Delphix. All rights reserved.
++ * Copyright 2021 Tintri by DDN, Inc. All rights reserved.
+  */
+ 
+ /*
+@@ -145,6 +147,11 @@ static ipadm_prop_desc_t ipadm_ip_prop_table[] = {
+ 	    i_ipadm_set_hostmodel, i_ipadm_get_hostmodel,
+ 	    i_ipadm_get_hostmodel },
+ 
++	{ "standby", NULL, IPADMPROP_CLASS_IF, MOD_PROTO_IP, 0,
++	    i_ipadm_set_ifprop_flags, i_ipadm_get_onoff,
++	    i_ipadm_get_ifprop_flags },
++
++
+ 	{ NULL, NULL, 0, 0, 0, NULL, NULL, NULL }
+ };
+ 
+@@ -598,7 +605,8 @@ i_ipadm_set_ifprop_flags(ipadm_handle_t iph, const void *arg,
+ 		    strcmp(pdp->ipd_name, "arp") == 0 ||
+ 		    strcmp(pdp->ipd_name, "nud") == 0) {
+ 			pval = IPADM_ONSTR;
+-		} else if (strcmp(pdp->ipd_name, "forwarding") == 0) {
++		} else if (strcmp(pdp->ipd_name, "forwarding") == 0 ||
++		    strcmp(pdp->ipd_name, "standby") == 0) {
+ 			pval = IPADM_OFFSTR;
+ 		} else {
+ 			return (IPADM_PROP_UNKNOWN);
+@@ -632,6 +640,11 @@ i_ipadm_set_ifprop_flags(ipadm_handle_t iph, const void *arg,
+ 			on_flags = IFF_ROUTER;
+ 		else
+ 			off_flags = IFF_ROUTER;
++	} else if (strcmp(pdp->ipd_name, "standby") == 0) {
++		if (on)
++			on_flags = IFF_STANDBY;
++		else
++			off_flags = IFF_STANDBY;
+ 	}
+ 
+ 	if (on_flags || off_flags)  {
+@@ -649,7 +662,6 @@ i_ipadm_set_eprivport(ipadm_handle_t iph, const void *arg,
+ 	nvlist_t	*portsnvl = NULL;
+ 	nvpair_t	*nvp;
+ 	ipadm_status_t	status = IPADM_SUCCESS;
+-	int		err;
+ 	uint_t		count = 0;
+ 
+ 	if (flags & IPADM_OPT_DEFAULT) {
+@@ -657,8 +669,8 @@ i_ipadm_set_eprivport(ipadm_handle_t iph, const void *arg,
+ 		return (i_ipadm_set_prop(iph, arg, pdp, pval, proto, flags));
+ 	}
+ 
+-	if ((err = ipadm_str2nvlist(pval, &portsnvl, IPADM_NORVAL)) != 0)
+-		return (ipadm_errno2status(err));
++	if ((status = ipadm_str2nvlist(pval, &portsnvl, IPADM_NORVAL)) != 0)
++		return (status);
+ 
+ 	/* count the number of ports */
+ 	for (nvp = nvlist_next_nvpair(portsnvl, NULL); nvp != NULL;
+@@ -941,7 +953,7 @@ i_ipadm_get_usesrc(ipadm_handle_t iph, const void *arg,
+ 	struct lifreq	lifr;
+ 	const char	*ifname = arg;
+ 	int		s;
+-	char 		if_name[IF_NAMESIZE];
++	char		if_name[IF_NAMESIZE];
+ 	size_t		nbytes;
+ 
+ 	switch (valtype) {
+@@ -984,8 +996,8 @@ i_ipadm_get_ifprop_flags(ipadm_handle_t iph, const void *arg,
+     ipadm_prop_desc_t *pdp, char *buf, uint_t *bufsize, uint_t proto,
+     uint_t valtype)
+ {
+-	uint64_t 	intf_flags;
+-	char 		*val;
++	uint64_t	intf_flags;
++	char		*val;
+ 	size_t		nbytes;
+ 	const char	*ifname = arg;
+ 	sa_family_t	af;
+@@ -1000,7 +1012,8 @@ i_ipadm_get_ifprop_flags(ipadm_handle_t iph, const void *arg,
+ 		    strcmp(pdp->ipd_name, "arp") == 0 ||
+ 		    strcmp(pdp->ipd_name, "nud") == 0) {
+ 			val = IPADM_ONSTR;
+-		} else if (strcmp(pdp->ipd_name, "forwarding") == 0) {
++		} else if (strcmp(pdp->ipd_name, "forwarding") == 0 ||
++		    strcmp(pdp->ipd_name, "standby") == 0) {
+ 			val = IPADM_OFFSTR;
+ 		} else {
+ 			return (IPADM_PROP_UNKNOWN);
+@@ -1026,6 +1039,9 @@ i_ipadm_get_ifprop_flags(ipadm_handle_t iph, const void *arg,
+ 		} else if (strcmp(pdp->ipd_name, "nud") == 0) {
+ 			if (!(intf_flags & IFF_NONUD))
+ 				val = IPADM_ONSTR;
++		} else if (strcmp(pdp->ipd_name, "standby") == 0) {
++			if (intf_flags & IFF_STANDBY)
++				val = IPADM_ONSTR;
+ 		}
+ 		nbytes = snprintf(buf, *bufsize, "%s", val);
+ 		break;
+@@ -1060,7 +1076,7 @@ i_ipadm_get_prop(ipadm_handle_t iph, const void *arg,
+ 	ipadm_status_t	status = IPADM_SUCCESS;
+ 	const char	*ifname = arg;
+ 	mod_ioc_prop_t	*mip;
+-	char 		*pname = pdp->ipd_name;
++	char		*pname = pdp->ipd_name;
+ 	uint_t		iocsize;
+ 
+ 	/* allocate sufficient ioctl buffer to retrieve value */
+@@ -1154,7 +1170,7 @@ i_ipadm_populate_proparg(ipmgmt_prop_arg_t *pargp, ipadm_prop_desc_t *pdp,
+  * for a given protocol `proto'. The property name is in `pname'.
+  *
+  * `valtype' determines the type of value that will be retrieved.
+- * 	IPADM_OPT_ACTIVE -	current value of the property (active config)
++ *	IPADM_OPT_ACTIVE -	current value of the property (active config)
+  *	IPADM_OPT_PERSIST -	value of the property from persistent store
+  *	IPADM_OPT_DEFAULT -	default hard coded value (boot-time value)
+  *	IPADM_OPT_PERM -	read/write permissions for the value
+@@ -1302,9 +1318,9 @@ i_ipadm_set_prop(ipadm_handle_t iph, const void *arg,
+ {
+ 	ipadm_status_t	status = IPADM_SUCCESS;
+ 	const char	*ifname = arg;
+-	mod_ioc_prop_t 	*mip;
+-	char 		*pname = pdp->ipd_name;
+-	uint_t 		valsize, iocsize;
++	mod_ioc_prop_t	*mip;
++	char		*pname = pdp->ipd_name;
++	uint_t		valsize, iocsize;
+ 	uint_t		iocflags = 0;
+ 
+ 	if (flags & IPADM_OPT_DEFAULT) {
+@@ -1365,7 +1381,7 @@ i_ipadm_setprop_common(ipadm_handle_t iph, const char *ifname,
+     const char *pname, const char *buf, uint_t proto, uint_t pflags)
+ {
+ 	ipadm_status_t		status = IPADM_SUCCESS;
+-	boolean_t 		persist = (pflags & IPADM_OPT_PERSIST);
++	boolean_t		persist = (pflags & IPADM_OPT_PERSIST);
+ 	boolean_t		reset = (pflags & IPADM_OPT_DEFAULT);
+ 	ipadm_prop_desc_t	*pdp;
+ 	boolean_t		is_if = (ifname != NULL);
+@@ -1701,8 +1717,7 @@ i_ipadm_persist_propval(ipadm_handle_t iph, ipadm_prop_desc_t *pdp,
+  * This is called from ipadm_set_ifprop() to validate the set operation.
+  * It does the following steps:
+  * 1. Validates the interface name.
+- * 2. Fails if it is an IPMP meta-interface or an underlying interface.
+- * 3. In case of a persistent operation, verifies that the
++ * 2. In case of a persistent operation, verifies that the
+  *	interface is persistent.
+  */
+ static ipadm_status_t
+@@ -1719,12 +1734,6 @@ i_ipadm_validate_if(ipadm_handle_t iph, const char *ifname,
+ 		return (IPADM_INVALID_ARG);
+ 
+ 	af = (proto == MOD_PROTO_IPV6 ? AF_INET6 : AF_INET);
+-	/*
+-	 * Setting properties on an IPMP meta-interface or underlying
+-	 * interface is not supported.
+-	 */
+-	if (i_ipadm_is_ipmp(iph, ifname) || i_ipadm_is_under_ipmp(iph, ifname))
+-		return (IPADM_NOTSUP);
+ 
+ 	/* Check if interface exists in the persistent configuration. */
+ 	status = i_ipadm_if_pexists(iph, ifname, af, &p_exists);
+diff --git a/usr/src/lib/libipadm/common/libipadm.c b/usr/src/lib/libipadm/common/libipadm.c
+index 5d72275f3424..972c45630bbd 100644
+--- a/usr/src/lib/libipadm/common/libipadm.c
++++ b/usr/src/lib/libipadm/common/libipadm.c
+@@ -21,8 +21,8 @@
+ 
+ /*
+  * Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+- * Copyright 2014 Nexenta Systems, Inc.  All rights reserved.
+  * Copyright (c) 2016, Chris Fraire <cfraire@me.com>.
++ * Copyright 2021 Tintri by DDN, Inc. All rights reserved.
+  */
+ 
+ #include <stdio.h>
+@@ -527,39 +527,6 @@ i_ipadm_is_6to4(ipadm_handle_t iph, char *ifname)
+ 	return (B_FALSE);
+ }
+ 
+-/*
+- * Returns B_TRUE if `ifname' represents an IPMP underlying interface.
+- */
+-boolean_t
+-i_ipadm_is_under_ipmp(ipadm_handle_t iph, const char *ifname)
+-{
+-	struct lifreq	lifr;
+-
+-	(void) strlcpy(lifr.lifr_name, ifname, sizeof (lifr.lifr_name));
+-	if (ioctl(iph->iph_sock, SIOCGLIFGROUPNAME, (caddr_t)&lifr) < 0) {
+-		if (ioctl(iph->iph_sock6, SIOCGLIFGROUPNAME,
+-		    (caddr_t)&lifr) < 0) {
+-			return (B_FALSE);
+-		}
+-	}
+-	return (lifr.lifr_groupname[0] != '\0');
+-}
+-
+-/*
+- * Returns B_TRUE if `ifname' represents an IPMP meta-interface.
+- */
+-boolean_t
+-i_ipadm_is_ipmp(ipadm_handle_t iph, const char *ifname)
+-{
+-	uint64_t flags;
+-
+-	if (i_ipadm_get_flags(iph, ifname, AF_INET, &flags) != IPADM_SUCCESS &&
+-	    i_ipadm_get_flags(iph, ifname, AF_INET6, &flags) != IPADM_SUCCESS)
+-		return (B_FALSE);
+-
+-	return ((flags & IFF_IPMP) != 0);
+-}
+-
+ /*
+  * For a given interface name, ipadm_if_enabled() checks if v4
+  * or v6 or both IP interfaces exist in the active configuration.
+@@ -693,40 +660,82 @@ i_ipadm_init_ifobj(ipadm_handle_t iph, const char *ifname, nvlist_t *ifnvl)
+ {
+ 	nvlist_t	*nvl = NULL;
+ 	nvpair_t	*nvp;
+-	char		*afstr;
+-	ipadm_status_t	status;
++	ipadm_status_t	status = IPADM_ENXIO;
+ 	ipadm_status_t	ret_status = IPADM_SUCCESS;
+ 	char		newifname[LIFNAMSIZ];
+ 	char		*aobjstr;
+-	sa_family_t	af = AF_UNSPEC;
+-	boolean_t	is_ngz = (iph->iph_zoneid != GLOBAL_ZONEID);
++	uint16_t	*afs;
++	char		*gifname;
++	uint_t		nelem = 0;
++	boolean_t	init_from_gz = B_FALSE;
++	boolean_t	move_to_group = B_FALSE;
+ 
+ 	(void) strlcpy(newifname, ifname, sizeof (newifname));
++
+ 	/*
+-	 * First plumb the given interface and then apply all the persistent
+-	 * interface properties and then instantiate any persistent addresses
+-	 * objects on that interface.
++	 * First go through the ifnvl nvlist looking for nested nvlist
++	 * containing interface class and address families.
+ 	 */
+ 	for (nvp = nvlist_next_nvpair(ifnvl, NULL); nvp != NULL;
+ 	    nvp = nvlist_next_nvpair(ifnvl, nvp)) {
+-		if (nvpair_value_nvlist(nvp, &nvl) != 0)
++		char *icstr;
++		char **mifnames;
++		uint32_t ipadm_flags = IPADM_OPT_ACTIVE;
++
++		if (nvpair_value_nvlist(nvp, &nvl) != 0 ||
++		    nvlist_lookup_uint16_array(nvl, IPADM_NVP_FAMILIES,
++		    &afs, &nelem) != 0)
+ 			continue;
+ 
+-		if (nvlist_lookup_string(nvl, IPADM_NVP_FAMILY, &afstr) == 0) {
+-			status = i_ipadm_plumb_if(iph, newifname, atoi(afstr),
+-			    IPADM_OPT_ACTIVE);
+-			/*
+-			 * If the interface is already plumbed, we should
+-			 * ignore this error because there might be address
+-			 * address objects on that interface that needs to
+-			 * be enabled again.
+-			 */
++		/* Check if this is IPMP group interface */
++		if (nvlist_lookup_string(nvl, IPADM_NVP_IFCLASS,
++		    &icstr) == 0 && atoi(icstr) == IPADM_IF_CLASS_IPMP)
++			ipadm_flags |= IPADM_OPT_IPMP;
++
++		/* Create interfaces for address families specified */
++		while (nelem-- > 0) {
++			uint16_t af = afs[nelem];
++
++			assert(af == AF_INET || af == AF_INET6);
++
++			status = i_ipadm_plumb_if(iph, newifname, af,
++			    ipadm_flags);
+ 			if (status == IPADM_IF_EXISTS)
+ 				status = IPADM_SUCCESS;
++			if (status != IPADM_SUCCESS)
++				return (status);
++		}
++		if (nvlist_lookup_string(nvl, IPADM_NVP_GIFNAME,
++		    &gifname) == 0) {
++			/*
++			 * IPMP underlying interface. Move to the
++			 * specified IPMP group.
++			 */
++			move_to_group = B_TRUE;
++		} else if ((ipadm_flags & IPADM_OPT_IPMP) &&
++		    nvlist_lookup_string_array(nvl, IPADM_NVP_MIFNAMES,
++		    &mifnames, &nelem) == 0) {
++			/* Non-empty IPMP group interface */
++			while (nelem-- > 0) {
++				(void) ipadm_add_ipmp_member(iph, newifname,
++				    mifnames[nelem], IPADM_OPT_ACTIVE);
++			}
++		}
++		if (iph->iph_zoneid != GLOBAL_ZONEID)
++			init_from_gz = B_TRUE;
++	}
+ 
+-			if (is_ngz)
+-				af = atoi(afstr);
+-		} else if (nvlist_lookup_string(nvl, IPADM_NVP_AOBJNAME,
++	if (status != IPADM_SUCCESS)
++		return (status);
++
++	/*
++	 * Go through the ifnvl nvlist again, applying persistent configuration.
++	 */
++	for (nvp = nvlist_next_nvpair(ifnvl, NULL); nvp != NULL;
++	    nvp = nvlist_next_nvpair(ifnvl, nvp)) {
++		if (nvpair_value_nvlist(nvp, &nvl) != 0)
++			continue;
++		if (nvlist_lookup_string(nvl, IPADM_NVP_AOBJNAME,
+ 		    &aobjstr) == 0) {
+ 			/*
+ 			 * For addresses, we need to relocate addrprops from the
+@@ -737,10 +746,12 @@ i_ipadm_init_ifobj(ipadm_handle_t iph, const char *ifname, nvlist_t *ifnvl)
+ 			    nvlist_exists(nvl, IPADM_NVP_DHCP)) {
+ 				status = i_ipadm_merge_addrprops_from_nvl(ifnvl,
+ 				    nvl, aobjstr);
++
+ 				if (status != IPADM_SUCCESS)
+ 					continue;
+ 			}
+ 			status = i_ipadm_init_addrobj(iph, nvl);
++
+ 			/*
+ 			 * If this address is in use on some other interface,
+ 			 * we want to record an error to be returned as
+@@ -751,15 +762,17 @@ i_ipadm_init_ifobj(ipadm_handle_t iph, const char *ifname, nvlist_t *ifnvl)
+ 				ret_status = IPADM_ALL_ADDRS_NOT_ENABLED;
+ 				status = IPADM_SUCCESS;
+ 			}
+-		} else {
+-			assert(nvlist_exists(nvl, IPADM_NVP_PROTONAME));
++		} else if (nvlist_exists(nvl, IPADM_NVP_PROTONAME) == B_TRUE) {
+ 			status = i_ipadm_init_ifprop(iph, nvl);
+ 		}
+ 		if (status != IPADM_SUCCESS)
+ 			return (status);
+ 	}
+-
+-	if (is_ngz && af != AF_UNSPEC)
++	if (move_to_group) {
++		(void) ipadm_add_ipmp_member(iph, gifname, newifname,
++		    IPADM_OPT_ACTIVE);
++	}
++	if (init_from_gz)
+ 		ret_status = ipadm_init_net_from_gz(iph, newifname, NULL);
+ 	return (ret_status);
+ }
+@@ -779,8 +792,9 @@ i_ipadm_init_ifs(ipadm_handle_t iph, const char *ifs, nvlist_t **allifs)
+ 	int			err;
+ 	ipadm_status_t		status = IPADM_SUCCESS;
+ 
+-	if ((err = ipadm_str2nvlist(ifs, &nvl, IPADM_NORVAL)) != 0)
+-		return (ipadm_errno2status(err));
++	status = ipadm_str2nvlist(ifs, &nvl, IPADM_NORVAL);
++	if (status != IPADM_SUCCESS)
++		return (status);
+ 
+ 	err = nvlist_pack(nvl, &nvlbuf, &nvlsize, NV_ENCODE_NATIVE, 0);
+ 	if (err != 0) {
+@@ -959,6 +973,36 @@ ipadm_door_call(ipadm_handle_t iph, void *arg, size_t asize, void **rbufp,
+ 	return (err);
+ }
+ 
++/*
++ * A helper that is used by i_ipadm_get_db_addr and i_ipadm_get_db_if
++ * to do a door_call to ipmgmtd, that should return persistent information
++ * about interfaces or/and addresses from ipadm DB
++ */
++ipadm_status_t
++i_ipadm_call_ipmgmtd(ipadm_handle_t iph, void *garg, size_t garg_size,
++    nvlist_t **onvl)
++{
++	ipmgmt_get_rval_t	*rvalp;
++	int			err;
++	size_t			nvlsize;
++	char			*nvlbuf;
++
++	rvalp = malloc(sizeof (ipmgmt_get_rval_t));
++	if (rvalp == NULL)
++		return (IPADM_NO_MEMORY);
++
++	err = ipadm_door_call(iph, garg, garg_size, (void **)&rvalp,
++	    sizeof (*rvalp), B_TRUE);
++	if (err == 0) {
++		nvlsize = rvalp->ir_nvlsize;
++		nvlbuf = (char *)rvalp + sizeof (ipmgmt_get_rval_t);
++		err = nvlist_unpack(nvlbuf, nvlsize, onvl, 0);
++	}
++	free(rvalp);
++
++	return (ipadm_errno2status(err));
++}
++
+ /*
+  * ipadm_is_nil_hostname() : Determine if the `hostname' is nil: i.e.,
+  *			NULL, empty, or a single space (e.g., as returned by
+diff --git a/usr/src/lib/libipadm/common/libipadm.h b/usr/src/lib/libipadm/common/libipadm.h
+index 0ae9d89e4b9e..66e7888d2b69 100644
+--- a/usr/src/lib/libipadm/common/libipadm.h
++++ b/usr/src/lib/libipadm/common/libipadm.h
+@@ -21,7 +21,7 @@
+ /*
+  * Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+  * Copyright (c) 2016, Chris Fraire <cfraire@me.com>.
+- * Copyright 2021, Tintri by DDN. All rights reserved.
++ * Copyright 2021 Tintri by DDN, Inc. All rights reserved.
+  */
+ #ifndef _LIBIPADM_H
+ #define	_LIBIPADM_H
+@@ -39,6 +39,8 @@ extern "C" {
+ #include <libnvpair.h>
+ #include <netinet/tcp.h>
+ #include <sys/stropts.h>
++#include <sys/list.h>
++#include <stddef.h>
+ 
+ #define	IPADM_AOBJ_USTRSIZ	32
+ #define	IPADM_AOBJSIZ		(LIFNAMSIZ + IPADM_AOBJ_USTRSIZ)
+@@ -206,27 +208,31 @@ typedef enum {
+ 	IFIS_DISABLED		/* Interface has been disabled. */
+ } ipadm_if_state_t;
+ 
+-/*
+- * Declare ipadm_if_info_list_t as a container for ipadm_if_info_t.
+- *
+- * ipadm_if_info_t used to have a list pointer ifi_next for linking a number
+- * of ipadm_if_info_t's together. Even though this linking wasn't used in the
+- * data exchange between ipmgmtd and libipadm, this meant the structure wasn't
+- * safe for passing through the door between 32bit and 64bit processes.
+- */
++typedef list_t ipadm_ipmp_members_t;
++
++typedef struct {
++    list_node_t node;
++    char if_name[LIFNAMSIZ];
++} ipadm_ipmp_member_t;
++
++typedef enum {
++    IPADM_IF_CLASS_REGULAR,
++    IPADM_IF_CLASS_IPMP,
++    IPADM_IF_CLASS_VIRTUAL,
++    IPADM_IF_CLASS_UNKNOWN
++} ipadm_if_class_t;
++
+ typedef struct ipadm_if_info_s {
++	struct ipadm_if_info_s	*ifi_next;
+ 	char			ifi_name[LIFNAMSIZ];	/* interface name */
++	ipadm_if_class_t	ifi_class;		/* interface class */
+ 	ipadm_if_state_t	ifi_state;		/* see above */
+ 	uint_t			ifi_cflags;		/* current flags */
+ 	uint_t			ifi_pflags;		/* persistent flags */
++	ipadm_ipmp_members_t    ifi_ipmp_cmembers; /* current IPMP members */
++	ipadm_ipmp_members_t    ifi_ipmp_pmembers; /* persistent IPMP members */
+ } ipadm_if_info_t;
+ 
+-typedef struct ipadm_if_info_list_s {
+-	struct ipadm_if_info_list_s	*ifil_next;
+-	ipadm_if_info_t			ifil_ifi;
+-} ipadm_if_info_list_t;
+-
+-
+ /* ipadm_if_info_t flags */
+ #define	IFIF_BROADCAST		0x00000001
+ #define	IFIF_MULTICAST		0x00000002
+@@ -293,11 +299,15 @@ extern ipadm_status_t	ipadm_disable_if(ipadm_handle_t, const char *,
+ 			    uint32_t);
+ extern ipadm_status_t	ipadm_enable_if(ipadm_handle_t, const char *, uint32_t);
+ extern ipadm_status_t	ipadm_if_info(ipadm_handle_t, const char *,
+-			    ipadm_if_info_list_t **, uint32_t, int64_t);
+-extern void		ipadm_free_if_info(ipadm_if_info_list_t *);
++			    ipadm_if_info_t **, uint32_t, int64_t);
++extern void		ipadm_free_if_info(ipadm_if_info_t *);
+ extern ipadm_status_t	ipadm_delete_if(ipadm_handle_t, const char *,
+ 			    sa_family_t, uint32_t);
+ extern void		ipadm_if_move(ipadm_handle_t, const char *);
++extern ipadm_status_t ipadm_add_ipmp_member(ipadm_handle_t, const char *,
++	    const char *, uint32_t);
++extern ipadm_status_t ipadm_remove_ipmp_member(ipadm_handle_t, const char *,
++	    const char *, uint32_t);
+ 
+ /*
+  * Address management functions
+@@ -377,7 +387,7 @@ extern ipadm_status_t	ipadm_get_prop(ipadm_handle_t, const char *, char *,
+  * miscellaneous helper functions.
+  */
+ extern const char	*ipadm_status2str(ipadm_status_t);
+-extern int		ipadm_str2nvlist(const char *, nvlist_t **, uint_t);
++extern ipadm_status_t	ipadm_str2nvlist(const char *, nvlist_t **, uint_t);
+ extern size_t		ipadm_nvlist2str(nvlist_t *, char *, size_t);
+ extern char		*ipadm_proto2str(uint_t);
+ extern uint_t		ipadm_str2proto(const char *);
+diff --git a/usr/src/lib/libipadm/common/libipadm_impl.h b/usr/src/lib/libipadm/common/libipadm_impl.h
+index 98b95092d911..1766558db6c2 100644
+--- a/usr/src/lib/libipadm/common/libipadm_impl.h
++++ b/usr/src/lib/libipadm/common/libipadm_impl.h
+@@ -18,10 +18,12 @@
+  *
+  * CDDL HEADER END
+  */
++
+ /*
+  * Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+  * Copyright (c) 2013 by Delphix. All rights reserved.
+  * Copyright (c) 2016, Chris Fraire <cfraire@me.com>.
++ * Copyright 2021 Tintri by DDN, Inc. All rights reserved.
+  */
+ 
+ #ifndef _LIBIPADM_IMPL_H
+@@ -32,6 +34,7 @@ extern "C" {
+ #endif
+ 
+ #include <sys/socket.h>
++#include <sys/list.h>
+ #include <net/if.h>
+ #include <libipadm.h>
+ #include <libdladm.h>
+@@ -52,6 +55,11 @@ extern "C" {
+ /* mask for flags accepted by libipadm functions */
+ #define	IPADM_COMMON_OPT_MASK	(IPADM_OPT_ACTIVE | IPADM_OPT_PERSIST)
+ 
++typedef enum {
++    IPADM_ADD_IPMP,
++    IPADM_REMOVE_IPMP
++} ipadm_ipmp_op_t;
++
+ /* Opaque library handle */
+ struct ipadm_handle {
+ 	int		iph_sock;	/* socket to interface */
+@@ -65,7 +73,7 @@ struct ipadm_handle {
+ };
+ 
+ struct ipadm_addrobj_s {
+-	char 			ipadm_ifname[LIFNAMSIZ];
++	char			ipadm_ifname[LIFNAMSIZ];
+ 	int32_t			ipadm_lifnum;
+ 	char			ipadm_aobjname[IPADM_AOBJSIZ];
+ 	ipadm_addr_type_t	ipadm_atype;
+@@ -154,15 +162,15 @@ extern ipadm_status_t	i_ipadm_delete_addr(ipadm_handle_t, ipadm_addrobj_t);
+ extern int		i_ipadm_strioctl(int, int, char *, int);
+ extern boolean_t	i_ipadm_is_loopback(const char *);
+ extern boolean_t	i_ipadm_is_vni(const char *);
+-extern boolean_t	i_ipadm_is_ipmp(ipadm_handle_t, const char *);
+-extern boolean_t	i_ipadm_is_under_ipmp(ipadm_handle_t, const char *);
+ extern boolean_t	i_ipadm_is_6to4(ipadm_handle_t, char *);
+ extern boolean_t	i_ipadm_validate_ifname(ipadm_handle_t, const char *);
+ extern ipadm_status_t	ipadm_errno2status(int);
+ extern int		ipadm_door_call(ipadm_handle_t, void *, size_t, void **,
+ 			    size_t, boolean_t);
+-extern boolean_t 	ipadm_if_enabled(ipadm_handle_t, const char *,
++extern boolean_t	ipadm_if_enabled(ipadm_handle_t, const char *,
+ 			    sa_family_t);
++extern ipadm_status_t i_ipadm_call_ipmgmtd(ipadm_handle_t, void *,
++	    size_t, nvlist_t **);
+ 
+ /* ipadm_ndpd.c */
+ extern	ipadm_status_t	i_ipadm_create_ipv6addrs(ipadm_handle_t,
+@@ -187,6 +195,8 @@ extern ipadm_status_t	i_ipadm_get_persist_propval(ipadm_handle_t,
+ 			    const void *);
+ 
+ /* ipadm_addr.c */
++extern ipadm_status_t	i_ipadm_active_addr_info(ipadm_handle_t, const char *,
++			    ipadm_addr_info_t **, uint32_t, int64_t);
+ extern void		i_ipadm_init_addr(ipadm_addrobj_t, const char *,
+ 			    const char *, ipadm_addr_type_t);
+ extern ipadm_status_t	i_ipadm_merge_addrprops_from_nvl(nvlist_t *, nvlist_t *,
+@@ -230,6 +240,12 @@ extern ipadm_status_t	i_ipadm_delete_ifobj(ipadm_handle_t, const char *,
+ 			    sa_family_t, boolean_t);
+ extern int		i_ipadm_get_lnum(const char *);
+ 
++extern ipadm_status_t i_ipadm_set_groupname_active(ipadm_handle_t,
++	    const char *, const char *);
++extern ipadm_status_t i_ipadm_get_groupname_active(ipadm_handle_t,
++	    const char *, char *, size_t);
++extern boolean_t i_ipadm_is_under_ipmp(ipadm_handle_t, const char *);
++extern boolean_t i_ipadm_is_ipmp(ipadm_handle_t, const char *);
+ #ifdef	__cplusplus
+ }
+ #endif
+diff --git a/usr/src/lib/libipadm/common/mapfile-vers b/usr/src/lib/libipadm/common/mapfile-vers
+index 7b03b77f3379..7e2becc2bc96 100644
+--- a/usr/src/lib/libipadm/common/mapfile-vers
++++ b/usr/src/lib/libipadm/common/mapfile-vers
+@@ -21,6 +21,7 @@
+ #
+ # Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+ # Copyright (c) 2016, Chris Fraire <cfraire@me.com>.
++# Copyright 2021 Tintri by DDN, Inc. All rights reserved.
+ #
+ 
+ #
+@@ -41,6 +42,7 @@ $mapfile_version 2
+ 
+ SYMBOL_VERSION SUNWprivate_1.1 {
+     global:
++	ipadm_add_ipmp_member;
+ 	ipadm_add_aobjname;
+ 	ipadm_addr_info;
+ 	ipadm_check_auth;
+@@ -79,6 +81,7 @@ SYMBOL_VERSION SUNWprivate_1.1 {
+ 	ipadm_open_arp_on_udp;
+ 	ipadm_proto2str;
+ 	ipadm_refresh_addr;
++	ipadm_remove_ipmp_member;
+ 	ipadm_rw_db;
+ 	ipadm_set_addr;
+ 	ipadm_set_addrprop;
+diff --git a/usr/src/man/man1m/ipadm.1m b/usr/src/man/man1m/ipadm.1m
+index 5f15786c5396..3ab79e87d5aa 100644
+--- a/usr/src/man/man1m/ipadm.1m
++++ b/usr/src/man/man1m/ipadm.1m
+@@ -11,16 +11,16 @@
+ .\"
+ .\" Copyright (c) 2012, Joyent, Inc. All Rights Reserved
+ .\" Copyright (c) 2013, 2017 by Delphix. All rights reserved.
+-.\" Copyright 2018 Nexenta Systems, Inc.
+ .\" Copyright (c) 2016-2017, Chris Fraire <cfraire@me.com>.
+ .\" Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
++.\" Copyright 2021 Tintri by DDN, Inc. All rights reserved.
+ .\"
+-.Dd October 20, 2021
++.Dd November 15, 2021
+ .Dt IPADM 1M
+ .Os
+ .Sh NAME
+ .Nm ipadm
+-.Nd configure IP interfaces, addresses and protocols
++.Nd configure IP and IPMP interfaces, addresses and protocols
+ .Sh SYNOPSIS
+ .Nm
+ .Ic help
+@@ -29,6 +29,36 @@
+ .Op Fl t
+ .Ar interface
+ .Nm
++.Ic create-ip
++.Op Fl t
++.Ar interface
++.Nm
++.Ic delete-if
++.Ar interface
++.Nm
++.Ic delete-ip
++.Ar interface
++.Pp
++.Nm
++.Ic create-ipmp
++.Op Fl t
++.Op Fl i Ar interface Ns Oo , Ns Ar interface Oc Ns ...
++.Ar ipmp-interface
++.Nm
++.Ic delete-ipmp
++.Ar ipmp-interface
++.Nm
++.Ic add-ipmp
++.Op Fl t
++.Fl i Ar interface Ns Oo , Ns Ar interface Oc Ns ...
++.Ar ipmp-interface
++.Nm
++.Ic remove-ipmp
++.Op Fl t
++.Fl i Ar interface Ns Oo , Ns Ar interface Oc Ns ...
++.Ar ipmp-interface
++.Pp
++.Nm
+ .Ic disable-if
+ .Fl t
+ .Ar interface
+@@ -37,12 +67,10 @@
+ .Fl t
+ .Ar interface
+ .Nm
+-.Ic delete-if
+-.Ar interface
+-.Nm
+ .Ic show-if
+ .Op Oo Fl p Oc Fl o Ar field Ns Oo , Ns Ar field Oc Ns ...
+ .Op Ar interface
++.Pp
+ .Nm
+ .Ic set-ifprop
+ .Op Fl t
+@@ -61,6 +89,7 @@
+ .Op Fl p Ar prop Ns Oo , Ns Ar prop Oc Ns ...
+ .Op Fl m Ar protocol
+ .Op Ar interface
++.Pp
+ .Nm
+ .Ic create-addr
+ .Op Fl t
+@@ -86,6 +115,18 @@
+ .Bro Cm yes Ns | Ns Cm no Brc Oc Ns ...
+ .Ar addrobj
+ .Nm
++.Ic delete-addr
++.Op Fl r
++.Ar addrobj
++.Nm
++.Ic show-addr
++.Op Oo Fl p Oc Fl o Ar field Ns Oo , Ns Ar field Oc Ns ...
++.Op Ar addrobj
++.Nm
++.Ic refresh-addr
++.Op Fl i
++.Ar addrobj
++.Nm
+ .Ic down-addr
+ .Op Fl t
+ .Ar addrobj
+@@ -101,18 +142,7 @@
+ .Ic enable-addr
+ .Op Fl t
+ .Ar addrobj
+-.Nm
+-.Ic refresh-addr
+-.Op Fl i
+-.Ar addrobj
+-.Nm
+-.Ic delete-addr
+-.Op Fl r
+-.Ar addrobj
+-.Nm
+-.Ic show-addr
+-.Op Oo Fl p Oc Fl o Ar field Ns Oo , Ns Ar field Oc Ns ...
+-.Op Ar addrobj
++.Pp
+ .Nm
+ .Ic set-addrprop
+ .Op Fl t
+@@ -128,6 +158,7 @@
+ .Op Oo Fl c Oc Fl o Ar field Ns Oo , Ns Ar field Oc Ns ...
+ .Op Fl p Ar prop Ns Oo , Ns Ar prop Oc Ns ...
+ .Op Ar addrobj
++.Pp
+ .Nm
+ .Ic set-prop
+ .Op Fl t
+@@ -191,23 +222,112 @@ shows the current address properties, in the same way as
+ .Ic show-addr .
+ .Pp
+ The following subcommands are supported:
+-.Bl -tag -width Ds
+-.It Nm Ic help
++.Pp
++.Bl -tag -compact -width Ds
++.It Xo
++.Nm
++.Ic help
++.Xc
+ Display brief command usage.
++.Pp
+ .It Xo
+ .Nm
+ .Ic create-if
+ .Op Fl t
+ .Ar interface
+ .Xc
++.It Xo
++.Nm
++.Ic create-ip
++.Op Fl t
++.Ar interface
++.Xc
+ Create an IP interface that will handle both IPv4 and IPv6 packets.
+ The interface will be enabled as part of the creation process.
+ The IPv4 interface will have the address 0.0.0.0.
+ The IPv6 interface will have the address ::.
++The subcommands
++.Ic create-if
++and
++.Ic create-ip
++are functionally equivalent aliases of each other.
++.Bl -tag -width Ds
++.It Fl t Ns \&, Ns Fl -temporary
++Temporary, not persistent across reboots.
++.El
++.Pp
++.It Xo
++.Nm
++.Ic delete-if
++.Ar interface
++.Xc
++.It Xo
++.Nm
++.Ic delete-ip
++.Ar interface
++.Xc
++Permanently delete the specified IP interface.
++The subcommands
++.Ic delete-if
++and
++.Ic delete-ip
++are functionally equivalent aliases of each other.
++.Pp
++.It Xo
++.Nm
++.Ic create-ipmp
++.Op Fl t
++.Op Fl i Ar interface Ns Oo , Ns Ar interface Oc Ns ...
++.Ar ipmp-interface
++.Xc
++Create an IPMP interface that will handle both IPv4 and IPv6 packets.
++The interface will be enabled as part of the creation process.
++The IPv4 interface will have the address 0.0.0.0.
++The IPv6 interface will have the address ::.
+ .Bl -tag -width Ds
++.It Fl i Ns \&, Ns Fl -interface
++Interface(s) to be added to the new IPMP interface.
+ .It Fl t Ns \&, Ns Fl -temporary
+ Temporary, not persistent across reboots.
+ .El
++.Pp
++.It Xo
++.Nm
++.Ic delete-ipmp
++.Ar ipmp-interface
++.Xc
++Permanently delete the IPMP interface.
++.Pp
++.It Xo
++.Nm
++.Ic add-ipmp
++.Op Fl t
++.Fl i Ar interface Ns Oo , Ns Ar interface Oc Ns ...
++.Ar ipmp-interface
++.Xc
++Add the IP interface(s) to the IPMP interface.
++.Bl -tag -width ""
++.It Fl i Ns \&, Ns Fl -interface
++Interface(s) to be added to the IPMP interface.
++.It Fl t Ns \&, Ns Fl -temporary
++Temporary, not persistent across reboots.
++.El
++.Pp
++.It Xo
++.Nm
++.Ic remove-ipmp
++.Op Fl t
++.Fl i Ar interface Ns Oo , Ns Ar interface Oc Ns ...
++.Ar ipmp-interface
++.Xc
++Remove the IP interface(s) from the IPMP interface.
++.Bl -tag -width ""
++.It Fl i Ns \&, Ns Fl -interface
++Interface(s) to be removed from the IPMP interface.
++.It Fl t Ns \&, Ns Fl -temporary
++Temporary, not persistent across reboots.
++.El
++.Pp
+ .It Xo
+ .Nm
+ .Ic disable-if
+@@ -219,6 +339,7 @@ Disable the specified IP interface.
+ .It Fl t Ns \&, Ns Fl -temporary
+ Temporary, not persistent across reboots.
+ .El
++.Pp
+ .It Xo
+ .Nm
+ .Ic enable-if
+@@ -230,12 +351,7 @@ Enable the specified IP interface.
+ .It Fl t Ns \&, Ns Fl -temporary
+ Temporary, not persistent across reboots.
+ .El
+-.It Xo
+-.Nm
+-.Ic delete-if
+-.Ar interface
+-.Xc
+-Permanently delete the specified IP interface.
++.Pp
+ .It Xo
+ .Nm
+ .Ic show-if
+@@ -309,6 +425,7 @@ IPv6
+ .It Fl p Ns \&, Ns Fl -parsable
+ Print the output in a parsable format.
+ .El
++.Pp
+ .It Xo
+ .Nm
+ .Ic set-ifprop
+@@ -351,6 +468,7 @@ may also be used.
+ .It Fl t Ns \&, Ns Fl -temporary
+ Temporary, not persistent across reboots.
+ .El
++.Pp
+ .It Xo
+ .Nm
+ .Ic reset-ifprop
+@@ -371,6 +489,7 @@ subcommand for the list of property names.
+ .It Fl t Ns \&, Ns Fl -temporary
+ Temporary, not persistent across reboots.
+ .El
++.Pp
+ .It Xo
+ .Nm
+ .Ic show-ifprop
+@@ -417,6 +536,7 @@ See the
+ .Nm ipadm Ic set-ifprop
+ subcommand for the list of property names.
+ .El
++.Pp
+ .It Xo
+ .Nm
+ .Ic create-addr
+@@ -433,7 +553,7 @@ The address will be enabled but can disabled using the
+ subcommand.
+ Note that
+ .Cm addrconf
+-address configured on an interface is required to configure
++address configured on the interface is required to configure
+ .Cm static
+ IPv6 address on the same interface.
+ This takes the following options:
+@@ -455,6 +575,7 @@ The address is down.
+ .It Fl t Ns \&, Ns Fl -temporary
+ Temporary, not persistent across reboots.
+ .El
++.Pp
+ .It Xo
+ .Nm
+ .Ic create-addr
+@@ -498,6 +619,7 @@ address; or specify
+ to wait without interruption.
+ The default value is 120.
+ .El
++.Pp
+ .It Xo
+ .Nm
+ .Ic create-addr
+@@ -518,68 +640,7 @@ Specify which method of auto-configuration should be used.
+ .It Fl t Ns \&, Ns Fl -temporary
+ Temporary, not persistent across reboots.
+ .El
+-.It Xo
+-.Nm
+-.Ic down-addr
+-.Op Fl t
+-.Ar addrobj
+-.Xc
+-Down the address.
+-This will stop packets from being sent or received.
+-.Bl -tag -width Ds
+-.It Fl t Ns \&, Ns Fl -temporary
+-Temporary, not persistent across reboots.
+-.El
+-.It Xo
+-.Nm
+-.Ic up-addr
+-.Op Fl t
+-.Ar addrobj
+-.Xc
+-Up the address.
+-This will enable packets to be sent and received.
+-.Bl -tag -width Ds
+-.It Fl t Ns \&, Ns Fl -temporary
+-Temporary, not persistent across reboots.
+-.El
+-.It Xo
+-.Nm
+-.Ic disable-addr
+-.Op Fl t
+-.Ar addrobj
+-.Xc
+-Disable the address.
+-.Bl -tag -width Ds
+-.It Fl t Ns \&, Ns Fl -temporary
+-Temporary, not persistent across reboots.
+-.El
+-.It Xo
+-.Nm
+-.Ic enable-addr
+-.Op Fl t
+-.Ar addrobj
+-.Xc
+-Enable the address.
+-.Bl -tag -width Ds
+-.It Fl t Ns \&, Ns Fl -temporary
+-Temporary, not persistent across reboots.
+-.El
+-.It Xo
+-.Nm
+-.Ic refresh-addr
+-.Op Fl i
+-.Ar addrobj
+-.Xc
+-Extend the lease for
+-.Sy DHCP
+-addresses.
+-It also restarts duplicate address detection for
+-.Cm static
+-addresses.
+-.Bl -tag -width Ds
+-.It Fl i Ns \&, Ns Fl -inform
+-Obtain network configuration from DHCP without taking a lease on the address.
+-.El
++.Pp
+ .It Xo
+ .Nm
+ .Ic delete-addr
+@@ -591,6 +652,7 @@ Delete the given address.
+ .It Fl r Ns \&, Ns Fl -release
+ Indicate that the DHCP-assigned address should be released.
+ .El
++.Pp
+ .It Xo
+ .Nm
+ .Ic show-addr
+@@ -623,7 +685,7 @@ see the
+ .Nm ipadm Ic down-addr
+ subcommand
+ .It Sy duplicate
+-the address is a duplicate
++the address is duplicate
+ .It Sy inaccessible
+ the interface for this address has failed
+ .It Sy ok
+@@ -665,6 +727,74 @@ The address.
+ .It Fl p Ns \&, Ns Fl -parsable
+ Print the output in a parsable format.
+ .El
++.Pp
++.It Xo
++.Nm
++.Ic refresh-addr
++.Op Fl i
++.Ar addrobj
++.Xc
++Extend the lease for
++.Sy DHCP
++addresses.
++It also restarts duplicate address detection for
++.Cm static
++addresses.
++.Bl -tag -width ""
++.It Fl i Ns \&, Ns Fl -inform
++Obtain network configuration from DHCP without taking a lease on the address.
++.El
++.Pp
++.It Xo
++.Nm
++.Ic down-addr
++.Op Fl t
++.Ar addrobj
++.Xc
++Down the address.
++This will stop packets from being sent or received.
++.Bl -tag -width Ds
++.It Fl t Ns \&, Ns Fl -temporary
++Temporary, not persistent across reboots.
++.El
++.Pp
++.It Xo
++.Nm
++.Ic up-addr
++.Op Fl t
++.Ar addrobj
++.Xc
++Up the address.
++This will enable packets to be sent and received.
++.Bl -tag -width Ds
++.It Fl t Ns \&, Ns Fl -temporary
++Temporary, not persistent across reboots.
++.El
++.Pp
++.It Xo
++.Nm
++.Ic disable-addr
++.Op Fl t
++.Ar addrobj
++.Xc
++Disable the address.
++.Bl -tag -width Ds
++.It Fl t Ns \&, Ns Fl -temporary
++Temporary, not persistent across reboots.
++.El
++.Pp
++.It Xo
++.Nm
++.Ic enable-addr
++.Op Fl t
++.Ar addrobj
++.Xc
++Enable the address.
++.Bl -tag -width Ds
++.It Fl t Ns \&, Ns Fl -temporary
++Temporary, not persistent across reboots.
++.El
++.Pp
+ .It Xo
+ .Nm
+ .Ic set-addrprop
+@@ -712,6 +842,7 @@ to make persistent).
+ .It Fl t Ns \&, Ns Fl -temporary
+ Temporary, not persistent across reboots.
+ .El
++.Pp
+ .It Xo
+ .Nm
+ .Ic reset-addrprop
+@@ -729,6 +860,7 @@ subcommand for the list of property names.
+ .It Fl t Ns \&, Ns Fl -temporary
+ Temporary, not persistent across reboots.
+ .El
++.Pp
+ .It Xo
+ .Nm
+ .Ic show-addrprop
+@@ -770,7 +902,9 @@ See the
+ .Nm ipadm Ic set-addrprop
+ subcommand for the list of property names.
+ .El
++.Pp
+ .It Xo
++.Nm
+ .Ic set-prop
+ .Op Fl t
+ .Fl p Ar prop Ns Oo Cm + Ns | Ns Cm - Oc Ns = Ns
+@@ -852,6 +986,7 @@ The IPv4 time-to-live.
+ .It Fl t Ns \&, Ns Fl -temporary
+ Temporary, not persistent across reboots.
+ .El
++.Pp
+ .It Xo
+ .Nm
+ .Ic reset-prop
+@@ -869,6 +1004,7 @@ subcommand for the list of property names.
+ .It Fl t Ns \&, Ns Fl -temporary
+ Temporary, not persistent across reboots.
+ .El
++.Pp
+ .It Xo
+ .Nm
+ .Ic show-prop
+diff --git a/usr/src/pkg/manifests/SUNWcs.p5m b/usr/src/pkg/manifests/SUNWcs.p5m
+index e1286feddc2e..b39640301ca8 100644
+--- a/usr/src/pkg/manifests/SUNWcs.p5m
++++ b/usr/src/pkg/manifests/SUNWcs.p5m
+@@ -350,6 +350,7 @@ file path=lib/svc/manifest/network/ldap/client.xml group=sys mode=0444
+ file path=lib/svc/manifest/network/network-initial.xml group=sys mode=0444
+ file path=lib/svc/manifest/network/network-install.xml group=sys mode=0444
+ file path=lib/svc/manifest/network/network-ipmgmt.xml group=sys mode=0444
++file path=lib/svc/manifest/network/network-ipmp.xml group=sys mode=0444
+ file path=lib/svc/manifest/network/network-ipqos.xml group=sys mode=0444
+ file path=lib/svc/manifest/network/network-iptun.xml group=sys mode=0444
+ file path=lib/svc/manifest/network/network-location.xml group=sys mode=0444
+@@ -439,6 +440,7 @@ file path=lib/svc/method/mpxio-upgrade mode=0555
+ file path=lib/svc/method/net-init mode=0555
+ file path=lib/svc/method/net-install mode=0555
+ file path=lib/svc/method/net-ipmgmt mode=0555
++file path=lib/svc/method/net-ipmp mode=0555
+ file path=lib/svc/method/net-ipqos mode=0555
+ file path=lib/svc/method/net-iptun mode=0555
+ file path=lib/svc/method/net-loc mode=0555
+@@ -504,7 +506,6 @@ file path=sbin/fiocompress mode=0555
+ file path=sbin/hostconfig mode=0555
+ file path=sbin/ifconfig mode=0555
+ file path=sbin/ifparse mode=0555
+-link path=sbin/in.mpathd target=../lib/inet/in.mpathd
+ file path=sbin/init group=sys mode=0555
+ $(i386_ONLY)file path=sbin/installgrub group=sys mode=0555
+ file path=sbin/ipmpstat mode=0555
+@@ -1182,7 +1183,6 @@ file path=usr/lib/inet/certdb mode=0555
+ file path=usr/lib/inet/certlocal mode=0555
+ file path=usr/lib/inet/certrldb mode=0555
+ hardlink path=usr/lib/inet/in.iked target=../../../usr/lib/isaexec
+-link path=usr/lib/inet/in.mpathd target=../../../lib/inet/in.mpathd
+ file path=usr/lib/inet/inetd mode=0555
+ file path=usr/lib/intrd mode=0555
+ file path=usr/lib/isaexec mode=0555

@@ -1,0 +1,54 @@
+From 1aff3eee7740231f158365739d74142c5cf1947a Mon Sep 17 00:00:00 2001
+From: Peter Tribble <peter.tribble@gmail.com>
+Date: Tue, 18 Jan 2022 19:24:56 +0000
+Subject: [PATCH] 14416 Typos in getgrouplist.3c Reviewed by: Richard Lowe
+ <richlowe@richlowe.net> Reviewed by: Jason King <jason.brian.king@gmail.com>
+ Approved by: Dan McDonald <danmcd@joyent.com>
+
+---
+ usr/src/man/man3c/getgrouplist.3c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/usr/src/man/man3c/getgrouplist.3c b/usr/src/man/man3c/getgrouplist.3c
+index 18906886c2..4c39ed8fbb 100644
+--- a/usr/src/man/man3c/getgrouplist.3c
++++ b/usr/src/man/man3c/getgrouplist.3c
+@@ -11,7 +11,7 @@
+ .\"
+ .\" Copyright 2020 Joyent, Inc.
+ .\"
+-.Dd August 28, 2021
++.Dd January 17, 2022
+ .Dt GETGROUPLIST 3C
+ .Os
+ .Sh NAME
+@@ -112,7 +112,7 @@ upon return to determine the number of entries in
+ .Pp
+ On Linux, both glibc and musl return the number of groups
+ .Fa user
+-belongs to on success and returns -1 on failure.
++belongs to on success and return -1 on failure.
+ .Pp
+ None of these other implementations document any
+ .Va errno
+@@ -145,7 +145,7 @@ printgroups(const char *user)
+         err(EXIT_FAILURE, "calloc");
+ 
+     if ((pw = getpwnam(user)) == NULL)
+-        err(EXIT_FAILURE, "getpwname");
++        err(EXIT_FAILURE, "getpwnam");
+ 
+     ngroups = NGROUPS_MAX;
+     ret = getgrouplist(user, pw->pw_gid, groups, &ngroups);
+@@ -165,7 +165,7 @@ printgroups(const char *user)
+ .Sh ERRORS
+ On failure,
+ .Fn getgrouplist
+-returns -1, and will set errno to one one of the following values:
++returns -1, and will set errno to one of the following values:
+ .Bl -tag -width Dv
+ .It Er ENOMEM
+ Not enough memory to complete the request.
+-- 
+2.40.1
+

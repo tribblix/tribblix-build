@@ -1,0 +1,1401 @@
+From 806838751b3ce15414781bffd4adfac166204c62 Mon Sep 17 00:00:00 2001
+From: Peter Tribble <peter.tribble@gmail.com>
+Date: Sun, 5 Mar 2023 09:45:28 +0000
+Subject: [PATCH] =?UTF-8?q?15406=20Duplicate=20SEE=20ALSO=20entries=20in?=
+ =?UTF-8?q?=20the=20manual=20Reviewed=20by:=20Richard=20Lowe=20<richlowe@r?=
+ =?UTF-8?q?ichlowe.net>=20Reviewed=20by:=20Gerg=C5=91=20Mih=C3=A1ly=20Doma?=
+ =?UTF-8?q?=20<domag02@gmail.com>=20Approved=20by:=20Robert=20Mustacchi=20?=
+ =?UTF-8?q?<rm@fingolfin.org>?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ usr/src/man/man1/mdb.1                        | 43 +------------------
+ usr/src/man/man1/rcp.1                        |  5 +--
+ usr/src/man/man1/rm.1                         |  3 +-
+ usr/src/man/man2/pset_setattr.2               | 14 +-----
+ usr/src/man/man3c/pthread_getschedparam.3c    |  9 +---
+ usr/src/man/man3c/termios.3c                  |  9 +---
+ usr/src/man/man3c/thrd_exit.3c                |  3 +-
+ usr/src/man/man3c/vprintf.3c                  | 17 +-------
+ .../man/man3devinfo/di_path_bus_addr.3devinfo | 13 +-----
+ .../man/man3iscsit/it_portal_create.3iscsit   |  3 +-
+ .../man/man3ldap/ldap_get_lang_values.3ldap   | 12 +-----
+ usr/src/man/man3nsl/getipsecalgbyname.3nsl    |  9 +---
+ usr/src/man/man3nsl/getipsecprotobyname.3nsl  |  5 +--
+ usr/src/man/man3proc/Plwp_getasrs.3proc       |  3 +-
+ usr/src/man/man3scf/scf_error.3scf            | 12 +-----
+ usr/src/man/man4m/tirdwr.4m                   |  8 +---
+ usr/src/man/man5/devices.5                    | 10 +----
+ usr/src/man/man5/printers.conf.5              | 18 +-------
+ usr/src/man/man7/filesystem.7                 |  5 +--
+ usr/src/man/man8/rpcbind.8                    | 10 +----
+ usr/src/man/man8/zoneadm.8                    |  3 +-
+ usr/src/man/man9f/ddi_mem_put8.9f             |  3 +-
+ usr/src/man/man9f/netinfo.9f                  | 10 +----
+ usr/src/man/man9f/scsi_vu_errmsg.9f           |  3 +-
+ usr/src/man/man9f/u8_strcmp.9f                |  3 +-
+ 25 files changed, 29 insertions(+), 204 deletions(-)
+
+diff --git a/usr/src/man/man1/mdb.1 b/usr/src/man/man1/mdb.1
+index 1269218862..f4ee15b13e 100644
+--- a/usr/src/man/man1/mdb.1
++++ b/usr/src/man/man1/mdb.1
+@@ -5,11 +5,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH MDB 1 "May 20, 2020"
++.TH MDB 1 "February 21, 2023"
+ .SH NAME
+ mdb \- modular debugger
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBmdb\fR [\fB-fkmuwyAFKMSUW\fR] [\(+-o \fIoption\fR] [\fB-b\fR \fIVM\fR] [\fB-p\fR \fIpid\fR] [\fB-s\fR \fIdistance\fR]
+      [\fB-I\fR \fIpath\fR] [\fB-L\fR \fIpath\fR] [\fB-P\fR \fIprompt\fR] [\fB-R\fR \fIroot\fR]
+@@ -18,7 +17,6 @@ mdb \- modular debugger
+ 
+ .SH DESCRIPTION
+ .SS "Introduction"
+-.LP
+ The \fBmdb\fR utility is an extensible utility for low-level debugging and
+ editing of the live operating system, operating system crash dumps, user
+ processes, user process core dumps, and object files. For a more detailed
+@@ -47,7 +45,6 @@ can use to implement their own debugging commands to perform program-specific
+ analysis. Each \fBmdb\fR module can be used to examine the program in several
+ different contexts, including live and post-mortem.
+ .SS "Definitions"
+-.LP
+ The \fItarget\fR is the program being inspected by the debugger. \fBmdb\fR
+ currently provides support for the following types of targets: user processes,
+ user process core files, live bhyve VMs, the live operating system (via
+@@ -93,7 +90,6 @@ execution of macro files written for \fBadb\fR(1), and illumos
+ includes a set of macro files for debugging the kernel that can be used
+ with either tool.
+ .SS "Syntax"
+-.LP
+ The debugger processes commands from standard input. If standard input is a
+ terminal, \fBmdb\fR provides terminal editing capabilities. \fBmdb\fR can also
+ process commands from macro files and from dcmd pipelines, described below. The
+@@ -164,7 +160,6 @@ An \fIexpression\fR is a sequence of words that is evaluated to compute a
+ 64-bit unsigned integer value. The words are evaluated using the rules
+ described under \fBArithmetic Expansion\fR below.
+ .SS "Commands"
+-.LP
+ A \fIcommand\fR is one of the following:
+ .sp
+ .ne 2
+@@ -271,11 +266,9 @@ concatenating the words after the \fB!\fR character.
+ .RE
+ 
+ .SS "Comments"
+-.LP
+ A word beginning with \fB//\fR causes that word and all the subsequent
+ characters up to a \fINEWLINE\fR to be ignored.
+ .SS "Arithmetic Expansion"
+-.LP
+ Arithmetic expansion is performed when an \fBmdb\fR command is preceded by an
+ optional expression representing a start address, or a start address and a
+ repeat count. Arithmetic expansion can also be performed to compute a numerical
+@@ -594,7 +587,6 @@ Bitwise inclusive OR.
+ .RE
+ 
+ .SS "Quoting"
+-.LP
+ Each metacharacter described above (see \fBSyntax\fR) terminates a word unless
+ quoted. Characters can be quoted (forcing \fBmdb\fR to interpret each character
+ as itself without any special significance) by enclosing them in a pair of
+@@ -602,7 +594,6 @@ single (\fB\&' '\fR) or double (\fB" "\fR) quote marks. A single quote cannot
+ appear within single quotes. Inside double quotes, \fBmdb\fR recognizes the C
+ programming language character escape sequences.
+ .SS "Shell Escapes"
+-.LP
+ The \fB!\fR character can be used to create a pipeline between an \fBmdb\fR
+ command and the user's shell. If the $\fBSHELL\fR environment variable is set,
+ \fBmdb\fR forks and execs this program for shell escapes; otherwise
+@@ -615,7 +606,6 @@ to the shell. The output of shell commands can not be piped to \fBmdb\fR dcmds.
+ Commands executed by a shell escape have their output sent directly to the
+ terminal, not to \fBmdb\fR.
+ .SS "Variables"
+-.LP
+ A \fIvariable\fR is a variable name, a corresponding integer value, and a set
+ of attributes. A variable name is a sequence of letters, digits, underscores,
+ or periods. A variable can be assigned a value using the \fB>\fR dcmd or
+@@ -720,7 +710,6 @@ of the representative thread's register set as named variables. The names of
+ these variables depend on the target's platform and instruction set
+ architecture.
+ .SS "Symbol Name Resolution"
+-.LP
+ As explained in the \fBSyntax\fR description above, a symbol identifier present
+ in an expression context evaluates to the value of this symbol. The value
+ typically denotes the virtual address of the storage associated with the symbol
+@@ -832,7 +821,6 @@ either refer to the decimal integer value \fB15\fR specified in hexadecimal
+ symbol table. If a symbol with an ambiguous name is present, the integer value
+ can be specified by using an explicit \fB0x\fR or \fB0X\fR prefix.
+ .SS "dcmd and Walker Name Resolution"
+-.LP
+ As described earlier, each \fBmdb\fR dmod provides a set of dcmds and walkers.
+ dcmds and walkers are tracked in two distinct, global namespaces. \fBmdb\fR
+ also keeps track of a dcmd and walker namespace associated with each dmod.
+@@ -880,7 +868,6 @@ definition of a dcmd or walker can be determined using the \fB::which\fR dcmd,
+ described below. The global definition list can be displayed using the
+ \fB::which\fR \fB-v\fR option.
+ .SS "dcmd Pipelines"
+-.LP
+ dcmds can be composed into a pipeline using the \fB|\fR operator. The purpose
+ of a pipeline is to pass a list of values, typically virtual addresses, from
+ one dcmd or walker to another. Pipeline stages might be used to map a pointer
+@@ -910,7 +897,6 @@ output printed to standard output. If any dcmd in the pipeline produces output
+ to standard error, these messages are printed directly to standard error and
+ are not processed as part of the pipeline.
+ .SS "Signal Handling"
+-.LP
+ The debugger ignores the \fBPIPE\fR and \fBQUIT\fR signals. The \fBINT\fR
+ signal aborts the command that is currently executing. The debugger intercepts
+ and provides special handling for the \fBILL\fR, \fBTRAP\fR, \fBEMT\fR,
+@@ -928,13 +914,11 @@ resume option provides limited protection against buggy dcmds. Refer to
+ WARNINGS, \fBUse of the Error Recovery Mechanism\fR, below for information
+ about the risks associated with the resume option.
+ .SS "Command Re-entry"
+-.LP
+ The text of the last \fBHISTSIZE \fR (default 128) commands entered from a
+ terminal device are saved in memory. The in-line editing facility, described
+ next, provides key mappings for searching and fetching elements from the
+ history list.
+ .SS "In-line Editing"
+-.LP
+ If standard input is a terminal device, \fBmdb\fR provides some simple
+ emacs-style facilities for editing the command line. The \fBsearch\fR,
+ \fBprevious\fR, and \fBnext\fR commands in edit mode provide access to the
+@@ -1181,7 +1165,6 @@ Move cursor forward one character (same as \fB^F\fR).
+ .RE
+ 
+ .SS "Output Pager"
+-.LP
+ \fBmdb\fR provides a built-in output pager. The output pager is enabled if the
+ debugger's standard output is a terminal device. Each time a command is
+ executed, \fBmdb\fR pauses after one screenful of output is produced and
+@@ -1244,7 +1227,6 @@ Quit (abort) the current dcmd only.
+ .RE
+ 
+ .SS "Formatting dcmds"
+-.LP
+ The \fB/\fR, \fB\e\fR, \fB?\fR, and \fB=\fR metacharacters are used to denote
+ the special output formatting dcmds. Each of these dcmds accepts an argument
+ list consisting of one or more format characters, repeat counts, or quoted
+@@ -1471,7 +1453,6 @@ address that does not have a corresponding segment. If a search reaches a
+ segment boundary without finding a match, it aborts when the read past the end
+ of the segment boundary fails.
+ .SS "Execution Control"
+-.LP
+ \fBmdb\fR provides facilities for controlling and tracing the execution of a
+ live running program. Currently, only the user process target provides support
+ for execution control. \fBmdb\fR provides a simple model of execution control:
+@@ -1518,7 +1499,6 @@ target that does not support execution control. For more information about the
+ interaction of exec, attach, release, and job control with debugger execution
+ control, refer to NOTES, below.
+ .SS "Event Callbacks"
+-.LP
+ The \fB::evset\fR dcmd and event tracing dcmds allow you to associate an event
+ callback (using the \fB-c\fR option) with each event specifier. The event
+ callbacks are strings that represent \fBmdb\fR commands to execute when the
+@@ -1542,7 +1522,6 @@ the highest precedence determines what type of continue occurs. The order of
+ precedence from highest to lowest is: step, step-over (next), step-out,
+ continue.
+ .SS "Thread Support"
+-.LP
+ \fBmdb\fR provides facilities to examine the stacks and registers of each
+ thread associated with the target. The persistent "\fBthread\fR" variable
+ contains the current representative thread identifier. The format of the thread
+@@ -1575,7 +1554,6 @@ corresponding to the current representative thread. The \fB::tls\fR built-in
+ dcmd can be used to display the value of the symbol for threads other than the
+ representative thread.
+ .SS "Built-in dcmds"
+-.LP
+ \fBmdb\fR provides a set of built-in dcmds that are always defined. Some of
+ these dcmds are only applicable to certain targets: if a dcmd is not applicable
+ to the current target, it fails and prints a message indicating "command is not
+@@ -3682,7 +3660,6 @@ specifiers can also be deleted using \fB::delete\fR.
+ .RE
+ 
+ .SH OPTIONS
+-.LP
+ The following options are supported:
+ .sp
+ .ne 2
+@@ -3806,7 +3783,7 @@ be derived as \fB/net/hostname\fR.
+ \fB%t\fR
+ .ad
+ .RS 6n
+-Expands to the name of the current target. This is either be the literal
++Expands to the name of the current target. This is either the literal
+ string '\fBproc\fR' (a user process or user process core file), '\fBkvm\fR' (a kernel
+ crash dump or the live operating system), or '\fBraw\fR' (a raw file).
+ .RE
+@@ -4229,7 +4206,6 @@ as standout mode will not be available to \fBmdb\fR.
+ .RE
+ 
+ .SH OPERANDS
+-.LP
+ The following operands are supported:
+ .sp
+ .ne 2
+@@ -4271,13 +4247,11 @@ present in the current directory.
+ .RE
+ 
+ .SH USAGE
+-.LP
+ \fBmdb\fR processes all input files (including scripts, object files, core
+ files, and raw data files) in a large file aware fashion. See
+ \fBlargefile\fR(7) for more information about the processing of large files,
+ which are files greater than or equal to 2 Gbytes (2^31 bytes).
+ .SH EXIT STATUS
+-.LP
+ The following exit values are returned:
+ .sp
+ .ne 2
+@@ -4418,7 +4392,6 @@ information in a core file or crash dump, or from the current machine as if by
+ .RE
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -4433,7 +4406,6 @@ Interface Stability	Evolving
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ .BR adb (1),
+ .BR gcore (1),
+ .BR pgrep (1),
+@@ -4461,7 +4433,6 @@ Interface Stability	Evolving
+ .BR proc (5),
+ .BR attributes (7),
+ .BR largefile (7),
+-.BR largefile (7),
+ .BR threads (7),
+ .BR coreadm (8),
+ .BR dumpadm (8),
+@@ -4477,7 +4448,6 @@ Interface Stability	Evolving
+ https://illumos.org/books/mdb/
+ .SH WARNINGS
+ .SS "Use of the Error Recovery Mechanism"
+-.LP
+ The debugger and its dmods execute in the same address space, and thus it is
+ quite possible that a buggy dmod can cause \fBmdb\fR to dump core or otherwise
+ misbehave. The \fBmdb\fR resume capability, described above under \fBSignal
+@@ -4489,13 +4459,11 @@ subsequent crash of the debugger. The safest course of action following a
+ resume is to save any important debug information, and then quit and restart
+ the debugger.
+ .SS "Use of the Debugger to Modify the Live Operating System"
+-.LP
+ The use of the debugger to modify (that is, write to) the address space of live
+ running operating system is extremely dangerous, and can result in a system
+ panic in the event the user damages a kernel data structure.
+ .SH NOTES
+ .SS "Limitations on Examining Process Core Files"
+-.LP
+ \fBmdb\fR does not provide support for examining process core files that were
+ generated by a release of Solaris preceding Solaris 2.6. When debugging core
+ files generated by a release of Solaris 9 or an earlier release, symbol
+@@ -4509,7 +4477,6 @@ core files using \fBcoreadm\fR(8). Thus, the information presented by
+ time the process dumped core. Core files from x86 systems can not be
+ examined on SPARC systems, and vice-versa.
+ .SS "Limitations on Examining Crash Dump Files"
+-.LP
+ Crash dumps from Solaris 7 and earlier releases can only be examined with the
+ aid of the libkvm from the corresponding operating system release. If a crash
+ dump from one operating system release is examined using the dmods from a
+@@ -4518,7 +4485,6 @@ prevent some dcmds or walkers from working properly. \fBmdb\fR issues a warning
+ message if it detects this condition. Crash dumps from x86 systems can
+ not be examined on SPARC systems, and vice-versa.
+ .SS "Relationship Between 32-bit and 64-bit Debugger"
+-.LP
+ \fBmdb\fR provides support for debugging both 32-bit and 64-bit programs. Once
+ it has examined the target and determined its data model, \fBmdb\fR
+ automatically re-executes the \fBmdb\fR binary that has the same data model as
+@@ -4533,7 +4499,6 @@ The debugger can also need to re-execute itself when debugging a 32-bit process
+ that execs a 64-bit process, or vice-versa. The handling of this situation is
+ discussed in more detail under \fBInteraction with Exec\fR, below.
+ .SS "Interaction with Exec"
+-.LP
+ When a controlled process performs a successful \fBexec\fR(2), the behavior of
+ the debugger is controlled by the \fB::set\fR \fB-o\fR \fBfollow_exec_mode\fR
+ option, as described above. If the debugger and victim process have the same
+@@ -4560,7 +4525,6 @@ dcmds do not since they do not perform data model conversion of structures. The
+ user should release and re-attach the debugger to the process as described
+ above in order to restore full debugging capabilities.
+ .SS "Interaction with Job Control"
+-.LP
+ If the debugger is attached to a process that is stopped by job control (that
+ is, it stopped in response to \fBSIGTSTP\fR, \fBSIGTTIN\fR, or \fBSIGTTOU\fR),
+ the process can not be able to be set running again when it is continued by a
+@@ -4576,7 +4540,6 @@ stopped by job control. \fBmdb\fR prints a warning in this case, and the user
+ must issue an "\fBfg\fR" command from the appropriate shell in order to resume
+ the process.
+ .SS "Process Attach and Release"
+-.LP
+ When \fBmdb\fR attaches to a running process, the process is stopped and
+ remains stopped until one of the continue dcmds is applied, or the debugger
+ quits. If the \fB-o\fR \fBnostop\fR option is enabled prior to attaching the
+@@ -4599,13 +4562,11 @@ released. If the process was already running prior to attaching \fBmdb\fR to
+ it, it is set running again when it is released. A process can be released and
+ left stopped and abandoned using the \fB::release\fR \fB-a\fR option.
+ .SS "Symbolic Debugging Information"
+-.LP
+ The \fB::list\fR, \fB::offsetof\fR, \fB::print\fR, and \fB::sizeof\fR dcmds
+ require that one or more load objects contain compressed symbolic debugging
+ information suitable for use with \fBmdb\fR. This information is currently only
+ available for certain kernel modules.
+ .SS "Developer Information"
+-.LP
+ The \fIModular Debugger Guide\fR provides a more detailed description
+ of \fBmdb\fR features, as well as information for debugger module developers.
+ .sp
+diff --git a/usr/src/man/man1/rcp.1 b/usr/src/man/man1/rcp.1
+index 578f50af35..f89bf26687 100644
+--- a/usr/src/man/man1/rcp.1
++++ b/usr/src/man/man1/rcp.1
+@@ -4,7 +4,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH RCP 1 "September 12, 2020"
++.TH RCP 1 "February 21, 2023"
+ .SH NAME
+ rcp \- remote file copy
+ .SH SYNOPSIS
+@@ -272,7 +272,6 @@ CSI	Enabled
+ .BR rsh (1),
+ .BR setfacl (1),
+ .BR tar (1),
+-.BR tar (1),
+ .BR inet (4P),
+ .BR inet6 (4P),
+ .BR ip6 (4P),
+@@ -288,7 +287,7 @@ file onto itself, as with:
+ .sp
+ .in +2
+ .nf
+-example% \fBrcp tmp/file myhost:/tmp/file\fR
++example% \fBrcp /tmp/file myhost:/tmp/file\fR
+ .fi
+ .in -2
+ .sp
+diff --git a/usr/src/man/man1/rm.1 b/usr/src/man/man1/rm.1
+index dc8fb7f433..8ac8998d08 100644
+--- a/usr/src/man/man1/rm.1
++++ b/usr/src/man/man1/rm.1
+@@ -45,7 +45,7 @@
+ .\" Portions Copyright (c) 1982-2007 AT&T Knowledge Ventures
+ .\" Copyright (c) 2007, Sun Microsystems, Inc. All Rights Reserved
+ .\"
+-.Dd July 3, 2017
++.Dd February 21, 2023
+ .Dt RM 1
+ .Os
+ .Sh NAME
+@@ -418,7 +418,6 @@ The built-in interfaces are Uncommitted.
+ .Sh SEE ALSO
+ .Xr ksh93 1 ,
+ .Xr rmdir 2 ,
+-.Xr rmdir 2 ,
+ .Xr unlink 2 ,
+ .Xr attributes 7 ,
+ .Xr environ 7 ,
+diff --git a/usr/src/man/man2/pset_setattr.2 b/usr/src/man/man2/pset_setattr.2
+index b13efdab54..320a11d6e4 100644
+--- a/usr/src/man/man2/pset_setattr.2
++++ b/usr/src/man/man2/pset_setattr.2
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PSET_SETATTR 2 "Jun 28, 2004"
++.TH PSET_SETATTR 2 "February 21, 2023"
+ .SH NAME
+ pset_setattr, pset_getattr \- set or get processor set attributes
+ .SH SYNOPSIS
+-.LP
+ .nf
+ #include <sys/pset.h>
+ 
+@@ -20,8 +19,6 @@ pset_setattr, pset_getattr \- set or get processor set attributes
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBpset_setattr()\fR function sets attributes of the processor set
+ specified by \fIpset\fR.  The bitmask of attributes to be set or cleared is
+ specified by \fIattr\fR.
+@@ -55,13 +52,9 @@ Setting \fBPSET_NOESCAPE\fR attribute forces \fBpset_bind()\fR to requires the
+ {\fBPRIV_SYS_RES_CONFIG\fR} privilege to be asserted in the effective set of
+ the calling process.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ Upon successful completion, these functions return 0. Otherwise, -1 is returned
+ and \fBerrno\fR is set to indicate the error.
+ .SH ERRORS
+-.sp
+-.LP
+ These function will fail if:
+ .sp
+ .ne 2
+@@ -96,8 +89,6 @@ pools facility.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -114,12 +105,9 @@ MT-Level	Async-Signal-Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR pset_bind (2),
+ .BR pool_set_status (3POOL),
+ .BR attributes (7),
+ .BR pooladm (8),
+-.BR pooladm (8),
+ .BR psrset (8),
+ .BR zoneadm (8)
+diff --git a/usr/src/man/man3c/pthread_getschedparam.3c b/usr/src/man/man3c/pthread_getschedparam.3c
+index 80b95540c9..fc17c8c432 100644
+--- a/usr/src/man/man3c/pthread_getschedparam.3c
++++ b/usr/src/man/man3c/pthread_getschedparam.3c
+@@ -44,12 +44,11 @@
+ .\" Copyright (c) 2001, The IEEE and The Open Group.  All Rights Reserved.
+ .\" Copyright (c) 2008, Sun Microsystems, Inc.  All Rights Reserved.
+ .\"
+-.TH PTHREAD_GETSCHEDPARAM 3C "Apr 1, 2008"
++.TH PTHREAD_GETSCHEDPARAM 3C "February 21, 2023"
+ .SH NAME
+ pthread_getschedparam, pthread_setschedparam \- access dynamic thread
+ scheduling parameters
+ .SH SYNOPSIS
+-.LP
+ .nf
+ cc -mt [ \fIflag\fR... ] \fIfile\fR... -lpthread [ \fIlibrary\fR... ]
+ #include <pthread.h>
+@@ -65,7 +64,6 @@ cc -mt [ \fIflag\fR... ] \fIfile\fR... -lpthread [ \fIlibrary\fR... ]
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBpthread_getschedparam()\fR and \fBpthread_setschedparam()\fR functions
+ allow the scheduling policy and scheduling parameters of individual threads
+ within a multithreaded process to be retrieved and set. Supported policies are
+@@ -146,12 +144,10 @@ parameters provided in \fIpolicy\fR and \fIparam\fR, respectively.
+ If the \fBpthread_setschedparam()\fR function fails, no scheduling parameters
+ will be changed  for the target thread.
+ .SH RETURN VALUES
+-.LP
+ If successful, the \fBpthread_getschedparam()\fR and
+ \fBpthread_setschedparam()\fR functions return  \fB0\fR. Otherwise, an error
+ number is returned to indicate the error.
+ .SH ERRORS
+-.LP
+ The \fBpthread_getschedparam()\fR and \fBpthread_setschedparam()\fR functions
+ will fail if:
+ .sp
+@@ -187,7 +183,6 @@ scheduling parameters or the scheduling policy of the specified thread.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -206,10 +201,8 @@ Standard	See \fBstandards\fR(7).
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ .BR pthread_attr_init (3C),
+ .BR sched_get_priority_max (3C),
+-.BR sched_get_priority_max (3C),
+ .BR sched_get_priority_min (3C),
+ .BR sched_getparam (3C),
+ .BR sched_getscheduler (3C),
+diff --git a/usr/src/man/man3c/termios.3c b/usr/src/man/man3c/termios.3c
+index ee4e8303d6..79dd74a68f 100644
+--- a/usr/src/man/man3c/termios.3c
++++ b/usr/src/man/man3c/termios.3c
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH TERMIOS 3C "Apr 5, 1996"
++.TH TERMIOS 3C "February 21, 2023"
+ .SH NAME
+ termios \- general terminal interface
+ .SH SYNOPSIS
+-.LP
+ .nf
+ #include <termios.h>
+ 
+@@ -79,8 +78,6 @@ termios \- general terminal interface
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ These functions describe a general terminal interface for controlling
+ asynchronous communications ports. A more detailed overview of the terminal
+ interface can be found in \fBtermio\fR(4I), which also describes an
+@@ -91,8 +88,6 @@ interface.
+ .LP
+ Each of these functions is now described on a separate manual page.
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR ioctl (2),
+ .BR cfgetispeed (3C),
+ .BR cfgetospeed (3C),
+@@ -103,9 +98,7 @@ Each of these functions is now described on a separate manual page.
+ .BR tcflush (3C),
+ .BR tcgetattr (3C),
+ .BR tcgetpgrp (3C),
+-.BR tcgetpgrp (3C),
+ .BR tcgetsid (3C),
+ .BR tcsendbreak (3C),
+-.BR tcsendbreak (3C),
+ .BR tcsetattr (3C),
+ .BR termio (4I)
+diff --git a/usr/src/man/man3c/thrd_exit.3c b/usr/src/man/man3c/thrd_exit.3c
+index 9790528317..c4227a7211 100644
+--- a/usr/src/man/man3c/thrd_exit.3c
++++ b/usr/src/man/man3c/thrd_exit.3c
+@@ -11,7 +11,7 @@
+ .\"
+ .\" Copyright 2016 Joyent, Inc.
+ .\"
+-.Dd "Jan 13, 2015"
++.Dd "February 21, 2023"
+ .Dt THRD_EXIT 3C
+ .Os
+ .Sh NAME
+@@ -61,5 +61,4 @@ function does not return, the calling thread is terminated.
+ .Xr pthread_exit 3C ,
+ .Xr thr_exit 3C ,
+ .Xr attributes 7 ,
+-.Xr attributes 7 ,
+ .Xr threads 7
+diff --git a/usr/src/man/man3c/vprintf.3c b/usr/src/man/man3c/vprintf.3c
+index 7d2f7426cb..7c06071eae 100644
+--- a/usr/src/man/man3c/vprintf.3c
++++ b/usr/src/man/man3c/vprintf.3c
+@@ -44,12 +44,11 @@
+ .\" Copyright (c) 2001, The IEEE and The Open Group.  All Rights Reserved.
+ .\" Copyright (c) 2009, Sun Microsystems, Inc.  All Rights Reserved.
+ .\"
+-.TH VPRINTF 3C "Jan 7, 2009"
++.TH VPRINTF 3C "February 21, 2023"
+ .SH NAME
+ vprintf, vfprintf, vsprintf, vsnprintf, vasprintf \- print formatted output of
+ a variable argument list
+ .SH SYNOPSIS
+-.LP
+ .nf
+ #include <stdio.h>
+ #include <stdarg.h>
+@@ -78,8 +77,6 @@ a variable argument list
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBvprintf()\fR, \fBvfprintf()\fR, \fBvsprintf()\fR, \fBvsnprintf()\fR, and
+ \fBvasprintf()\fR functions are the same as \fBprintf()\fR, \fBfprintf()\fR,
+ \fBsprintf()\fR, \fBsnprintf()\fR, and \fBasprintf()\fR, respectively, except
+@@ -108,12 +105,8 @@ traversed again if \fBva_start()\fR is called again after \fBva_end()\fR. In
+ the example below, the \fBerror()\fR arguments (\fIarg1\fR, \fIarg2\fR,
+ \&.\|.\|.) are passed to \fBvfprintf()\fR in the argument \fIap\fR.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ Refer to \fBprintf\fR(3C).
+ .SH ERRORS
+-.sp
+-.LP
+ The \fBvprintf()\fR and \fBvfprintf()\fR functions will fail if either the
+ \fIstream\fR is unbuffered or the \fIstream\fR's buffer needed to be flushed
+ and:
+@@ -128,7 +121,6 @@ offset maximum.
+ .RE
+ 
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRUsing \fBvprintf()\fR to write an error routine.
+ .sp
+ .LP
+@@ -160,8 +152,6 @@ void error(char *function_name, char *format, \&.\|.\|.)
+ .in -2
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -190,16 +180,11 @@ See \fBstandards\fR(7) for the standards conformance of \fBvprintf()\fR,
+ \fBvasprintf()\fR function is modeled on the one that appears in the FreeBSD,
+ NetBSD, and GNU C libraries.
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR printf (3C),
+ .BR stdarg (3EXT),
+ .BR attributes (7),
+-.BR attributes (7),
+ .BR standards (7)
+ .SH NOTES
+-.sp
+-.LP
+ The \fBvsnprintf()\fR return value when \fIn\fR = 0 was changed in the Solaris
+ 10 release. The change was based on the SUSv3 specification. The previous
+ behavior was based on the initial SUSv2 specification, where \fBvsnprintf()\fR
+diff --git a/usr/src/man/man3devinfo/di_path_bus_addr.3devinfo b/usr/src/man/man3devinfo/di_path_bus_addr.3devinfo
+index 9d33615e9c..d5a8113cfd 100644
+--- a/usr/src/man/man3devinfo/di_path_bus_addr.3devinfo
++++ b/usr/src/man/man3devinfo/di_path_bus_addr.3devinfo
+@@ -3,12 +3,11 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH DI_PATH_BUS_ADDR 3DEVINFO "May 15, 2008"
++.TH DI_PATH_BUS_ADDR 3DEVINFO "February 21, 2023"
+ .SH NAME
+ di_path_bus_addr, di_path_client_node, di_path_instance, di_path_node_name,
+ di_path_phci_node, di_path_state \- return libdevinfo path node information
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBcc\fR [ \fIflag\fR... ] \fIfile\fR... \fB-ldevinfo\fR [ \fIlibrary\fR... ]
+ #include <libdevinfo.h>
+@@ -42,7 +41,6 @@ di_path_phci_node, di_path_state \- return libdevinfo path node information
+ .fi
+ 
+ .SH PARAMETERS
+-.sp
+ .ne 2
+ .na
+ \fB\fIpath\fR\fR
+@@ -52,12 +50,8 @@ The handle to a path node in a \fBdi_init\fR(3DEVINFO) snapshot.
+ .RE
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ These functions extract information associated with a path node.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ The \fBdi_path_bus_addr()\fR function returns a string representing the pHCI
+ child path node's unit-address. This function is the \fBdi_path_t\fR peer of
+ \fBdi_bus_addr\fR(3DEVINFO).
+@@ -133,8 +127,6 @@ I/O operations.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7)  for descriptions of the following attributes:
+ .sp
+ 
+@@ -151,8 +143,6 @@ MT-Level	Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR di_bus_addr (3DEVINFO),
+ .BR di_devfs_path (3DEVINFO),
+ .BR di_init (3DEVINFO),
+@@ -162,7 +152,6 @@ MT-Level	Safe
+ .BR di_path_prop_bytes (3DEVINFO),
+ .BR di_path_prop_lookup_bytes (3DEVINFO),
+ .BR di_path_prop_next (3DEVINFO),
+-.BR di_path_prop_next (3DEVINFO),
+ .BR libdevinfo (3LIB),
+ .BR attributes (7)
+ .sp
+diff --git a/usr/src/man/man3iscsit/it_portal_create.3iscsit b/usr/src/man/man3iscsit/it_portal_create.3iscsit
+index f05cc545db..427beb1866 100644
+--- a/usr/src/man/man3iscsit/it_portal_create.3iscsit
++++ b/usr/src/man/man3iscsit/it_portal_create.3iscsit
+@@ -3,7 +3,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH IT_PORTAL_CREATE 3ISCSIT "December 28, 2020"
++.TH IT_PORTAL_CREATE 3ISCSIT "February 21, 2023"
+ .SH NAME
+ it_portal_create, it_portal_delete \- create and delete iSCSI portals
+ .SH SYNOPSIS
+@@ -126,7 +126,6 @@ MT-Level	MT-Safe
+ .BR it_tgt_create (3ISCSIT),
+ .BR it_tpg_create (3ISCSIT),
+ .BR libiscsit (3LIB),
+-.BR libiscsit (3LIB),
+ .BR libnvpair (3LIB),
+ .BR libstmf (3LIB),
+ .BR attributes (7)
+diff --git a/usr/src/man/man3ldap/ldap_get_lang_values.3ldap b/usr/src/man/man3ldap/ldap_get_lang_values.3ldap
+index 1d08fcf0ee..a5f31e8d8e 100644
+--- a/usr/src/man/man3ldap/ldap_get_lang_values.3ldap
++++ b/usr/src/man/man3ldap/ldap_get_lang_values.3ldap
+@@ -4,12 +4,11 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH LDAP_GET_LANG_VALUES 3LDAP "Oct 25, 2001"
++.TH LDAP_GET_LANG_VALUES 3LDAP "February 21, 2023"
+ .SH NAME
+ ldap_get_lang_values, ldap_get_lang_values_len \- return an attribute's  values
+ that matches a specified language subtype
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBcc\fR \fB-flag \&.\|.\|.\fR \fIfile\fR\&.\|.\|.\fB-l\fRldap [\fB -library \&.\|.\|. \fR]
+ #include <ldap.h>
+@@ -25,8 +24,6 @@ that matches a specified language subtype
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBldap_get_lang_values()\fR function returns an array of an attribute's
+ string values that matches a specified language subtype. To retrieve the binary
+ data from an attribute, call the \fBldap_get_lang_values_len()\fR function
+@@ -56,8 +53,6 @@ as a  literal string, such as \fBjpegPhoto\fR or \fBaudio\fR.
+ These functions are deprecated. Use \fBldap_get_values()\fR or
+ \fBldap_get_values_len()\fR instead.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ If successful, \fBldap_get_lang_values()\fR returns a null-terminated array of
+ the attribute's values. If the call is unsuccessful, or if no such attribute
+ exists in the \fIentry\fR, it returns a \fINULL\fR and sets the appropriate
+@@ -70,8 +65,6 @@ pointers to the  attribute's binary values. If the call is unsuccessful, or if
+ no such attribute exists in the \fIentry\fR, it returns a \fINULL\fR and sets
+ the appropriate error code in the LDAP structure.
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7)  for descriptions of the following attributes:
+ .sp
+ 
+@@ -86,9 +79,6 @@ Interface Stability	Obsolete
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+-.BR ldap_first_attribute (3LDAP),
+ .BR ldap_first_attribute (3LDAP),
+ .BR ldap_get_values (3LDAP),
+ .BR ldap_result (3LDAP),
+diff --git a/usr/src/man/man3nsl/getipsecalgbyname.3nsl b/usr/src/man/man3nsl/getipsecalgbyname.3nsl
+index 0d486bd224..4839442c48 100644
+--- a/usr/src/man/man3nsl/getipsecalgbyname.3nsl
++++ b/usr/src/man/man3nsl/getipsecalgbyname.3nsl
+@@ -3,12 +3,11 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH GETIPSECALGBYNAME 3NSL "Nov 26, 2017"
++.TH GETIPSECALGBYNAME 3NSL "February 21, 2023"
+ .SH NAME
+ getipsecalgbyname, getipsecalgbynum, freeipsecalgent \- query algorithm mapping
+ entries
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBcc\fR \fB-flag \&.\|.\|.\fR  \fIfile\fR \&.\|.\|.\fB-l\fRnsl [\fB -library \&.\|.\|. \fR]
+ #include <netdb.h>
+@@ -31,7 +30,6 @@ entries
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ Use the \fBgetipsecalgbyname()\fR, \fBgetipsecalgbynum()\fR,
+ \fBfreeipsecalgent()\fR functions to obtain the IPsec algorithm mappings  that
+ are defined by \fBipsecalgs\fR(8). The IPsec algorithms and associated
+@@ -89,7 +87,6 @@ conditions. See \fBERRORS\fR.
+ .RE
+ 
+ .SH RETURN VALUES
+-.LP
+ The \fBgetipsecalgbyname()\fR and \fBgetipsecalgbynum()\fR functions return a
+ pointer to the structure \fBipsecalgent_t\fR, defined in <\fBnetdb.h\fR>.   If
+ the requested algorithm cannot be found, these functions return \fINULL\fR.
+@@ -139,7 +136,6 @@ associated with the algorithm.
+ lengths, in bytes, supported by the algorithm.  The last valid value in the
+ array is followed by an element containing the value \fB0\fR.
+ .SH ERRORS
+-.LP
+ When the specified algorithm cannot be returned to the caller,
+ \fBgetipsecalgbynam()\fR and \fBgetipsecalgbynum()\fR return a value of
+ \fINULL\fR and set the integer pointed to by the \fIerrnop\fR parameter to one
+@@ -172,7 +168,6 @@ Specified protocol number not found
+ .RE
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(7)  for descriptions of the following attributes:
+ .sp
+ 
+@@ -188,8 +183,6 @@ Interface Stability	Evolving
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+-.BR getipsecprotobyname (3NSL),
+ .BR getipsecprotobyname (3NSL),
+ .BR attributes (7),
+ .BR cryptoadm (8),
+diff --git a/usr/src/man/man3nsl/getipsecprotobyname.3nsl b/usr/src/man/man3nsl/getipsecprotobyname.3nsl
+index 990434e4f4..b37611d01e 100644
+--- a/usr/src/man/man3nsl/getipsecprotobyname.3nsl
++++ b/usr/src/man/man3nsl/getipsecprotobyname.3nsl
+@@ -4,7 +4,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH GETIPSECPROTOBYNAME 3NSL "Aug 27, 2020"
++.TH GETIPSECPROTOBYNAME 3NSL "February 21, 2023"
+ .SH NAME
+ getipsecprotobyname, getipsecprotobynum \- query IPsec protocols entries
+ .SH SYNOPSIS
+@@ -85,7 +85,7 @@ The \fBgetipsecprotobyname()\fR function returns a protocol number upon
+ success, or \fB-1\fR if the protocol specified does not exist.
+ .sp
+ .LP
+- The \fBgetipsecprotobynum()\fR function returns a protocol name upon success,
++The \fBgetipsecprotobynum()\fR function returns a protocol name upon success,
+ or the \fINULL\fR value if the protocol number specified does not exist.
+ .SH ATTRIBUTES
+ See \fBattributes\fR(7)  for descriptions of the following attributes:
+@@ -102,7 +102,6 @@ Interface Stability	Evolving
+ 
+ .SH SEE ALSO
+ .BR getipsecalgbyname (3NSL),
+-.BR getipsecalgbyname (3NSL),
+ .BR attributes (7),
+ .BR ipsecalgs (8)
+ .sp
+diff --git a/usr/src/man/man3proc/Plwp_getasrs.3proc b/usr/src/man/man3proc/Plwp_getasrs.3proc
+index 6a7d45c537..37224b78e4 100644
+--- a/usr/src/man/man3proc/Plwp_getasrs.3proc
++++ b/usr/src/man/man3proc/Plwp_getasrs.3proc
+@@ -11,7 +11,7 @@
+ .\"
+ .\" Copyright 2015 Joyent, Inc.
+ .\"
+-.Dd May 11, 2016
++.Dd February 21, 2023
+ .Dt PLWP_GETASRS 3PROC
+ .Os
+ .Sh NAME
+@@ -142,6 +142,5 @@ in
+ .Xr Plwp_getfpregs 3PROC ,
+ .Xr Plwp_getregs 3PROC ,
+ .Xr Plwp_setregs 3PROC ,
+-.Xr Plwp_setregs 3PROC ,
+ .Xr Pstop 3PROC ,
+ .Xr proc 5
+diff --git a/usr/src/man/man3scf/scf_error.3scf b/usr/src/man/man3scf/scf_error.3scf
+index 4e328df402..a1c8a51e18 100644
+--- a/usr/src/man/man3scf/scf_error.3scf
++++ b/usr/src/man/man3scf/scf_error.3scf
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH SCF_ERROR 3SCF "Aug 20, 2007"
++.TH SCF_ERROR 3SCF "February 21, 2023"
+ .SH NAME
+ scf_error, scf_strerror \- error interface to Service Configuration Facility
+ .SH SYNOPSIS
+-.LP
+ .nf
+ cc [ \fIflag\fR\&.\|.\|. ] \fIfile\fR\&.\|.\|. \fB-lscf\fR [ \fIlibrary\fR\&.\|.\|. ]
+ #include <libscf.h>
+@@ -21,8 +20,6 @@ cc [ \fIflag\fR\&.\|.\|. ] \fIfile\fR\&.\|.\|. \fB-lscf\fR [ \fIlibrary\fR\&.\|.
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBscf_error()\fR function returns the current \fBlibscf\fR(3LIB) error
+ value for the current thread. If the immediately previous call to a
+ \fBlibscf\fR function failed, the error value will reflect the reason for that
+@@ -251,15 +248,11 @@ The SCF version is incompatible.
+ .RE
+ 
+ .SH RETURN VALUES
+-.sp
+-.LP
+ The \fBscf_error()\fR function returns \fBSCF_ERROR_NONE\fR if there have been
+ no calls from \fBlibscf\fR functions from the current thread. The return value
+ is undefined if the immediately previous call to a \fBlibscf\fR function did
+ not fail.
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -276,9 +269,6 @@ MT-Level	MT-Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR libscf (3LIB),
+ .BR attributes (7),
+-.BR svc.configd (8),
+ .BR svc.configd (8)
+diff --git a/usr/src/man/man4m/tirdwr.4m b/usr/src/man/man4m/tirdwr.4m
+index 4adfc7e27c..76ce973540 100644
+--- a/usr/src/man/man4m/tirdwr.4m
++++ b/usr/src/man/man4m/tirdwr.4m
+@@ -4,18 +4,15 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH TIRDWR 4M "Jul 3, 1990"
++.TH TIRDWR 4M "February 21, 2023"
+ .SH NAME
+ tirdwr \- Transport Interface read/write interface STREAMS module
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBint ioctl( \fR\fIfd, \fR\fBI_PUSH\fR\fI, \fR\fB"tirdwr");\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ \fBtirdwr\fR is a STREAMS module  that provides an alternate interface to a
+ transport provider which supports the  Transport Interface ("\fBTI\fR")
+ functions of the Network Services library (see Section 3N). This alternate
+@@ -153,14 +150,11 @@ release request will be sent to the remote side of the transport connection.
+ .RE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR getmsg (2),
+ .BR putmsg (2),
+ .BR read (2),
+ .BR write (2),
+ .BR Intro (3),
+-.BR Intro (3),
+ .BR streamio (4I),
+ .BR timod (4M)
+ .sp
+diff --git a/usr/src/man/man5/devices.5 b/usr/src/man/man5/devices.5
+index b6adee7916..2a14918b96 100644
+--- a/usr/src/man/man5/devices.5
++++ b/usr/src/man/man5/devices.5
+@@ -3,12 +3,11 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH DEVICES 5 "Jun 8, 2006"
++.TH DEVICES 5 "February 21, 2023"
+ .SH NAME
+ devices, devid_cache, snapshot_cache, mdi_scsi_vhci_cache, mdi_ib_cache,
+ devname_cache \- device configuration information
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fB/etc/devices\fR
+ .fi
+@@ -39,8 +38,6 @@ devname_cache \- device configuration information
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The directory \fB/etc/devices\fR is a repository of device-related data. Files
+ in this directory are used to preserve this information across reboots and are
+ created and updated as necessary by the system.
+@@ -51,15 +48,10 @@ There are no administrative actions necessary with respect to files in
+ fail, the file can simply be removed. The system re-creates the file as
+ necessary.
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR dev (4FS),
+ .BR devfsadm (8),
+-.BR ddi_devid_compare (9F),
+ .BR ddi_devid_compare (9F)
+ .SH NOTES
+-.sp
+-.LP
+ Files in this directory do not constitute an API. Files might not exist or
+ might have a different content or interpretation in a future release. The
+ existence of this notice does not imply that any other documentation that lacks
+diff --git a/usr/src/man/man5/printers.conf.5 b/usr/src/man/man5/printers.conf.5
+index 1a2325e3c4..3eea8b9a37 100644
+--- a/usr/src/man/man5/printers.conf.5
++++ b/usr/src/man/man5/printers.conf.5
+@@ -3,29 +3,25 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PRINTERS.CONF 5 "Feb 25, 2017"
++.TH PRINTERS.CONF 5 "February 21, 2023"
+ .SH NAME
+ printers.conf \- system printing configuration database
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fB/etc/printers.conf\fR
+ .fi
+ 
+ .SS "LDAP"
+-.LP
+ .nf
+ \fBou=printers\fR
+ .fi
+ 
+ .SS "NIS"
+-.LP
+ .nf
+ \fBprinters.conf.byname\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBprinters.conf\fR file is the system printing configuration database.
+ System administrators use \fBprinters.conf\fR to describe destinations for the
+ print client commands and the print protocol adaptor. A destination names a
+@@ -33,7 +29,6 @@ printer or class of printers. See \fBlpadmin\fR(8). The \fBLP\fR print spooler
+ uses private \fBLP\fR configuration data for represented in the
+ \fBprinters.conf\fR database.
+ .SS "Entries"
+-.LP
+ Each entry in \fBprinters.conf\fR describes one destination. Entries are one
+ line consisting of any number of fields separated by colons (`\fB:\fR') and
+ terminated by a NEWLINE. The first field of each entry specifies the name of
+@@ -62,12 +57,10 @@ NEWLINE. Use the \fBlpset\fR command to create or modify \fBprinters.conf\fR.
+ See \fBlpset\fR(8). Do \fBnot\fR make changes in \fBprinters.conf\fR by using
+ an editor.
+ .SS "Specifying Configuration Options"
+-.LP
+ \fIkey\fR\fB=\fR\fIvalue\fR pairs are configuration options defined by the
+ system administrator. \fIkey\fR and \fIvalue\fR can be of arbitrary length.
+ Separate \fIkey\fR and \fIvalue\fR by the equal (`\fB='\fR) character.
+ .SS "Client/Server Configuration Options"
+-.LP
+ The following client/server configuration options (represented as
+ \fIkey\fR\fB=\fR\fIvalue\fR pairs) are supported:
+ .sp
+@@ -182,7 +175,6 @@ See \fBlpget\fR(8), \fBlpstat\fR(1), and \fBcancel\fR(1).
+ .RE
+ 
+ .SS "LP Server Options"
+-.LP
+ The following \fBLP\fR configuration options (represented as
+ \fIkey\fR\fB=\fR\fIvalue\fR pairs) are supported:
+ .sp
+@@ -204,7 +196,6 @@ generated or by the superuser on the print server.
+ .RE
+ 
+ .SS "Print Queue Name Resolution"
+-.LP
+ Applications needing to resolve print queue names (destinations) to the
+ associated print service and communications endpoint make use of a specific
+ name resolution ordering. Destination names in URI and POSIX form are complete
+@@ -212,7 +203,6 @@ unto themselves and require no further resolution.  Names in atomic form are
+ resolved based on the \fBprinters\fR database entry in the /etc/nsswitch.conf
+ file. See nsswitch.conf(5)
+ .SS "Locating the Personal Default Destination"
+-.LP
+ The default destination is located differently depending on the command.
+ .sp
+ .LP
+@@ -272,7 +262,6 @@ destination in the following order:
+ \fB_default\fR destination in \fB/etc/printers.conf\fR.
+ .RE
+ .SS "Locating the Interest List for lpstat, lpget, and cancel"
+-.LP
+ The \fBlpget\fR, \fBlpstat\fR, and \fBcancel\fR commands locate the interest
+ list in the following order:
+ .RS +4
+@@ -286,7 +275,6 @@ list in the following order:
+ \fB_all\fR list in \fB/etc/printers.conf\fR.
+ .RE
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRSetting the Interest List
+ .sp
+ .LP
+@@ -416,7 +404,6 @@ LDAP version of \fB/etc/printers.conf\fR
+ .RE
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -431,10 +418,8 @@ Stability Level	Stable
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ .BR cancel (1),
+ .BR enable (1),
+-.BR enable (1),
+ .BR lp (1),
+ .BR lpstat (1),
+ .BR lpq (1B),
+@@ -445,7 +430,6 @@ Stability Level	Stable
+ .BR attributes (7),
+ .BR standards (7),
+ .BR accept (8),
+-.BR accept (8),
+ .BR in.lpd (8),
+ .BR lpadmin (8),
+ .BR lpget (8),
+diff --git a/usr/src/man/man7/filesystem.7 b/usr/src/man/man7/filesystem.7
+index 958e62dd10..cc6894ec6e 100644
+--- a/usr/src/man/man7/filesystem.7
++++ b/usr/src/man/man7/filesystem.7
+@@ -18,9 +18,9 @@
+ .\" Copyright 1989 AT&T
+ .\" Copyright (c) 2008, Sun Microsystems, Inc. All Rights Reserved.
+ .\" Copyright 2016 Nexenta Systems, Inc.
+-.\" Copyright 2017 Peter Tribble
++.\" Copyright 2023 Peter Tribble
+ .\"
+-.TH FILESYSTEM 7 "Apr 15, 2020"
++.TH FILESYSTEM 7 "February 21, 2023"
+ .SH NAME
+ filesystem \- File system organization
+ .SH SYNOPSIS
+@@ -2957,7 +2957,6 @@ Directory for newer versions of POSIX-compliant utilities.
+ .BR uucp (1C),
+ .BR mount (2),
+ .BR ctfs (4FS),
+-.BR ctfs (4FS),
+ .BR dev (4FS),
+ .BR devfs (4FS),
+ .BR objfs (4FS),
+diff --git a/usr/src/man/man8/rpcbind.8 b/usr/src/man/man8/rpcbind.8
+index a6b1f775cf..4dac67a73b 100644
+--- a/usr/src/man/man8/rpcbind.8
++++ b/usr/src/man/man8/rpcbind.8
+@@ -5,17 +5,15 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH RPCBIND 8 "May 13, 2017"
++.TH RPCBIND 8 "February 21, 2023"
+ .SH NAME
+ rpcbind \- universal addresses to RPC program number mapper
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBrpcbind\fR [\fB-d\fR] [\fB-w\fR] [\fB-l\fR \fIlisten_backlog\fR]
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ \fBrpcbind\fR is a server that converts \fBRPC\fR program numbers into
+ universal addresses. It must be running on the host to be able to make
+ \fBRPC\fR calls on a server on that machine.
+@@ -153,7 +151,6 @@ calls.
+ .RE
+ 
+ .SH OPTIONS
+-.LP
+ The following options are supported:
+ .sp
+ .ne 2
+@@ -191,7 +188,6 @@ This can be used to override \fBconfig/listen_backlog\fR SMF property.
+ .RE
+ 
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRAllowing Remote Access
+ .sp
+ .LP
+@@ -227,7 +223,6 @@ purposes.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -245,18 +240,15 @@ Interface Stability	See below.
+ .LP
+ TCP wrappers is External.
+ .SH SEE ALSO
+-.LP
+ .BR rpcbind (3NSL),
+ .BR hosts_access (5),
+ .BR syslog.conf (5),
+ .BR attributes (7),
+ .BR smf (7),
+-.BR smf (7),
+ .BR rpcinfo (8),
+ .BR svcadm (8),
+ .BR svccfg (8)
+ .SH NOTES
+-.LP
+ Terminating \fBrpcbind\fR with \fBSIGKILL\fR prevents the warm-start files from
+ being written.
+ .sp
+diff --git a/usr/src/man/man8/zoneadm.8 b/usr/src/man/man8/zoneadm.8
+index 7097b090c6..1dce4b3b94 100644
+--- a/usr/src/man/man8/zoneadm.8
++++ b/usr/src/man/man8/zoneadm.8
+@@ -4,7 +4,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH ZONEADM 8 "Feb 17, 2023"
++.TH ZONEADM 8 "February 21, 2023"
+ .SH NAME
+ zoneadm \- administer zones
+ .SH SYNOPSIS
+@@ -658,7 +658,6 @@ Interface Stability	Committed
+ .BR init (8),
+ .BR kernel (8),
+ .BR svc.startd (8),
+-.BR svc.startd (8),
+ .BR svcadm (8),
+ .BR zonecfg (8)
+ .SH NOTES
+diff --git a/usr/src/man/man9f/ddi_mem_put8.9f b/usr/src/man/man9f/ddi_mem_put8.9f
+index af8a8f5f14..ab95f7abe6 100644
+--- a/usr/src/man/man9f/ddi_mem_put8.9f
++++ b/usr/src/man/man9f/ddi_mem_put8.9f
+@@ -3,7 +3,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH DDI_MEM_PUT8 9F "Nov 1, 2005"
++.TH DDI_MEM_PUT8 9F "February 21, 2023"
+ .SH NAME
+ ddi_mem_put8, ddi_mem_put16, ddi_mem_put32, ddi_mem_put64,
+ \- write data to mapped device in the memory space or allocated DMA memory
+@@ -103,7 +103,6 @@ Interface Stability	Obsolete
+ 
+ .SH SEE ALSO
+ .BR ddi_mem_get8 (9F),
+-.BR ddi_mem_get8 (9F),
+ .BR ddi_mem_rep_get8 (9F),
+ .BR ddi_put16 (9F),
+ .BR ddi_put32 (9F),
+diff --git a/usr/src/man/man9f/netinfo.9f b/usr/src/man/man9f/netinfo.9f
+index 34b912e712..21ca0b5227 100644
+--- a/usr/src/man/man9f/netinfo.9f
++++ b/usr/src/man/man9f/netinfo.9f
+@@ -3,12 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH NETINFO 9F "May 1, 2008"
++.TH NETINFO 9F "February 21, 2023"
+ .SH NAME
+ netinfo \- interface to network data/functionality
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBnet_getnetid()\fR interface is designed to provide the framework for
+ accessing functionality and data within an implementation of a network layer
+ protocol (OSI layer 3.) A protocol may or may not provide full coverage for
+@@ -17,8 +15,6 @@ not, it must return an appropriate error condition for that call. Documentation
+ pertaining to the network protocol, as found in man page section 4P, must list
+ which functions provided by this interface are and are not supported.
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -33,8 +29,6 @@ Interface Stability	Committed
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR attributes (7),
+ .BR hook_alloc (9F),
+ .BR hook_free (9F),
+@@ -51,7 +45,6 @@ Interface Stability	Committed
+ .BR net_instance_alloc (9F),
+ .BR net_instance_free (9F),
+ .BR net_instance_register (9F),
+-.BR net_instance_register (9F),
+ .BR net_ispartialchecksum (9F),
+ .BR net_isvalidchecksum (9F),
+ .BR net_kstat_create (9F),
+@@ -68,5 +61,4 @@ Interface Stability	Committed
+ .BR hook_nic_event (9S),
+ .BR hook_pkt_event (9S),
+ .BR hook_t (9S),
+-.BR net_inject_t (9S),
+ .BR net_inject_t (9S)
+diff --git a/usr/src/man/man9f/scsi_vu_errmsg.9f b/usr/src/man/man9f/scsi_vu_errmsg.9f
+index c0d30206ba..a54aa3fd3a 100644
+--- a/usr/src/man/man9f/scsi_vu_errmsg.9f
++++ b/usr/src/man/man9f/scsi_vu_errmsg.9f
+@@ -3,7 +3,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH SCSI_VU_ERRMSG 9F "April 9, 2016"
++.TH SCSI_VU_ERRMSG 9F "February 21, 2023"
+ .SH NAME
+ scsi_vu_errmsg \- display a SCSI request sense message
+ .SH SYNOPSIS
+@@ -250,7 +250,6 @@ WARNING: /sbus@1,f8000000/esp@0,800000/sd@1,0 (sd1):
+ .SH SEE ALSO
+ .BR cmn_err (9F),
+ .BR scsi_errmsg (9F),
+-.BR scsi_errmsg (9F),
+ .BR scsi_log (9F),
+ .BR scsi_asc_key_strings (9S),
+ .BR scsi_device (9S),
+diff --git a/usr/src/man/man9f/u8_strcmp.9f b/usr/src/man/man9f/u8_strcmp.9f
+index a93f6acda0..7c6ee2291b 100644
+--- a/usr/src/man/man9f/u8_strcmp.9f
++++ b/usr/src/man/man9f/u8_strcmp.9f
+@@ -3,7 +3,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH U8_STRCMP 9F "Sep 18, 2007"
++.TH U8_STRCMP 9F "February 21, 2023"
+ .SH NAME
+ u8_strcmp \- UTF-8 string comparison function
+ .SH SYNOPSIS
+@@ -334,7 +334,6 @@ Interface Stability	Committed
+ .SH SEE ALSO
+ .BR u8_textprep_str (3C),
+ .BR u8_validate (3C),
+-.BR u8_validate (3C),
+ .BR attributes (7),
+ .BR u8_textprep_str (9F),
+ .BR u8_validate (9F),
+-- 
+2.43.0
+

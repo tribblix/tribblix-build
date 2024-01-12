@@ -1,0 +1,45 @@
+From 597b30361cb132283d94270df35d0536cf12895f Mon Sep 17 00:00:00 2001
+From: Robert Mustacchi <rm@fingolfin.org>
+Date: Mon, 17 Jan 2022 01:01:01 +0000
+Subject: [PATCH] 9855 list_next/list_prev needs a bit more detail Reviewed by:
+ Richard Lowe <richlowe@richlowe.net> Reviewed by: Andy Fiddaman
+ <andy@omnios.org> Approved by: Gordon Ross <gordon.w.ross@gmail.com>
+
+---
+ usr/src/man/man9f/list_create.9f | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
+
+diff --git a/usr/src/man/man9f/list_create.9f b/usr/src/man/man9f/list_create.9f
+index a25f4feab7..44fb617163 100644
+--- a/usr/src/man/man9f/list_create.9f
++++ b/usr/src/man/man9f/list_create.9f
+@@ -234,6 +234,26 @@ and
+ .Fn list_prev
+ functions return the next or previous item in the list, relative to the named
+ reference item which must be linked on the list.
++If the referenced item is either the last entry in the list for
++.Fn list_next
++or the first entry in the list for
++.Fn list_prev ,
++then the functions will return
++.Dv NULL .
++This is useful for iterating over a list with the following pattern:
++.Bd -literal -offset indent
++list_t list_t;
++\&...
++for (foo_t *foo = list_head(&list_t); foo != NULL;
++    foo = list_next(&list_t, foo)) {
++	/* Process each entry of the list */
++}
++
++for (foo_t *foo = list_tail(&list_t); foo != NULL;
++    foo = list_prev(&list_t, foo)) {
++	/* Same thing, but in reverse */
++}
++.Ed
+ .Pp
+ The
+ .Fn list_is_empty
+-- 
+2.40.1
+

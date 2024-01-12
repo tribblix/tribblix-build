@@ -1,0 +1,132 @@
+From 58b0c750516461d4f52a4ce7d86b1cc0619c196c Mon Sep 17 00:00:00 2001
+From: Peter Tribble <peter.tribble@gmail.com>
+Date: Tue, 21 Feb 2023 19:57:52 +0000
+Subject: [PATCH] =?UTF-8?q?15404=20The=20rup.1c=20manual=20page=20unnecess?=
+ =?UTF-8?q?arily=20duplicates=20rup.1=20Reviewed=20by:=20Bill=20Sommerfeld?=
+ =?UTF-8?q?=20<sommerfeld@alum.mit.edu>=20Reviewed=20by:=20Gerg=C5=91=20Mi?=
+ =?UTF-8?q?h=C3=A1ly=20Doma=20<domag02@gmail.com>=20Approved=20by:=20Dan?=
+ =?UTF-8?q?=20McDonald=20<danmcd@mnx.io>?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ usr/src/man/man1c/Makefile                    |  5 +-
+ usr/src/man/man1c/rup.1c                      | 74 -------------------
+ .../pkg/manifests/service-network-uucp.p5m    |  1 -
+ 3 files changed, 2 insertions(+), 78 deletions(-)
+ delete mode 100644 usr/src/man/man1c/rup.1c
+
+diff --git a/usr/src/man/man1c/Makefile b/usr/src/man/man1c/Makefile
+index 503ea54e62..5a24a9b040 100644
+--- a/usr/src/man/man1c/Makefile
++++ b/usr/src/man/man1c/Makefile
+@@ -16,11 +16,10 @@
+ 
+ include		$(SRC)/Makefile.master
+ 
+-MANSECT= 	1c
++MANSECT=	1c
+ 
+-MANFILES= 	ct.1c		\
++MANFILES=	ct.1c		\
+ 		cu.1c		\
+-		rup.1c		\
+ 		uucp.1c		\
+ 		uuencode.1c	\
+ 		uuglist.1c	\
+diff --git a/usr/src/man/man1c/rup.1c b/usr/src/man/man1c/rup.1c
+deleted file mode 100644
+index 2a42c0d1a4..0000000000
+--- a/usr/src/man/man1c/rup.1c
++++ /dev/null
+@@ -1,74 +0,0 @@
+-'\" te
+-.\" Copyright (c) 1991, Sun Microsystems, Inc.
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+-.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+-.\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH RUP 1C "Feb 13, 1991"
+-.SH NAME
+-rup \- show host status of remote machines (RPC version)
+-.SH SYNOPSIS
+-.LP
+-.nf
+-\fBrup\fR [\fB-hlt\fR]
+-.fi
+-
+-.LP
+-.nf
+-\fBrup\fR [\fIhost\fR]...
+-.fi
+-
+-.SH DESCRIPTION
+-.sp
+-.LP
+-\fBrup\fR gives a status similar to \fBuptime\fR for remote machines. It
+-broadcasts on the local network, and displays the responses it receives.
+-.sp
+-.LP
+-Normally, the listing is in the order that responses are received, but this
+-order can be changed by specifying one of the options listed below.
+-.sp
+-.LP
+-When \fIhost\fR arguments are given, rather than broadcasting \fBrup\fR only
+-queries the list of specified hosts.
+-.sp
+-.LP
+-A remote host will only respond if it is running the \fBrstatd\fR daemon, which
+-is normally started up from \fBinetd\fR(8).
+-.SH OPTIONS
+-.sp
+-.ne 2
+-.na
+-\fB\fB-h\fR\fR
+-.ad
+-.RS 6n
+-Sort the display alphabetically by host name.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fB-l\fR\fR
+-.ad
+-.RS 6n
+-Sort the display by load average.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fB-t\fR\fR
+-.ad
+-.RS 6n
+-Sort the display by up time.
+-.RE
+-
+-.SH SEE ALSO
+-.sp
+-.LP
+-.BR ruptime (1),
+-.BR attributes (7),
+-.BR inetd (8)
+-.SH BUGS
+-.sp
+-.LP
+-Broadcasting does not work through gateways.
+diff --git a/usr/src/pkg/manifests/service-network-uucp.p5m b/usr/src/pkg/manifests/service-network-uucp.p5m
+index ab1a68be6e..16bdeaf84b 100644
+--- a/usr/src/pkg/manifests/service-network-uucp.p5m
++++ b/usr/src/pkg/manifests/service-network-uucp.p5m
+@@ -96,7 +96,6 @@ file path=usr/sbin/in.uucpd group=uucp mode=0555
+ dir  path=usr/share/man/man1c
+ file path=usr/share/man/man1c/ct.1c
+ file path=usr/share/man/man1c/cu.1c
+-file path=usr/share/man/man1c/rup.1c
+ file path=usr/share/man/man1c/uucp.1c
+ link path=usr/share/man/man1c/uudecode.1c target=uuencode.1c
+ file path=usr/share/man/man1c/uuencode.1c
+-- 
+2.43.0
+

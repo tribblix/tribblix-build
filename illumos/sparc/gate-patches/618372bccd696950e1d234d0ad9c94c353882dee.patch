@@ -1,0 +1,466 @@
+From 618372bccd696950e1d234d0ad9c94c353882dee Mon Sep 17 00:00:00 2001
+From: Sebastian Wiedenroth <wiedi@frubar.net>
+Date: Sat, 1 Jan 2022 17:07:01 +0100
+Subject: [PATCH] 14358 Cron should support randomized delay Reviewed by: Andy
+ Fiddaman <andy@omnios.org> Approved by: Robert Mustacchi <rm@fingolfin.org>
+
+---
+ usr/src/cmd/cron/Makefile  |  3 +--
+ usr/src/cmd/cron/atq.c     |  8 ++++----
+ usr/src/cmd/cron/cron.c    | 35 +++++++++++++++++++++++++++++++----
+ usr/src/cmd/cron/cron.h    |  8 +++++---
+ usr/src/cmd/cron/crontab.c | 28 +++++++++++++++++++++++++---
+ usr/src/cmd/cron/elm.c     | 36 ++++++++++--------------------------
+ usr/src/cmd/cron/permit.c  | 11 ++++-------
+ usr/src/man/man1/crontab.1 | 27 ++++++++++++++++++++++++++-
+ 8 files changed, 106 insertions(+), 50 deletions(-)
+
+diff --git a/usr/src/cmd/cron/Makefile b/usr/src/cmd/cron/Makefile
+index 8e9a95060d..9a555562d8 100644
+--- a/usr/src/cmd/cron/Makefile
++++ b/usr/src/cmd/cron/Makefile
+@@ -41,8 +41,7 @@ CERRWARN +=	$(CNOWARN_UNINIT)
+ CERRWARN +=	-_gcc=-Wno-unused-variable
+ CERRWARN +=	-_gcc=-Wno-unused-value
+ 
+-# not linted
+-SMATCH=off
++SMOFF +=	signed_integer_overflow_check,all_func_returns
+ 
+ ROOTVAR =	$(ROOT)/var
+ 
+diff --git a/usr/src/cmd/cron/atq.c b/usr/src/cmd/cron/atq.c
+index 99ce381440..d2e8b973a7 100644
+--- a/usr/src/cmd/cron/atq.c
++++ b/usr/src/cmd/cron/atq.c
+@@ -6,7 +6,7 @@
+  */
+ 
+ /*	Copyright (c) 1984, 1986, 1987, 1988, 1989 AT&T	*/
+-/*	  All Rights Reserved  	*/
++/*	  All Rights Reserved  */
+ 
+ 
+ /*
+@@ -93,14 +93,14 @@ main(int argc, char **argv)
+ 
+ 	(void) setlocale(LC_ALL, "");
+ 	pp = getpwuid(getuid());
+-	pr.pw_uid = pp->pw_uid;
+-	pr.pw_name = pp->pw_name;
+-
+ 	if (pp == NULL)
+ 		atabort(INVALIDUSER);
+ 	if (!allowed(pp->pw_name, ATALLOW, ATDENY))
+ 		atabort(NOTALLOWED);
+ 
++	pr.pw_uid = pp->pw_uid;
++	pr.pw_name = pp->pw_name;
++
+ 	/*
+ 	 * Interpret command line flags if they exist.
+ 	 */
+diff --git a/usr/src/cmd/cron/cron.c b/usr/src/cmd/cron/cron.c
+index faefcbebd0..a34d98766e 100644
+--- a/usr/src/cmd/cron/cron.c
++++ b/usr/src/cmd/cron/cron.c
+@@ -27,6 +27,7 @@
+  * Copyright (c) 2014 Gary Mills
+  * Copyright (c) 2016 by Delphix. All rights reserved.
+  * Copyright 2019 OmniOS Community Edition (OmniOSce) Association.
++ * Copyright 2022 Sebastian Wiedenroth
+  */
+ 
+ /*	Copyright (c) 1984, 1986, 1987, 1988, 1989 AT&T	*/
+@@ -194,6 +195,7 @@ struct event {
+ 			struct shared *tz;	/* timezone of this event */
+ 			struct shared *home;	/* directory for this event */
+ 			struct shared *shell;	/* shell for this event */
++			uint32_t max_random_delay;	/* max. random delay */
+ 		} ct;
+ 		struct { /* for at events */
+ 			short exists;	/* for revising at events	*/
+@@ -1130,7 +1132,9 @@ readcron(struct usr *u, time_t reftime)
+ 	struct shared *tz = NULL;
+ 	struct shared *home = NULL;
+ 	struct shared *shell = NULL;
++	uint32_t max_random_delay = 0;
+ 	int lineno = 0;
++	const char *errstr;
+ 
+ 	/* read the crontab file */
+ 	cte_init();		/* Init error handling */
+@@ -1204,6 +1208,23 @@ readcron(struct usr *u, time_t reftime)
+ 			continue;
+ 		}
+ 
++		if (strncmp(&line[cursor], ENV_RANDOM_DELAY,
++		    strlen(ENV_RANDOM_DELAY)) == 0) {
++			if ((tmp = strchr(&line[cursor], '\n')) != NULL) {
++				*tmp = '\0';
++			}
++
++			max_random_delay = strtonum(
++			    &line[cursor + strlen(ENV_RANDOM_DELAY)], 0,
++			    UINT32_MAX / 60, &errstr);
++			if (errstr != NULL) {
++				cte_add(lineno, line);
++				break;
++			}
++
++			continue;
++		}
++
+ 		e = xmalloc(sizeof (struct event));
+ 		e->etype = CRONEVENT;
+ 
+@@ -1258,6 +1279,8 @@ again:
+ 		e->of.ct.shell = dup_shared(shell);
+ 		/* set the home of this entry */
+ 		e->of.ct.home = dup_shared(home);
++		/* set the maximum random delay */
++		e->of.ct.max_random_delay = max_random_delay;
+ 		/* have the event point to it's owner	*/
+ 		e->u = u;
+ 		/* insert this event at the front of this user's event list */
+@@ -1848,18 +1871,22 @@ recalc:
+ static time_t
+ next_time(struct event *e, time_t tflag)
+ {
+-	if (e->of.ct.tz != NULL) {
+-		time_t ret;
++	time_t ret;
+ 
++	if (e->of.ct.tz != NULL) {
+ 		(void) putenv((char *)get_obj(e->of.ct.tz));
+ 		tzset();
+ 		ret = tz_next_time(e, tflag);
+ 		(void) putenv(tzone);
+ 		tzset();
+-		return (ret);
+ 	} else {
+-		return (tz_next_time(e, tflag));
++		ret = tz_next_time(e, tflag);
++	}
++
++	if (e->of.ct.max_random_delay > 0) {
++		ret += arc4random_uniform(e->of.ct.max_random_delay * 60 - 1);
+ 	}
++	return (ret);
+ }
+ 
+ /*
+diff --git a/usr/src/cmd/cron/cron.h b/usr/src/cmd/cron/cron.h
+index e071209673..b2e241f202 100644
+--- a/usr/src/cmd/cron/cron.h
++++ b/usr/src/cmd/cron/cron.h
+@@ -25,6 +25,7 @@
+ 
+ /*
+  * Copyright 2019 OmniOS Community Edition (OmniOSce) Association.
++ * Copyright 2022 Sebastian Wiedenroth
+  */
+ 
+ #ifndef	_CRON_H
+@@ -101,9 +102,10 @@ typedef enum {
+ 
+ #define	SHELL		"/usr/bin/sh"	/* shell to execute */
+ 
+-#define	ENV_SHELL	"SHELL="
+-#define	ENV_TZ		"TZ="
+-#define	ENV_HOME	"HOME="
++#define	ENV_SHELL		"SHELL="
++#define	ENV_TZ			"TZ="
++#define	ENV_HOME		"HOME="
++#define	ENV_RANDOM_DELAY	"RANDOM_DELAY="
+ 
+ #define	CTLINESIZE	1000	/* max chars in a crontab line */
+ 
+diff --git a/usr/src/cmd/cron/crontab.c b/usr/src/cmd/cron/crontab.c
+index d85c9c554b..4ff985240e 100644
+--- a/usr/src/cmd/cron/crontab.c
++++ b/usr/src/cmd/cron/crontab.c
+@@ -27,6 +27,7 @@
+ 
+ /*
+  * Copyright 2020 OmniOS Community Edition (OmniOSce) Association.
++ * Copyright 2022 Sebastian Wiedenroth
+  */
+ 
+ #include <sys/types.h>
+@@ -96,6 +97,7 @@
+ #define	BAD_TZ	"Timezone unrecognized in: %s"
+ #define	BAD_SHELL	"Invalid shell specified: %s"
+ #define	BAD_HOME	"Unable to access directory: %s\t%s\n"
++#define	BAD_RAND_DELAY	"Invalid delay: %s"
+ 
+ extern int	per_errno;
+ 
+@@ -428,6 +430,7 @@ copycron(FILE *fp)
+ 	char pid[6], *tnam_end;
+ 	int t;
+ 	char buf[LINE_MAX];
++	const char *errstr;
+ 	cferror_t cferr;
+ 
+ 	sprintf(pid, "%-5d", getpid());
+@@ -460,7 +463,7 @@ copycron(FILE *fp)
+ 		if (strncmp(&line[cursor], ENV_TZ, strlen(ENV_TZ)) == 0) {
+ 			char *x;
+ 
+-			strncpy(buf, &line[cursor + strlen(ENV_TZ)],
++			(void) strncpy(buf, &line[cursor + strlen(ENV_TZ)],
+ 			    sizeof (buf));
+ 			if ((x = strchr(buf, '\n')) != NULL)
+ 				*x = '\0';
+@@ -476,7 +479,7 @@ copycron(FILE *fp)
+ 		    strlen(ENV_SHELL)) == 0) {
+ 			char *x;
+ 
+-			strncpy(buf, &line[cursor + strlen(ENV_SHELL)],
++			(void) strncpy(buf, &line[cursor + strlen(ENV_SHELL)],
+ 			    sizeof (buf));
+ 			if ((x = strchr(buf, '\n')) != NULL)
+ 				*x = '\0';
+@@ -492,7 +495,7 @@ copycron(FILE *fp)
+ 		    strlen(ENV_HOME)) == 0) {
+ 			char *x;
+ 
+-			strncpy(buf, &line[cursor + strlen(ENV_HOME)],
++			(void) strncpy(buf, &line[cursor + strlen(ENV_HOME)],
+ 			    sizeof (buf));
+ 			if ((x = strchr(buf, '\n')) != NULL)
+ 				*x = '\0';
+@@ -504,6 +507,25 @@ copycron(FILE *fp)
+ 				    strerror(errno));
+ 				continue;
+ 			}
++		} else if (strncmp(&line[cursor], ENV_RANDOM_DELAY,
++		    strlen(ENV_RANDOM_DELAY)) == 0) {
++			char *x;
++
++			(void) strncpy(buf,
++			    &line[cursor + strlen(ENV_RANDOM_DELAY)],
++			    sizeof (buf));
++			if ((x = strchr(buf, '\n')) != NULL)
++				*x = '\0';
++
++			(void) strtonum(buf, 0, UINT32_MAX / 60, &errstr);
++			if (errstr == NULL) {
++				goto cont;
++			} else {
++				err = 1;
++				fprintf(stderr, BAD_RAND_DELAY,
++				    &line[cursor], strerror(errno));
++				continue;
++			}
+ 		}
+ 
+ 		if ((cferr = next_field(0, 59, line, &cursor, NULL)) != CFOK ||
+diff --git a/usr/src/cmd/cron/elm.c b/usr/src/cmd/cron/elm.c
+index 7956a0f26b..324135150b 100644
+--- a/usr/src/cmd/cron/elm.c
++++ b/usr/src/cmd/cron/elm.c
+@@ -25,7 +25,7 @@
+  */
+ 
+ /*	Copyright (c) 1984, 1986, 1987, 1988, 1989 AT&T	*/
+-/*	  All Rights Reserved  	*/
++/*	  All Rights Reserved  */
+ 
+ 
+ 
+@@ -125,12 +125,9 @@ struct index {	struct key *key;
+ /* index pts to the front of the index list */
+ static struct index *index = NULL;
+ 
+-/* ******************* */
++
+ void
+-el_init(du, lb, dt, nlim)
+-/* ******************* */
+-int du, nlim;
+-time_t lb, dt;
++el_init(int du, time_t lb, time_t dt, int nlim)
+ {
+ 	int	i;
+ 	time_t	t;
+@@ -217,13 +214,8 @@ time_t lb, dt;
+ }
+ 
+ 
+-/* ********************** */
+ int
+-el_add(event, time, id)
+-/* ********************** */
+-void	*event;
+-int	id;
+-time_t	time;
++el_add(void *event, time_t time, int id)
+ {
+ 	/*
+ 	 * add works slightly differently than in the reference.  if the
+@@ -303,11 +295,8 @@ time_t	time;
+ }
+ 
+ 
+-/* ******************** */
+ void
+-el_remove(id, flag)
+-/* ******************** */
+-int	id, flag;
++el_remove(int id, int flag)
+ {
+ 	/*
+ 	 * remove finds notices n that need to be removed by traversing thru
+@@ -334,11 +323,13 @@ int	id, flag;
+ 				(k->left)->right = k->right;
+ 				(k->right)->left = k->left;
+ 				free(k);
+-			} else { if (n->key != NULL) {
++			} else {
++				if (n->key != NULL) {
+ 					/* n has a key pointing to it */
+ 					(n->left)->key = n->key;
+ 					(n->key)->time = (n->left)->time;
+-					(n->key)->notice = n->left; }
++					(n->key)->notice = n->left;
++				}
+ 				/* find the key that points to this sublist */
+ 				n2 = n;
+ 				while (n2->key == NULL) n2 = n2->right;
+@@ -359,8 +350,7 @@ int	id, flag;
+ 					k->left = kl->left;
+ 					free(kl);
+ 				} else if ((!(k->notice)->isdummy) &&
+-					    ((kr->numnote+k->numnote)
+-					    <= NLIM)) {
++				    ((kr->numnote+k->numnote) <= NLIM)) {
+ 					/* delete this key */
+ 					(k->notice)->key = NULL;
+ 					kr->numnote += k->numnote;
+@@ -386,10 +376,8 @@ int	id, flag;
+ }
+ 
+ 
+-/* ********************* */
+ int
+ el_empty(void)
+-/* ********************* */
+ {
+ 	if (current == NULL)
+ 		return (1);
+@@ -398,10 +386,8 @@ el_empty(void)
+ }
+ 
+ 
+-/* ********************* */
+ void *
+ el_first(void)
+-/* ********************* */
+ {
+ 	struct notice *n, *fn;
+ 	struct key *k, *fk;
+@@ -496,10 +482,8 @@ el_first(void)
+ }
+ 
+ 
+-/* ************** */
+ void
+ el_delete(void)
+-/* ************** */
+ {
+ 	/* el_delete frees up all the space associated with the event list */
+ 
+diff --git a/usr/src/cmd/cron/permit.c b/usr/src/cmd/cron/permit.c
+index a5a951200b..6b5ea10577 100644
+--- a/usr/src/cmd/cron/permit.c
++++ b/usr/src/cmd/cron/permit.c
+@@ -19,7 +19,7 @@
+  * CDDL HEADER END
+  */
+ /*	Copyright (c) 1984, 1986, 1987, 1988, 1989 AT&T	*/
+-/*	  All Rights Reserved  	*/
++/*	  All Rights Reserved  */
+ 
+ /*
+  * Copyright 2009 Sun Microsystems, Inc.  All rights reserved.
+@@ -46,8 +46,7 @@ static int within(char *, char *);
+ 
+ 
+ char *
+-getuser(uid)
+-uid_t uid;
++getuser(uid_t uid)
+ {
+ 	struct passwd *nptr;
+ 
+@@ -69,8 +68,7 @@ uid_t uid;
+ }
+ 
+ int
+-allowed(user, allow, deny)
+-char *user, *allow, *deny;
++allowed(char *user, char *allow, char *deny)
+ {
+ 	if (exists(allow)) {
+ 		if (within(user, allow)) {
+@@ -92,8 +90,7 @@ char *user, *allow, *deny;
+ }
+ 
+ static int
+-within(username, filename)
+-char *username, *filename;
++within(char *username, char *filename)
+ {
+ 	char line[UNAMESIZE];
+ 	FILE *cap;
+diff --git a/usr/src/man/man1/crontab.1 b/usr/src/man/man1/crontab.1
+index 549133aad2..49723a0b3e 100644
+--- a/usr/src/man/man1/crontab.1
++++ b/usr/src/man/man1/crontab.1
+@@ -44,8 +44,10 @@
+ .\" Portions Copyright (c) 1992, X/Open Company Limited All Rights Reserved
+ .\" Copyright (c) 2009, Sun Microsystems, Inc. All Rights Reserved
+ .\" Copyright 2020 OmniOS Community Edition (OmniOSce) Association.
++.\" Copyright 2022 Sebastian Wiedenroth
++
+ .\"
+-.TH CRONTAB 1 "Aug 20, 2020"
++.TH CRONTAB 1 "Jan 9, 2022"
+ .SH NAME
+ crontab \- user crontab file
+ .SH SYNOPSIS
+@@ -313,6 +315,29 @@ TZ=Iceland
+ 
+ .RE
+ 
++.sp
++.ne 2
++.na
++\fBRANDOM_DELAY\fR
++.ad
++.sp .6
++.RS 4n
++Allows the user to specify an upper bound in minutes for which execution
++may be delayed. The default is 0 which means no delay. A value that is
++larger than the scheduled interval may result in the command running less
++often. For example, to have the command run at some random time within
++two minutes after the schedule use:
++.sp
++.in +2
++.nf
++RANDOM_DELAY=2
++.fi
++.in -2
++.sp
++
++.RE
++
++
+ .sp
+ .LP
+ Each of these variables affects all of the lines that follow it in the
+-- 
+2.40.1
+

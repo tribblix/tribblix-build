@@ -1,0 +1,28 @@
+From 92c32ccad68fb065a366d11e8f3dfcd5c6ebae94 Mon Sep 17 00:00:00 2001
+From: Robert Mustacchi <rm@fingolfin.org>
+Date: Wed, 24 Nov 2021 22:52:33 +0000
+Subject: [PATCH] 14271 libkstat leaks kstat fd across exec Reviewed by: Jason
+ King <jason.brian.king@gmail.com> Reviewed by: Patrick Mooney
+ <pmooney@pfmooney.com> Reviewed by: Andy Fiddaman <andy@omnios.org> Approved
+ by: Dan McDonald <danmcd@joyent.com>
+
+---
+ usr/src/lib/libkstat/common/kstat.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/usr/src/lib/libkstat/common/kstat.c b/usr/src/lib/libkstat/common/kstat.c
+index eb2e7b5350..26ec7b80b9 100644
+--- a/usr/src/lib/libkstat/common/kstat.c
++++ b/usr/src/lib/libkstat/common/kstat.c
+@@ -71,7 +71,7 @@ kstat_open(void)
+ 	kstat_ctl_t *kc;
+ 	int kd;
+ 
+-	kd = open("/dev/kstat", O_RDONLY);
++	kd = open("/dev/kstat", O_RDONLY | O_CLOEXEC);
+ 	if (kd == -1)
+ 		return (NULL);
+ 	kstat_zalloc((void **)&kc, sizeof (kstat_ctl_t), 0);
+-- 
+2.40.1
+

@@ -1,0 +1,1153 @@
+From fb25420ba8dbfa4c292d42c87555eee97a474854 Mon Sep 17 00:00:00 2001
+From: Robert Mustacchi <rm@fingolfin.org>
+Date: Sun, 17 Oct 2021 15:06:11 -0700
+Subject: [PATCH] 14105 ar -s could work on its own 14213 Want basic ar test
+ suite 14212 ar cra and crb don't work 14214 ar usage message needs updating
+ for -q Reviewed by: Rich Lowe <richlowe@richlowe.net> Reviewed by: Patrick
+ Mooney <pmooney@pfmooney.com> Reviewed by: Andy Fiddaman <andy@omnios.org>
+ Approved by: Dan McDonald <danmcd@joyent.com>
+
+---
+ usr/src/cmd/sgs/ar/common/ar.msg              |  20 +-
+ usr/src/cmd/sgs/ar/common/cmd.c               |  71 +--
+ usr/src/cmd/sgs/ar/common/file.c              |  14 +-
+ usr/src/cmd/sgs/ar/common/main.c              |  80 ++-
+ usr/src/man/man1/ar.1                         |   7 +-
+ usr/src/pkg/manifests/system-test-utiltest.mf |   6 +-
+ usr/src/test/util-tests/runfiles/default.run  |   2 +
+ usr/src/test/util-tests/tests/Makefile        |  32 +-
+ usr/src/test/util-tests/tests/ar/Makefile     |  48 ++
+ usr/src/test/util-tests/tests/ar/ar_test0.c   |  16 +
+ usr/src/test/util-tests/tests/ar/ar_test1.c   |  20 +
+ usr/src/test/util-tests/tests/ar/artest.ksh   | 536 ++++++++++++++++++
+ 12 files changed, 779 insertions(+), 73 deletions(-)
+ create mode 100644 usr/src/test/util-tests/tests/ar/Makefile
+ create mode 100644 usr/src/test/util-tests/tests/ar/ar_test0.c
+ create mode 100644 usr/src/test/util-tests/tests/ar/ar_test1.c
+ create mode 100644 usr/src/test/util-tests/tests/ar/artest.ksh
+
+diff --git a/usr/src/cmd/sgs/ar/common/ar.msg b/usr/src/cmd/sgs/ar/common/ar.msg
+index a0da94da04b7..6682ca42afe8 100644
+--- a/usr/src/cmd/sgs/ar/common/ar.msg
++++ b/usr/src/cmd/sgs/ar/common/ar.msg
+@@ -21,6 +21,7 @@
+ 
+ #
+ # Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
++# Copyright 2021 Oxide Computer Company
+ #
+ 
+ @ _START_
+@@ -32,8 +33,9 @@
+ @ MSG_USAGE		"usage: ar -d[-SvV] archive file ...\n       \
+ 			 ar -m[-abiSvV] [posname] archive file ...\n       \
+ 			 ar -p[-vV][-sS] archive [file ...]\n       \
+-			 ar -q[-cuvSV] [-abi] [posname] [file ...]\n       \
++			 ar -q[-cuvSV] [file ...]\n       \
+ 			 ar -r[-cuvSV] [-abi] [posname] [file ...]\n       \
++			 ar -s[-vV] archive\n       \
+ 			 ar -t[-vV][-sS] archive [file ...]\n       \
+ 			 ar -x[-vV][-sSCT] archive [file ...]\n"
+ 
+@@ -41,12 +43,14 @@
+ @ MSG_TOOBIG4G		"ar: archive size exceeds capabilities of 32-bit \
+ 			 process\n"
+ 
+-@ MSG_USAGE_01		"ar: one of [drqtpmx] must be specified\n"
+-@ MSG_USAGE_02		"ar: -%c requires an operand\n"
+-@ MSG_USAGE_03		"ar: bad option: -%c\n"
+-@ MSG_USAGE_04		"ar: only one of [drqtpmx] allowed\n"
+-@ MSG_USAGE_05		"ar: abi not allowed with q\n"
+-@ MSG_USAGE_06		"ar: %s taken as mandatory 'posname' with keys 'abi'\n"
++@ MSG_USAGE_REQ_FLAG	"ar: one of [drqstpmx] must be specified\n"
++@ MSG_USAGE_OPERAND	"ar: -%c requires an operand\n"
++@ MSG_USAGE_OPTION	"ar: bad option: -%c\n"
++@ MSG_USAGE_TOO_MANY	"ar: only one of [drqstpmx] allowed\n"
++@ MSG_USAGE_Q_BAD_ARG	"ar: abi not allowed with q\n"
++@ MSG_USAGE_POSNAME	"ar: %s taken as mandatory 'posname' with keys 'abi'\n"
++@ MSG_USAGE_S_BAD_ARG	"ar: bad option with -s, only -v and -V allowed\n"
++@ MSG_USAGE_S_EXTRA_AR	"ar: -s only supports a single archive file\n"
+ 
+ @ MSG_INTERNAL_01	"ar: internal error: cannot tell whether file is \
+ 			 included in archive or not\n"
+@@ -118,7 +122,7 @@
+ @ MSG_STR_SYM64		"/SYM64/"
+ 
+ # Format for full member header
+-#	
++#
+ @ MSG_MH_FORMAT		"%-16s%-12d%-6u%-6u%-8o%-10lld%-2s"
+ 
+ @ MSG_FMT_VERSION	"ar: %s %s\n"
+diff --git a/usr/src/cmd/sgs/ar/common/cmd.c b/usr/src/cmd/sgs/ar/common/cmd.c
+index 4ed18765f6c7..2d32e63633d7 100644
+--- a/usr/src/cmd/sgs/ar/common/cmd.c
++++ b/usr/src/cmd/sgs/ar/common/cmd.c
+@@ -20,6 +20,7 @@
+  */
+ /*
+  * Copyright (c) 1995, 2010, Oracle and/or its affiliates. All rights reserved.
++ * Copyright 2021 Oxide Computer Company
+  */
+ 
+ /*
+@@ -33,36 +34,36 @@
+  *
+  * The archive file member header used in SunOS 4.1 archive files and
+  * Solaris archive files are incompatible. The header file is:
+- * 	/usr/include/ar.h, struct ar_hdr.
++ *	/usr/include/ar.h, struct ar_hdr.
+  * The member ar_name[] in Solaris comforms with Standard and the
+  * member name terminates with '/'. The SunOS's member does not terminate
+  * with '/' character. A bug 4046054 was filed:
+- * 	The ar command in Solaris 2.5.1 is incompatible with archives
+- * 	created on 4.x.
++ *	The ar command in Solaris 2.5.1 is incompatible with archives
++ *	created on 4.x.
+  *
+  * To handle archive files created in SunOS 4.1 system on Solaris, the
+  * following changes were made:
+  *
+- * 	1. file.c/writefile()
+- * 		Before writing each member files into the output
+- * 		archive file, ar_name[] is checked. If it is NULL,
+- * 		it means that the original archive header for this
+- * 		member was incompatible with Solaris format.
++ *	1. file.c/writefile()
++ *		Before writing each member files into the output
++ *		archive file, ar_name[] is checked. If it is NULL,
++ *		it means that the original archive header for this
++ *		member was incompatible with Solaris format.
+  *
+- * 		The original Solaris ar command ended up having
+- * 		NULL name for the header. The change here uses the
+- * 		ar_rawname, which is much closer to the original
+- * 		name.
++ *		The original Solaris ar command ended up having
++ *		NULL name for the header. The change here uses the
++ *		ar_rawname, which is much closer to the original
++ *		name.
+  *
+- * 	2. cmd.c
+- * 		For the p command, the code used to use only ar_longname
+- * 		to seach the matching name. The member is set to NULL
+- * 		if the archive member header was incompatible.
+- * 		The ar_rawname is also used to find the matching member name.
++ *	2. cmd.c
++ *		For the p command, the code used to use only ar_longname
++ *		to seach the matching name. The member is set to NULL
++ *		if the archive member header was incompatible.
++ *		The ar_rawname is also used to find the matching member name.
+  *
+- * 		For commands to update the archive file, we do not
+- * 		use ar_rawname, and just use the ar_longname. The commands are
+- * 		r (replace), m (modify the position) and d (delete).
++ *		For commands to update the archive file, we do not
++ *		use ar_rawname, and just use the ar_longname. The commands are
++ *		r (replace), m (modify the position) and d (delete).
+  */
+ 
+ #include "inc.h"
+@@ -90,7 +91,7 @@ rcmd(Cmd_info *cmd_info)
+ 	ARFILE		*backptr = NULL;
+ 	ARFILE		*endptr;
+ 	ARFILE		*moved_files;
+-	ARFILE  	*prev_entry, *new_listhead, *new_listend;
++	ARFILE		*prev_entry, *new_listhead, *new_listend;
+ 	int		deleted;
+ 	struct stat	stbuf;
+ 	char		*gfile;
+@@ -478,7 +479,8 @@ tcmd(Cmd_info *cmd_info)
+ 			 *	Refer to "Incompatible Archive Header"
+ 			 *	blocked comment at the beginning of this file.
+ 			 */
+-			if (cmd_info->opt_flgs & v_FLAG) {
++			if ((cmd_info->opt_flgs & (t_FLAG | v_FLAG)) ==
++			    (t_FLAG | v_FLAG)) {
+ 				for (mp = &m[0]; mp < &m[9]; )
+ 					ar_select(*mp++, next->ar_mode);
+ 
+@@ -495,17 +497,20 @@ tcmd(Cmd_info *cmd_info)
+ 				(void) fprintf(stdout,
+ 				    MSG_ORIG(MSG_FMT_SPSTRSP), buf);
+ 			}
+-			if ((next->ar_longname[0] == 0) &&
+-			    (next->ar_rawname[0] != 0))
+-				(void) fprintf(stdout,
+-				    MSG_ORIG(MSG_FMT_STRNL),
+-				    trim(next->ar_rawname));
+-			else
+-				(void) fprintf(stdout,
+-				    MSG_ORIG(MSG_FMT_STRNL),
+-				    trim(next->ar_longname));
++			if (cmd_info->opt_flgs & t_FLAG) {
++				if ((next->ar_longname[0] == 0) &&
++				    (next->ar_rawname[0] != 0)) {
++					(void) fprintf(stdout,
++					    MSG_ORIG(MSG_FMT_STRNL),
++					    trim(next->ar_rawname));
++				} else {
++					(void) fprintf(stdout,
++					    MSG_ORIG(MSG_FMT_STRNL),
++					    trim(next->ar_longname));
++				}
++			}
+ 		}
+-	} /* for */
++	}
+ }
+ 
+ void
+@@ -514,7 +519,7 @@ qcmd(Cmd_info *cmd_info)
+ 	ARFILE *fptr;
+ 
+ 	if (cmd_info->opt_flgs & (a_FLAG | b_FLAG)) {
+-		(void) fprintf(stderr, MSG_INTL(MSG_USAGE_05));
++		(void) fprintf(stderr, MSG_INTL(MSG_USAGE_Q_BAD_ARG));
+ 		exit(1);
+ 	}
+ 	for (fptr = getfile(cmd_info); fptr; fptr = getfile(cmd_info))
+diff --git a/usr/src/cmd/sgs/ar/common/file.c b/usr/src/cmd/sgs/ar/common/file.c
+index e3aa7fa0a5b2..77e91c58982d 100644
+--- a/usr/src/cmd/sgs/ar/common/file.c
++++ b/usr/src/cmd/sgs/ar/common/file.c
+@@ -167,7 +167,7 @@ getaf(Cmd_info *cmd_info)
+ 	if (elf_kind(cmd_info->arf) != ELF_K_AR) {
+ 		(void) fprintf(stderr, MSG_INTL(MSG_NOT_ARCHIVE), arnam);
+ 		if (cmd_info->opt_flgs & (a_FLAG | b_FLAG))
+-			(void) fprintf(stderr, MSG_INTL(MSG_USAGE_06),
++			(void) fprintf(stderr, MSG_INTL(MSG_USAGE_POSNAME),
+ 			    cmd_info->ponam);
+ 		exit(1);
+ 	}
+@@ -474,7 +474,7 @@ mksymtab(const char *arname, ARFILEP **symlist, int *found_obj)
+ {
+ 	ARFILE		*fptr;
+ 	size_t		mem_offset = 0;
+-	Elf 		*elf;
++	Elf		*elf;
+ 	Elf_Scn		*scn;
+ 	GElf_Ehdr	ehdr;
+ 	int		newfd;
+@@ -1026,7 +1026,7 @@ require64(size_t nsyms, int found_obj, size_t longnames)
+ 	 * Make a worst case estimate for the size of the resulting
+ 	 * archive by assuming full padding between members.
+ 	 */
+-	size = 	SARMAG;
++	size = SARMAG;
+ 	if (longnames)
+ 		size += sizeof (struct ar_hdr) + long_strtbl.used + PADSZ;
+ 
+@@ -1416,7 +1416,7 @@ sputl64(uint64_t n, char *cp)
+ 
+ static int
+ search_sym_tab(const char *arname, ARFILE *fptr, Elf *elf, Elf_Scn *scn,
+-	size_t *nsyms, ARFILEP **symlist, size_t *num_errs)
++    size_t *nsyms, ARFILEP **symlist, size_t *num_errs)
+ {
+ 	Elf_Data *str_data, *sym_data; /* string table, symbol table */
+ 	Elf_Scn *str_scn;
+@@ -1607,7 +1607,8 @@ sizeof_symtbl(size_t nsyms, int found_obj, size_t eltsize)
+ }
+ 
+ static void
+-arwrite(const char *name, int nfd, const char *dst, size_t size) {
++arwrite(const char *name, int nfd, const char *dst, size_t size)
++{
+ 	if (write(nfd, dst, size) != size) {
+ 		int err = errno;
+ 		(void) fprintf(stderr, MSG_INTL(MSG_SYS_WRITE),
+@@ -1617,7 +1618,8 @@ arwrite(const char *name, int nfd, const char *dst, size_t size) {
+ }
+ 
+ static const char *
+-make_tmpname(const char *filename) {
++make_tmpname(const char *filename)
++{
+ 	char	*slash, *tmpname;
+ 	size_t	prefix_cnt = 0;
+ 
+diff --git a/usr/src/cmd/sgs/ar/common/main.c b/usr/src/cmd/sgs/ar/common/main.c
+index e5667aa19695..3f918e15dbc0 100644
+--- a/usr/src/cmd/sgs/ar/common/main.c
++++ b/usr/src/cmd/sgs/ar/common/main.c
+@@ -19,7 +19,7 @@
+  * CDDL HEADER END
+  */
+ /*	Copyright (c) 1988 AT&T	*/
+-/*	  All Rights Reserved  	*/
++/*	  All Rights Reserved   */
+ 
+ /*
+  * Copyright (c) 1995, 2010, Oracle and/or its affiliates. All rights reserved.
+@@ -27,6 +27,7 @@
+ 
+ /*
+  * Copyright (c) 2018, Joyent, Inc.
++ * Copyright 2021 Oxide Computer Company
+  */
+ 
+ #include "inc.h"
+@@ -131,25 +132,22 @@ main(int argc, char **argv, char *envp[])
+ 	if (cmd_info->opt_flgs & z_FLAG)
+ 		check_swap();
+ 
+-	if (cmd_info->comfun == NULL) {
+-		if ((cmd_info->opt_flgs & (d_FLAG | r_FLAG | q_FLAG |
+-		    t_FLAG | p_FLAG | m_FLAG | x_FLAG)) == 0) {
+-			(void) fprintf(stderr, MSG_INTL(MSG_USAGE_01));
+-			exit(1);
+-		}
+-	}
+-
+ 	cmd_info->modified = (cmd_info->opt_flgs & s_FLAG);
+ 	fd = getaf(cmd_info);
+ 
+-	if ((fd == -1) &&
+-	    (cmd_info->opt_flgs &
+-	    (d_FLAG | m_FLAG | p_FLAG | t_FLAG | x_FLAG)) ||
+-	    ((cmd_info->opt_flgs & r_FLAG) &&
+-	    (cmd_info->opt_flgs & (a_FLAG | b_FLAG)))) {
+-		(void) fprintf(stderr, MSG_INTL(MSG_NOT_FOUND_AR),
+-		    cmd_info->arnam);
+-		exit(1);
++	if (fd == -1) {
++		boolean_t req_arg = (cmd_info->opt_flgs & (d_FLAG | m_FLAG |
++		    p_FLAG | t_FLAG | x_FLAG)) != 0;
++		boolean_t req_r = (cmd_info->opt_flgs & r_FLAG) &&
++		    (cmd_info->opt_flgs & (a_FLAG | b_FLAG));
++		boolean_t req_s = (cmd_info->opt_flgs & s_FLAG) &&
++		    (cmd_info->opt_flgs & r_FLAG) == 0;
++
++		if (req_arg || req_r || req_s) {
++			(void) fprintf(stderr, MSG_INTL(MSG_NOT_FOUND_AR),
++			    cmd_info->arnam);
++			exit(1);
++		}
+ 	}
+ 
+ 	(*cmd_info->comfun)(cmd_info);
+@@ -299,11 +297,13 @@ setup(int argc, char *argv[], Cmd_info *cmd_info)
+ 			cmd_info->opt_flgs |= T_FLAG;
+ 			break;
+ 		case ':':
+-			(void) fprintf(stderr, MSG_INTL(MSG_USAGE_02), optopt);
++			(void) fprintf(stderr, MSG_INTL(MSG_USAGE_OPERAND),
++			    optopt);
+ 			usage_err++;
+ 			break;
+ 		case '?':
+-			(void) fprintf(stderr, MSG_INTL(MSG_USAGE_03), optopt);
++			(void) fprintf(stderr, MSG_INTL(MSG_USAGE_OPTION),
++			    optopt);
+ 			usage_err++;
+ 			break;
+ 		}
+@@ -315,6 +315,44 @@ setup(int argc, char *argv[], Cmd_info *cmd_info)
+ 	cmd_info->arnam = argv[optind];
+ 	cmd_info->namv = &argv[optind+1];
+ 	cmd_info->namc = argc - optind - 1;
++
++	/*
++	 * GNU ar popularized the use of -s on its own which previously used to
++	 * require another command function. As such, we don't set a command
++	 * function when we encounter the -s flag because that might otherwise
++	 * clobber an existing one being set and would interrupt the detection
++	 * of multiple flags being used that way.
++	 *
++	 * If after processing everything, we find there's no command function
++	 * set and the -s flag has been set, then we can finally set a command
++	 * function. The command function for -t 'tcmd' is used in this case. It
++	 * knows to only print out data if -t has been specified.
++	 *
++	 * While ar has not traditionally been very stringent about using flags
++	 * in circumstances they aren't called for, we go ahead and check for
++	 * that now for this newer option.
++	 */
++	if (cmd_info->comfun == NULL) {
++		if ((cmd_info->opt_flgs & s_FLAG) != 0) {
++			if ((cmd_info->opt_flgs & ~(s_FLAG | v_FLAG)) != 0) {
++				(void) fprintf(stderr,
++				    MSG_INTL(MSG_USAGE_S_BAD_ARG));
++				exit(1);
++			}
++
++			if (cmd_info->namc > 0) {
++				(void) fprintf(stderr,
++				    MSG_INTL(MSG_USAGE_S_EXTRA_AR));
++				exit(1);
++			}
++
++			setcom(cmd_info, tcmd);
++		} else if ((cmd_info->opt_flgs & (d_FLAG | r_FLAG | q_FLAG |
++		    s_FLAG | t_FLAG | p_FLAG | m_FLAG | x_FLAG)) == 0) {
++			(void) fprintf(stderr, MSG_INTL(MSG_USAGE_REQ_FLAG));
++			exit(1);
++		}
++	}
+ }
+ 
+ 
+@@ -325,8 +363,8 @@ setup(int argc, char *argv[], Cmd_info *cmd_info)
+ static void
+ setcom(Cmd_info *cmd_info, Cmd_func *fun)
+ {
+-	if (cmd_info->comfun != 0) {
+-		(void) fprintf(stderr, MSG_INTL(MSG_USAGE_04));
++	if (cmd_info->comfun != NULL) {
++		(void) fprintf(stderr, MSG_INTL(MSG_USAGE_TOO_MANY));
+ 		exit(1);
+ 	}
+ 	cmd_info->comfun = fun;
+diff --git a/usr/src/man/man1/ar.1 b/usr/src/man/man1/ar.1
+index 5a2ff989f2b7..66512b0fb71c 100644
+--- a/usr/src/man/man1/ar.1
++++ b/usr/src/man/man1/ar.1
+@@ -44,7 +44,7 @@
+ .\" Portions Copyright (c) 1992, X/Open Company Limited  All Rights Reserved
+ .\" Copyright (c) 2009, Sun Microsystems, Inc.  All Rights Reserved.
+ .\"
+-.TH AR 1 "December 28, 2020"
++.TH AR 1 "September 20, 2021"
+ .SH NAME
+ ar \- maintain portable archive or library
+ .SH SYNOPSIS
+@@ -72,6 +72,11 @@ ar \- maintain portable archive or library
+ \fB/usr/bin/ar\fR \fB-r\fR [\fB-abciuVv\fR] [\fIposname\fR] \fIarchive\fR \fIfile\fR...
+ .fi
+ 
++.LP
++.nf
++\fB/usr/bin/ar\fR \fB-s\fR [\fB-Vv\fR] \fIarchive\fR
++.fi
++
+ .LP
+ .nf
+ \fB/usr/bin/ar\fR \fB-t\fR [\fB-sVv\fR] \fIarchive\fR [\fIfile\fR]...
+diff --git a/usr/src/pkg/manifests/system-test-utiltest.mf b/usr/src/pkg/manifests/system-test-utiltest.mf
+index db4a0fd50505..d364eac9681d 100644
+--- a/usr/src/pkg/manifests/system-test-utiltest.mf
++++ b/usr/src/pkg/manifests/system-test-utiltest.mf
+@@ -16,7 +16,7 @@
+ # Copyright 2020 Joyent, Inc.
+ # Copyright 2017 Jason King.
+ # Copyright 2020 OmniOS Community Edition (OmniOSce) Association.
+-# Copyright 2020 Oxide Computer Company
++# Copyright 2021 Oxide Computer Company
+ #
+ 
+ set name=pkg.fmri value=pkg:/system/test/utiltest@$(PKGVERS)
+@@ -29,6 +29,7 @@ dir path=opt/util-tests
+ dir path=opt/util-tests/bin
+ dir path=opt/util-tests/runfiles
+ dir path=opt/util-tests/tests
++dir path=opt/util-tests/tests/ar
+ dir path=opt/util-tests/tests/awk
+ dir path=opt/util-tests/tests/awk/bugs-fixed
+ dir path=opt/util-tests/tests/awk/data
+@@ -81,6 +82,9 @@ file path=opt/util-tests/bin/print_json mode=0555
+ file path=opt/util-tests/bin/utiltest mode=0555
+ file path=opt/util-tests/runfiles/default.run mode=0444
+ file path=opt/util-tests/tests/allowed-ips mode=0555
++file path=opt/util-tests/tests/ar/ar_test0.o mode=0444
++file path=opt/util-tests/tests/ar/ar_test1.o mode=0444
++file path=opt/util-tests/tests/ar/artest mode=0555
+ file path=opt/util-tests/tests/awk/bugs-fixed/a-format.awk mode=0444
+ file path=opt/util-tests/tests/awk/bugs-fixed/a-format.ok mode=0444
+ file path=opt/util-tests/tests/awk/bugs-fixed/concat-assign-same.awk mode=0444
+diff --git a/usr/src/test/util-tests/runfiles/default.run b/usr/src/test/util-tests/runfiles/default.run
+index a9a0734a19c1..c4b0cf1412a7 100644
+--- a/usr/src/test/util-tests/runfiles/default.run
++++ b/usr/src/test/util-tests/runfiles/default.run
+@@ -89,3 +89,5 @@ user = root
+ 
+ [/opt/util-tests/tests/svr4pkg_test]
+ user = root
++
++[/opt/util-tests/tests/ar/artest]
+diff --git a/usr/src/test/util-tests/tests/Makefile b/usr/src/test/util-tests/tests/Makefile
+index 8befb7a2b345..c75f26cf85c2 100644
+--- a/usr/src/test/util-tests/tests/Makefile
++++ b/usr/src/test/util-tests/tests/Makefile
+@@ -18,8 +18,34 @@
+ # Copyright 2020 OmniOS Community Edition (OmniOSce) Association.
+ #
+ 
+-SUBDIRS = date dis dladm iconv libnvpair_json libsff printf xargs grep_xpg4
+-SUBDIRS += demangle mergeq workq chown ctf smbios libjedec awk make sleep
+-SUBDIRS += libcustr find mdb sed head pcidb pcieadm svr4pkg
++SUBDIRS =		\
++	ar		\
++	awk		\
++	chown		\
++	ctf		\
++	date		\
++	demangle	\
++	dis		\
++	dladm		\
++	find		\
++	grep_xpg4	\
++	head		\
++	iconv		\
++	libcustr	\
++	libjedec	\
++	libnvpair_json	\
++	libsff		\
++	make		\
++	mdb		\
++	mergeq		\
++	pcidb		\
++	pcieadm		\
++	printf		\
++	sed		\
++	sleep		\
++	smbios		\
++	svr4pkg		\
++	workq		\
++	xargs
+ 
+ include $(SRC)/test/Makefile.com
+diff --git a/usr/src/test/util-tests/tests/ar/Makefile b/usr/src/test/util-tests/tests/ar/Makefile
+new file mode 100644
+index 000000000000..965123efb53c
+--- /dev/null
++++ b/usr/src/test/util-tests/tests/ar/Makefile
+@@ -0,0 +1,48 @@
++#
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
++#
++# A full copy of the text of the CDDL should have accompanied this
++# source.  A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
++#
++
++#
++# Copyright 2021 Oxide Computer Company
++#
++
++include $(SRC)/cmd/Makefile.cmd
++include $(SRC)/test/Makefile.com
++
++ROOTOPTPKG = $(ROOT)/opt/util-tests/tests
++ROOTOPTPKGAR = $(ROOT)/opt/util-tests/tests/ar
++PROG = artest
++OBJS = ar_test0.o ar_test1.o
++
++ROOTPROG = $(PROG:%=$(ROOTOPTPKGAR)/%)
++ROOTOBJS = $(OBJS:%=$(ROOTOPTPKGAR)/%)
++
++$(ROOTOBJS) := FILEMODE = 0444
++
++all: $(OBJS)
++
++install: $(ROOTPROG) $(ROOTOBJS)
++
++clobber: clean
++
++clean:
++	$(RM) $(OBJS)
++
++$(ROOTOPTPKG):
++	$(INS.dir)
++
++$(ROOTOPTPKGAR): $(ROOTOPTPKG)
++	$(INS.dir)
++
++$(ROOTOPTPKGAR)/%: %.ksh $(ROOTOPTPKGAR)
++	$(INS.rename)
++
++$(ROOTOPTPKGAR)/%.o: %.o
++	$(INS.file)
+diff --git a/usr/src/test/util-tests/tests/ar/ar_test0.c b/usr/src/test/util-tests/tests/ar/ar_test0.c
+new file mode 100644
+index 000000000000..ac4aca17109f
+--- /dev/null
++++ b/usr/src/test/util-tests/tests/ar/ar_test0.c
+@@ -0,0 +1,16 @@
++/*
++ * This file and its contents are supplied under the terms of the
++ * Common Development and Distribution License ("CDDL"), version 1.0.
++ * You may only use this file in accordance with the terms of version
++ * 1.0 of the CDDL.
++ *
++ * A full copy of the text of the CDDL should have accompanied this
++ * source.  A copy of the CDDL is also available via the Internet at
++ * http://www.illumos.org/license/CDDL.
++ */
++
++/*
++ * Copyright 2021 Oxide Computer Company
++ */
++
++int link = 42;
+diff --git a/usr/src/test/util-tests/tests/ar/ar_test1.c b/usr/src/test/util-tests/tests/ar/ar_test1.c
+new file mode 100644
+index 000000000000..9986de1a9d87
+--- /dev/null
++++ b/usr/src/test/util-tests/tests/ar/ar_test1.c
+@@ -0,0 +1,20 @@
++/*
++ * This file and its contents are supplied under the terms of the
++ * Common Development and Distribution License ("CDDL"), version 1.0.
++ * You may only use this file in accordance with the terms of version
++ * 1.0 of the CDDL.
++ *
++ * A full copy of the text of the CDDL should have accompanied this
++ * source.  A copy of the CDDL is also available via the Internet at
++ * http://www.illumos.org/license/CDDL.
++ */
++
++/*
++ * Copyright 2021 Oxide Computer Company
++ */
++
++int
++zelda(int a, int b)
++{
++	return (a + b);
++}
+diff --git a/usr/src/test/util-tests/tests/ar/artest.ksh b/usr/src/test/util-tests/tests/ar/artest.ksh
+new file mode 100644
+index 000000000000..ad494ef85a32
+--- /dev/null
++++ b/usr/src/test/util-tests/tests/ar/artest.ksh
+@@ -0,0 +1,536 @@
++#!/usr/bin/ksh
++#
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
++#
++# A full copy of the text of the CDDL should have accompanied this
++# source.  A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
++#
++
++#
++# Copyright 2021 Oxide Computer Company
++#
++
++#
++# This contains a number of basic tests for ar(1). When adding something
++# to ar or fixing a bug, please expand this!
++#
++
++unalias -a
++set -o pipefail
++
++ar_arg0="$(basename $0)"
++ar_data="$(dirname $0)"
++ar_data0="$ar_data/ar_test0.o"
++ar_data1="$ar_data/ar_test1.o"
++ar_prog=/usr/bin/ar
++ar_tmpdir=/tmp/ar.$$
++
++ar_f01="$ar_tmpdir/test01.a"
++ar_f10="$ar_tmpdir/test10.a"
++
++ar_t01="ar_test0.o
++ar_test1.o"
++ar_t10="ar_test1.o
++ar_test0.o"
++
++strip_prog=/usr/bin/strip
++dump_prog=/usr/bin/dump
++nm_prog=/usr/bin/nm
++
++ar_exit=0
++
++function warn
++{
++	typeset msg="$*"
++	[[ -z "$msg" ]] && msg="failed"
++	print -u2 "TEST FAILED: $ar_arg0: $msg"
++	ar_exit=1
++}
++
++function compare_files
++{
++	typeset base="$1"
++	typeset comp="$2"
++	typeset err=0
++
++	if ! $dump_prog -g $comp | sed 1d > $comp.dump; then
++		warn "failed to dump -g $comp"
++		err=1
++	fi
++
++	if ! $nm_prog -P -tx $comp > $comp.nm; then
++		warn "failed to nm $comp"
++		err=1
++	fi
++
++	if ! diff $base.dump $comp.dump; then
++		warn "$base.dump and $comp.dump don't match"
++		err=1
++	fi
++
++	if ! diff $base.nm $comp.nm; then
++		warn "$base.dump and $comp.dump don't match"
++		err=1
++	fi
++
++	return $err
++}
++
++#
++# To set things up, we first go and create two basic archives that we
++# will then use as the basis for comaring various operations later.
++#
++function setup_baseline
++{
++	if ! $ar_prog cr $ar_f01 $ar_data0 $ar_data1; then
++		warn "failed to create basic archive $ar_f01"
++	fi
++
++	if ! $ar_prog cr $ar_f10 $ar_data1 $ar_data0; then
++		warn "failed to create basic archive $ar_f10"
++	fi
++
++	if ! $dump_prog -g $ar_f01 | sed 1d > $ar_f01.dump; then
++		warn "failed to dump archive $ar_f01"
++	fi
++
++	if ! $dump_prog -g $ar_f10 | sed 1d > $ar_f10.dump; then
++		warn "failed to dump archive $ar_f10"
++	fi
++
++	if ! $nm_prog -P -tx $ar_f01 > $ar_f01.nm; then
++		warn "failed to nm archive $ar_f01"
++	fi
++
++	if ! $nm_prog -P -tx $ar_f10 > $ar_f10.nm; then
++		warn "failed to nm archive $ar_f01"
++	fi
++
++	print "TEST PASSED: basic archive creation"
++}
++
++function strip_archive
++{
++	typeset file="$1"
++	typeset output=
++
++	if ! $strip_prog $file 2>/dev/null; then
++		warn "failed to strip $alt"
++		return 1
++	fi
++
++	output=$($dump_prog -g $file)
++	if [[ -n "$output" ]]; then
++		warn "stripped file $file somehow has an ar header"
++		return 1
++	fi
++
++	return 0
++}
++
++#
++# Validate that stripping and regenerating a symbol table actually
++# works.
++#
++function test_s
++{
++	typeset alt="$ar_tmpdir/s.a"
++	typeset output=
++
++	if ! cp $ar_f01 $alt; then
++		warn "failed to copy file"
++		return
++	fi
++
++	if ! strip_archive $alt; then
++		return
++	fi
++
++	if ! $ar_prog s $alt; then
++		warn "restore symbol table with ar s"
++	fi
++
++	if compare_files "$ar_f01" "$alt"; then
++		print "TEST PASSED: restoring stripped archive with -s"
++	fi
++
++	if ! strip_archive $alt; then
++		return
++	fi
++
++	if ! $ar_prog st $alt >/dev/null; then
++		warn "restore symbol table with ar st"
++	fi
++
++	if compare_files "$ar_f01" "$alt"; then
++		print "TEST PASSED: restoring stripped archive with -st"
++	fi
++
++	if ! strip_archive $alt; then
++		return
++	fi
++
++	output=$($ar_prog sv $alt 2>&1)
++	if [[ "$output" == "ar: writing $alt" ]]; then
++		print "TEST PASSED: ar -sv has proper output"
++	else
++		warn "ar -sv has unexpected output: $output"
++	fi
++
++	if compare_files "$ar_f01" "$alt"; then
++		print "TEST PASSED: restoring stripped archive with -sv"
++	fi
++}
++
++#
++# Ensure that use of -s and -r still works. This is a regression test
++# for the original integration of standalone -s support.
++#
++function test_rs
++{
++	typeset alt="$ar_tmpdir/rs.a"
++
++	if ! $ar_prog rs $alt $ar_data1 $ar_data0; then
++		warn "ar -rs: did not create an archive"
++	fi
++
++	if ! compare_files $ar_f10 $alt; then
++		warn "ar -rs: did not create expected file"
++	else
++		print "TEST PASSED: ar -rs creates archives"
++	fi
++
++	rm -f $alt
++
++	if ! $ar_prog crs $alt $ar_data1 $ar_data0; then
++		warn "ar -crs: did not create an archive"
++	fi
++
++	if ! compare_files $ar_f10 $alt; then
++		warn "ar -crs: did not create expected file"
++	else
++		print "TEST PASSED: ar -crs creates archives"
++	fi
++}
++
++#
++# Verify that basic ar -r invocations ultimately end up creating what
++# we'd expect.
++#
++function test_incremental
++{
++	typeset alt="$ar_tmpdir/incr.a"
++
++	if ! $ar_prog cr $alt $ar_data0; then
++		warn "incremental archive: failed to create archive"
++		return
++	fi
++
++	if ! $ar_prog cr $alt $ar_data1; then
++		warn "incremental archive: failed to add to archive"
++		return
++	fi
++
++	if ! compare_files $ar_f01 $alt; then
++		warn "incremental archive: did not create expected file"
++	else
++		print "TEST PASSED: incremental archive creation"
++	fi
++
++}
++
++#
++# Validate that ar's various -a and -b variants work.
++#
++function test_pos
++{
++	typeset alt="$ar_tmpdir/pos.a"
++
++	if ! $ar_prog cr $alt $ar_data1; then
++		warn "positional tests: failed to create archive"
++		return;
++	fi
++
++	if ! $ar_prog -cra ar_test1.o $alt $ar_data0; then
++		warn "positional tests: -a append failed"
++		return
++	fi
++
++	if ! compare_files $ar_f10 $alt; then
++		warn "positional tests: -cra archive is incorrect"
++	else
++		print "TEST PASSED: positional tests: ar -cra"
++	fi
++
++	rm -f $alt
++
++	if ! $ar_prog cr $alt $ar_data1; then
++		warn "positional tests: failed to create archive"
++		return;
++	fi
++
++	if ! $ar_prog -crb ar_test1.o $alt $ar_data0; then
++		warn "positional tests: -b prepend failed"
++		return
++	fi
++
++	if ! compare_files $ar_f01 $alt; then
++		warn "positional tests: -crb archive is incorrect"
++	else
++		print "TEST PASSED: positional tests: ar -crb"
++	fi
++
++	rm -f $alt
++
++	if ! $ar_prog cr $alt $ar_data1; then
++		warn "positional tests: failed to create archive"
++		return;
++	fi
++
++	if ! $ar_prog -cri ar_test1.o $alt $ar_data0; then
++		warn "positional tests: -i prepend failed"
++		return
++	fi
++
++	if ! compare_files $ar_f01 $alt; then
++		warn "positional tests: -cri archive is incorrect"
++	else
++		print "TEST PASSED: positional tests: ar -cri"
++	fi
++
++}
++
++#
++# Go through and validate the various versions of ar x.
++#
++function test_x
++{
++	typeset out0="$ar_tmpdir/ar_test0.o"
++	typeset out1="$ar_tmpdir/ar_test1.o"
++	typeset output=
++
++	rm -f $out0 $out1
++
++	if ! $ar_prog x $ar_f01; then
++		warn "ar -x: failed to extract files"
++	fi
++
++	if cmp -s $out0 $ar_data0 && cmp -s $out1 $ar_data1; then
++		print "TEST PASSED: ar -x"
++	else
++		warn "ar -x: extracted files differs"
++	fi
++
++	rm -f $out0 $out1
++	echo elberth > $out0
++
++	#
++	# For some reason, ar -Cx will actually fail if you have an
++	# existing file. It seems a bit weird as it means you can't
++	# extract existing files (depdendent on order), but that's how
++	# it goes.
++	#
++	if $ar_prog Cx $ar_f01 ar_test0.o; then
++		warn "ar -Cx: failed to extract file that wasn't in fs\n"
++	fi
++
++	output=$(cat $out0)
++	if [[ "$output" != "elberth" ]]; then
++		warn "ar -Cx: overwrote pre-existing file"
++	else
++		print "TEST PASSED: ar -Cx did not overwrite existing file"
++	fi
++
++	if ! $ar_prog Cx $ar_f01 ar_test1.o; then
++		warn "ar -Cx: failed to extract file that wasn't in fs\n"
++	fi
++
++	if cmp -s $out1 $ar_data1; then
++		print "TEST PASSED: ar -Cx extracted file that didn't exist"
++	else
++		warn "ar -Cx: failed to extract file that exists"
++	fi
++}
++
++#
++# Variant of -x that ensures we restore stripped archives.
++#
++function test_xs
++{
++	typeset alt="$ar_tmpdir/xs.a"
++	typeset out0="$ar_tmpdir/ar_test0.o"
++	typeset out1="$ar_tmpdir/ar_test1.o"
++
++	rm -f $out0 $out1
++
++	if ! cp $ar_f01 $alt; then
++		warn "failed to copy file"
++		return
++	fi
++
++	if ! strip_archive $alt; then
++		return
++	fi
++
++	if ! $ar_prog xs $alt; then
++		warn "ar -xs: failed to extract files"
++	fi
++
++	if cmp -s $out0 $ar_data0 && cmp -s $out1 $ar_data1 && \
++	    compare_files "$ar_f01" "$alt"; then
++		print "TEST PASSED: ar -xs"
++	else
++		warn "ar -xs: extracted and restore archive differ"
++	fi
++}
++
++function test_m
++{
++	typeset alt="$ar_tmpdir/pos.a"
++
++	if ! cp $ar_f01 $alt; then
++		warn "failed to copy file"
++		return
++	fi
++
++	if ! $ar_prog ma ar_test1.o $alt ar_test0.o; then
++		warn "ar -ma: failed didn't work"
++	fi
++
++	if compare_files "$ar_f10" "$alt"; then
++		print "TEST PASSED: ar -ma"
++	else
++		warn "ar -ma: did not create expected archive"
++	fi
++
++	if ! $ar_prog mb ar_test1.o $alt ar_test0.o; then
++		warn "ar -ma: failed didn't work"
++	fi
++
++	if compare_files "$ar_f01" "$alt"; then
++		print "TEST PASSED: ar -mb"
++	else
++		warn "ar -mb: did not create expected archive"
++	fi
++}
++
++function test_t
++{
++	typeset output=
++
++	output=$($ar_prog t $ar_f01)
++	if [[ "$ar_t01" != "$output" ]]; then
++		warn "ar t: mismatched output on $ar_t01, found $output"
++	else
++		print "TEST PASSED: ar -t (output 01)"
++	fi
++
++	output=$($ar_prog t $ar_f10)
++	if [[ "$ar_t10" != "$output" ]]; then
++		warn "ar t: mismatched output on $ar_f10, found $output"
++	else
++		print "TEST PASSED: ar -t (output 10)"
++	fi
++}
++
++function test_err
++{
++	if $ar_prog $@ 2>/dev/null 1>/dev/null; then
++		warn "should have failed with args "$@", but passed"
++	else
++		printf "TEST PASSED: invalid arguments %s\n" "$*"
++	fi
++}
++
++#
++# Before we begin execution, set up the environment such that we have a
++# standard locale and that umem will help us catch mistakes.
++#
++export LC_ALL=C.UTF-8
++export LD_PRELOAD=libumem.so
++export UMEM_DEBUG=default
++
++if ! mkdir "$ar_tmpdir"; then
++	printf "failed to make output directory %s\n" "$ar_tmpdir" >&2
++	exit 1
++fi
++
++if ! cd "$ar_tmpdir"; then
++	printf "failed to cd into output directory %s\n" "$ar_tmpdir" >&2
++	exit 1
++fi
++
++if [[ ! -d "$ar_data" ]]; then
++	printf "failed to find data directory %s\n" "$ar_data" >&2
++	exit 1
++fi
++
++if [[ -n $AR ]]; then
++	echo overwrote AR as $AR
++	ar_prog=$AR
++fi
++
++setup_baseline
++test_s
++test_rs
++test_incremental
++test_pos
++test_x
++test_xs
++test_m
++test_t
++
++#
++# Note, there are many cases here which probably should be failures and
++# aren't (e.g. ar -mabi) because that's how the tool works today. With
++# proper regression testing of building 3rd party packages this could be
++# changed.
++#
++test_err ""
++test_err "-z"
++test_err "-d"
++test_err "-d" "$ar_tmpdir/enoent"
++test_err "-d" "$ar_f01" "foobar.exe"
++test_err "-m" "$ar_tmpdir/enoent"
++test_err "-ma" "foobar.exe" "$ar_tmpdir/enoent"
++test_err "-mb" "foobar.exe" "$ar_tmpdir/enoent"
++test_err "-mi" "foobar.exe" "$ar_tmpdir/enoent"
++test_err "-p" "$ar_tmpdir/enoent"
++test_err "-P" "$ar_tmpdir/enoent"
++test_err "-q"
++test_err "-qa" "foobar.exe" "$ar_f0.a"
++test_err "-qb" "foobar.exe" "$ar_f0.a"
++test_err "-qi" "foobar.exe" "$ar_f0.a"
++test_err "-qa" "ar_test0.o" "$ar_f0.a"
++test_err "-qb" "ar_test0.o" "$ar_f0.a"
++test_err "-qi" "ar_test0.o" "$ar_f0.a"
++test_err "-r"
++test_err "-ra" "foobar.exe"
++test_err "-ra" "foobar.exe" "$ar_tmpdir/enoent"
++test_err "-rb" "foobar.exe"
++test_err "-rb" "foobar.exe" "$ar_tmpdir/enoent"
++test_err "-ri" "foobar.exe"
++test_err "-ri" "foobar.exe" "$ar_tmpdir/enoent"
++test_err "-t"
++test_err "-t" "$ar_tmpdir/enoent"
++test_err "-x"
++test_err "-x" "$ar_tmpdir/enoent"
++test_err "-s"
++test_err "-s" "$ar_tmpdir/enoent"
++test_err "-s" "$ar_f01" "$ar_f10"
++test_err "-sz" "$ar_f01"
++test_err "-rd"
++test_err "-xd"
++test_err "-qp"
++
++if (( ar_exit == 0 )); then
++	printf "All tests passed successfully!\n"
++fi
++
++cd - >/dev/null
++rm -rf "$ar_tmpdir"
++exit $ar_exit

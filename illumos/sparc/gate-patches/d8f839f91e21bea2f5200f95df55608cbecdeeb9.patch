@@ -1,0 +1,769 @@
+From d8f839f91e21bea2f5200f95df55608cbecdeeb9 Mon Sep 17 00:00:00 2001
+From: Jason King <jason.brian.king@gmail.com>
+Date: Fri, 5 Nov 2021 09:48:07 -0500
+Subject: [PATCH] 14223 Add change key zfs channel program Portions contributed
+ by: Alex Wilson <alex@cooperi.net> Reviewed by: Jerry Jelinek
+ <jerry.jelinek@joyent.com> Reviewed by: Dan McDonald <danmcd@joyent.com>
+ Reviewed by: Mike Zeller <mike.zeller@joyent.com> Reviewed by: Toomas Soome
+ <tsoome@me.com> Approved by: Dan McDonald <danmcd@joyent.com>
+
+---
+ usr/src/lib/libzfs_core/common/libzfs_core.c  |  18 +++
+ usr/src/man/man1m/zfs-program.1m              |  10 +-
+ usr/src/pkg/manifests/system-test-zfstest.p5m |   7 +
+ .../channel_program/synctask_core/Makefile    |  31 +++-
+ .../synctask_core/change_key.c                |  98 ++++++++++++
+ .../synctask_core/tst.change_key.ksh          |  56 +++++++
+ usr/src/uts/common/Makefile.files             |   1 +
+ usr/src/uts/common/fs/zfs/dsl_crypt.c         |   9 +-
+ usr/src/uts/common/fs/zfs/sys/dsl_crypt.h     |   7 +
+ .../uts/common/fs/zfs/sys/zcp_change_key.h    |  41 +++++
+ usr/src/uts/common/fs/zfs/zcp_change_key.c    | 144 ++++++++++++++++++
+ usr/src/uts/common/fs/zfs/zcp_synctask.c      |  71 +++++++++
+ usr/src/uts/common/fs/zfs/zfs_ioctl.c         |  13 ++
+ 13 files changed, 496 insertions(+), 10 deletions(-)
+ create mode 100644 usr/src/test/zfs-tests/tests/functional/channel_program/synctask_core/change_key.c
+ create mode 100644 usr/src/test/zfs-tests/tests/functional/channel_program/synctask_core/tst.change_key.ksh
+ create mode 100644 usr/src/uts/common/fs/zfs/sys/zcp_change_key.h
+ create mode 100644 usr/src/uts/common/fs/zfs/zcp_change_key.c
+
+diff --git a/usr/src/lib/libzfs_core/common/libzfs_core.c b/usr/src/lib/libzfs_core/common/libzfs_core.c
+index dc505f020c..471a5e5515 100644
+--- a/usr/src/lib/libzfs_core/common/libzfs_core.c
++++ b/usr/src/lib/libzfs_core/common/libzfs_core.c
+@@ -25,6 +25,7 @@
+  * Copyright (c) 2014 Integros [integros.com]
+  * Copyright 2017 RackTop Systems.
+  * Copyright (c) 2017 Datto Inc.
++ * Copyright 2020 Joyent, Inc.
+  */
+ 
+ /*
+@@ -1069,6 +1070,7 @@ lzc_channel_program_impl(const char *pool, const char *program, boolean_t sync,
+ {
+ 	int error;
+ 	nvlist_t *args;
++	nvlist_t *hidden_args = NULL;
+ 
+ 	args = fnvlist_alloc();
+ 	fnvlist_add_string(args, ZCP_ARG_PROGRAM, program);
+@@ -1076,6 +1078,22 @@ lzc_channel_program_impl(const char *pool, const char *program, boolean_t sync,
+ 	fnvlist_add_boolean_value(args, ZCP_ARG_SYNC, sync);
+ 	fnvlist_add_uint64(args, ZCP_ARG_INSTRLIMIT, instrlimit);
+ 	fnvlist_add_uint64(args, ZCP_ARG_MEMLIMIT, memlimit);
++
++	/*
++	 * If any hidden arguments are passed, we pull them out of 'args'
++	 * and into a separate nvlist so spa_history_nvl() doesn't log
++	 * their values.
++	 */
++	if (nvlist_lookup_nvlist(argnvl, ZPOOL_HIDDEN_ARGS,
++	    &hidden_args) == 0) {
++		nvlist_t *argcopy = fnvlist_dup(argnvl);
++
++		fnvlist_add_nvlist(args, ZPOOL_HIDDEN_ARGS, hidden_args);
++		fnvlist_remove(argcopy, ZPOOL_HIDDEN_ARGS);
++		fnvlist_add_nvlist(args, ZCP_ARG_ARGLIST, argcopy);
++		nvlist_free(argcopy);
++	}
++
+ 	error = lzc_ioctl(ZFS_IOC_CHANNEL_PROGRAM, pool, args, outnvl);
+ 	fnvlist_free(args);
+ 
+diff --git a/usr/src/man/man1m/zfs-program.1m b/usr/src/man/man1m/zfs-program.1m
+index 99fa887aa8..457b912034 100644
+--- a/usr/src/man/man1m/zfs-program.1m
++++ b/usr/src/man/man1m/zfs-program.1m
+@@ -11,8 +11,9 @@
+ .\" Copyright (c) 2016, 2017 by Delphix. All rights reserved.
+ .\" Copyright (c) 2018 Datto Inc.
+ .\" Copyright 2020 Joyent, Inc.
++.\" Copyright 2021 Jason King
+ .\"
+-.Dd February 3, 2020
++.Dd November 8, 2021
+ .Dt ZFS-PROGRAM 1M
+ .Os
+ .Sh NAME
+@@ -350,6 +351,12 @@ They are executed in "syncing context".
+ .Pp
+ The available sync submodule functions are as follows:
+ .Bl -tag -width "xx"
++.It Em zfs.sync.change_key(dataset, key)
++Change the dataset encryption key.
++.Fa key
++must be in the format (raw or hex) specified by the dataset
++.Sy keyformat
++property.
+ .It Em zfs.sync.destroy(dataset, [defer=true|false])
+ Destroy the given dataset.
+ Returns 0 on successful destroy, or a nonzero error code if the dataset could
+@@ -458,6 +465,7 @@ would successfully destroy the dataset.
+ .Pp
+ The available zfs.check functions are:
+ .Bl -tag -width "xx"
++.It Em zfs.check.change_key(dataset, key)
+ .It Em zfs.check.destroy(dataset, [defer=true|false])
+ .It Em zfs.check.promote(dataset)
+ .It Em zfs.check.rollback(filesystem)
+diff --git a/usr/src/pkg/manifests/system-test-zfstest.p5m b/usr/src/pkg/manifests/system-test-zfstest.p5m
+index fa831d7628..fdd6705d42 100644
+--- a/usr/src/pkg/manifests/system-test-zfstest.p5m
++++ b/usr/src/pkg/manifests/system-test-zfstest.p5m
+@@ -15,6 +15,7 @@
+ # Copyright 2016, OmniTI Computer Consulting, Inc. All rights reserved.
+ # Copyright 2020 Joyent, Inc.
+ # Copyright (c) 2018 Datto Inc.
++# Copyright 2021 Jason King
+ #
+ 
+ set name=pkg.fmri value=pkg:/system/test/zfstest@$(PKGVERS)
+@@ -411,10 +412,16 @@ file \
+     path=opt/zfs-tests/tests/functional/channel_program/lua_core/tst.timeout.zcp \
+     mode=0444
+ dir  path=opt/zfs-tests/tests/functional/channel_program/synctask_core
++file \
++    path=opt/zfs-tests/tests/functional/channel_program/synctask_core/change_key.exe \
++    mode=0555
+ file path=opt/zfs-tests/tests/functional/channel_program/synctask_core/cleanup \
+     mode=0555
+ file path=opt/zfs-tests/tests/functional/channel_program/synctask_core/setup \
+     mode=0555
++file \
++    path=opt/zfs-tests/tests/functional/channel_program/synctask_core/tst.change_key \
++    mode=0555
+ file \
+     path=opt/zfs-tests/tests/functional/channel_program/synctask_core/tst.destroy_fs \
+     mode=0555
+diff --git a/usr/src/test/zfs-tests/tests/functional/channel_program/synctask_core/Makefile b/usr/src/test/zfs-tests/tests/functional/channel_program/synctask_core/Makefile
+index 2034d39599..5f8ea55a97 100644
+--- a/usr/src/test/zfs-tests/tests/functional/channel_program/synctask_core/Makefile
++++ b/usr/src/test/zfs-tests/tests/functional/channel_program/synctask_core/Makefile
+@@ -11,15 +11,27 @@
+ 
+ #
+ # Copyright (c) 2016 by Delphix. All rights reserved.
++# Copyright 2020 Joyent, Inc.
+ #
+ 
+ include $(SRC)/Makefile.master
++include $(SRC)/cmd/Makefile.cmd
++include $(SRC)/cmd/Makefile.ctf
+ 
+ ROOTOPTPKG = $(ROOT)/opt/zfs-tests
+ TESTDIR = $(ROOTOPTPKG)/tests/functional/channel_program/synctask_core
+ 
+ KSHFILES :sh= ls *.ksh
+-PROGS = $(KSHFILES:.ksh=)
++KSHPROGS = $(KSHFILES:.ksh=)
++
++SRCS :sh= ls *.c
++CPROGS = $(SRCS:%.c=%.exe)
++LDLIBS = $(LDLIBS.cmd)
++LDLIBS += -lzfs_core -lnvpair
++CSTD = $(CSTD_GNU99)
++OBJS = $(SRCS:%.c=%.o)
++
++PROGS = $(KSHPROGS) $(CPROGS)
+ FILES :sh= ls *.zcp *.out *.err 2>/dev/null; true
+ 
+ INSTPROGS = $(PROGS:%=$(TESTDIR)/%)
+@@ -28,7 +40,9 @@ INSTFILES = $(FILES:%=$(TESTDIR)/%)
+ $(INSTPROGS) := FILEMODE = 0555
+ $(INSTFILES) := FILEMODE = 0444
+ 
+-all lint clean clobber:
++all: $(CPROGS)
++
++clean clobber:
+ 
+ install: $(INSTPROGS) $(INSTFILES)
+ 
+@@ -43,3 +57,16 @@ $(TESTDIR)/%: %.ksh
+ 
+ $(TESTDIR)/%: %
+ 	$(INS.file)
++
++%.o: ../%.c
++	$(COMPILE.c) $<
++
++%.exe: %.o
++	$(LINK.c) $< -o $@ $(LDLIBS)
++	$(POST_PROCESS)
++
++clobber: clean
++	-$(RM) $(PROGS)
++
++clean:
++	-$(RM) $(OBJS)
+diff --git a/usr/src/test/zfs-tests/tests/functional/channel_program/synctask_core/change_key.c b/usr/src/test/zfs-tests/tests/functional/channel_program/synctask_core/change_key.c
+new file mode 100644
+index 0000000000..405c232b4e
+--- /dev/null
++++ b/usr/src/test/zfs-tests/tests/functional/channel_program/synctask_core/change_key.c
+@@ -0,0 +1,98 @@
++/*
++ * CDDL HEADER START
++ *
++ * This file and its contents are supplied under the terms of the
++ * Common Development and Distribution License ("CDDL"), version 1.0.
++ * You may only use this file in accordance with the terms of version
++ * 1.0 of the CDDL.
++ *
++ * A full copy of the text of the CDDL should have accompanied this
++ * source.  A copy of the CDDL is also available via the Internet at
++ * http://www.illumos.org/license/CDDL.
++ *
++ * CDDL HEADER END
++ */
++
++/*
++ * Copyright 2020 Joyent, Inc.
++ */
++
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <sys/debug.h>
++#include <sys/fs/zfs.h>
++#include <libzfs_core.h>
++#include <libnvpair.h>
++
++const char prog[] =
++	"arg = ... \n"
++	"fs = arg[\"dataset\"]\n"
++	"hexkey = arg[\"" ZPOOL_HIDDEN_ARGS "\"][\"key\"]\n"
++	"err = zfs.sync.change_key(fs, hexkey, 'hex')\n"
++	"msg = \"changing key on \" .. fs .. \" err=\" .. err\n"
++	"return msg";
++
++/*
++ * Get the pool name from a dataset. This is crude but good enough
++ * for a test.
++ */
++static char *
++get_pool(const char *dataset)
++{
++	char *res = strdup(dataset);
++
++	if (res == NULL)
++		abort();
++
++	char *p = strchr(res, '/');
++
++	if (p != NULL)
++		*p = '\0';
++
++	return (res);
++}
++
++int
++main(int argc, char *argv[])
++{
++	const char *dataset = argv[1];
++	const char *key = argv[2];
++	char *pool = NULL;
++	nvlist_t *args = fnvlist_alloc();
++	nvlist_t *hidden_args = fnvlist_alloc();
++	nvlist_t *result = NULL;
++	int ret = 0;
++
++	if (argc != 3) {
++		(void) fprintf(stderr, "Usage: %s dataset key\n", argv[0]);
++		exit(2);
++	}
++
++	VERIFY0(libzfs_core_init());
++
++	pool = get_pool(dataset);
++
++	fnvlist_add_string(args, "dataset", dataset);
++	fnvlist_add_string(hidden_args, "key", key);
++	fnvlist_add_nvlist(args, ZPOOL_HIDDEN_ARGS, hidden_args);
++
++	ret = lzc_channel_program(pool, prog, ZCP_DEFAULT_INSTRLIMIT,
++	    ZCP_DEFAULT_MEMLIMIT, args, &result);
++
++	(void) printf("lzc_channel_program returned %d", ret);
++	if (ret != 0)
++		(void) printf(" (%s)", strerror(ret));
++	(void) fputc('\n', stdout);
++
++	dump_nvlist(result, 5);
++
++	nvlist_free(args);
++	nvlist_free(hidden_args);
++	nvlist_free(result);
++	free(pool);
++
++	libzfs_core_fini();
++
++	return (ret);
++}
+diff --git a/usr/src/test/zfs-tests/tests/functional/channel_program/synctask_core/tst.change_key.ksh b/usr/src/test/zfs-tests/tests/functional/channel_program/synctask_core/tst.change_key.ksh
+new file mode 100644
+index 0000000000..5d505226b8
+--- /dev/null
++++ b/usr/src/test/zfs-tests/tests/functional/channel_program/synctask_core/tst.change_key.ksh
+@@ -0,0 +1,56 @@
++#!/bin/ksh -p
++#
++# CDDL HEADER START
++#
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
++#
++# A full copy of the text of the CDDL should have accompanied this
++# source.  A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
++#
++# CDDL HEADER END
++#
++
++#
++# Copyright 2020 Joyent, Inc.
++#
++
++. $STF_SUITE/include/libtest.shlib
++. $STF_SUITE/tests/functional/cli_root/zfs_load-key/zfs_load-key_common.kshlib
++. $STF_SUITE/tests/functional/channel_program/channel_common.kshlib
++
++#
++# DESCRIPTION:
++#	Try to change an encrypted dataset key via a ZFS channel program
++
++verify_runnable "both"
++
++function cleanup
++{
++	datasetexists $TESTPOOL/$TESTFS1 && \
++		log_must zfs destroy -f $TESTPOOL/$TESTFS1
++}
++log_onexit cleanup
++
++log_assert "zfs.sync.change_key should change key material"
++
++log_must eval "echo $HEXKEY | zfs create -o encryption=on" \
++        "-o keyformat=hex -o keylocation=prompt $TESTPOOL/$TESTFS1"
++
++log_must $ZCP_ROOT/synctask_core/change_key.exe $TESTPOOL/$TESTFS1 $HEXKEY1
++
++# Key shouldn't appear in zpool history when using change_key.exe
++log_mustnot eval "zfs history -il $TESTPOOL | grep $HEXKEY1"
++
++log_must zfs unmount $TESTPOOL/$TESTFS1
++log_must zfs unload-key $TESTPOOL/$TESTFS1
++
++log_mustnot eval "echo $HEXKEY | zfs load-key $TESTPOOL/$TESTFS1"
++log_must key_unavailable $TESTPOOL/$TESTFS1
++
++log_must eval "echo $HEXKEY1 | zfs load-key $TESTPOOL/$TESTFS1"
++
++log_pass "zfs.sync.change_key should change key material"
+diff --git a/usr/src/uts/common/Makefile.files b/usr/src/uts/common/Makefile.files
+index e0df3df454..d768802685 100644
+--- a/usr/src/uts/common/Makefile.files
++++ b/usr/src/uts/common/Makefile.files
+@@ -1431,6 +1431,7 @@ ZFS_COMMON_OBJS +=		\
+ 	zap_leaf.o		\
+ 	zap_micro.o		\
+ 	zcp.o			\
++	zcp_change_key.o	\
+ 	zcp_get.o		\
+ 	zcp_set.o		\
+ 	zcp_global.o		\
+diff --git a/usr/src/uts/common/fs/zfs/dsl_crypt.c b/usr/src/uts/common/fs/zfs/dsl_crypt.c
+index cb412151e7..ed98740f1d 100644
+--- a/usr/src/uts/common/fs/zfs/dsl_crypt.c
++++ b/usr/src/uts/common/fs/zfs/dsl_crypt.c
+@@ -1220,12 +1220,7 @@ dsl_crypto_key_sync(dsl_crypto_key_t *dck, dmu_tx_t *tx)
+ 	    tx);
+ }
+ 
+-typedef struct spa_keystore_change_key_args {
+-	const char *skcka_dsname;
+-	dsl_crypto_params_t *skcka_cp;
+-} spa_keystore_change_key_args_t;
+-
+-static int
++int
+ spa_keystore_change_key_check(void *arg, dmu_tx_t *tx)
+ {
+ 	int ret;
+@@ -1501,7 +1496,7 @@ spa_keystore_change_key_sync_impl(uint64_t rddobj, uint64_t ddobj,
+ 	dsl_dir_rele(dd, FTAG);
+ }
+ 
+-static void
++void
+ spa_keystore_change_key_sync(void *arg, dmu_tx_t *tx)
+ {
+ 	dsl_dataset_t *ds;
+diff --git a/usr/src/uts/common/fs/zfs/sys/dsl_crypt.h b/usr/src/uts/common/fs/zfs/sys/dsl_crypt.h
+index cf19665aae..5b7c1a9510 100644
+--- a/usr/src/uts/common/fs/zfs/sys/dsl_crypt.h
++++ b/usr/src/uts/common/fs/zfs/sys/dsl_crypt.h
+@@ -164,6 +164,11 @@ typedef struct spa_keystore {
+ 	avl_tree_t sk_wkeys;
+ } spa_keystore_t;
+ 
++typedef struct spa_keystore_change_key_args {
++	const char *skcka_dsname;
++	dsl_crypto_params_t *skcka_cp;
++} spa_keystore_change_key_args_t;
++
+ int dsl_crypto_params_create_nvlist(dcp_cmd_t cmd, nvlist_t *props,
+     nvlist_t *crypto_args, dsl_crypto_params_t **dcp_out);
+ void dsl_crypto_params_free(dsl_crypto_params_t *dcp, boolean_t unload);
+@@ -199,6 +204,8 @@ int dsl_crypto_recv_raw(const char *poolname, uint64_t dsobj, uint64_t fromobj,
+     dmu_objset_type_t ostype, nvlist_t *nvl, boolean_t do_key);
+ 
+ int spa_keystore_change_key(const char *dsname, dsl_crypto_params_t *dcp);
++int spa_keystore_change_key_check(void *arg, dmu_tx_t *tx);
++void spa_keystore_change_key_sync(void *arg, dmu_tx_t *tx);
+ int dsl_dir_rename_crypt_check(dsl_dir_t *dd, dsl_dir_t *newparent);
+ int dsl_dataset_promote_crypt_check(dsl_dir_t *target, dsl_dir_t *origin);
+ void dsl_dataset_promote_crypt_sync(dsl_dir_t *target, dsl_dir_t *origin,
+diff --git a/usr/src/uts/common/fs/zfs/sys/zcp_change_key.h b/usr/src/uts/common/fs/zfs/sys/zcp_change_key.h
+new file mode 100644
+index 0000000000..fea520455f
+--- /dev/null
++++ b/usr/src/uts/common/fs/zfs/sys/zcp_change_key.h
+@@ -0,0 +1,41 @@
++/*
++ * CDDL HEADER START
++ *
++ * This file and its contents are supplied under the terms of the
++ * Common Development and Distribution License ("CDDL"), version 1.0.
++ * You may only use this file in accordance with the terms of version
++ * 1.0 of the CDDL.
++ *
++ * A full copy of the text of the CDDL should have accompanied this
++ * source.  A copy of the CDDL is also available via the Internet at
++ * http://www.illumos.org/license/CDDL.
++ *
++ * CDDL HEADER END
++ */
++
++/*
++ * Copyright 2020 Joyent, Inc.
++ */
++
++#ifndef _SYS_ZCP_CHANGE_KEY_H
++#define	_SYS_ZCP_CHANGE_KEY_H
++
++#include <sys/types.h>
++#include <sys/dmu.h>
++#include <sys/dsl_crypt.h>
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++void zcp_synctask_change_key_cleanup(void *arg);
++int zcp_synctask_change_key_check(void *arg, dmu_tx_t *tx);
++void zcp_synctask_change_key_sync(void *arg, dmu_tx_t *tx);
++int zcp_synctask_change_key_create_params(const char *key, size_t keylen,
++    zfs_keyformat_t keyformat, dsl_crypto_params_t **dcpp);
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif /* _SYS_ZCP_CHANGE_KEY_H */
+diff --git a/usr/src/uts/common/fs/zfs/zcp_change_key.c b/usr/src/uts/common/fs/zfs/zcp_change_key.c
+new file mode 100644
+index 0000000000..be16a8d5c6
+--- /dev/null
++++ b/usr/src/uts/common/fs/zfs/zcp_change_key.c
+@@ -0,0 +1,144 @@
++/*
++ * CDDL HEADER START
++ *
++ * This file and its contents are supplied under the terms of the
++ * Common Development and Distribution License ("CDDL"), version 1.0.
++ * You may only use this file in accordance with the terms of version
++ * 1.0 of the CDDL.
++ *
++ * A full copy of the text of the CDDL should have accompanied this
++ * source.  A copy of the CDDL is also available via the Internet at
++ * http://www.illumos.org/license/CDDL.
++ *
++ * CDDL HEADER END
++ */
++
++/*
++ * Copyright 2020 Joyent, Inc.
++ */
++
++#include <sys/ctype.h>
++#include <sys/zcp.h>
++#include <sys/zcp_change_key.h>
++
++static uint8_t
++hexval(char c)
++{
++	if (c >= '0' && c <= '9')
++		return (c - '0');
++	else if (c >= 'a' && c <= 'f')
++		return (c - 'a' + 10);
++	else if (c >= 'A' && c <= 'F')
++		return (c - 'A' + 10);
++
++	panic("invalid hex value");
++}
++
++static int
++hex_to_raw(const char *key, uint8_t *buf, size_t buflen)
++{
++	uint8_t *p;
++	size_t srclen = strlen(key);
++	size_t i;
++
++	if (buflen * 2 != srclen)
++		return (SET_ERROR(EINVAL));
++
++	for (i = 0, p = buf; i < srclen; i += 2, p++) {
++		if (!isxdigit(key[i]) || !isxdigit(key[i + 1]))
++			return (SET_ERROR(EINVAL));
++
++		*p = hexval(key[i]) << 4 | hexval(key[i + 1]);
++	}
++
++	return (0);
++}
++
++int
++zcp_synctask_change_key_create_params(const char *key, size_t keylen,
++    zfs_keyformat_t keyformat, dsl_crypto_params_t **dcpp)
++{
++	nvlist_t *args = fnvlist_alloc();
++	nvlist_t *hidden_args = fnvlist_alloc();
++	uint8_t rawkey[WRAPPING_KEY_LEN];
++	uint_t rawlen = 0;
++	int err = 0;
++
++	/*
++	 * Currently, only raw and hex keys are supported in channel
++	 * programs (there is no pbkdf2 support in the kernel to convert
++	 * a passphrase).
++	 */
++	switch (keyformat) {
++	case ZFS_KEYFORMAT_RAW:
++		/*
++		 * dsl_crypto_params_create_nvlist() also verifies the
++		 * raw key is WRAPPING_KEY_LEN bytes, so this is
++		 * _almost_ redundant -- however we still want to
++		 * guarantee we won't overflow rawkey when copying
++		 * the contents over.
++		 */
++		if (keylen != WRAPPING_KEY_LEN) {
++			err = SET_ERROR(EINVAL);
++			goto done;
++		}
++
++		bcopy(key, rawkey, keylen);
++		rawlen = keylen;
++		break;
++	case ZFS_KEYFORMAT_HEX:
++		/*
++		 * hex_to_raw() will reject any input that doesn't exactly
++		 * fit into rawkey
++		 */
++		err = hex_to_raw(key, rawkey, sizeof (rawkey));
++		if (err != 0)
++			goto done;
++		rawlen = sizeof (rawkey);
++		break;
++	default:
++		err = SET_ERROR(EINVAL);
++		goto done;
++	}
++
++	fnvlist_add_uint64(args, zfs_prop_to_name(ZFS_PROP_KEYFORMAT),
++	    (uint64_t)keyformat);
++	fnvlist_add_uint8_array(hidden_args, "wkeydata", rawkey, rawlen);
++
++	err = dsl_crypto_params_create_nvlist(DCP_CMD_NEW_KEY, args,
++	    hidden_args, dcpp);
++
++done:
++	fnvlist_free(args);
++	fnvlist_free(hidden_args);
++	bzero(rawkey, sizeof (rawkey));
++
++	return (err);
++}
++
++void
++zcp_synctask_change_key_cleanup(void *arg)
++{
++	spa_keystore_change_key_args_t *skcka = arg;
++
++	dsl_crypto_params_free(skcka->skcka_cp, B_TRUE);
++}
++
++int
++zcp_synctask_change_key_check(void *arg, dmu_tx_t *tx)
++{
++	/*
++	 * zcp_synctask_change_key_create_params() already validates that
++	 * the new key is in an acceptable format and size for a channel
++	 * program. Any future channel program specific checks would go here.
++	 * For now, we just perform all the same checks done for
++	 * 'zfs change-key' by calling spa_keystore_change_key_check().
++	 */
++	return (spa_keystore_change_key_check(arg, tx));
++}
++
++void
++zcp_synctask_change_key_sync(void *arg, dmu_tx_t *tx)
++{
++	spa_keystore_change_key_sync(arg, tx);
++}
+diff --git a/usr/src/uts/common/fs/zfs/zcp_synctask.c b/usr/src/uts/common/fs/zfs/zcp_synctask.c
+index 09af25c1c9..9a1dceb044 100644
+--- a/usr/src/uts/common/fs/zfs/zcp_synctask.c
++++ b/usr/src/uts/common/fs/zfs/zcp_synctask.c
+@@ -23,6 +23,8 @@
+ 
+ #include <sys/zcp.h>
+ #include <sys/zcp_set.h>
++#include <sys/zcp_change_key.h>
++#include <sys/dsl_crypt.h>
+ #include <sys/dsl_dir.h>
+ #include <sys/dsl_pool.h>
+ #include <sys/dsl_prop.h>
+@@ -399,6 +401,74 @@ zcp_synctask_set_prop(lua_State *state, boolean_t sync, nvlist_t *err_details)
+ 	return (err);
+ }
+ 
++static int zcp_synctask_change_key(lua_State *, boolean_t, nvlist_t *);
++static zcp_synctask_info_t zcp_synctask_change_key_info = {
++	.name = "change_key",
++	.func = zcp_synctask_change_key,
++	.pargs = {
++		{ .za_name = "dataset", .za_lua_type = LUA_TSTRING },
++		{ .za_name = "key", .za_lua_type = LUA_TSTRING },
++		{ .za_name = "format", .za_lua_type = LUA_TSTRING },
++		{ NULL, 0 },
++	},
++	.kwargs = {
++		{ NULL, 0 }
++	},
++	.space_check = ZFS_SPACE_CHECK_RESERVED,
++	/*
++	 * This is the same value that is used when zfs change-key is run.
++	 * See spa_keystore_change_key() in dsl_crypt.c
++	 */
++	.blocks_modified = 15
++};
++
++static int
++zcp_synctask_change_key(lua_State *state, boolean_t sync, nvlist_t *err_details)
++{
++	int err;
++	spa_keystore_change_key_args_t skcka = { 0 };
++	dsl_crypto_params_t *dcp = NULL;
++	const char *dsname;
++	const char *key;
++	const char *format;
++	size_t keylen;
++	uint64_t keyformat;
++
++	dsname = lua_tostring(state, 1);
++
++	/*
++	 * The key may be raw key, which could contain NUL within it.
++	 * Use lua_tolstring() instead of lua_tostring() to obtain the length.
++	 */
++	key = lua_tolstring(state, 2, &keylen);
++
++	format = lua_tostring(state, 3);
++
++	if (zfs_prop_string_to_index(ZFS_PROP_KEYFORMAT, format,
++	    &keyformat) != 0)
++		return (SET_ERROR(EINVAL));
++
++	err = zcp_synctask_change_key_create_params(key, keylen, keyformat,
++	    &dcp);
++	if (err != 0)
++		goto done;
++
++	skcka.skcka_dsname = dsname;
++	skcka.skcka_cp = dcp;
++
++	zcp_cleanup_handler_t *zch = zcp_register_cleanup(state,
++	    (zcp_cleanup_t *)&zcp_synctask_change_key_cleanup, &skcka);
++
++	err = zcp_sync_task(state, zcp_synctask_change_key_check,
++	    zcp_synctask_change_key_sync, &skcka, sync, dsname);
++
++	zcp_deregister_cleanup(state, zch);
++
++done:
++	dsl_crypto_params_free(dcp, (err != 0 || !sync) ? B_TRUE : B_FALSE);
++	return (err);
++}
++
+ static int
+ zcp_synctask_wrapper(lua_State *state)
+ {
+@@ -468,6 +538,7 @@ zcp_load_synctask_lib(lua_State *state, boolean_t sync)
+ 		&zcp_synctask_snapshot_info,
+ 		&zcp_synctask_inherit_prop_info,
+ 		&zcp_synctask_set_prop_info,
++		&zcp_synctask_change_key_info,
+ 		NULL
+ 	};
+ 
+diff --git a/usr/src/uts/common/fs/zfs/zfs_ioctl.c b/usr/src/uts/common/fs/zfs/zfs_ioctl.c
+index e0d4631c7c..f479ea9f30 100644
+--- a/usr/src/uts/common/fs/zfs/zfs_ioctl.c
++++ b/usr/src/uts/common/fs/zfs/zfs_ioctl.c
+@@ -37,6 +37,7 @@
+  * Copyright (c) 2017, loli10K <ezomori.nozomu@gmail.com>. All rights reserved.
+  * Copyright 2017 RackTop Systems.
+  * Copyright (c) 2017, Datto, Inc. All rights reserved.
++ * Copyright 2021 The University of Queensland
+  */
+ 
+ /*
+@@ -3837,6 +3838,7 @@ zfs_ioc_destroy_bookmarks(const char *poolname, nvlist_t *innvl,
+ static const zfs_ioc_key_t zfs_keys_channel_program[] = {
+ 	{"program",	DATA_TYPE_STRING,		0},
+ 	{"arg",		DATA_TYPE_ANY,			0},
++	{"hidden_args",	DATA_TYPE_ANY,			ZK_OPTIONAL},
+ 	{"sync",	DATA_TYPE_BOOLEAN_VALUE,	ZK_OPTIONAL},
+ 	{"instrlimit",	DATA_TYPE_UINT64,		ZK_OPTIONAL},
+ 	{"memlimit",	DATA_TYPE_UINT64,		ZK_OPTIONAL},
+@@ -3850,6 +3852,7 @@ zfs_ioc_channel_program(const char *poolname, nvlist_t *innvl,
+ 	uint64_t instrlimit, memlimit;
+ 	boolean_t sync_flag;
+ 	nvpair_t *nvarg = NULL;
++	nvlist_t *hidden_args = NULL;
+ 
+ 	program = fnvlist_lookup_string(innvl, ZCP_ARG_PROGRAM);
+ 	if (0 != nvlist_lookup_boolean_value(innvl, ZCP_ARG_SYNC, &sync_flag)) {
+@@ -3863,6 +3866,16 @@ zfs_ioc_channel_program(const char *poolname, nvlist_t *innvl,
+ 	}
+ 	nvarg = fnvlist_lookup_nvpair(innvl, ZCP_ARG_ARGLIST);
+ 
++	/* hidden args are optional */
++	if (nvlist_lookup_nvlist(innvl, ZPOOL_HIDDEN_ARGS, &hidden_args) == 0) {
++		nvlist_t *argnvl = fnvpair_value_nvlist(nvarg);
++		int ret;
++
++		ret = nvlist_add_nvlist(argnvl, ZPOOL_HIDDEN_ARGS, hidden_args);
++		if (ret != 0)
++			return (ret);
++	}
++
+ 	if (instrlimit == 0 || instrlimit > zfs_lua_max_instrlimit)
+ 		return (EINVAL);
+ 	if (memlimit == 0 || memlimit > zfs_lua_max_memlimit)
+-- 
+2.40.1
+

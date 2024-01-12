@@ -1,0 +1,178 @@
+From 861fa1490335b8e3cc91a1efafd8b9e481813931 Mon Sep 17 00:00:00 2001
+From: Nils Nieuwejaar <nils@oxidecomputer.com>
+Date: Sun, 15 Aug 2021 11:30:44 -0400
+Subject: [PATCH] 14017 Add support for TCP_QUICKACK Reviewed by: Joshua M.
+ Clulow <josh@sysmgr.org> Reviewed by: Andy Fiddaman <andy@omnios.org>
+ Approved by: Dan McDonald <danmcd@joyent.com>
+
+---
+ usr/src/man/man7p/tcp.7p                   |  9 +++++++++
+ usr/src/uts/common/inet/tcp.h              |  4 +++-
+ usr/src/uts/common/inet/tcp/tcp.c          |  2 ++
+ usr/src/uts/common/inet/tcp/tcp_input.c    |  4 ++++
+ usr/src/uts/common/inet/tcp/tcp_opt_data.c | 11 +++++++++++
+ usr/src/uts/common/netinet/tcp.h           |  2 ++
+ 6 files changed, 31 insertions(+), 1 deletion(-)
+
+diff --git a/usr/src/man/man7p/tcp.7p b/usr/src/man/man7p/tcp.7p
+index 0b51d15b07..6dc5413c42 100644
+--- a/usr/src/man/man7p/tcp.7p
++++ b/usr/src/man/man7p/tcp.7p
+@@ -12,6 +12,7 @@
+ .\" Copyright (c) 2006, Sun Microsystems, Inc. All Rights Reserved.
+ .\" Copyright (c) 2011 Nexenta Systems, Inc. All rights reserved.
+ .\" Copyright 2019 Joyent, Inc.
++.\" Copyright 2022 Oxide Computer Company
+ .\" Copyright 1989 AT&T
+ .\"
+ .Dd "Jan 07, 2019"
+@@ -223,6 +224,14 @@ is set to zero after it has been enabled, all currently buffered data is sent
+ out (as permitted by the peer's receive window and the current congestion
+ window).
+ .Pp
++Still other latency-sensitive applications rely on receiving a quick
++notification that their packets have been successfully received.
++To satisfy the requirements of those applications, setting the
++.Dv TCP_QUICKACK
++option to a non-zero value will instruct the TCP stack to send an acknowlegment
++immediately upon receipt of a packet, rather than waiting to acknowledge
++multiple packets at once.
++.Pp
+ TCP provides an urgent data mechanism, which may be invoked using the
+ out-of-band provisions of
+ .Xr send 3SOCKET .
+diff --git a/usr/src/uts/common/inet/tcp.h b/usr/src/uts/common/inet/tcp.h
+index 8b1e9bcb07..775c5abe6b 100644
+--- a/usr/src/uts/common/inet/tcp.h
++++ b/usr/src/uts/common/inet/tcp.h
+@@ -24,6 +24,7 @@
+  * Copyright (c) 2011 Nexenta Systems, Inc. All rights reserved.
+  * Copyright (c) 2014, 2017 by Delphix. All rights reserved.
+  * Copyright 2020 OmniOS Community Edition (OmniOSce) Association.
++ * Copyright 2022 Oxide Computer Company
+  */
+ /* Copyright (c) 1990 Mentat Inc. */
+ 
+@@ -246,12 +247,13 @@ typedef struct tcp_s {
+ 		tcp_accept_error : 1,	/* Error during TLI accept */
+ 		tcp_send_discon_ind : 1, /* TLI accept err, send discon ind */
+ 		tcp_cork : 1,		/* tcp_cork option */
++		tcp_quickack : 1,	/* Send acks immediately */
+ 		tcp_tconnind_started : 1, /* conn_ind message is being sent */
+ 
+ 		tcp_lso :1,		/* Lower layer is capable of LSO */
+ 		tcp_is_wnd_shrnk : 1,	/* Window has shrunk */
+ 
+-		tcp_pad_to_bit_31 : 18;
++		tcp_pad_to_bit_31 : 17;
+ 
+ 	uint32_t	tcp_initial_pmtu; /* Initial outgoing Path MTU. */
+ 
+diff --git a/usr/src/uts/common/inet/tcp/tcp.c b/usr/src/uts/common/inet/tcp/tcp.c
+index 6cae350878..9348ea3d0f 100644
+--- a/usr/src/uts/common/inet/tcp/tcp.c
++++ b/usr/src/uts/common/inet/tcp/tcp.c
+@@ -25,6 +25,7 @@
+  * Copyright (c) 2013, 2017 by Delphix. All rights reserved.
+  * Copyright 2014, OmniTI Computer Consulting, Inc. All rights reserved.
+  * Copyright 2020 Joyent, Inc.
++ * Copyright 2022 Oxide Computer Company
+  */
+ /* Copyright (c) 1990 Mentat Inc. */
+ 
+@@ -2406,6 +2407,7 @@ tcp_init_values(tcp_t *tcp, tcp_t *parent)
+ 
+ 		tcp->tcp_fin_wait_2_flush_interval =
+ 		    parent->tcp_fin_wait_2_flush_interval;
++		tcp->tcp_quickack = parent->tcp_quickack;
+ 
+ 		tcp->tcp_ka_interval = parent->tcp_ka_interval;
+ 		tcp->tcp_ka_abort_thres = parent->tcp_ka_abort_thres;
+diff --git a/usr/src/uts/common/inet/tcp/tcp_input.c b/usr/src/uts/common/inet/tcp/tcp_input.c
+index b3e4a07303..dd264528fc 100644
+--- a/usr/src/uts/common/inet/tcp/tcp_input.c
++++ b/usr/src/uts/common/inet/tcp/tcp_input.c
+@@ -25,6 +25,7 @@
+  * Copyright 2019 Joyent, Inc.
+  * Copyright (c) 2014, 2016 by Delphix. All rights reserved.
+  * Copyright 2020 OmniOS Community Edition (OmniOSce) Association.
++ * Copyright 2022 Oxide Computer Company
+  */
+ 
+ /* This file contains all TCP input processing functions. */
+@@ -4754,6 +4755,9 @@ update_ack:
+ 				tcp->tcp_rack_cur_max = tcp->tcp_rack_abs_max;
+ 			else
+ 				tcp->tcp_rack_cur_max = cur_max;
++		} else if (tcp->tcp_quickack) {
++			/* The executable asked that we ack each packet */
++			flags |= TH_ACK_NEEDED;
+ 		} else if (TCP_IS_DETACHED(tcp)) {
+ 			/* We don't have an ACK timer for detached TCP. */
+ 			flags |= TH_ACK_NEEDED;
+diff --git a/usr/src/uts/common/inet/tcp/tcp_opt_data.c b/usr/src/uts/common/inet/tcp/tcp_opt_data.c
+index fa7c8b2f48..8687b52d53 100644
+--- a/usr/src/uts/common/inet/tcp/tcp_opt_data.c
++++ b/usr/src/uts/common/inet/tcp/tcp_opt_data.c
+@@ -24,6 +24,7 @@
+  * Copyright 2019 Joyent, Inc.
+  * Copyright (c) 2016 by Delphix. All rights reserved.
+  * Copyright 2020 OmniOS Community Edition (OmniOSce) Association.
++ * Copyright 2022 Oxide Computer Company
+  */
+ 
+ #include <sys/types.h>
+@@ -135,6 +136,8 @@ opdes_t	tcp_opt_arr[] = {
+ 
+ { TCP_CORK, IPPROTO_TCP, OA_RW, OA_RW, OP_NP, 0, sizeof (int), 0 },
+ 
++{ TCP_QUICKACK, IPPROTO_TCP, OA_RW, OA_RW, OP_NP, 0, sizeof (int), 0 },
++
+ { TCP_RTO_INITIAL, IPPROTO_TCP, OA_RW, OA_RW, OP_NP, 0, sizeof (uint32_t), 0 },
+ 
+ { TCP_RTO_MIN, IPPROTO_TCP, OA_RW, OA_RW, OP_NP, 0, sizeof (uint32_t), 0 },
+@@ -449,6 +452,9 @@ tcp_opt_get(conn_t *connp, int level, int name, uchar_t *ptr)
+ 		case TCP_CORK:
+ 			*i1 = tcp->tcp_cork;
+ 			return (sizeof (int));
++		case TCP_QUICKACK:
++			*i1 = tcp->tcp_quickack;
++			return (sizeof (int));
+ 		case TCP_RTO_INITIAL:
+ 			*i1 = tcp->tcp_rto_initial;
+ 			return (sizeof (uint32_t));
+@@ -919,6 +925,11 @@ tcp_opt_set(conn_t *connp, uint_t optset_context, int level, int name,
+ 				tcp->tcp_cork = onoff;
+ 			}
+ 			break;
++		case TCP_QUICKACK:
++			if (!checkonly) {
++				tcp->tcp_quickack = onoff;
++			}
++			break;
+ 		case TCP_RTO_INITIAL:
+ 			if (checkonly || val == 0)
+ 				break;
+diff --git a/usr/src/uts/common/netinet/tcp.h b/usr/src/uts/common/netinet/tcp.h
+index e79c1a571d..a433695f52 100644
+--- a/usr/src/uts/common/netinet/tcp.h
++++ b/usr/src/uts/common/netinet/tcp.h
+@@ -22,6 +22,7 @@
+ /*
+  * Copyright (c) 1991, 2010, Oracle and/or its affiliates. All rights reserved.
+  * Copyright (c) 2011 Nexenta Systems, Inc. All rights reserved.
++ * Copyright 2022 Oxide Computer Company
+  */
+ 
+ /*
+@@ -130,6 +131,7 @@ struct tcphdr {
+ #define	TCP_KEEPCNT			0x23
+ #define	TCP_KEEPINTVL			0x24
+ #define	TCP_CONGESTION			0x25
++#define	TCP_QUICKACK			0x26	/* enable/disable quick acks */
+ 
+ #ifdef	__cplusplus
+ }
+-- 
+2.40.1
+

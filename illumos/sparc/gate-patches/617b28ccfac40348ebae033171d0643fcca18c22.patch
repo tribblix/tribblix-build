@@ -1,0 +1,115 @@
+From 617b28ccfac40348ebae033171d0643fcca18c22 Mon Sep 17 00:00:00 2001
+From: Robert Mustacchi <rm@fingolfin.org>
+Date: Wed, 24 Nov 2021 22:47:05 +0000
+Subject: [PATCH] 14264 kstat_lookup and friends should take const strings
+ Reviewed by: Jason King <jason.brian.king@gmail.com> Reviewed by: Andy
+ Fiddaman <andy@omnios.org> Approved by: Dan McDonald <danmcd@joyent.com>
+
+---
+ usr/src/lib/libkstat/common/kstat.c       |  6 ++++--
+ usr/src/lib/libkstat/kstat.h              | 18 ++++--------------
+ usr/src/man/man3kstat/kstat_lookup.3kstat |  6 +++---
+ 3 files changed, 11 insertions(+), 19 deletions(-)
+
+diff --git a/usr/src/lib/libkstat/common/kstat.c b/usr/src/lib/libkstat/common/kstat.c
+index a84fe03c49..eb2e7b5350 100644
+--- a/usr/src/lib/libkstat/common/kstat.c
++++ b/usr/src/lib/libkstat/common/kstat.c
+@@ -23,6 +23,7 @@
+  * Copyright 2004 Sun Microsystems, Inc.  All rights reserved.
+  * Use is subject to license terms.
+  * Copyright 2015 Nexenta Systems, Inc. All rights reserved.
++ * Copyright 2021 Oxide Computer Company
+  */
+ 
+ #include <stdio.h>
+@@ -298,7 +299,8 @@ kstat_chain_update(kstat_ctl_t *kc)
+ }
+ 
+ kstat_t *
+-kstat_lookup(kstat_ctl_t *kc, char *ks_module, int ks_instance, char *ks_name)
++kstat_lookup(kstat_ctl_t *kc, const char *ks_module, int ks_instance,
++    const char *ks_name)
+ {
+ 	kstat_t *ksp;
+ 
+@@ -315,7 +317,7 @@ kstat_lookup(kstat_ctl_t *kc, char *ks_module, int ks_instance, char *ks_name)
+ }
+ 
+ void *
+-kstat_data_lookup(kstat_t *ksp, char *name)
++kstat_data_lookup(kstat_t *ksp, const char *name)
+ {
+ 	int i, size;
+ 	char *namep, *datap;
+diff --git a/usr/src/lib/libkstat/kstat.h b/usr/src/lib/libkstat/kstat.h
+index d7c3752afc..4996a4d153 100644
+--- a/usr/src/lib/libkstat/kstat.h
++++ b/usr/src/lib/libkstat/kstat.h
+@@ -21,13 +21,12 @@
+  */
+ /*
+  * Copyright (c) 1992 by Sun Microsystems, Inc.
++ * Copyright 2021 Oxide Computer Company
+  */
+ 
+ #ifndef	_KSTAT_H
+ #define	_KSTAT_H
+ 
+-#pragma ident	"%Z%%M%	%I%	%E% SMI"
+-
+ #include <sys/types.h>
+ #include <sys/kstat.h>
+ 
+@@ -45,23 +44,14 @@ typedef struct kstat_ctl {
+ 	int	kc_kd;		/* /dev/kstat descriptor	*/
+ } kstat_ctl_t;
+ 
+-#ifdef	__STDC__
+ extern	kstat_ctl_t	*kstat_open(void);
+ extern	int		kstat_close(kstat_ctl_t *);
+ extern	kid_t		kstat_read(kstat_ctl_t *, kstat_t *, void *);
+ extern	kid_t		kstat_write(kstat_ctl_t *, kstat_t *, void *);
+ extern	kid_t		kstat_chain_update(kstat_ctl_t *);
+-extern	kstat_t		*kstat_lookup(kstat_ctl_t *, char *, int, char *);
+-extern	void		*kstat_data_lookup(kstat_t *, char *);
+-#else
+-extern	kstat_ctl_t	*kstat_open();
+-extern	int		kstat_close();
+-extern	kid_t		kstat_read();
+-extern	kid_t		kstat_write();
+-extern	kid_t		kstat_chain_update();
+-extern	kstat_t		*kstat_lookup();
+-extern	void		*kstat_data_lookup();
+-#endif
++extern	kstat_t		*kstat_lookup(kstat_ctl_t *, const char *, int,
++    const char *);
++extern	void		*kstat_data_lookup(kstat_t *, const char *);
+ 
+ #ifdef	__cplusplus
+ }
+diff --git a/usr/src/man/man3kstat/kstat_lookup.3kstat b/usr/src/man/man3kstat/kstat_lookup.3kstat
+index 5d22b93340..20de58f339 100644
+--- a/usr/src/man/man3kstat/kstat_lookup.3kstat
++++ b/usr/src/man/man3kstat/kstat_lookup.3kstat
+@@ -31,14 +31,14 @@
+ .Ft "kstat_t *"
+ .Fo kstat_lookup
+ .Fa "kstat_ctl_t *kc"
+-.Fa "char *ks_module"
++.Fa "const char *ks_module"
+ .Fa "int ks_instance"
+-.Fa "char *ks_name"
++.Fa "const char *ks_name"
+ .Fc
+ .Ft "void *"
+ .Fo kstat_data_lookup
+ .Fa "kstat_t *ksp"
+-.Fa "char *name"
++.Fa "const char *name"
+ .Fc
+ .Sh DESCRIPTION
+ The
+-- 
+2.40.1
+

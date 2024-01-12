@@ -1,0 +1,93 @@
+From 123e0aa39ff14433d916a870ec23b74c77097914 Mon Sep 17 00:00:00 2001
+From: Peter Tribble <peter.tribble@gmail.com>
+Date: Tue, 11 Jan 2022 18:20:01 +0000
+Subject: [PATCH] 14345 Manual titles should be upper case Reviewed by: Toomas
+ Soome <tsoome@me.com> Approved by: Dan McDonald <danmcd@joyent.com>
+
+---
+ usr/src/man/man1/zonestat.1         | 6 +++---
+ usr/src/man/man1m/zonestatd.1m      | 4 ++--
+ usr/src/man/man3head/timespec.3head | 4 ++--
+ usr/src/man/man3lib/libm.3lib       | 2 +-
+ usr/src/man/man3lib/libmvec.3lib    | 2 +-
+ 5 files changed, 9 insertions(+), 9 deletions(-)
+
+diff --git a/usr/src/man/man1/zonestat.1 b/usr/src/man/man1/zonestat.1
+index 39f2be5f61..505a4449c8 100644
+--- a/usr/src/man/man1/zonestat.1
++++ b/usr/src/man/man1/zonestat.1
+@@ -11,12 +11,12 @@
+ .\" Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+ .\" Copyright 2019 OmniOS Community Edition (OmniOSce) Association.
+ .\"
+-.Dd April 04, 2019
+-.Dt zonestat 1
++.Dd December 29, 2021
++.Dt ZONESTAT 1
+ .Os
+ .Sh NAME
+ .Nm zonestat
+-.Nd report active zone statistics.
++.Nd report active zone statistics
+ .Sh SYNOPSIS
+ .Nm
+ .Op Fl z Ar zonelist
+diff --git a/usr/src/man/man1m/zonestatd.1m b/usr/src/man/man1m/zonestatd.1m
+index fb7760436b..65c559539e 100644
+--- a/usr/src/man/man1m/zonestatd.1m
++++ b/usr/src/man/man1m/zonestatd.1m
+@@ -11,8 +11,8 @@
+ .\" Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+ .\" Copyright 2019 OmniOS Community Edition (OmniOSce) Association.
+ .\"
+-.Dd April 04, 2019
+-.Dt zonestatd 1M
++.Dd December 29, 2021
++.Dt ZONESTATD 1M
+ .Os
+ .Sh NAME
+ .Nm zonestatd
+diff --git a/usr/src/man/man3head/timespec.3head b/usr/src/man/man3head/timespec.3head
+index 54aaab14f5..b0fd87646f 100644
+--- a/usr/src/man/man3head/timespec.3head
++++ b/usr/src/man/man3head/timespec.3head
+@@ -11,8 +11,8 @@
+ .\"
+ .\" Copyright 2020 OmniOS Community Edition (OmniOSce) Association.
+ .\"
+-.Dd Sep 06, 2020
+-.Dt timespec 3HEAD
++.Dd December 29, 2021
++.Dt TIMESPEC 3HEAD
+ .Os
+ .Sh NAME
+ .Nm timespec ,
+diff --git a/usr/src/man/man3lib/libm.3lib b/usr/src/man/man3lib/libm.3lib
+index 61ada1bbde..9cebc5b60f 100644
+--- a/usr/src/man/man3lib/libm.3lib
++++ b/usr/src/man/man3lib/libm.3lib
+@@ -4,7 +4,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH libm 3LIB "Feb 27, 2020"
++.TH LIBM 3LIB "December 29, 2021"
+ .SH NAME
+ libm \- C math library
+ .SH SYNOPSIS
+diff --git a/usr/src/man/man3lib/libmvec.3lib b/usr/src/man/man3lib/libmvec.3lib
+index 2be5fda4c7..917aefbd2f 100644
+--- a/usr/src/man/man3lib/libmvec.3lib
++++ b/usr/src/man/man3lib/libmvec.3lib
+@@ -4,7 +4,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH libmvec 3LIB "Feb 27, 2020"
++.TH LIBMVEC 3LIB "December 29, 2021"
+ .SH NAME
+ libmvec \- vector math library
+ .SH SYNOPSIS
+-- 
+2.40.1
+

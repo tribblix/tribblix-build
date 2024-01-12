@@ -1,0 +1,89 @@
+From 470204d3561e07978b63600336e8d47cc75387fa Mon Sep 17 00:00:00 2001
+From: "Joshua M. Clulow" <josh@sysmgr.org>
+Date: Tue, 18 Oct 2022 21:48:17 -0700
+Subject: [PATCH] 14548 snoop has strange bedfellows Reviewed by: Andrew
+ Stormont <andyjstormont@gmail.com> Reviewed by: Andy Fiddaman
+ <illumos@fiddaman.net> Reviewed by: Marcel Telka <marcel@telka.sk> Reviewed
+ by: Toomas Soome <tsoome@me.com> Approved by: Dan McDonald <danmcd@mnx.io>
+
+---
+ usr/src/pkg/manifests/network-snoop.p5m       | 29 +++++++++++++++++++
+ .../service-network-network-clients.p5m       |  8 +++--
+ 2 files changed, 35 insertions(+), 2 deletions(-)
+ create mode 100644 usr/src/pkg/manifests/network-snoop.p5m
+
+diff --git a/usr/src/pkg/manifests/network-snoop.p5m b/usr/src/pkg/manifests/network-snoop.p5m
+new file mode 100644
+index 0000000000..7107362ba0
+--- /dev/null
++++ b/usr/src/pkg/manifests/network-snoop.p5m
+@@ -0,0 +1,29 @@
++#
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
++#
++# A full copy of the text of the CDDL should have accompanied this
++# source.  A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
++#
++
++#
++# Copyright 2022 Oxide Computer Company
++#
++
++set name=pkg.fmri value=pkg:/network/snoop@$(PKGVERS)
++set name=pkg.summary value=snoop
++set name=pkg.description value="snoop - capture and inspect network packets"
++set name=info.classification value=org.opensolaris.category.2008:System/Core
++set name=variant.arch value=$(ARCH)
++dir  path=usr group=sys
++dir  path=usr/sbin
++file path=usr/sbin/snoop mode=0555
++dir  path=usr/share
++dir  path=usr/share/man
++dir  path=usr/share/man/man8
++file path=usr/share/man/man8/snoop.8
++license cr_Sun license=cr_Sun
++license lic_CDDL license=lic_CDDL
+diff --git a/usr/src/pkg/manifests/service-network-network-clients.p5m b/usr/src/pkg/manifests/service-network-network-clients.p5m
+index 86d7c7e7cd..f0ed27a798 100644
+--- a/usr/src/pkg/manifests/service-network-network-clients.p5m
++++ b/usr/src/pkg/manifests/service-network-network-clients.p5m
+@@ -22,6 +22,7 @@
+ #
+ # Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+ # Copyright 2012 Nexenta Systems, Inc. All rights reserved.
++# Copyright 2022 Oxide Computer Company
+ #
+ 
+ set name=pkg.fmri value=pkg:/service/network/network-clients@$(PKGVERS)
+@@ -48,7 +49,6 @@ link path=usr/lib/sunw,rcp target=../bin/rcp
+ dir  path=usr/sbin
+ file path=usr/sbin/rmt mode=0555
+ file path=usr/sbin/rwall mode=0555
+-file path=usr/sbin/snoop mode=0555
+ file path=usr/sbin/spray mode=0555
+ dir  path=usr/share/man/man1
+ file path=usr/share/man/man1/filesync.1
+@@ -66,7 +66,6 @@ dir  path=usr/share/man/man8
+ file path=usr/share/man/man8/rdate.8
+ file path=usr/share/man/man8/rmt.8
+ file path=usr/share/man/man8/rwall.8
+-file path=usr/share/man/man8/snoop.8
+ file path=usr/share/man/man8/spray.8
+ legacy pkg=SUNWrcmdc \
+     desc="Remote Network Client Commands (rsh, rlogin, rcp, rsh, ...)" \
+@@ -83,3 +82,8 @@ license usr/src/cmd/cmd-inet/usr.bin/THIRDPARTYLICENSE.whois \
+     license=usr/src/cmd/cmd-inet/usr.bin/THIRDPARTYLICENSE.whois
+ license usr/src/cmd/cmd-inet/usr.bin/rdist/THIRDPARTYLICENSE \
+     license=usr/src/cmd/cmd-inet/usr.bin/rdist/THIRDPARTYLICENSE
++#
++# This package previously contained snoop(8), but it was split out into its
++# own package:
++#
++depend type=require fmri=network/snoop
+-- 
+2.43.0
+

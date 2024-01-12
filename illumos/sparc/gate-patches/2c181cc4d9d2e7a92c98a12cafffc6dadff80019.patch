@@ -1,0 +1,57 @@
+From 2c181cc4d9d2e7a92c98a12cafffc6dadff80019 Mon Sep 17 00:00:00 2001
+From: Toomas Soome <tsoome@me.com>
+Date: Wed, 6 Oct 2021 23:43:12 +0300
+Subject: [PATCH] 14141 build utmpd as 64-bit binary Reviewed by: Andrew
+ Stormont <andyjstormont@gmail.com> Reviewed by: Yuri Pankov
+ <ypankov@tintri.com> Reviewed by: Klaus Ziegler <klausz@haus-gisela.de>
+ Approved by: Dan McDonald <danmcd@joyent.com>
+
+---
+ usr/src/cmd/utmpd/Makefile | 12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
+
+diff --git a/usr/src/cmd/utmpd/Makefile b/usr/src/cmd/utmpd/Makefile
+index 74a1561e64..df3bae5028 100644
+--- a/usr/src/cmd/utmpd/Makefile
++++ b/usr/src/cmd/utmpd/Makefile
+@@ -25,18 +25,19 @@
+ # Copyright (c) 2018, Joyent, Inc.
+ 
+ PROG= utmpd
++OBJS= $(PROG).o
+ DEFAULTFILES= utmpd.dfl
+ MANIFEST= utmp.xml
+ SVCMETHOD= svc-utmpd
+ 
+ include ../Makefile.cmd
++include ../Makefile.cmd.64
++include ../Makefile.ctf
+ 
+ ROOTMANIFESTDIR = $(ROOTSVCSYSTEM)
+ 
+ FILEMODE = 555
+ 
+-SMOFF += signed
+-
+ .KEEP_STATE:
+ 
+ all: $(PROG)
+@@ -44,10 +45,13 @@ all: $(PROG)
+ install: all $(DIRS) $(ROOTLIBPROG) $(ROOTETCDEFAULTFILES) $(ROOTMANIFEST) \
+ 	$(ROOTSVCMETHOD)
+ 
++$(PROG): $(OBJS)
++	$(LINK.c) -o $(PROG) $(OBJS) $(LDLIBS)
++	$(POST_PROCESS)
++
+ check:	$(CHKMANIFEST)
+ 
+ clean:
+-
+-lint:	lint_PROG
++	$(RM) $(OBJS)
+ 
+ include ../Makefile.targ
+-- 
+2.40.1
+

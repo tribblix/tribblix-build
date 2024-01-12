@@ -1,0 +1,384 @@
+From dfc4fe31363cc213fe0423dc162bc08298c796cd Mon Sep 17 00:00:00 2001
+From: Toomas Soome <tsoome@me.com>
+Date: Sat, 5 Feb 2022 14:09:07 +0200
+Subject: [PATCH] 14473 ps: only build 64-bit ps Reviewed by: C Fraire
+ <cfraire@me.com> Reviewed by: Klaus Ziegler <klausz@haus-gisela.de> Approved
+ by: Dan McDonald <danmcd@joyent.com>
+
+---
+ usr/src/cmd/ps/Makefile                     | 37 +++++---------
+ usr/src/cmd/ps/Makefile.com                 | 54 ---------------------
+ usr/src/cmd/ps/amd64/Makefile               | 36 --------------
+ usr/src/cmd/ps/i386/Makefile                | 39 ---------------
+ usr/src/cmd/ps/sparcv9/Makefile             | 39 ---------------
+ usr/src/cmd/ps/ucbps.c                      | 22 +++++----
+ usr/src/pkg/manifests/SUNWcs.p5m            |  4 +-
+ usr/src/pkg/manifests/compatibility-ucb.p5m |  4 +-
+ 8 files changed, 26 insertions(+), 209 deletions(-)
+ delete mode 100644 usr/src/cmd/ps/Makefile.com
+ delete mode 100644 usr/src/cmd/ps/amd64/Makefile
+ delete mode 100644 usr/src/cmd/ps/i386/Makefile
+ delete mode 100644 usr/src/cmd/ps/sparcv9/Makefile
+
+diff --git a/usr/src/cmd/ps/Makefile b/usr/src/cmd/ps/Makefile
+index d1b61c7874..50f4f0f390 100644
+--- a/usr/src/cmd/ps/Makefile
++++ b/usr/src/cmd/ps/Makefile
+@@ -29,44 +29,31 @@ OBJS=ps.o ucbps.o
+ SRCS=$(OBJS:%.o=%.c)
+ 
+ include ../Makefile.cmd
++include ../Makefile.cmd.64
++include ../Makefile.ctf
++
++LDLIBS += -lproject
+ 
+ XGETFLAGS += -a -x ps.xcl
+ 
+ DCFILE= $(PROG).dc
+ 
+ ROOTUCBPROG = $(ROOT)/usr/ucb/$(PROG)
+-ROOTUCBPROG32 = $(ROOT)/usr/ucb/$(MACH32)/$(PROG)
+-ROOTUCBPROG64 = $(ROOT)/usr/ucb/$(MACH64)/$(PROG)
+-
+-$(64ONLY)SUBDIRS= $(MACH)
+-$(BUILD64)SUBDIRS += $(MACH64)
+-
+-all	:=	TARGET = all
+-install	:=	TARGET = install
+-clean	:=	TARGET = clean
+-clobber	:=	TARGET = clobber
+-lint	:=	TARGET = lint
+ 
+ .KEEP_STATE:
+ 
+-all:	$(SUBDIRS)
++all:	$(PROG)
+ 
+-clean clobber lint:	$(SUBDIRS)
++$(PROG): $(OBJS)
++	$(LINK.c) -o $@ $(OBJS) $(LDLIBS)
++	$(POST_PROCESS)
+ 
+-install:	$(SUBDIRS)
+-	-$(RM) $(ROOTPROG)
+-	-$(LN) $(ISAEXEC) $(ROOTPROG)
++install:	$(PROG) $(ROOTPROG)
+ 	-$(RM) $(ROOTUCBPROG)
+-	-$(LN) $(ISAEXEC) $(ROOTUCBPROG)
+-	$(64ONLY)-$(RM) $(ROOTUCBPROG32)
+-	$(64ONLY)-$(LN) $(ROOTPROG32) $(ROOTUCBPROG32)
+-	$(BUILD64)-$(RM) $(ROOTUCBPROG64)
+-	$(BUILD64)-$(LN) $(ROOTPROG64) $(ROOTUCBPROG64)
+-
+-$(SUBDIRS):	FRC
+-	@cd $@; pwd; $(MAKE) $(TARGET)
++	-$(LN) $(ROOTPROG) $(ROOTUCBPROG)
+ 
+-FRC:
++clean:
++	$(RM) $(OBJS)
+ 
+ $(DCFILE): $(PROG).c
+ 	$(RM) $(DCFILE)
+diff --git a/usr/src/cmd/ps/Makefile.com b/usr/src/cmd/ps/Makefile.com
+deleted file mode 100644
+index d9209ba95a..0000000000
+--- a/usr/src/cmd/ps/Makefile.com
++++ /dev/null
+@@ -1,54 +0,0 @@
+-#
+-# CDDL HEADER START
+-#
+-# The contents of this file are subject to the terms of the
+-# Common Development and Distribution License (the "License").
+-# You may not use this file except in compliance with the License.
+-#
+-# You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+-# or http://www.opensolaris.org/os/licensing.
+-# See the License for the specific language governing permissions
+-# and limitations under the License.
+-#
+-# When distributing Covered Code, include this CDDL HEADER in each
+-# file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+-# If applicable, add the following below this CDDL HEADER, with the
+-# fields enclosed by brackets "[]" replaced with your own identifying
+-# information: Portions Copyright [yyyy] [name of copyright owner]
+-#
+-# CDDL HEADER END
+-#
+-#
+-# Copyright 2009 Sun Microsystems, Inc.  All rights reserved.
+-# Use is subject to license terms.
+-#
+-# Copyright (c) 2018, Joyent, Inc.
+-
+-PROG=	ps
+-
+-OBJS=	ps.o ucbps.o
+-
+-SRCS=	$(OBJS:%.o=../%.c)
+-
+-include ../../Makefile.cmd
+-
+-CFLAGS	+= $(CCVERBOSE)
+-LDLIBS += -lproject
+-
+-# not linted
+-SMATCH=off
+-
+-.KEEP_STATE:
+-
+-%.o:	../%.c
+-	$(COMPILE.c) $<
+-
+-$(PROG): $(OBJS)
+-	$(LINK.c) $(OBJS) -o $@ $(LDLIBS)
+-	$(POST_PROCESS)
+-
+-clean:
+-	$(RM) $(OBJS)
+-
+-lint:
+-	$(LINT.c) $(SRCS) $(LDLIBS)
+diff --git a/usr/src/cmd/ps/amd64/Makefile b/usr/src/cmd/ps/amd64/Makefile
+deleted file mode 100644
+index c33134f58c..0000000000
+--- a/usr/src/cmd/ps/amd64/Makefile
++++ /dev/null
+@@ -1,36 +0,0 @@
+-#
+-# CDDL HEADER START
+-#
+-# The contents of this file are subject to the terms of the
+-# Common Development and Distribution License, Version 1.0 only
+-# (the "License").  You may not use this file except in compliance
+-# with the License.
+-#
+-# You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+-# or http://www.opensolaris.org/os/licensing.
+-# See the License for the specific language governing permissions
+-# and limitations under the License.
+-#
+-# When distributing Covered Code, include this CDDL HEADER in each
+-# file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+-# If applicable, add the following below this CDDL HEADER, with the
+-# fields enclosed by brackets "[]" replaced with your own identifying
+-# information: Portions Copyright [yyyy] [name of copyright owner]
+-#
+-# CDDL HEADER END
+-#
+-#
+-# Copyright 2004 Sun Microsystems, Inc.  All rights reserved.
+-# Use is subject to license terms.
+-#
+-# ident	"%Z%%M%	%I%	%E% SMI"
+-#
+-
+-include ../Makefile.com
+-include ../../Makefile.cmd.64
+-
+-all: $(PROG)
+-
+-install: all $(ROOTPROG64)
+-
+-include ../../Makefile.targ
+diff --git a/usr/src/cmd/ps/i386/Makefile b/usr/src/cmd/ps/i386/Makefile
+deleted file mode 100644
+index 3f3aa6352a..0000000000
+--- a/usr/src/cmd/ps/i386/Makefile
++++ /dev/null
+@@ -1,39 +0,0 @@
+-#
+-# CDDL HEADER START
+-#
+-# The contents of this file are subject to the terms of the
+-# Common Development and Distribution License, Version 1.0 only
+-# (the "License").  You may not use this file except in compliance
+-# with the License.
+-#
+-# You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+-# or http://www.opensolaris.org/os/licensing.
+-# See the License for the specific language governing permissions
+-# and limitations under the License.
+-#
+-# When distributing Covered Code, include this CDDL HEADER in each
+-# file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+-# If applicable, add the following below this CDDL HEADER, with the
+-# fields enclosed by brackets "[]" replaced with your own identifying
+-# information: Portions Copyright [yyyy] [name of copyright owner]
+-#
+-# CDDL HEADER END
+-#
+-#
+-#ident	"%Z%%M%	%I%	%E% SMI"
+-#
+-# Copyright (c) 1998-2000 by Sun Microsystems, Inc.
+-# All rights reserved.
+-#
+-# cmd/ps/i386/Makefile
+-#
+-
+-include ../Makefile.com
+-
+-lint	:= LINTFLAGS = -x
+-
+-all: $(PROG)
+-
+-install: all $(ROOTPROG32)
+-
+-include ../../Makefile.targ
+diff --git a/usr/src/cmd/ps/sparcv9/Makefile b/usr/src/cmd/ps/sparcv9/Makefile
+deleted file mode 100644
+index aaa2f3ee7a..0000000000
+--- a/usr/src/cmd/ps/sparcv9/Makefile
++++ /dev/null
+@@ -1,39 +0,0 @@
+-#
+-# CDDL HEADER START
+-#
+-# The contents of this file are subject to the terms of the
+-# Common Development and Distribution License (the "License").
+-# You may not use this file except in compliance with the License.
+-#
+-# You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+-# or http://www.opensolaris.org/os/licensing.
+-# See the License for the specific language governing permissions
+-# and limitations under the License.
+-#
+-# When distributing Covered Code, include this CDDL HEADER in each
+-# file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+-# If applicable, add the following below this CDDL HEADER, with the
+-# fields enclosed by brackets "[]" replaced with your own identifying
+-# information: Portions Copyright [yyyy] [name of copyright owner]
+-#
+-# CDDL HEADER END
+-#
+-#
+-# Copyright 2008 Sun Microsystems, Inc.  All rights reserved.
+-# Use is subject to license terms.
+-#
+-# cmd/ps/sparcv9/Makefile
+-#
+-
+-include ../Makefile.com
+-include ../../Makefile.cmd.64
+-
+-CFLAGS64	+= $(CCVERBOSE)
+-
+-lint	:= LINTFLAGS64 = -x -m64
+-
+-all: $(PROG)
+-
+-install: all $(ROOTPROG64)
+-
+-include ../../Makefile.targ
+diff --git a/usr/src/cmd/ps/ucbps.c b/usr/src/cmd/ps/ucbps.c
+index 3110e95313..6abeb1baea 100644
+--- a/usr/src/cmd/ps/ucbps.c
++++ b/usr/src/cmd/ps/ucbps.c
+@@ -167,7 +167,6 @@ ucbmain(int argc, char **argv)
+ 	struct dirent *dentp;
+ 	char	psname[100];
+ 	char	asname[100];
+-	int	pdlen;
+ 	size_t  len;
+ 
+ 	(void) setlocale(LC_ALL, "");
+@@ -391,21 +390,24 @@ ucbmain(int argc, char **argv)
+ 		exit(1);
+ 	}
+ 
+-	(void) strcpy(psname, procdir);
+-	pdlen = strlen(psname);
+-	psname[pdlen++] = '/';
+-
+ 	/* for each active process --- */
+ 	while ((dentp = readdir(dirp)) != NULL) {
+ 		int	psfd;	/* file descriptor for /proc/nnnnn/psinfo */
+ 		int	asfd;	/* file descriptor for /proc/nnnnn/as */
++		int	n;
+ 
+ 		if (dentp->d_name[0] == '.')		/* skip . and .. */
+ 			continue;
+-		(void) strcpy(psname + pdlen, dentp->d_name);
+-		(void) strcpy(asname, psname);
+-		(void) strcat(psname, "/psinfo");
+-		(void) strcat(asname, "/as");
++		n = snprintf(psname, sizeof (psname), "%s/%s/psinfo",
++		    procdir, dentp->d_name);
++		if (n < 0 || n >= sizeof (psname))
++			exit(1);
++
++		n = snprintf(asname, sizeof (asname), "%s/%s/as",
++		    procdir, dentp->d_name);
++		if (n < 0 || n >= sizeof (psname))
++			exit(1);
++
+ retry:
+ 		if ((psfd = open(psname, O_RDONLY)) == -1)
+ 			continue;
+@@ -544,7 +546,7 @@ closeit:
+ }
+ 
+ static void
+-usage()		/* print usage message and quit */
++usage(void)		/* print usage message and quit */
+ {
+ 	static char usage1[] = "ps [ -aceglnrSuUvwx ] [ -t term ] [ num ]";
+ 
+diff --git a/usr/src/pkg/manifests/SUNWcs.p5m b/usr/src/pkg/manifests/SUNWcs.p5m
+index b39640301c..a7406d7761 100644
+--- a/usr/src/pkg/manifests/SUNWcs.p5m
++++ b/usr/src/pkg/manifests/SUNWcs.p5m
+@@ -552,7 +552,6 @@ $(i386_ONLY)file path=usr/bin/$(ARCH32)/newtask group=sys mode=4555
+ $(i386_ONLY)file path=usr/bin/$(ARCH32)/nohup mode=0555
+ $(i386_ONLY)file path=usr/bin/$(ARCH32)/prctl mode=0555
+ $(i386_ONLY)file path=usr/bin/$(ARCH32)/prstat mode=0555
+-$(i386_ONLY)file path=usr/bin/$(ARCH32)/ps mode=0555
+ file path=usr/bin/$(ARCH32)/savecore mode=0555
+ $(i386_ONLY)file path=usr/bin/$(ARCH32)/setuname mode=0555
+ dir  path=usr/bin/$(ARCH64)
+@@ -568,7 +567,6 @@ file path=usr/bin/$(ARCH64)/newtask group=sys mode=4555
+ file path=usr/bin/$(ARCH64)/nohup mode=0555
+ file path=usr/bin/$(ARCH64)/prctl mode=0555
+ file path=usr/bin/$(ARCH64)/prstat mode=0555
+-file path=usr/bin/$(ARCH64)/ps mode=0555
+ file path=usr/bin/$(ARCH64)/savecore mode=0555
+ file path=usr/bin/$(ARCH64)/setuname mode=0555
+ $(i386_ONLY)file path=usr/bin/addbadsec mode=0555
+@@ -719,7 +717,7 @@ file path=usr/bin/priocntl mode=0555
+ file path=usr/bin/profiles mode=0555
+ file path=usr/bin/projects mode=0555
+ hardlink path=usr/bin/prstat target=../../usr/lib/isaexec
+-hardlink path=usr/bin/ps target=../../usr/lib/isaexec
++file path=usr/bin/ps mode=0555
+ file path=usr/bin/putdev mode=0555
+ file path=usr/bin/putdgrp mode=0555
+ link path=usr/bin/pwconv target=../sbin/pwconv
+diff --git a/usr/src/pkg/manifests/compatibility-ucb.p5m b/usr/src/pkg/manifests/compatibility-ucb.p5m
+index 154f725d2f..3b28328535 100644
+--- a/usr/src/pkg/manifests/compatibility-ucb.p5m
++++ b/usr/src/pkg/manifests/compatibility-ucb.p5m
+@@ -86,9 +86,7 @@ file path=usr/share/man/man1b/whereis.1b
+ file path=usr/share/man/man1b/whoami.1b
+ dir  path=usr/ucb
+ $(i386_ONLY)dir path=usr/ucb/$(ARCH32)
+-$(i386_ONLY)hardlink path=usr/ucb/$(ARCH32)/ps target=../../bin/$(ARCH32)/ps
+ dir  path=usr/ucb/$(ARCH64)
+-hardlink path=usr/ucb/$(ARCH64)/ps target=../../bin/$(ARCH64)/ps
+ link path=usr/ucb/Mail target=../bin/mailx
+ link path=usr/ucb/arch target=../bin/arch
+ file path=usr/ucb/basename mode=0755
+@@ -126,7 +124,7 @@ link path=usr/ucb/netstat target=../bin/netstat
+ link path=usr/ucb/page target=../bin/more
+ link path=usr/ucb/pagesize target=../bin/pagesize
+ file path=usr/ucb/printenv mode=0755
+-hardlink path=usr/ucb/ps target=../../usr/lib/isaexec
++hardlink path=usr/ucb/ps target=../bin/ps
+ link path=usr/ucb/quota target=../lib/fs/ufs/quota
+ link path=usr/ucb/rcp target=../bin/rcp
+ link path=usr/ucb/rdate target=../bin/rdate
+-- 
+2.40.1
+

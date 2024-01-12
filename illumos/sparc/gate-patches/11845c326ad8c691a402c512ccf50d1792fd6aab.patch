@@ -1,0 +1,1525 @@
+From 11845c326ad8c691a402c512ccf50d1792fd6aab Mon Sep 17 00:00:00 2001
+From: Peter Tribble <peter.tribble@gmail.com>
+Date: Tue, 14 Mar 2023 07:58:50 +0000
+Subject: [PATCH] 15469 Spelling mistakes in the manual Reviewed by: Brian
+ Bennett <brian.bennett@mnx.io> Approved by: Richard Lowe
+ <richlowe@richlowe.net>
+
+---
+ usr/src/man/man1/appcert.1                    | 39 +------------------
+ usr/src/man/man2/exec.2                       | 12 +-----
+ usr/src/man/man3cpc/cpc.3cpc                  |  9 +++--
+ usr/src/man/man3cpc/cpc_seterrhndlr.3cpc      |  9 +----
+ usr/src/man/man3cpc/cpc_strtoevent.3cpc       | 26 ++-----------
+ usr/src/man/man3gen/bgets.3gen                |  4 +-
+ usr/src/man/man3gen/strfind.3gen              | 18 ++-------
+ usr/src/man/man3ldap/ldap.3ldap               | 21 +---------
+ .../man/man3ldap/ldap_first_attribute.3ldap   | 10 +----
+ usr/src/man/man3lib/libproc.3lib              |  4 +-
+ usr/src/man/man3socket/sctp_opt_info.3socket  | 10 +----
+ usr/src/man/man4/Intro.4                      |  4 +-
+ usr/src/man/man4d/e1000g.4d                   |  4 +-
+ usr/src/man/man4d/usbftdi.4d                  | 22 +----------
+ usr/src/man/man4d/usbsprl.4d                  | 20 +---------
+ usr/src/man/man4fs/dev.4fs                    |  4 +-
+ usr/src/man/man4p/ip.4p                       |  6 +--
+ usr/src/man/man7/man.7                        |  8 ++--
+ usr/src/man/man8/beadm.8                      |  9 +++--
+ usr/src/man/man8/connstat.8                   |  4 +-
+ usr/src/man/man8/ipqosconf.8                  | 32 ++-------------
+ usr/src/man/man8/vscanadm.8                   | 22 ++---------
+ usr/src/man/man9f/ddi_dma_cookie_iter.9f      |  8 ++--
+ 23 files changed, 63 insertions(+), 242 deletions(-)
+
+diff --git a/usr/src/man/man1/appcert.1 b/usr/src/man/man1/appcert.1
+index 835cb363ad..105199df6e 100644
+--- a/usr/src/man/man1/appcert.1
++++ b/usr/src/man/man1/appcert.1
+@@ -3,20 +3,17 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH APPCERT 1 "Jan 29, 2007"
++.TH APPCERT 1 "March 10, 2023"
+ .SH NAME
+ appcert \- examine application-level products for unstable use of Solaris
+ interfaces
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBappcert\fR [\fB-h\fR] [\fB-n\fR] [\fB-f\fR \fIinfile\fR] [\fB-w\fR \fIworking_dir\fR] [\fB-B\fR] [\fB-L\fR]
+      [\fB-S\fR] {\fIobj\fR | \fIdir\fR}...
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBappcert\fR utility examines an application's conformance to the Solaris
+ Application Binary Interface (\fBABI\fR). The Solaris \fBABI\fR defines the
+ runtime library interfaces in Solaris that are safe and stable for application
+@@ -90,8 +87,6 @@ if you want.
+ IMPORTANT: \fBappcert\fR must run in the same environment in which the
+ application being checked runs. See NOTES.
+ .SH OPTIONS
+-.sp
+-.LP
+ The following options are supported:
+ .sp
+ .ne 2
+@@ -170,8 +165,6 @@ temporary files (default is \fB/tmp\fR).
+ .RE
+ 
+ .SH OPERANDS
+-.sp
+-.LP
+ The following operands are supported:
+ .sp
+ .ne 2
+@@ -185,8 +178,6 @@ directories looking for object files; non-object files are ignored.
+ .RE
+ 
+ .SH EXIT STATUS
+-.sp
+-.LP
+ The following exit values are returned:
+ .sp
+ .ne 2
+@@ -226,8 +217,6 @@ No binary objects were located that could be checked.
+ .RE
+ 
+ .SH LIMITATIONS
+-.sp
+-.LP
+ If the object file to be examined depends on libraries, those dependencies must
+ be recorded in it (by using the compiler's \fB-l\fR switch).
+ .sp
+@@ -287,13 +276,11 @@ Non-\fBELF\fR file executables such as shell scripts.
+ Non-C language interfaces to Solaris; for example, C++ and Java.
+ .br
+ .in +2
+-The code itself need not be in C as long as the calls to Solaris libaries are
++The code itself need not be in C as long as the calls to Solaris libraries are
+ in C.
+ .in -2
+ .RE
+ .SH OUTPUT FILES
+-.sp
+-.LP
+ \fBappcert\fR records its findings in the following files in the working
+ directory (\fB/tmp/appcert.\fI?????\fR\fR by default):
+ .sp
+@@ -383,8 +370,6 @@ including tables of Public and Private symbols used from each Solaris library.
+ Other files are temporary files used internally by \fBappcert\fR.
+ .SH OUTPUT MESSAGES
+ .SS "Private Symbol Use"
+-.sp
+-.LP
+ Private symbols are functions or data variables in a Solaris library that are
+ not intended for developer or external use. These symbols are interfaces that
+ the Solaris libraries use to call and communicate with one another. They are
+@@ -395,8 +380,6 @@ Private symbols can change their semantic behavior or even disappear altogether
+ (\fBdemoted\fR or \fBdeprecated\fR symbols), so your application should not
+ depend upon any of them.
+ .SS "Demoted Symbols"
+-.sp
+-.LP
+ Demoted symbols are functions or data variables in a Solaris library that were
+ once private to that library and have been removed (or possibly scoped local to
+ the library) in a later Solaris release. If your application directly calls one
+@@ -417,8 +400,6 @@ intentionally call these interfaces. For more information, see the \fILinker
+ and Libraries Guide\fR, in particular the chapter on versioning. This document
+ may be found online at \fBhttp://docs.sun.com\fR.
+ .SS "Unbound Symbols"
+-.sp
+-.LP
+ Unbound symbols are library symbols (that is, functions or data) referenced by
+ the application that the dynamic linker could not resolve when \fBappcert\fR
+ was run. \fBNote:\fR \fBappcert\fR does not actually run your application, so
+@@ -479,8 +460,6 @@ defined and self-contained. Also recommended is using the \fB-z\fR \fBdefs\fR
+ flag when building shared objects, to force the resolution of all symbols
+ during compilation. See \fBld\fR(1) for more information.
+ .SS "No Bindings Found"
+-.sp
+-.LP
+ \fBappcert\fR runs \fB/bin/ldd\fR \fB-r\fR on each binary object to be tested.
+ It sets the environment variable \fBLD_DEBUG\fR="\fBfiles,bindings\fR". (See
+ \fBldd\fR(1) and \fBld.so.1\fR(1) for more information). If that command fails
+@@ -527,23 +506,17 @@ means that \fBappcert\fR could not completely examine the object due to
+ permissions or environment. Try to modify the permissions or environment so
+ that the dynamic bindings can be recorded.
+ .SS "Obsolete Library"
+-.sp
+-.LP
+ An obsolete library is one whose use is deprecated and that might, in some
+ future release, be removed from Solaris altogether. \fBappcert\fR flags these
+ because applications depending on them might not run in future releases of
+ Solaris. All interfaces, including Private ones, in an obsolete library are
+ frozen and will not change.
+ .SS "Use of sys_errlist/sys_nerr"
+-.sp
+-.LP
+ Direct use of the symbols \fBsys_errlist\fR or \fBsys_nerr\fR presents a risk
+ in which reference might be made past the end of the \fBsys_errlist\fR array.
+ These symbols are deprecated in 32-bit versions of Solaris and are absent
+ altogether in 64-bit versions. Use \fBstrerror\fR(3C) instead.
+ .SS "Use of Strong vs. Weak Symbols"
+-.sp
+-.LP
+ The "strong" symbols (for example, \fB_socket\fR) associated with "weak"
+ symbols (for example, \fBsocket\fR ) are reserved as private (their behavior
+ could change in the future). Your application should only directly reference
+@@ -556,8 +529,6 @@ though the source code doesn't appear to reference the private symbol.
+ Nevertheless, steps should be taken to trace down why this is occurring and fix
+ the dependency.
+ .SH NOTES
+-.sp
+-.LP
+ \fBappcert\fR needs to run in the same environment in which the application
+ being checked runs. Otherwise it might not be able to resolve references
+ correctly to interfaces in the Solaris libraries. Take the following steps:
+@@ -647,8 +618,6 @@ their symbols could be versioned. Consequently, \fBappcert\fR cannot recognize
+ them as being part of Solaris.
+ .RE
+ .SH BUGS
+-.sp
+-.LP
+ The use of the terms "\fBpublic\fR" and "\fBprivate\fR" as equivalent to
+ "\fBstable\fR" and "\fBunstable\fR" is unfortunately somewhat confusing. In
+ particular, experimental or evolving interfaces are public in the sense that
+@@ -660,8 +629,6 @@ unstable, even though they have been public and stable in the past and are
+ still treated as public by \fBappcert\fR. Fortunately, these two situations are
+ rare.
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -676,8 +643,6 @@ Interface stability	Stable
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR cc (1),
+ .BR find (1),
+ .BR isalist (1),
+diff --git a/usr/src/man/man2/exec.2 b/usr/src/man/man2/exec.2
+index f89347d844..0f0a433614 100644
+--- a/usr/src/man/man2/exec.2
++++ b/usr/src/man/man2/exec.2
+@@ -45,11 +45,10 @@
+ .\" Copyright (c) 2008, Sun Microsystems, Inc.  All Rights Reserved.
+ .\" Copyright 2015, Joyent, Inc.
+ .\"
+-.TH EXEC 2 "Oct 27, 2015"
++.TH EXEC 2 "March 10, 2023"
+ .SH NAME
+ exec, execl, execle, execlp, execv, execve, execvp \- execute a file
+ .SH SYNOPSIS
+-.LP
+ .nf
+ #include <unistd.h>
+ 
+@@ -86,7 +85,6 @@ exec, execl, execle, execlp, execv, execve, execvp \- execute a file
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ Each of the functions in the \fBexec\fR family replaces the current process
+ image with a new process image. The new image is constructed from a regular,
+ executable file called the \fBnew process image file\fR. This file is either an
+@@ -536,12 +534,10 @@ consequence of replacing the process image.
+ The saved resource limits in the new process image are set to be a copy of the
+ process's corresponding hard and soft limits.
+ .SH RETURN VALUES
+-.LP
+ If a function in the \fBexec\fR family returns to the calling process image, an
+ error has occurred; the return value is \fB\(mi1\fR and \fBerrno\fR is set to
+ indicate the error.
+ .SH ERRORS
+-.LP
+ The \fBexec\fR functions will fail if:
+ .sp
+ .ne 2
+@@ -713,7 +709,6 @@ currently open for writing by some process.
+ .RE
+ 
+ .SH USAGE
+-.LP
+ As the state of conversion descriptors and message catalogue descriptors in the
+ new process image is undefined, portable applications should not rely on their
+ use and should close them prior to calling one of the \fBexec\fR functions.
+@@ -721,12 +716,11 @@ use and should close them prior to calling one of the \fBexec\fR functions.
+ .LP
+ Applications that require other than the default POSIX locale should call
+ \fBsetlocale\fR(3C) with the appropriate parameters to establish the locale of
+-thenew process.
++the new process.
+ .sp
+ .LP
+ The \fIenviron\fR array should not be accessed directly by the application.
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -748,7 +742,6 @@ Standard	See \fBstandards\fR(7).
+ .LP
+ The \fBexecle()\fR and \fBexecve()\fR functions are Async-Signal-Safe.
+ .SH SEE ALSO
+-.LP
+ .BR ksh (1),
+ .BR ps (1),
+ .BR sh (1),
+@@ -785,7 +778,6 @@ The \fBexecle()\fR and \fBexecve()\fR functions are Async-Signal-Safe.
+ .BR privileges (7),
+ .BR standards (7)
+ .SH WARNINGS
+-.LP
+ If a program is \fBsetuid\fR to a user \fBID\fR other than the superuser, and
+ the program is executed when the real user \fBID\fR is super-user, then the
+ program has some of the powers of a super-user as well.
+diff --git a/usr/src/man/man3cpc/cpc.3cpc b/usr/src/man/man3cpc/cpc.3cpc
+index 3fa9f624f8..8007f287bc 100644
+--- a/usr/src/man/man3cpc/cpc.3cpc
++++ b/usr/src/man/man3cpc/cpc.3cpc
+@@ -4,7 +4,7 @@
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+ .\" Copyright (c) 2019, Joyent, Inc.
+ .\" Copyright 2021 Oxide Computer Company
+-.Dd July 26, 2021
++.Dd March 10, 2023
+ .Dt CPC 3CPC
+ .Os
+ .Sh NAME
+@@ -43,17 +43,18 @@ The following configuration interfaces are provided:
+ .Bl -tag -width Xr
+ .It Xr cpc_open 3CPC
+ Check the version the application was compiled with against the version of the
++library available at runtime.
+ .It Xr cpc_cciname 3CPC
+ Return a printable string to describe the performance counters of the
+ processor.
+ .It Xr cpc_npic 3CPC
+ Return the number of performance counters on the processor.
+-.It cpc_cpuref 3CPC
++.It Xr cpc_cpuref 3CPC
+ Return a reference to documentation that should be consulted to understand how
+ to use and interpret data from the performance counters.
+ .El
+ .Ss Performance Counter Access
+-Performance counters can be present in hardware but not acccessible because
++Performance counters can be present in hardware but not accessible because
+ either some of the necessary system software components are not available or
+ not installed, or the counters might be in use by other processes.
+ The
+@@ -102,7 +103,7 @@ Intel Goldmont Plus SoC events; covers model 7ah.
+ Intel Haswell client events; covers models 46h, 45h, and 3ch.
+ .It Xr hsx_events 3CPC
+ Intel Haswell server events; covers model 3fh.
+-.It xr icl_events 3CPC
++.It Xr icl_events 3CPC
+ Intel Ice Lake client events; covers model 7eh.
+ .It Xr ivb_events 3CPC
+ Intel Ivy Bridge client events; covers model 3ah.
+diff --git a/usr/src/man/man3cpc/cpc_seterrhndlr.3cpc b/usr/src/man/man3cpc/cpc_seterrhndlr.3cpc
+index 8eca9b61cb..e8faf6f48d 100644
+--- a/usr/src/man/man3cpc/cpc_seterrhndlr.3cpc
++++ b/usr/src/man/man3cpc/cpc_seterrhndlr.3cpc
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH CPC_SETERRHNDLR 3CPC "April 9, 2016"
++.TH CPC_SETERRHNDLR 3CPC "March 10, 2023"
+ .SH NAME
+ cpc_seterrhndlr \- control libcpc error reporting
+ .SH SYNOPSIS
+-.LP
+ .nf
+ cc [ \fIflag\fR\&.\|.\|. ] \fIfile\fR\&.\|.\|. \fB-lcpc\fR [ \fIlibrary\fR\&.\|.\|. ]
+ #include <libcpc.h>
+@@ -22,12 +21,11 @@ cc [ \fIflag\fR\&.\|.\|. ] \fIfile\fR\&.\|.\|. \fB-lcpc\fR [ \fIlibrary\fR\&.\|.
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ For the convenience of programmers instrumenting their code, several
+ \fBlibcpc\fR(3LIB) functions automatically emit to \fBstderr\fR error messages
+ that attempt to provide a more detailed explanation of their error return
+ values.  While this can be useful for simple programs, some applications might
+-wanat to report their errors differently, for example, to a window or to a log
++want to report their errors differently, for example, to a window or to a log
+ file.
+ .sp
+ .LP
+@@ -140,7 +138,6 @@ process does not have.
+ The default printing routine can be restored by calling  the routine with an
+ \fIerrfn\fR argument of \fINULL\fR.
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRDebugging example.
+ .sp
+ .LP
+@@ -165,7 +162,6 @@ myapp_errfn(const char *fn, int subcode, const char *fmt, va_list ap)
+ .in -2
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -182,7 +178,6 @@ MT-Level	Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ .BR vsnprintf (3C),
+ .BR cpc_bind_curlwp (3CPC),
+ .BR libcpc (3LIB),
+diff --git a/usr/src/man/man3cpc/cpc_strtoevent.3cpc b/usr/src/man/man3cpc/cpc_strtoevent.3cpc
+index 69150721f6..67d845c991 100644
+--- a/usr/src/man/man3cpc/cpc_strtoevent.3cpc
++++ b/usr/src/man/man3cpc/cpc_strtoevent.3cpc
+@@ -4,11 +4,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH CPC_STRTOEVENT 3CPC "Mar 28, 2005"
++.TH CPC_STRTOEVENT 3CPC "March 10, 2023"
+ .SH NAME
+ cpc_strtoevent, cpc_eventtostr \- translate strings to and from events
+ .SH SYNOPSIS
+-.LP
+ .nf
+ cc [ \fIflag\fR... ] \fIfile\fR... \(milcpc [ \fIlibrary\fR... ]
+ #include <libcpc.h>
+@@ -22,14 +21,12 @@ cc [ \fIflag\fR... ] \fIfile\fR... \(milcpc [ \fIlibrary\fR... ]
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBcpc_strtoevent()\fR function translates an event specification to the
+ appropriate collection of control bits in a \fBcpc_event_t\fR structure pointed
+ to by the \fIevent\fR argument. The event specification is a
+ \fBgetsubopt\fR(3C)-style string that describes the event and any attributes
+ that the processor can apply to the event or events. If successful, the
+-funciton returns 0, the \fBce_cpuver\fR field and the ISA-dependent control
++function returns 0, the \fBce_cpuver\fR field and the ISA-dependent control
+ registers of event are initialized appropriately, and the rest of the
+ \fBcpc_event_t\fR structure is initialized to 0.
+ .sp
+@@ -37,8 +34,6 @@ registers of event are initialized appropriately, and the rest of the
+ The \fBcpc_eventtostr()\fR function takes an event and constructs a compact
+ canonical string representation for that event.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ Upon successful completion, \fBcpc_strtoevent()\fR returns 0. If the string
+ cannot be decoded, a non-zero value is returned and a message is printed using
+ the library's error-reporting mechanism (see  \fBcpc_seterrfn\fR(3CPC)).
+@@ -48,16 +43,12 @@ Upon successful completion, \fBcpc_eventtostr()\fR returns a pointer to a
+ string. The string returned must be freed by the caller using \fBfree\fR(3C).
+ If \fBcpc_eventtostr()\fR fails, a null pointer is returned.
+ .SH USAGE
+-.sp
+-.LP
+ The event selection syntax used is processor architecture-dependent. The
+ supported processor families allow variations on how events are counted as well
+ as what events can be counted. This information is available in compact form
+ from the \fBcpc_getusage()\fR function (see \fBcpc_getcpuver\fR(3CPC)), but is
+ explained in further detail below.
+ .SS "UltraSPARC"
+-.sp
+-.LP
+ On UltraSPARC processors, the syntax for setting options is as follows:
+ .sp
+ .in +2
+@@ -79,8 +70,6 @@ specifying the \fBnouser\fR keyword.
+ The keywords \fBpic0\fR and \fBpic1\fR may be omitted; they can be used to
+ resolve ambiguities if they exist.
+ .SS "Pentium I"
+-.sp
+-.LP
+ On Pentium processors, the syntax for setting counter options is as follows:
+ .sp
+ .in +2
+@@ -104,11 +93,9 @@ allows the external pin control pins to be set high (defaults to low).  When
+ the pin control register is set high, the external pin will be asserted when
+ the associated register overflows. When the pin control register is set low,
+ the external pin will be asserted when the counter has been incremented.  The
+-electrical effect of driving the pin is dependent uptoon how the motherboard
++electrical effect of driving the pin is dependent upon how the motherboard
+ manufacturer has chosen to connect it, if it is connected at all.
+ .SS "Pentium II"
+-.sp
+-.LP
+ For Pentium II processors, the syntax is substantially more complex, reflecting
+ the complex configuration options available:
+ .sp
+@@ -130,7 +117,6 @@ is a number between 0 and 255, expressed in hexadecimal, octal or decimal
+ notation.
+ .SH EXAMPLES
+ .SS "SPARC"
+-.LP
+ \fBExample 1 \fRSPARC Example.
+ .sp
+ .in +2
+@@ -146,8 +132,6 @@ else
+ .in -2
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -164,8 +148,6 @@ MT-Level	MT-Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR free (3C),
+ .BR getsubopt (3C),
+ .BR cpc (3CPC),
+@@ -175,8 +157,6 @@ MT-Level	MT-Safe
+ .BR libcpc (3LIB),
+ .BR attributes (7)
+ .SH NOTES
+-.sp
+-.LP
+ The \fBcpc_strtoevent()\fR and \fBcpc_eventtostr()\fR functions exist for
+ binary compatibility only. Source containing these functions will not compile.
+ These functions are obsolete and might be removed in a future release.
+diff --git a/usr/src/man/man3gen/bgets.3gen b/usr/src/man/man3gen/bgets.3gen
+index 325ba864fe..f511feabff 100644
+--- a/usr/src/man/man3gen/bgets.3gen
++++ b/usr/src/man/man3gen/bgets.3gen
+@@ -3,7 +3,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH BGETS 3GEN "June 18, 2021"
++.TH BGETS 3GEN "March 10, 2023"
+ .SH NAME
+ bgets \- read stream up to next delimiter
+ .SH SYNOPSIS
+@@ -60,7 +60,7 @@ delayed to the next call if any characters were read but not yet returned.
+ .sp
+ .LP
+ The following example prints the name of the first user encountered in
+-\fB/etc/passswd\fR, including a trailing ":"
++\fB/etc/passwd\fR, including a trailing ":"
+ 
+ .sp
+ .in +2
+diff --git a/usr/src/man/man3gen/strfind.3gen b/usr/src/man/man3gen/strfind.3gen
+index 38c6f36576..ed16479a4d 100644
+--- a/usr/src/man/man3gen/strfind.3gen
++++ b/usr/src/man/man3gen/strfind.3gen
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH STRFIND 3GEN "Jan 20, 1999"
++.TH STRFIND 3GEN "March 10, 2023"
+ .SH NAME
+ strfind, strrspn, strtrns, str \- string manipulations
+ .SH SYNOPSIS
+-.LP
+ .nf
+ cc [ \fIflag\fR ... ] \fIfile\fR ... \fB-lgen\fR [ \fIlibrary\fR ... ]
+ #include <libgen.h>
+@@ -22,37 +21,32 @@ cc [ \fIflag\fR ... ] \fIfile\fR ... \fB-lgen\fR [ \fIlibrary\fR ... ]
+ 
+ .LP
+ .nf
+-\fBchar *\fR \fBstrtrns\fR(\fBconst char *\fR\fIstring\fR, \fBconst char *\fR\fIold\fR, \fBconst char *\fR\fInew\fR,
++\fBchar *\fR\fBstrtrns\fR(\fBconst char *\fR\fIstring\fR, \fBconst char *\fR\fIold\fR, \fBconst char *\fR\fInew\fR,
+      \fBchar *\fR\fIresult\fR);
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBstrfind()\fR function returns the offset of the first occurrence of the
+ second string,  \fIas2\fR, if it is a substring of string \fIas1\fR. If the
+ second string is not a substring of the first string \fBstrfind()\fR returns
+ \fB\(mi1\fR\&.
+ .sp
+ .LP
+-The \fBstrrspn()\fR function trims chartacters from a string. It searches from
++The \fBstrrspn()\fR function trims characters from a string. It searches from
+ the end of \fIstring\fR for the first character that is not contained in
+ \fItc\fR. If such a character is found, \fBstrrspn()\fR returns a pointer to
+ the next character; otherwise, it returns a pointer to \fIstring\fR.
+ .sp
+ .LP
+- The \fBstrtrns()\fR function transforms  \fIstring\fR and copies it into
++The \fBstrtrns()\fR function transforms  \fIstring\fR and copies it into
+ \fIresult\fR. Any character  that appears in  \fIold\fR is replaced with the
+ character in the same position in  \fInew\fR. The  \fInew\fR result is
+ returned.
+ .SH USAGE
+-.sp
+-.LP
+ When compiling multithreaded applications, the \fB_REENTRANT\fR flag must be
+ defined on the compile line.  This flag should only be used in multithreaded
+ applications.
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRAn example of the \fBstrfind()\fR function.
+ .sp
+ .in +2
+@@ -71,8 +65,6 @@ s2 = strtrns(s1, a1, a2, s2);\fR
+ .sp
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -87,7 +79,5 @@ MT-Level	MT-Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR string (3C),
+ .BR attributes (7)
+diff --git a/usr/src/man/man3ldap/ldap.3ldap b/usr/src/man/man3ldap/ldap.3ldap
+index d504bcc272..100d814189 100644
+--- a/usr/src/man/man3ldap/ldap.3ldap
++++ b/usr/src/man/man3ldap/ldap.3ldap
+@@ -4,11 +4,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH LDAP 3LDAP "May 13, 2017"
++.TH LDAP 3LDAP "March 10, 2023"
+ .SH NAME
+ ldap \- Lightweight Directory Access Protocol package
+ .SH SYNOPSIS
+-.LP
+ .nf
+ cc[ \fIflag\fR... ] \fIfile\fR... -lldap[ \fIlibrary\fR... ]
+ #include <lber.h>
+@@ -16,7 +15,6 @@ cc[ \fIflag\fR... ] \fIfile\fR... -lldap[ \fIlibrary\fR... ]
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The Lightweight Directory Access Protocol ("LDAP") package includes
+ various command line LDAP clients and a LDAP client library to provide
+ programmatic access to the LDAP protocol. This man page gives an overview of
+@@ -44,7 +42,6 @@ Asynchronous routines provide an invocation identifier which can be used to
+ obtain the result of a specific operation by passing it to
+ the \fBldap_result\fR(3LDAP) function.
+ .SS "Initializing a LDAP session"
+-.LP
+ Initializing a LDAP session involves calling the \fBldap_init\fR(3LDAP)
+ function. However, the call does not actually open a connection to the LDAP
+ server. It merely initializes a LDAP structure that represents the session. The
+@@ -52,15 +49,13 @@ connection is opened when the first operation is attempted. Unlike
+ \fBldap_init()\fR, \fBldap_open\fR(3LDAP) attempts to open a connection with
+ the LDAP server. However, the use of \fBldap_open()\fR is deprecated.
+ .SS "Authenticating to a LDAP server"
+-.LP
+ The \fBldap_sasl_bind\fR(3LDAP) and \fBldap_sasl_bind_s\fR(3LDAP) functions
+-provide general and extensible authenticaton for an LDAP client to a LDAP
++provide general and extensible authentication for an LDAP client to a LDAP
+ server. Both use the Simple Authentication Security Layer (SASL). Simplified
+ routines \fBldap_simple_bind\fR(3LDAP) and \fBldap_simple_bind_s\fR(3LDAP) use
+ cleartext passwords to bind to the LDAP server. Use of \fBldap_bind\fR(3LDAP)
+ and \fBldap_bind_s\fR(3LDAP)(3LDAP) is deprecated.
+ .SS "Searching a LDAP directory"
+-.LP
+ Search for an entry in a LDAP directory by calling the
+ \fBldap_search_ext\fR(3LDAP) or the \fBldap_search_ext_s\fR(3LDAP) functions.
+ These functions support LDAPv3 server controls, client controls and variable
+@@ -68,7 +63,6 @@ size and time limits as arguments for each search operation.
+ \fBldap_search\fR(3LDAP) and \fBldap_search_s\fR(3LDAP) are identical functions
+ but do not support the controls and limits as arguments to the call.
+ .SS "Adding or Deleting an entry"
+-.LP
+ Use \fBldap_add_ext\fR(3LDAP) and \fBldap_delete_ext\fR(3LDAP) to add or delete
+ entries in a LDAP directory server. The synchronous counterparts to these
+ functions are \fBldap_add_ext_s\fR(3LDAP) and \fBldap_delete_ext_s\fR(3LDAP).
+@@ -76,7 +70,6 @@ The \fBldap_add\fR(3LDAP), \fBldap_add_s\fR(3LDAP), \fBldap_delete\fR(3LDAP),
+ and \fBldap_delete_s\fR(3LDAP) provide identical functionality to add and to
+ delete entries, but they do not support LDAP v3 server and client controls.
+ .SS "Modifying Entries"
+-.LP
+ Use \fBldap_modify_ext\fR(3LDAP) and \fBldap_modify_ext_s\fR(3LDAP) to modify
+ an existing entry in a LDAP server that supports for LDAPv3 server and client
+ controls. Similarly, use \fBldap_rename\fR(3LDAP) and
+@@ -86,12 +79,10 @@ controls. Similarly, use \fBldap_rename\fR(3LDAP) and
+ .BR ldap_modrdn_s (3LDAP)
+ and \fBldap_modrdn2_s\fR(3LDAP) interfaces are deprecated.
+ .SS "Obtaining Results"
+-.LP
+ Use \fBldap_result\fR(3LDAP) to obtain the results of a previous asynchronous
+ operation. For all LDAP operations other than search, only one message is
+ returned. For the search operation, a list of result messages can be returned.
+ .SS "Handling Errors and Parsing Results"
+-.LP
+ Use the \fBldap_parse_result\fR(3LDAP),
+ \fBldap_parse_sasl_bind_result\fR(3LDAP), and the
+ \fBldap_parse_extended_result\fR(3LDAP) functions to extract required
+@@ -123,23 +114,19 @@ returns an array of an attribute's string values that matches a specified
+ language subtype. To retrieve the binary data from an attribute, call the
+ \fBldap_get_lang_values_len()\fR function instead.
+ .SS "Uniform Resource Locators (URLS)"
+-.LP
+ You can use the \fBldap_url\fR(3LDAP)functions to test a URL to verify that it
+ is an LDAP URL, to parse LDAP URLs into their component pieces, to initiate
+ searches directly using an LDAP URL, and to retrieve the URL associated with a
+ DNS domain name or a distinguished name.
+ .SS "User Friendly Naming"
+-.LP
+ The \fBldap_ufn\fR(3LDAP) functions implement a user friendly naming scheme by
+ means of LDAP. This scheme allows you to look up entries using fuzzy, untyped
+ names like "mark smith, umich, us".
+ .SS "Caching"
+-.LP
+ The \fBldap_memcache\fR(3LDAP) functions provide an in-memory client side cache
+ to store search requests. Caching improves performance and reduces network
+ bandwidth when a client makes repeated requests.
+ .SS "Utility Functions"
+-.LP
+ There are also various utility functions. You can use the
+ \fBldap_sort\fR(3LDAP) functions are used to sort the entries and values
+ returned by means of the ldap search functions. The \fBldap_friendly\fR(3LDAP)
+@@ -148,7 +135,6 @@ longer "friendlier" names. Use the \fBldap_charset\fR(3LDAP) functions to
+ translate to and from the T.61 character set that is used for many character
+ strings in the LDAP protocol.
+ .SS "Generating Filters"
+-.LP
+ Make calls to \fBldap_init_getfilter\fR(3LDAP) and \fBldap_search\fR(3LDAP) to
+ generate filters to be used in \fBldap_search\fR(3LDAP) and
+ \fBldap_search_s\fR(3LDAP). \fBldap_init_getfilter()\fR reads
+@@ -157,7 +143,6 @@ generate filters to be used in \fBldap_search\fR(3LDAP) and
+ \fIbuf\fR of length \fIbuflen\fR. \fBldap_getfilter_free\fR(3LDAP) frees memory
+ that has been allocated by means of \fBldap_init_getfilter()\fR.
+ .SS "BER Library"
+-.LP
+ The LDAP package includes a set of lightweight Basic Encoding Rules ("BER)"
+ functions. The LDAP library functions use the BER functions to encode and
+ decode LDAP protocol elements through the slightly simplified BER defined by
+@@ -1576,7 +1561,6 @@ Free memory allocated by LDAP API functions.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(7) for a description of the following attributes:
+ .sp
+ 
+@@ -1591,5 +1575,4 @@ Stability Level	Evolving
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ .BR attributes (7)
+diff --git a/usr/src/man/man3ldap/ldap_first_attribute.3ldap b/usr/src/man/man3ldap/ldap_first_attribute.3ldap
+index 0c0f76bcb0..1308608170 100644
+--- a/usr/src/man/man3ldap/ldap_first_attribute.3ldap
++++ b/usr/src/man/man3ldap/ldap_first_attribute.3ldap
+@@ -4,11 +4,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH LDAP_FIRST_ATTRIBUTE 3LDAP "May 13, 2017"
++.TH LDAP_FIRST_ATTRIBUTE 3LDAP "March 10, 2023"
+ .SH NAME
+ ldap_first_attribute, ldap_next_attribute \- step through LDAP entry attributes
+ .SH SYNOPSIS
+-.LP
+ .nf
+ cc [ \fIflag\fR...] \fIfile\fR... -lldap[ \fIlibrary\fR...]
+ #include <lber.h>
+@@ -25,7 +24,6 @@ cc [ \fIflag\fR...] \fIfile\fR... -lldap[ \fIlibrary\fR...]
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBldap_first_attribute()\fR function gets the value of the first attribute
+ in an entry.
+ .sp
+@@ -44,12 +42,10 @@ After stepping through the attributes, the application should call
+ \fBber_free()\fR to free the \fBBerElement\fR structure allocated by the
+ \fBldap_first_attribute()\fR function if the structure is other than NULL.
+ .SH ERRORS
+-.LP
+ If an error occurs, \fINULL\fR is returned and the \fBld_errno\fR field in the
+ \fIld\fR parameter is set to indicate the error. See \fBldap_error\fR(3LDAP)
+ for a description of possible error codes.
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(7) for a description of the following attributes:
+ .sp
+ 
+@@ -64,13 +60,11 @@ Interface Stability	Evolving
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ .BR ldap (3LDAP),
+ .BR ldap_error (3LDAP),
+ .BR ldap_first_entry (3LDAP),
+ .BR ldap_get_values (3LDAP),
+ .BR attributes (7)
+ .SH NOTES
+-.LP
+-The \fBldap_first_attribute()\fR function alllocates memory that might need to
++The \fBldap_first_attribute()\fR function allocates memory that might need to
+ be freed by the caller by means of \fBber_free\fR(3LDAP).
+diff --git a/usr/src/man/man3lib/libproc.3lib b/usr/src/man/man3lib/libproc.3lib
+index 803534bfda..202273fbe0 100644
+--- a/usr/src/man/man3lib/libproc.3lib
++++ b/usr/src/man/man3lib/libproc.3lib
+@@ -13,7 +13,7 @@
+ .\" Copyright (c) 2019 Carlos Neira <cneirabustos@gmail.com>
+ .\" Copyright 2020 OmniOS Community Edition (OmniOSce) Association.
+ .\"
+-.Dd October 31, 2020
++.Dd March 10, 2023
+ .Dt LIBPROC 3LIB
+ .Os
+ .Sh NAME
+@@ -1094,7 +1094,7 @@ While the library is considered an uncommitted interface, and is still
+ evolving, changes that break compatibility have been uncommon and this
+ trend is expected to continue.
+ It is documented to allow consumers, whether part of illumos or outside of it,
+-to understand the libarary and make use of it with the understanding that
++to understand the library and make use of it with the understanding that
+ changes may occur which break both source and binary compatibility.
+ .Sh SEE ALSO
+ .Xr gcore 1 ,
+diff --git a/usr/src/man/man3socket/sctp_opt_info.3socket b/usr/src/man/man3socket/sctp_opt_info.3socket
+index 1a52b80590..13aca5b50d 100644
+--- a/usr/src/man/man3socket/sctp_opt_info.3socket
++++ b/usr/src/man/man3socket/sctp_opt_info.3socket
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH SCTP_OPT_INFO 3SOCKET "Nov 26, 2017"
++.TH SCTP_OPT_INFO 3SOCKET "March 10, 2023"
+ .SH NAME
+ sctp_opt_info \- examine SCTP level options for an SCTP endpoint
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBcc\fR [ \fIflag\fR... ] \fIfile\fR... \fB-lsocket\fR \fB -lnsl \fR \fB -lsctp \fR [ \fIlibrary\fR... ]
+ #include <sys/types.h>
+@@ -19,7 +18,6 @@ sctp_opt_info \- examine SCTP level options for an SCTP endpoint
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBsctp_opt_info()\fR returns SCTP level options associated with the SCTP
+ socket \fIsock\fR. If \fIsock\fR is a one-to-many style socket, \fIid\fR refers
+ to the association of interest. If \fIsock\fR is a one-to-one socket or if
+@@ -31,7 +29,7 @@ parameter is the length of the option specified.
+ .LP
+ Following are the currently supported values for the \fIopt\fR parameter. When
+ one of the options below specifies an association \fIid\fR, the \fIid\fR is
+-relevant for only one-to-many style SCTP sockets. The associatation \fIid\fR
++relevant for only one-to-many style SCTP sockets. The association \fIid\fR
+ can be ignored for one-to-one style or branched-off one-to-many style SCTP
+ sockets.
+ .sp
+@@ -273,12 +271,10 @@ where:
+ .RE
+ 
+ .SH RETURN VALUES
+-.LP
+ Upon successful completion, the \fBsctp_opt_info()\fR function returns \fB0\fR.
+ Otherwise, the function returns \fB-1\fR and sets \fBerrno\fR to indicate the
+ error.
+ .SH ERRORS
+-.LP
+ The \fBsctp_opt_info()\fR call fails under the following conditions.
+ .sp
+ .ne 2
+@@ -336,7 +332,6 @@ The address family for the peer's address is other than \fBAF_INET\fR or
+ .RE
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -353,7 +348,6 @@ MT-Level	Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ .BR in.h (3HEAD),
+ .BR libsctp (3LIB),
+ .BR getsockopt (3SOCKET),
+diff --git a/usr/src/man/man4/Intro.4 b/usr/src/man/man4/Intro.4
+index 2f7fabf221..f5c32511a1 100644
+--- a/usr/src/man/man4/Intro.4
++++ b/usr/src/man/man4/Intro.4
+@@ -17,7 +17,7 @@
+ .\" fields enclosed by brackets "[]" replaced with your own identifying
+ .\" information: Portions Copyright [yyyy] [name of copyright owner]
+ .\"
+-.Dd January  6, 2020
++.Dd March 10, 2023
+ .Dt INTRO 4
+ .Os
+ .Sh NAME
+@@ -26,7 +26,7 @@
+ .Nd introduction to special files
+ .Sh DESCRIPTION
+ This section describes various device and network interfaces available on the
+-sysstem.
++system.
+ The types of interfaces described include character and block
+ devices,
+ .Sy STREAMS
+diff --git a/usr/src/man/man4d/e1000g.4d b/usr/src/man/man4d/e1000g.4d
+index 7dbbcdc80f..7d4e451112 100644
+--- a/usr/src/man/man4d/e1000g.4d
++++ b/usr/src/man/man4d/e1000g.4d
+@@ -12,7 +12,7 @@
+ .\" Copyright 2020 Robert Mustacchi
+ .\" Copyright 2022 Oxide Computer Company
+ .\"
+-.Dd January 17, 2022
++.Dd March 10, 2023
+ .Dt E1000G 4D
+ .Os
+ .Sh NAME
+@@ -24,7 +24,7 @@
+ The
+ .Nm
+ driver is a GLDv3 NIC driver for Intel 1 Gigabit Ethernet devices which
+-are often found as discrete PCI and PCI expresss add-on-cards and built
++are often found as discrete PCI and PCI express add-on-cards and built
+ into many Intel chipsets and platforms.
+ .Pp
+ On most models, the device driver supports transmit and receive
+diff --git a/usr/src/man/man4d/usbftdi.4d b/usr/src/man/man4d/usbftdi.4d
+index 4871a98622..e1f36a8b98 100644
+--- a/usr/src/man/man4d/usbftdi.4d
++++ b/usr/src/man/man4d/usbftdi.4d
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License"). You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+ .\"  See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE. If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH USBFTDI 4D "Aug 13, 2021"
++.TH USBFTDI 4D "March 10, 2023"
+ .SH NAME
+ usbftdi \- FTDI USB to serial converter driver
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fB#include <fcntl.h>\fR
+ \fB#include <sys/termio.h>\fR
+@@ -15,16 +14,12 @@ usbftdi \- FTDI USB to serial converter driver
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBusbftdi\fR driver is a loadable STREAMS and USBA (Solaris USB
+ Architecture) compliant client driver that provides basic asynchronous
+ communication support for FTDI USB-to-serial converters. Serial device streams
+ are built with appropriate modules that are pushed atop the \fBusbftdi\fR
+ driver by the \fBautopush\fR(8) facility.
+ .SS "Application Programming Interface"
+-.sp
+-.LP
+ The \fBusbftdi\fR module supports the \fBtermio\fR(4I) device control functions
+ specified by flags in the \fBc_cflag\fR word of the \fBtermios\fR structure,
+ and by the \fBIGNBRK, IGNPAR, PARMRK\fR, and \fBINPCK\fR flags in the
+@@ -54,8 +49,6 @@ Input and output line speeds can be set to the following baud rates: 300, 600,
+ independently. For example, when the output speed is set, the input speed is
+ automatically set to the same speed.
+ .SS "Soft Carrier Capabilities"
+-.sp
+-.LP
+ Many devices that use this USB serial interface component are not, in fact
+ dial-in lines connected to carefully configured RS-232 modems. They are often
+ intelligent peripherals whose manufacturers want to present a serial port
+@@ -80,11 +73,9 @@ selected by either unsetting (commenting out) the \fBignore-cd\fR property, or
+ by setting the value of the property to zero.
+ .sp
+ .LP
+-More sophisticated selection of which devicesl ignore or obey the DCD signal
++More sophisticated selection of which devices ignore or obey the DCD signal
+ can be effected using \fBport-%d-ignore-cd\fR properties.
+ .SS "Dial-In and Dial-Out Support"
+-.sp
+-.LP
+ A related feature is available for traditional usage that enables a single tty
+ line to be connected to a modem and used for incoming and outgoing calls. By
+ accessing through device logical name \fB/dev/cua/[0-9]*\fR, you can open a
+@@ -112,8 +103,6 @@ This allows a modem and port to be used for dial-in (enabling the line for
+ login in \fB/etc/inittab\fR) or dial-out (using \fBtip\fR(1) or \fBuucp\fR(1C))
+ when no-one is logged in on the line.
+ .SH ERRORS
+-.sp
+-.LP
+ An \fBopen()\fR fails under the following conditions:
+ .sp
+ .ne 2
+@@ -155,7 +144,6 @@ USB device I/O error.
+ .RE
+ 
+ .SH FILES
+-.sp
+ .ne 2
+ .na
+ \fB\fB/usr/kernel/drv/usbftdi\fR\fR
+@@ -216,8 +204,6 @@ Dial-in tty lines
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for a description of the following attribute:
+ .sp
+ 
+@@ -232,15 +218,11 @@ Architecture	SPARC, x86, PCI-based systems
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ \fBstrconf\fR(1), \fBtip\fR(1), \fBuucp\fR(1C), \fBautopush\fR(8),
+ \fBeeprom\fR(8), \fBioctl\fR(2), \fBopen\fR(2), \fBtermios\fR(3C),
+ \fBusba\fR(4D), \fBtermio\fR(4I), \fBldterm\fR(4M), \fBttcompat\fR(4M),
+ \fBeeprom\fR(8), \fBattributes\fR(7),
+ .SH DIAGNOSTICS
+-.sp
+-.LP
+ In addition to being logged, the following messages might appear on the system
+ console. All messages are formatted in the following manner:
+ .sp
+diff --git a/usr/src/man/man4d/usbsprl.4d b/usr/src/man/man4d/usbsprl.4d
+index 47a951aacc..ae32966ada 100644
+--- a/usr/src/man/man4d/usbsprl.4d
++++ b/usr/src/man/man4d/usbsprl.4d
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH USBSPRL 4D "Nov 23, 2006"
++.TH USBSPRL 4D "March 10, 2023"
+ .SH NAME
+ usbsprl \- Prolific PL2303 USB to serial converter driver
+ .SH SYNOPSIS
+-.LP
+ .nf
+ #include <fcntl.h>
+ .fi
+@@ -23,8 +22,6 @@ usbsprl@unit
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBusbsprl\fR driver is a loadable \fBSTREAMS\fR and \fBUSBA\fR  (Solaris
+ USB  architecture) compliant client driver that provides basic asynchronous
+ communication support for Prolific PL2303 USB-to-serial converters. Supported
+@@ -55,8 +52,6 @@ you can open a port without  the carrier detect signal being asserted, either
+ through hardware or an equivalent software mechanism. These devices are
+ commonly known as  'dial-out' lines.
+ .SH APPLICATION PROGRAMMING INTERFACE
+-.sp
+-.LP
+ A dial-in line can be opened only if the corresponding dial-out line is closed.
+ A blocking \fB/dev/term\fR open waits until the \fB/dev/cua\fR line is closed
+ (which drops Data Terminal Ready, after which Carrier Detect usually drops as
+@@ -74,8 +69,6 @@ enabling the line for login in \fB/etc/inittab\fR) or dial-out (by
+ Device hot-removal  is functionally equivalent to a modem disconnect event, as
+ defined in \fBtermio\fR(4I).
+ .SH IOCTLS
+-.sp
+-.LP
+ The  \fBusbsprl\fR driver supports the  standard set of \fBtermio\fR(4I) ioctl
+ calls.
+ .sp
+@@ -86,8 +79,6 @@ Input and output line speeds can be set to the following baud rates:  75, 150,
+ when the output speed is set, the input speed is automatically set to the same
+ speed.
+ .SH ERRORS
+-.sp
+-.LP
+ An \fBopen()\fR fails under the following conditions:
+ .sp
+ .ne 2
+@@ -129,7 +120,6 @@ USB device I/O error.
+ .RE
+ 
+ .SH FILES
+-.sp
+ .ne 2
+ .na
+ \fB\fB/kernel/drv/usbsprl\fR\fR
+@@ -180,8 +170,6 @@ dial-in tty lines.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -196,8 +184,6 @@ Architecture	SPARC, x86, PCI-based systems
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR strconf (1),
+ .BR tip (1),
+ .BR uucp (1C),
+@@ -211,8 +197,6 @@ Architecture	SPARC, x86, PCI-based systems
+ .BR attributes (7),
+ .BR autopush (8)
+ .SH DIAGNOSTICS
+-.sp
+-.LP
+ In addition to being logged, the following messages may appear on the system
+ console. All messages are formatted in the following manner:
+ .sp
+@@ -255,7 +239,7 @@ reconnect the original device to the same port.
+ .sp .6
+ .RS 4n
+ The device that was hot-removed from its USB port has been re-inserted again to
+-the same port. It is available for access but data from a  previou transfer may
++the same port. It is available for access but data from a  previous transfer may
+ be lost.
+ .RE
+ 
+diff --git a/usr/src/man/man4fs/dev.4fs b/usr/src/man/man4fs/dev.4fs
+index 08f9ecc902..3462411a7f 100644
+--- a/usr/src/man/man4fs/dev.4fs
++++ b/usr/src/man/man4fs/dev.4fs
+@@ -17,7 +17,7 @@
+ .\" fields enclosed by brackets "[]" replaced with your own identifying
+ .\" information: Portions Copyright [yyyy] [name of copyright owner]
+ .\"
+-.Dd November 29, 2021
++.Dd March 10, 2023
+ .Dt DEV 4FS
+ .Os
+ .Sh NAME
+@@ -31,7 +31,7 @@ The global zone's instance of the
+ .Nm
+ filesystem is mounted during boot on
+ .Pa /dev .
+-This filesystem is colloqiually called
++This filesystem is colloquially called
+ .Sq sdev
+ as a way to distinguish it from the
+ .Xr devfs 4FS
+diff --git a/usr/src/man/man4p/ip.4p b/usr/src/man/man4p/ip.4p
+index b88f4d9a5a..3ffd49494d 100644
+--- a/usr/src/man/man4p/ip.4p
++++ b/usr/src/man/man4p/ip.4p
+@@ -6,7 +6,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH IP 4P "Sep 18, 2020"
++.TH IP 4P "March 10, 2023"
+ .SH NAME
+ ip, IP \- Internet Protocol
+ .SH SYNOPSIS
+@@ -66,7 +66,7 @@ Options and IHL fields are set by use of \fBIP_OPTIONS\fR, and \fBTotal
+ Length\fR is updated to include any options. Version is set to the default.
+ Identification is chosen by the normal IP ID selection logic. The source
+ address is updated if none was specified and the TTL is changed if the packet
+-has a broadcast destination address. Since an applicaton cannot send down
++has a broadcast destination address. Since an application cannot send down
+ fragments (as IP assigns the IP ID), Fragment Offset is always 0. The IP
+ Checksum field is computed by IP. None of the data beyond the IP header are
+ changed, including the application-provided transport header.
+@@ -544,7 +544,7 @@ by IP back up to the user process.
+ .LP
+ Multi-Data Transmit allows more than one packet to be sent from the IP module
+ to another in a given call, thereby reducing the per-packet processing costs.
+-The behavior of Multi-Data Transmit can be overrideen by using \fBndd\fR(8) to
++The behavior of Multi-Data Transmit can be overridden by using \fBndd\fR(8) to
+ set the \fB/dev/ip\fR variable, ip_multidata_outbound to 0. Note, the IP module
+ will only initiate Multi-Data Transmit if the network interface driver supports
+ it.
+diff --git a/usr/src/man/man7/man.7 b/usr/src/man/man7/man.7
+index f68f37511c..d6c3d13ea9 100644
+--- a/usr/src/man/man7/man.7
++++ b/usr/src/man/man7/man.7
+@@ -4,7 +4,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.Dd "Feb 18, 2015"
++.Dd "March 10, 2023"
+ .Dt MAN 7
+ .Os
+ .Sh NAME
+@@ -73,14 +73,14 @@ Change to default type size.
+ * n.t.l. = next text line; p.i. = prevailing indent
+ .Bl -column ".TH n s d f m" "Cause " "t=n.t.l.*" "Explanation " -offset Ds
+ .It Sy Request	Sy Cause	Sy "If No"	Sy Explanation
+-.It ""	Sy Break 	Sy "Argument"	""
+-.It Nm \&.B Ar "t"	no 	Ar t Ns =n.t.l.*	Text is in bold font.
++.It ""	Sy Break	Sy "Argument"	""
++.It Nm \&.B Ar "t"	no	Ar t Ns =n.t.l.*	Text is in bold font.
+ .It Nm \&.BI Ar t	no	Ar t Ns =n.t.l.	Join words, alternating bold and italic.
+ .It Nm \&.BR Ar t	no	Ar t Ns =n.t.l.	Join words, alternating bold and roman.
+ .It Nm \&.DT	no	Li \&.5i 1i...	Restore default tabs.
+ .It Nm \&.HP Ar i	yes	Ar i Ns =p.i.*	"Begin paragraph with hanging indent. Set prevailing indent to" Ar i .
+ .It Nm \&.I Ar t	no	Ar t Ns =n.t.l.	Text is italic.
+-.It Nm \&.IB Ar t	no	Ar t Ns =n.t.l.	Join words, altenrating italic and bold.
++.It Nm \&.IB Ar t	no	Ar t Ns =n.t.l.	Join words, alternating italic and bold.
+ .It Nm \&.IP Ar x Ar i	yes	Ar x Ns =""	Same as
+ .Nm \&.TP
+ with tag
+diff --git a/usr/src/man/man8/beadm.8 b/usr/src/man/man8/beadm.8
+index be6efedd98..aed3a85615 100644
+--- a/usr/src/man/man8/beadm.8
++++ b/usr/src/man/man8/beadm.8
+@@ -2,7 +2,7 @@
+ .\" Copyright 2013 Nexenta Systems, Inc. All rights reserved.
+ .\" Copyright 2016 Toomas Soome <tsoome@me.com>
+ .\" Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
+-.TH BEADM 8 "Oct 20, 2021"
++.TH BEADM 8 "March 10, 2023"
+ .SH NAME
+ beadm \- utility for managing zfs boot environments
+ .SH SYNOPSIS
+@@ -489,7 +489,8 @@ Verbose mode. Displays verbose error messages from \fBbeadm\fR.
+ .ad
+ .sp .6
+ .RS 4n
+-Unmounts the boot environment named beName. The command can also be given a path to a
++Unmounts the boot environment named beName.
++The command can also be given a path to a
+ beName mount point on the system.
+ .sp
+ .ne 2
+@@ -762,8 +763,8 @@ BE5 NR     /          7.25G  static 2008-09-09 16:53
+ .sp
+ 
+ .LP
+-\fBExample 16\fR: List all existing boot environmets and list all dataset and
+-snapshot information about those bootenvironments.
++\fBExample 16\fR: List all existing boot environments and list all dataset and
++snapshot information about those boot environments.
+ 
+ .sp
+ .in +2
+diff --git a/usr/src/man/man8/connstat.8 b/usr/src/man/man8/connstat.8
+index 686f3c4648..2fd1f70e1d 100644
+--- a/usr/src/man/man8/connstat.8
++++ b/usr/src/man/man8/connstat.8
+@@ -15,7 +15,7 @@
+ .\"
+ .\" Copyright (c) 2016 by Delphix. All rights reserved.
+ .\"
+-.Dd July 5, 2016
++.Dd March 10, 2023
+ .Dt CONNSTAT 8
+ .Os
+ .Sh NAME
+@@ -97,7 +97,7 @@ The
+ .Fl o
+ flag must also be given to specify which fields to output and their order.
+ Each line of output will consist of comma-delimited (,) fields,
+-and no header will be emittted.
++and no header will be emitted.
+ When also using the
+ .Fl T
+ option, lines indicating the current time will begin with
+diff --git a/usr/src/man/man8/ipqosconf.8 b/usr/src/man/man8/ipqosconf.8
+index 5cb777f4d9..61cd449647 100644
+--- a/usr/src/man/man8/ipqosconf.8
++++ b/usr/src/man/man8/ipqosconf.8
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH IPQOSCONF 8 "Dec 18, 2008"
++.TH IPQOSCONF 8 "March 10, 2023"
+ .SH NAME
+ ipqosconf \- configure the IPQoS facility
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fB/usr/sbin/ipqosconf\fR
+ .fi
+@@ -38,8 +37,6 @@ ipqosconf \- configure the IPQoS facility
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBipqosconf\fR utility configures the Quality of Service facility of the
+ Internet Protocol (\fBIP\fR). Only superusers can use this command.
+ .sp
+@@ -53,8 +50,6 @@ every time that the machine reboots. To apply the configuration early in the
+ boot phase, you can populate the \fB/etc/inet/ipqosinit.conf\fR file, which is
+ then read from the \fBsvc:/network/initial:default\fR service.
+ .SH OPTIONS
+-.sp
+-.LP
+ The following options are supported:
+ .sp
+ .ne 2
+@@ -132,14 +127,10 @@ as well as the console.
+ .RE
+ 
+ .SH CONFIGURATION FILE
+-.sp
+-.LP
+ The configuration file is composed of a format version and a succession of
+ configuration (action) blocks. There are different configuration blocks for
+ each type of action that is being configured.
+ .SS "Format Version"
+-.sp
+-.LP
+ The first line of the configuration file specifies the format version contained
+ in the configuration file.
+ .sp
+@@ -157,8 +148,6 @@ fmt_version \fIx\fR.\fIx\fR
+ where \fIx\fR.\fIx\fR is the format version. \fB1.0\fR is the only supported
+ version.
+ .SS "Configuration Blocks"
+-.sp
+-.LP
+ Following the format version, are a succession of configuration (action) blocks
+ that are different for each type of action being configured. A configuration
+ block always has the following structure:
+@@ -189,8 +178,6 @@ prm_name_value   ::= \fIparam_name\fR \fIparam_value\fR
+ .sp
+ 
+ .SS "Modules"
+-.sp
+-.LP
+ The \fIparam_name\fR and the types of \fIparam_value\fR are specific to a given
+ module.
+ .sp
+@@ -384,7 +371,6 @@ max_limit        uint32
+ .sp
+ 
+ .SS "Types"
+-.sp
+ .ne 2
+ .na
+ \fB\fIaction\fR\fR
+@@ -505,8 +491,6 @@ Either a valid user ID or username for the system that is being configured.
+ .RE
+ 
+ .SS "Parameters"
+-.sp
+-.LP
+ The configuration file can contain the following parameters
+ .sp
+ .ne 2
+@@ -676,7 +660,7 @@ parameter is of type \fBifname\fR.
+ This parameter is of type \fBenum\fR and has valid values of \fBV4\fR and
+ \fBV6\fR.
+ .sp
+-If it is set to \fBV4\fR only then only \fBipv4\fRaddresses are requested for a
++If it is set to \fBV4\fR only then only \fBipv4\fR addresses are requested for a
+ specified hostname. If it is set to \fBV6\fR, only \fBipv6\fR addresses are
+ returned if there are any, otherwise \fBv4\fR mapped \fBv6\fR addresses are
+ returned. If both \fBV4\fR and \fBV6\fR are specified, or if \fBip_version\fR
+@@ -842,11 +826,8 @@ The action to be executed for packets that are determined to be yellow.
+ .RE
+ 
+ .SH SECURITY
+-.sp
+-.LP
+ None.
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRSending All Traffic From eng to the AF 1 Class of Service
+ .sp
+ .LP
+@@ -972,7 +953,6 @@ action {
+ .sp
+ 
+ .SH FILES
+-.sp
+ .ne 2
+ .na
+ \fB\fB/etc/inet/ipqosinit.conf\fR\fR
+@@ -1015,8 +995,6 @@ given user priority
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -1031,8 +1009,6 @@ Interface Stability	Evolving
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR syslog (3C),
+ .BR getipnodebyname (3SOCKET),
+ .BR getprotobyname (3SOCKET),
+@@ -1046,8 +1022,6 @@ Interface Stability	Evolving
+ .BR tswtclmt (4IPP),
+ .BR attributes (7)
+ .SH DIAGNOSTICS
+-.sp
+-.LP
+ \fBipqosconf\fR sends messages to \fBsyslog\fR of facility user, severity
+ notice when any changes are made to the \fBIPQoS\fR configuration.
+ .sp
+@@ -1056,5 +1030,5 @@ Errors that occur during an \fBipqosconf\fR operation send an error message to
+ the console by default. For the application of a new configuration if the
+ \fB-s\fR option is set then these messages are sent to \fBsyslog\fR as facility
+ user, severity error instead. If the \fB-v\fR option is present during an
+-application then all error and change notificationmessages are sent to the
++application then all error and change notification messages are sent to the
+ console as well as their default destination.
+diff --git a/usr/src/man/man8/vscanadm.8 b/usr/src/man/man8/vscanadm.8
+index d9f0fee10f..c06c19233c 100644
+--- a/usr/src/man/man8/vscanadm.8
++++ b/usr/src/man/man8/vscanadm.8
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License"). You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing. See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE. If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH VSCANADM 8 "Jul 7, 2009"
++.TH VSCANADM 8 "March 10, 2023"
+ .SH NAME
+ vscanadm \- vscan service configuration utility
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBvscanadm\fR \fBset\fR \fB-p\fR \fIproperty\fR=\fIvalue\fR [\fB-p\fR \fIproperty\fR=\fIvalue\fR]...
+ .fi
+@@ -63,8 +62,6 @@ vscanadm \- vscan service configuration utility
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBvscanadm\fR command sets and displays properties of the \fBvscan\fR
+ service, \fBvscand\fR(8), and provides scan statistics.
+ .sp
+@@ -87,8 +84,6 @@ The \fBvscan\fR service properties are divided into two categories: scan engine
+ properties, which are specific to a scan engine definition, and general
+ properties, which apply to the service and are not scan engine-specific.
+ .SH SUBCOMMANDS
+-.sp
+-.LP
+ \fBvscanadm\fR recognizes the following subcommands:
+ .sp
+ .ne 2
+@@ -238,10 +233,10 @@ The following properties are available for the \fBvscanadm import\fR,
+ A comma-separated list of file type extension matching rules. This list defines
+ which types of files are scanned and which should be excluded during virus
+ scanning. Each rule comprises the rule indicator [+|-], followed by a file type
+-\fIexpresssion\fR against which a file's type extension is compared. The file
+-type \fIexpresssion\fR is case insensitive and may include the "*" and "?"
++\fIexpression\fR against which a file's type extension is compared. The file
++type \fIexpression\fR is case insensitive and may include the "*" and "?"
+ wildcards. There should be no whitespace between the rule indicator and the
+-file type \fIexpresssion\fR. If a comma is included within the file type
++file type \fIexpression\fR. If a comma is included within the file type
+ expression, it must be escaped using a "\e" (backslash). A file type extension
+ does not include its preceding dot.
+ .sp
+@@ -439,7 +434,6 @@ Resets \fBvscan\fR service statistics counters to zero
+ .RE
+ 
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRSetting the Maximum Size Limit
+ .sp
+ .LP
+@@ -581,8 +575,6 @@ enter
+ .sp
+ 
+ .SH EXIT STATUS
+-.sp
+-.LP
+ The following exit values are returned:
+ .sp
+ .ne 2
+@@ -603,8 +595,6 @@ An error occurred.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -621,15 +611,11 @@ Utility output format	Not-An-Interface
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR attributes (7),
+ .BR smf (7),
+ .BR vscand (8),
+ .BR zfs (8)
+ .SH NOTES
+-.sp
+-.LP
+ All users are permitted to use \fBvscanadm\fR to view \fBvscan\fR properties
+ and statistics. To set property values or reset statistics, the following
+ authorizations are required:
+diff --git a/usr/src/man/man9f/ddi_dma_cookie_iter.9f b/usr/src/man/man9f/ddi_dma_cookie_iter.9f
+index 5f10d4fcf2..1fc45e4cf6 100644
+--- a/usr/src/man/man9f/ddi_dma_cookie_iter.9f
++++ b/usr/src/man/man9f/ddi_dma_cookie_iter.9f
+@@ -11,7 +11,7 @@
+ .\"
+ .\" Copyright 2019 Robert Mustacchi
+ .\"
+-.Dd December 9, 2019
++.Dd March 10, 2023
+ .Dt DDI_DMA_COOKIE_ITER 9F
+ .Os
+ .Sh NAME
+@@ -119,7 +119,7 @@ The
+ .Ft ddi_dma_cookie_one
+ function is a convenience function for DMA requests that have a single
+ cookie.
+-This function always returns the single cookie assosciated with the DMA
++This function always returns the single cookie associated with the DMA
+ handle
+ .Fa handle .
+ If this function is used when there is a DMA request with multiple
+@@ -179,7 +179,7 @@ Upon successful completion, the
+ .Fn ddi_dma_cookie_one
+ functions will return the requested DMA cookie.
+ If there are no more cookies, or
+-.Fa coookiep
++.Fa cookiep
+ is invalid, the
+ .Fn ddi_dma_cookie_iter
+ function will return
+@@ -263,7 +263,7 @@ bind_dma(ddi_dma_handle_t handle, void *addr, size_t len)
+ 	for (i = 0; i < ncookies; i++) {
+ 		const ddi_dma_cookie_t *cookie;
+ 
+-		cookie = ddi_dma_coookie_get(handle, i);
++		cookie = ddi_dma_cookie_get(handle, i);
+ 		/*
+ 		 * Use the dmac_laddress and dmac_size members to
+ 		 * properly program the device or descriptor rings.
+-- 
+2.43.0
+

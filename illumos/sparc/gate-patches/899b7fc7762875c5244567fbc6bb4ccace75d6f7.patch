@@ -1,0 +1,483 @@
+From 899b7fc7762875c5244567fbc6bb4ccace75d6f7 Mon Sep 17 00:00:00 2001
+From: Peter Tribble <peter.tribble@gmail.com>
+Date: Tue, 29 Mar 2022 16:14:48 +0100
+Subject: [PATCH] 12315 errors in section 4i of the manual Reviewed by: Richard
+ Lowe <richlowe@richlowe.net> Reviewed by: Andy Fiddaman <andy@omnios.org>
+ Approved by: Robert Mustacchi <rm@fingolfin.org>
+
+---
+ usr/src/man/man4i/dkio.4i      |  6 +++---
+ usr/src/man/man4i/fbio.4i      |  5 ++---
+ usr/src/man/man4i/fdio.4i      |  4 ++--
+ usr/src/man/man4i/ipnat.4i     |  6 +++---
+ usr/src/man/man4i/mhd.4i       |  4 ++--
+ usr/src/man/man4i/mixer.4i     |  6 +++---
+ usr/src/man/man4i/mtio.4i      |  8 ++++----
+ usr/src/man/man4i/sesio.4i     |  7 ++++---
+ usr/src/man/man4i/streamio.4i  | 24 ++++++++++++------------
+ usr/src/man/man4i/termio.4i    |  6 +++---
+ usr/src/man/man4i/uscsi.4i     |  4 ++--
+ usr/src/man/man4i/visual_io.4i | 15 +++++----------
+ usr/src/man/man4i/vt.4i        |  5 +++--
+ 13 files changed, 48 insertions(+), 52 deletions(-)
+
+diff --git a/usr/src/man/man4i/dkio.4i b/usr/src/man/man4i/dkio.4i
+index 05f1e48bee..89d8204e03 100644
+--- a/usr/src/man/man4i/dkio.4i
++++ b/usr/src/man/man4i/dkio.4i
+@@ -19,7 +19,7 @@
+ .\" Copyright 2016 Nexenta Systems, Inc.
+ .\" Copyright (c) 2017, Joyent, Inc.
+ .\"
+-.Dd October 23, 2017
++.Dd March 13, 2022
+ .Dt DKIO 4I
+ .Os
+ .Sh NAME
+@@ -47,7 +47,7 @@ controller, partitions, or geometry information on all architectures:
+ The argument is a pointer to a
+ .Vt dk_cinfo
+ structure (described below).
+-This structure tells the controller-type and attributes regarding bad-block
++This structure contains the controller-type and attributes regarding bad-block
+ processing done on the controller.
+ .Bd -literal -offset 2n
+ /*
+@@ -809,7 +809,7 @@ On disks larger than 1TB, this ioctl must be used instead of
+  * Used by applications to get partition or slice information
+  */
+ struct extpart_info {
+-    diskkaddr_t      p_start;
++    diskaddr_t       p_start;
+     diskaddr_t       p_length;
+ };
+ .Ed
+diff --git a/usr/src/man/man4i/fbio.4i b/usr/src/man/man4i/fbio.4i
+index e05c3ee787..ee02fd1cad 100644
+--- a/usr/src/man/man4i/fbio.4i
++++ b/usr/src/man/man4i/fbio.4i
+@@ -14,7 +14,7 @@
+ .\" If applicable, add the following below this CDDL HEADER, with the fields
+ .\" enclosed by brackets "[]" replaced with your own identifying
+ .\" information: Portions Copyright [yyyy] [name of copyright owner]
+-.Dd October 22, 2017
++.Dd March 13, 2022
+ .Dt FBIO 4I
+ .Os
+ .Sh NAME
+@@ -137,8 +137,7 @@ are used to transfer
+ variable-length, device-specific information into and out of framebuffers.
+ .Sh SEE ALSO
+ .Xr ioctl 2 ,
+-.Xr mmap 2 ,
+-.Xr cgsix 4D
++.Xr mmap 2
+ .Sh BUGS
+ The
+ .Dv FBIOSATTR
+diff --git a/usr/src/man/man4i/fdio.4i b/usr/src/man/man4i/fdio.4i
+index a3f01b1021..99ffb147b6 100644
+--- a/usr/src/man/man4i/fdio.4i
++++ b/usr/src/man/man4i/fdio.4i
+@@ -14,7 +14,7 @@
+ .\" If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying
+ .\" information: Portions Copyright [yyyy] [name of copyright owner]
+-.Dd October 22, 2017
++.Dd March 13, 2022
+ .Dt FDIO 4I
+ .Os
+ .Sh NAME
+@@ -147,7 +147,7 @@ struct fd_drive {
+     int	fdd_ejectable;    /* does the drive support eject? */
+     int	fdd_maxsearch;    /* size of per-unit search table */
+     int	fdd_writeprecomp; /* cyl to start write precompensation */
+-    int	fdd_writereduce;  /* cyl to start recucing write current */
++    int	fdd_writereduce;  /* cyl to start reducing write current */
+     int	fdd_stepwidth;    /* width of step pulse in 1 us units */
+     int	fdd_steprate;     /* step rate in 100 us units */
+     int	fdd_headsettle;   /* delay, in 100 us units */
+diff --git a/usr/src/man/man4i/ipnat.4i b/usr/src/man/man4i/ipnat.4i
+index 1df2b96e2d..d986ec0ea3 100644
+--- a/usr/src/man/man4i/ipnat.4i
++++ b/usr/src/man/man4i/ipnat.4i
+@@ -14,7 +14,7 @@
+ .\" If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying
+ .\" information: Portions Copyright [yyyy] [name of copyright owner]
+-.Dd October 23, 2017
++.Dd March 13, 2022
+ .Dt IPNAT 4I
+ .Os
+ .Sh NAME
+@@ -23,7 +23,7 @@
+ .Sh DESCRIPTION
+ The
+ .Sy ipnat
+-device provides interfaction with the NAT features of the Solaris IPFilter.
++device provides interaction with the NAT features of the Solaris IPFilter.
+ .Sh APPLICATION PROGRAMMING INTERFACE
+ The NAT features programming model is a component of the Solaris IP Filter and
+ is accessed via the NAT device file
+@@ -421,7 +421,7 @@ before setting the
+ flag and providing a pointer in the
+ .Fa nat_fr
+ field that cannot  be found in the current rule set.
+-.It Er EACESS
++.It Er EACCES
+ The calling process issued a
+ .Dv SIOCSTPUT
+ before issuing a
+diff --git a/usr/src/man/man4i/mhd.4i b/usr/src/man/man4i/mhd.4i
+index 735e69982e..b19e3fc79c 100644
+--- a/usr/src/man/man4i/mhd.4i
++++ b/usr/src/man/man4i/mhd.4i
+@@ -14,7 +14,7 @@
+ .\" If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying
+ .\" information: Portions Copyright [yyyy] [name of copyright owner]
+-.Dd October 23, 2017
++.Dd March 13, 2022
+ .Dt MHD 4I
+ .Os
+ .Sh NAME
+@@ -61,7 +61,7 @@ caller must first obtain the open file descriptor.
+ Non-shared multihost disks ioctls consist of
+ .Dv MHIOCTKOWN ,
+ .Dv MHIOCRELEASE ,
+-.Dv HIOCSTATUS ,
++.Dv MHIOCSTATUS ,
+ and
+ .Dv MHIOCQRESERVE .
+ These ioctl requests control the access rights of non-shared multihost disks.
+diff --git a/usr/src/man/man4i/mixer.4i b/usr/src/man/man4i/mixer.4i
+index 6d4487796b..43ffa03ef0 100644
+--- a/usr/src/man/man4i/mixer.4i
++++ b/usr/src/man/man4i/mixer.4i
+@@ -14,7 +14,7 @@
+ .\" If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying
+ .\" information: Portions Copyright [yyyy] [name of copyright owner]
+-.Dd February 1, 2019
++.Dd March 13, 2022
+ .Dt MIXER 4I
+ .Os
+ .Sh NAME
+@@ -438,10 +438,10 @@ should open this file to access the mixer settings.
+ The pseudo
+ .Pa /dev/mixer
+ device supports ioctls that can change the
+-oarious settings for the audio hardware in the system.
++various settings for the audio hardware in the system.
+ .Pp
+ Those ioctls should only be used by dedicated mixer applications or desktop
+-olumme controls, and not by typical ordinary audio applications such as media
++volume controls, and not by typical ordinary audio applications such as media
+ players.
+ Ordinary applications that wish to adjust their own volume settings
+ should use the
+diff --git a/usr/src/man/man4i/mtio.4i b/usr/src/man/man4i/mtio.4i
+index 93db7028c7..5f0b0ddbb0 100644
+--- a/usr/src/man/man4i/mtio.4i
++++ b/usr/src/man/man4i/mtio.4i
+@@ -14,7 +14,7 @@
+ .\" If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying
+ .\" information: Portions Copyright [yyyy] [name of copyright owner]
+-.Dd August 28, 2021
++.Dd March 13, 2022
+ .Dt MTIO 4I
+ .Os
+ .Sh NAME
+@@ -201,7 +201,7 @@ errors until the
+ ioctl is issued.
+ An
+ .Dv MTFSF
+-ioctl can then he issued.
++ioctl can then be issued.
+ .Pp
+ Two successful successive reads that both return zero byte counts indicate
+ .Sy EOM
+@@ -284,7 +284,7 @@ issued, two records are written; one for 65,534 bytes followed by another
+ record for 6 bytes.
+ Newer variable-length tape drivers may relax the above
+ limitation and allow applications to write record sizes larger than 65,534.
+-effer to the specific tape driver man page for details.
++Refer to the specific tape driver man page for details.
+ .Pp
+ When logical
+ .Sy EOT
+@@ -840,7 +840,7 @@ Note \(em When tape alert cleaning is managed by the st driver, the tape
+ target driver may continue to return a
+ .Dq drive needs cleaning
+ status unless an
+-.Dv MTIOCGE
++.Dv MTIOCGET
+ .Xr ioctl 2
+ call is made while the cleaning media is in the drive.
+ .Pp
+diff --git a/usr/src/man/man4i/sesio.4i b/usr/src/man/man4i/sesio.4i
+index 94d12dd64d..c92e4c34a9 100644
+--- a/usr/src/man/man4i/sesio.4i
++++ b/usr/src/man/man4i/sesio.4i
+@@ -14,7 +14,7 @@
+ .\" If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying
+ .\" information: Portions Copyright [yyyy] [name of copyright owner]
+-.Dd October 23, 2017
++.Dd March 13, 2022
+ .Dt SESIO 4I
+ .Os
+ .Sh NAME
+@@ -90,6 +90,7 @@ uint8_t  reserved[3];    /* Reserved; Set to 0 */
+ .Ed
+ .Sh ARCHITECTURE
+ SPARC
++X86
+ .Sh SEE ALSO
+-.Xr ses 4D ,
+-.Xr ioctl 9E
++.Xr ioctl 2 ,
++.Xr ses 4D
+diff --git a/usr/src/man/man4i/streamio.4i b/usr/src/man/man4i/streamio.4i
+index 4e99ba3dfe..8dbaeba2fc 100644
+--- a/usr/src/man/man4i/streamio.4i
++++ b/usr/src/man/man4i/streamio.4i
+@@ -15,7 +15,7 @@
+ .\" If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying
+ .\" information: Portions Copyright [yyyy] [name of copyright owner]
+-.Dd October 29, 2017
++.Dd March 13, 2022
+ .Dt STREAMIO 4I
+ .Os
+ .Sh NAME
+@@ -357,14 +357,14 @@ On failure,
+ .Va errno
+ is set to one of the following values:
+ .Bl -tag -width EINVAL
+-.It Sy EINVAL
++.It Er EINVAL
+ .Fa arg
+ value is invalid or
+ .Fa arg
+ is zero and process is not registered to receive the
+ .Dv SIGPOLL
+ signal.
+-.It Sy EAGAIN
++.It Er EAGAIN
+ Allocation of a data structure to store the signal request failed.
+ .El
+ .It Dv I_GETSIG
+@@ -381,11 +381,11 @@ On failure,
+ .Va errno
+ is set to one of the following values:
+ .Bl -tag -width EINVAL
+-.It Sy EINVAL
++.It Er EINVAL
+ Process not registered to receive the
+ .Dv SIGPOLL
+ signal.
+-.It Sy EFAULT
++.It Er EFAULT
+ .Fa arg
+ points outside the allocated address space.
+ .El
+@@ -399,10 +399,10 @@ On failure,
+ .Va errno
+ is set to one of the following values:
+ .Bl -tag -width EINVAL
+-.It Sy EFAULT
++.It Er EFAULT
+ .Fa arg
+ points outside the allocated address space.
+-.It Sy EINVAL
++.It Er EINVAL
+ .Fa arg
+ does not contain a valid module name.
+ .El
+@@ -807,7 +807,7 @@ calls
+ will block until the active
+ .Dv I_STR
+ completes via a positive or negative
+-acknowlegment, a timeout, or an error condition at the stream head.
++acknowledgement, a timeout, or an error condition at the stream head.
+ By setting the
+ .Fa ic_timout
+ field to 0, the user is requesting STREAMS to provide
+@@ -897,7 +897,7 @@ On failure,
+ .Va errno
+ may be set to the following value:
+ .Bl -tag -width EINVAL
+-.It Sy EINVAL
++.It Er EINVAL
+ .Fa arg
+ is not the above legal value.
+ .El
+@@ -1168,7 +1168,7 @@ On failure,
+ .Va errno
+ is set to the following value:
+ .Bl -tag -width EINVAL
+-.It Sy EINVAL
++.It Er EINVAL
+ Invalid
+ .Va arg
+ value.
+@@ -1259,7 +1259,7 @@ On failure,
+ .Va errno
+ is set to the following value:
+ .Bl -tag -width EFAULT
+-.It Sy EFAULT
++.It Er EFAULT
+ .Fa arg
+ points outside the allocated address space.
+ .El
+@@ -1495,7 +1495,7 @@ On failure,
+ .Va errno
+ is set to one of the following values:
+ .Bl -tag -width EAGAIN
+-.It Sy ENXIO
++.It Er ENXIO
+ Hangup received on
+ .Fa fildes .
+ .It Er ETIME
+diff --git a/usr/src/man/man4i/termio.4i b/usr/src/man/man4i/termio.4i
+index c30fdd5262..c7dcba468a 100644
+--- a/usr/src/man/man4i/termio.4i
++++ b/usr/src/man/man4i/termio.4i
+@@ -15,7 +15,7 @@
+ .\" If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying
+ .\" information: Portions Copyright [yyyy] [name of copyright owner]
+-.Dd August 13, 2021
++.Dd March 13, 2022
+ .Dt TERMIO 4I
+ .Os
+ .Sh NAME
+@@ -233,7 +233,7 @@ Reprinting also occurs automatically if
+ characters that would normally be erased from the screen are fouled by program
+ output.
+ The characters are reprinted as if they were being echoed;
+-consequencely, if
++consequently, if
+ .Dv ECHO
+ is not set, they are not printed.
+ .Pp
+@@ -407,7 +407,7 @@ example, file transfer programs), where a program would like to process at
+ least
+ .Sy MIN
+ characters at a time.
+-In case A, the inteercharacter timer is
++In case A, the intercharacter timer is
+ activated by a user as a safety measure; in case B, the timer is turned off.
+ .Pp
+ Cases C and D exist to handle single character, timed transfers.
+diff --git a/usr/src/man/man4i/uscsi.4i b/usr/src/man/man4i/uscsi.4i
+index bd8b384c9b..b3e53cd04e 100644
+--- a/usr/src/man/man4i/uscsi.4i
++++ b/usr/src/man/man4i/uscsi.4i
+@@ -14,7 +14,7 @@
+ .\" If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying
+ .\" information: Portions Copyright [yyyy] [name of copyright owner]
+-.Dd October 23, 2017
++.Dd March 13, 2022
+ .Dt USCSI 4I
+ .Os
+ .Sh NAME
+@@ -251,7 +251,7 @@ must point to memory writable by the application.
+ .It Dv USCSI_RENEGOT
+ Tells USCSI to renegotiate wide mode and synchronous transfer speed before the
+ transmitted SCSI command is executed.
+-This flag in effects tells the target driver to pass the
++This flag in effect tells the target driver to pass the
+ .Dv FLAG_RENEGOTIATE_WIDE_SYNC
+ flag in the SCSI packet
+ before passing the command to an adapter driver for transport.
+diff --git a/usr/src/man/man4i/visual_io.4i b/usr/src/man/man4i/visual_io.4i
+index 91975c625c..76a3c4c4d5 100644
+--- a/usr/src/man/man4i/visual_io.4i
++++ b/usr/src/man/man4i/visual_io.4i
+@@ -14,7 +14,7 @@
+ .\" If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying
+ .\" information: Portions Copyright [yyyy] [name of copyright owner]
+-.Dd August 31, 2018
++.Dd March 13, 2022
+ .Dt VISUAL_IO 4I
+ .Os
+ .Sh NAME
+@@ -51,7 +51,7 @@ standalone mode (for example, when using a stand-alone debugger, entering
+ the PROM monitor, or when the system panicking).
+ These are also known as
+ .Dq Polled I/O
+-entry points, which operate under an an explicit set of restrictions, described below.
++entry points, which operate under an explicit set of restrictions, described below.
+ .Sh IOCTLS
+ .Bl -tag -width VIS_GETIDENTIFIER -compact
+ .It Dv VIS_GETIDENTIFIER
+@@ -62,11 +62,6 @@ used in the illumos VISUAL environment.
+ This is a mandatory ioctl and must return a unique string.
+ We suggest that the name be formed as
+ .Ao companysymbol Ac Ns Ao devicetype Ac .
+-For example, the
+-.Xr cgsix 4D
+-driver
+-returns
+-.Sy SUNWcg6 .
+ .Pp
+ .Dv VIS_GETIDENTIFIER
+ takes a
+@@ -105,7 +100,7 @@ struct vis_cursorcmap {
+ #define VIS_CURSOR_SETCURSOR   0x01  /* set cursor */
+         /* set cursor position */
+ #define VIS_CURSOR_SETPOSITION 0x02
+-        /* set cursur hot spot */
++        /* set cursor hot spot */
+ #define VIS_CURSOR_SETHOTSPOT  0x04
+         /* set cursor colormap */
+ #define VIS_CURSOR_SETCOLORMAP 0x08
+@@ -609,7 +604,7 @@ ioctl was set to
+ and
+ .Fa t_col
+ are defined to be pixel offsets from the starting position of the
+-onssole device.
++console device.
+ .Pp
+ .Fa direction
+ specifies which way to do the copy.
+@@ -684,7 +679,7 @@ addition to performing the prescribed function of their ioctl counterparts, the
+ standalone vectors operate in a special context and must adhere to a strict set
+ of rules.
+ The polled I/O vectors are called directly whenever the system is
+-quisced (running in a limited context) and must send output to the display.
++quiesced (running in a limited context) and must send output to the display.
+ Standalone mode describes the state in which the system is running in
+ single-threaded mode and only one processor is active.
+ illumos operating
+diff --git a/usr/src/man/man4i/vt.4i b/usr/src/man/man4i/vt.4i
+index 0684aa44ff..747e30cb1f 100644
+--- a/usr/src/man/man4i/vt.4i
++++ b/usr/src/man/man4i/vt.4i
+@@ -14,7 +14,7 @@
+ .\" If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying
+ .\" information: Portions Copyright [yyyy] [name of copyright owner]
+-.Dd December 28, 2020
++.Dd March 13, 2022
+ .Dt VT 4I
+ .Os
+ .Sh NAME
+@@ -319,7 +319,8 @@ online         17:49:11 svc:/system/console-login:vt6
+ .Sy console-login:default
+ is for the system console, others for virtual consoles.
+ .Pp
+-You can modify properties/disable/enable and remove/add virtual consoles using
++You can modify properties of, disable/enable, and remove/add virtual consoles
++using
+ .Xr smf 7 :
+ .Bd -literal -offset indent
+ # svccfg -s console-login add vt8
+-- 
+2.42.0
+

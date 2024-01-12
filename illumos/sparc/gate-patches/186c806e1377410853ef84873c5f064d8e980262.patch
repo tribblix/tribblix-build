@@ -1,0 +1,55 @@
+From 186c806e1377410853ef84873c5f064d8e980262 Mon Sep 17 00:00:00 2001
+From: Robert Mustacchi <rm@fingolfin.org>
+Date: Mon, 17 Jan 2022 00:14:47 +0000
+Subject: [PATCH] 10565 man -w segfaults on .IX macro Reviewed by: Rich Lowe
+ <richlowe@richlowe.net> Reviewed by: Yuri Pankov <ypankov@tintri.com>
+ Approved by: Dan McDonald <danmcd@joyent.com>
+
+---
+ usr/src/cmd/man/makewhatis.c | 15 ++++++++++-----
+ 1 file changed, 10 insertions(+), 5 deletions(-)
+
+diff --git a/usr/src/cmd/man/makewhatis.c b/usr/src/cmd/man/makewhatis.c
+index c5428e4633..6702e49a99 100644
+--- a/usr/src/cmd/man/makewhatis.c
++++ b/usr/src/cmd/man/makewhatis.c
+@@ -29,6 +29,7 @@
+ /*
+  * Copyright 2012 Nexenta Systems, Inc. All rights reserved.
+  * Copyright 2014 Garrett D'Amore <garrett@damore.org>
++ * Copyright 2022 Oxide Computer Company
+  */
+ 
+ #include <sys/types.h>
+@@ -651,19 +652,23 @@ process_page(struct page_info *page, char *section_dir)
+ 				state = STATE_MDOCNAME;
+ 			continue;
+ 		/* Inside an old-style .SH NAME section */
+-		case STATE_MANSTYLE:
++		case STATE_MANSTYLE: {
++			char *altline;
++
+ 			if (strncmp(line, ".SH", 3) == 0 ||
+ 			    strncmp(line, ".SS", 3) == 0)
+ 				break;
+ 			(void) trim_rhs(line);
+ 			if (strcmp(line, ".") == 0)
+ 				continue;
+-			if (strncmp(line, ".IX", 3) == 0) {
+-				line += 3;
+-				line = skip_spaces(line);
++			altline = line;
++			if (strncmp(altline, ".IX", 3) == 0) {
++				altline += 3;
++				altline = skip_spaces(altline);
+ 			}
+-			process_man_line(line);
++			process_man_line(altline);
+ 			continue;
++		}
+ 		/* Inside a new-style .Sh NAME section (the .Nm part) */
+ 		case STATE_MDOCNAME:
+ 			(void) trim_rhs(line);
+-- 
+2.40.1
+

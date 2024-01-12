@@ -1,0 +1,129 @@
+From ffe0b5fa2f11b603291b4b98b4f727bc8c8dbd9c Mon Sep 17 00:00:00 2001
+From: Sebastian Wiedenroth <wiedi@frubar.net>
+Date: Tue, 15 Oct 2019 23:04:32 +0200
+Subject: [PATCH] 14298 snoop could know more DNS resource record types
+ Reviewed by: Jason King <jason.brian.king+illumos@gmail.com> Reviewed by:
+ Yuri Pankov <ypankov@tintri.com> Reviewed by: Peter Tribble
+ <peter.tribble@gmail.com> Reviewed by: C Fraire <cfraire@me.com> Approved by:
+ Dan McDonald <danmcd@joyent.com>
+
+---
+ .../cmd/cmd-inet/usr.sbin/snoop/snoop_dns.c   | 46 ++++++++++++++++---
+ usr/src/head/arpa/nameser.h                   |  7 +++
+ 2 files changed, 46 insertions(+), 7 deletions(-)
+
+diff --git a/usr/src/cmd/cmd-inet/usr.sbin/snoop/snoop_dns.c b/usr/src/cmd/cmd-inet/usr.sbin/snoop/snoop_dns.c
+index 309d24a429..e221e090b3 100644
+--- a/usr/src/cmd/cmd-inet/usr.sbin/snoop/snoop_dns.c
++++ b/usr/src/cmd/cmd-inet/usr.sbin/snoop/snoop_dns.c
+@@ -23,8 +23,6 @@
+  * Use is subject to license terms.
+  */
+ 
+-#pragma ident	"%Z%%M%	%I%	%E% SMI"
+-
+ #include <stdio.h>
+ #include <string.h>
+ #include <limits.h>
+@@ -273,7 +271,7 @@ dns_type_string(uint_t type, int detail)
+ {
+ 	static char buffer[64];
+ 	switch (type) {
+-	case ns_t_a:	return (detail ? "Address" : "Addr");
++	case ns_t_a:	return (detail ? "Address" : "A");
+ 	case ns_t_ns:	return (detail ? "Authoritative Name Server" : "NS");
+ 	case ns_t_cname:	return (detail ? "Canonical Name" : "CNAME");
+ 	case ns_t_soa:	return (detail ? "Start Of a zone Authority" : "SOA");
+@@ -289,7 +287,41 @@ dns_type_string(uint_t type, int detail)
+ 	case ns_t_mx:	return (detail ? "Mail Exchange" : "MX");
+ 	case ns_t_txt:	return (detail ? "Text strings" : "TXT");
+ 	case ns_t_aaaa:	return (detail ? "IPv6 Address" : "AAAA");
++	case ns_t_loc:	return (detail ? "Location Information" : "LOC");
++	case ns_t_srv:	return (detail ? "Server Selection" : "SRV");
++	case ns_t_naptr:
++		return (detail ? "Naming Authority Pointer" : "NAPTR");
+ 	case ns_t_opt:	return (detail ? "EDNS0 option" : "OPT");
++	case ns_t_cert:	return (detail ? "Certificate record" : "CERT");
++	case ns_t_sshfp:
++		return (detail ? "SSH Fingerprint" : "SSHFP");
++	case ns_t_ipseckey:
++		return (detail ? "IPsec Key" : "IPSECKEY");
++	case ns_t_rrsig:
++		return (detail ? "DNSSEC signature" : "RRSIG");
++	case ns_t_nsec:	return (detail ? "Next Secure record" : "NSEC");
++	case ns_t_dnskey:
++		return (detail ? "DNS Key record" : "DNSKEY");
++	case ns_t_dhcid:
++		return (detail ? "DHCP identifier" : "DHCID");
++	case ns_t_nsec3:
++		return (detail ? "NSEC3 record" : "NSEC3");
++	case ns_t_nsec3param:
++		return (detail ? "NSEC3 parameter" : "NSEC3PARAM");
++	case ns_t_tlsa:
++		return (detail ? "TLSA certificate association" : "TLSA");
++	case ns_t_smimea:
++		return (detail ? "S/MIME cert association" : "SMIMEA");
++	case ns_t_hip:	return (detail ? "Host Identity record" : "HIP");
++	case ns_t_cds:	return (detail ? "Child DS" : "CDS");
++	case ns_t_cdnskey:
++		return (detail ? "Child copy of DNSKEY record" : "CDNSKEY");
++	case ns_t_openpgpkey:
++		return (detail ? "OpenPGP public key record" : "OPENPGPKEY");
++	case ns_t_csync:
++		return (detail ? "Child-to-Parent Synchronization" : "CSYNC");
++	case ns_t_caa:
++		return (detail ? "Certification Authority Restriction" : "CAA");
+ 	case ns_t_axfr:	return (detail ? "Transfer of entire zone" : "AXFR");
+ 	case ns_t_mailb:
+ 		return (detail ? "Mailbox related records" : "MAILB");
+@@ -306,8 +338,8 @@ dns_class_string(uint_t cls, int detail)
+ {
+ 	static char buffer[64];
+ 	switch (cls) {
+-	case ns_c_in:		return (detail ? "Internet" : "Internet");
+-	case ns_c_chaos: 	return (detail ? "CHAOS" : "CH");
++	case ns_c_in:		return (detail ? "Internet" : "IN");
++	case ns_c_chaos:	return (detail ? "CHAOS" : "CH");
+ 	case ns_c_hs:		return (detail ? "Hesiod" : "HS");
+ 	case ns_c_any:		return (detail ? "* (Any class)" : "*");
+ 	default:
+@@ -395,8 +427,8 @@ print_question(char *line, const uchar_t *header, const uchar_t *data,
+  *	*line: snoops output buffer.
+  *	*header: start of the DNS packet, required for names and rcode.
+  *	*data: location within header from where the RR starts.
+- * 	*data_end: where DNS data ends.
+- * 	detail: simple or verbose output.
++ *	*data_end: where DNS data ends.
++ *	detail: simple or verbose output.
+  *
+  * Returns:
+  *	Pointer to next RR or data_end.
+diff --git a/usr/src/head/arpa/nameser.h b/usr/src/head/arpa/nameser.h
+index dc199077b3..0359a5cd70 100644
+--- a/usr/src/head/arpa/nameser.h
++++ b/usr/src/head/arpa/nameser.h
+@@ -373,7 +373,13 @@ typedef enum __ns_type {
+ 	ns_t_dhcid = 49,	/* Dynamic host configuratin identifier */
+ 	ns_t_nsec3 = 50,	/* Negative security type 3 */
+ 	ns_t_nsec3param = 51,	/* Negative security type 3 parameters */
++	ns_t_tlsa = 52,		/* TLSA (RFC 6698) */
++	ns_t_smimea = 53,	/* S/MIME cert association (RFC 8162) */
+ 	ns_t_hip = 55,		/* Host Identity Protocol */
++	ns_t_cds = 59,		/* Child DS (RFC 7344) */
++	ns_t_cdnskey = 60,	/* DNSKEY(s) the Child wants reflected in DS */
++	ns_t_openpgpkey = 61,	/* OpenPGP Key (RFC 7929) */
++	ns_t_csync = 62,	/* Child-To-Parent Synchronization (RFC 7477) */
+ 	ns_t_spf = 99,		/* Sender Policy Framework */
+ 	ns_t_tkey = 249,	/* Transaction key */
+ 	ns_t_tsig = 250,	/* Transaction signature. */
+@@ -383,6 +389,7 @@ typedef enum __ns_type {
+ 	ns_t_maila = 254,	/* Transfer mail agent records. */
+ 	ns_t_any = 255,		/* Wildcard match. */
+ 	ns_t_zxfr = 256,	/* BIND-specific, nonstandard. */
++	ns_t_caa = 257,		/* Certification Authority Restriction */
+ 	ns_t_dlv = 32769,	/* DNSSEC look-aside validatation. */
+ 	ns_t_max = 65536
+ } ns_type;
+-- 
+2.40.1
+

@@ -1,0 +1,2059 @@
+From 10a40e179c111088c21d8e895198ac95dcb83d14 Mon Sep 17 00:00:00 2001
+From: Peter Tribble <peter.tribble@gmail.com>
+Date: Mon, 21 Aug 2023 13:32:40 +0100
+Subject: [PATCH] 15845 Errors in pam manual pages Reviewed by: Andy Fiddaman
+ <illumos@fiddaman.net> Approved by: Richard Lowe <richlowe@richlowe.net>
+
+---
+ usr/src/man/man3pam/pam.3pam                 | 37 +++-----------------
+ usr/src/man/man3pam/pam_sm.3pam              | 31 +++-------------
+ usr/src/man/man3pam/pam_sm_acct_mgmt.3pam    | 21 +++--------
+ usr/src/man/man3pam/pam_sm_authenticate.3pam | 21 +++--------
+ usr/src/man/man3pam/pam_sm_chauthtok.3pam    | 21 +++--------
+ usr/src/man/man3pam/pam_sm_setcred.3pam      | 21 +++--------
+ usr/src/man/man3pam/pam_start.3pam           | 23 ++----------
+ usr/src/man/man7/pam_allow.7                 | 16 ++-------
+ usr/src/man/man7/pam_authtok_check.7         | 17 ++-------
+ usr/src/man/man7/pam_authtok_get.7           | 29 ++++++++-------
+ usr/src/man/man7/pam_deny.7                  | 16 ++-------
+ usr/src/man/man7/pam_dhkeys.7                | 16 +++------
+ usr/src/man/man7/pam_krb5.7                  | 35 ++++--------------
+ usr/src/man/man7/pam_krb5_migrate.7          | 10 +++---
+ usr/src/man/man7/pam_ldap.7                  |  6 ++--
+ usr/src/man/man7/pam_rhosts_auth.7           | 30 ++++++----------
+ usr/src/man/man7/pam_roles.7                 | 28 +++++----------
+ usr/src/man/man7/pam_sample.7                | 33 ++++-------------
+ usr/src/man/man7/pam_smb_passwd.7            | 24 ++++---------
+ usr/src/man/man7/pam_smbfs_login.7           | 21 +++--------
+ usr/src/man/man7/pam_tsol_account.7          | 32 ++++-------------
+ usr/src/man/man7/pam_unix_account.7          | 18 +++-------
+ usr/src/man/man7/pam_unix_auth.7             | 23 +++---------
+ usr/src/man/man7/pam_unix_cred.7             | 29 ++-------------
+ usr/src/man/man7/pam_unix_session.7          | 18 +++-------
+ 25 files changed, 131 insertions(+), 445 deletions(-)
+
+diff --git a/usr/src/man/man3pam/pam.3pam b/usr/src/man/man3pam/pam.3pam
+index 66ddf14add..9f8db3081c 100644
+--- a/usr/src/man/man3pam/pam.3pam
++++ b/usr/src/man/man3pam/pam.3pam
+@@ -3,36 +3,26 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM 3PAM "Feb 22, 2005"
++.TH PAM 3PAM "August 19, 2023"
+ .SH NAME
+ pam \- PAM (Pluggable Authentication Module)
+ .SH SYNOPSIS
+-.LP
+ .nf
+ #include <security/pam_appl.h>
+ \fBcc\fR [ \fIflag\fR... ] \fIfile\fR ... \fB-lpam\fR [ \fIlibrary\fR ... ]
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBPAM\fR framework, \fBlibpam\fR, consists of an interface library and
+ multiple authentication  service modules.  The \fBPAM\fR interface library is
+-the layer implementing the  Application Programming Interface ( \fBAPI\fR ).
++the layer implementing the  Application Programming Interface (\fBAPI\fR).
+ The authentication service modules are a set of dynamically loadable objects
+ invoked by the \fBPAM\fR \fBAPI\fR to provide a particular type of user
+ authentication. \fBPAM\fR gives system administrators the flexibility of
+ choosing any authentication service available on the system to perform
+ authentication. This framework also allows new authentication service modules
+ to be plugged in and made available without modifying the applications.
+-.sp
+-.LP
+-Refer to  \fISolaris Security for Developers Guide\fR for information about
+-providing authentication, account management, session management, and password
+-management through PAM modules.
+ .SS "Interface Overview"
+-.sp
+-.LP
+ The \fBPAM\fR library interface consists of six categories of functions,  the
+ names for which all start with the prefix  \fBpam_\fR.
+ .sp
+@@ -83,8 +73,6 @@ extra parameters to pass service\(mispecific options to the shared modules.
+ Refer to \fBpam_sm\fR(3PAM) for an overview of the \fBPAM\fR service module
+ \fBAPIs.\fR
+ .SS "Stateful Interface"
+-.sp
+-.LP
+ A sequence of calls sharing a common set of state information is referred to as
+ an authentication transaction.  An authentication  transaction begins with a
+ call to \fBpam_start()\fR. \fBpam_start()\fR allocates space, performs various
+@@ -123,8 +111,6 @@ To terminate an authentication transaction, the application simply calls
+ \fBpam_end()\fR, which frees previously allocated space used to store
+ authentication information.
+ .SS "Application\(miAuthentication Service Interactive Interface"
+-.sp
+-.LP
+ The authentication service in \fBPAM\fR does not communicate directly with the
+ user; instead it relies on the application to perform all such interactions.
+ The application passes a pointer to the function, \fBconv()\fR, along with any
+@@ -134,8 +120,6 @@ call to \fBpam_start()\fR. The service will then use the function,
+ \fBconv()\fR, to prompt the user for data,  output error messages, and display
+ text information. Refer to \fBpam_start\fR(3PAM) for more information.
+ .SS "Stacking Multiple Schemes"
+-.sp
+-.LP
+ The \fBPAM\fR architecture enables authentication by multiple authentication
+ services through \fIstacking\fR. System entry applications, such as
+ \fBlogin\fR(1), stack multiple service modules to authenticate users with
+@@ -144,15 +128,11 @@ modules are stacked is specified in the configuration file, \fBpam.conf\fR(5).
+ A system administrator determines this ordering, and also determines  whether
+ the same password can be used for all authentication services.
+ .SS "Administrative Interface"
+-.sp
+-.LP
+ The authentication library, \fB/usr/lib/libpam.so.1\fR, implements the
+ framework interface. Various authentication services are  implemented by their
+ own loadable modules whose paths are specified through the \fBpam.conf\fR(5)
+ file.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ The \fBPAM\fR functions may return one of the following generic values,  or one
+ of the values defined in the specific man pages:
+ .sp
+@@ -228,8 +208,6 @@ Permission denied.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for description of the following attributes:
+ .sp
+ 
+@@ -244,8 +222,6 @@ MT Level	MT-Safe with exceptions
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR login (1),
+ .BR pam_authenticate (3PAM),
+ .BR pam_chauthtok (3PAM),
+@@ -257,11 +233,6 @@ MT Level	MT-Safe with exceptions
+ .BR pam_strerror (3PAM),
+ .BR pam.conf (5),
+ .BR attributes (7)
+-.sp
+-.LP
+-\fISolaris Security for Developers Guide\fR
+ .SH NOTES
+-.sp
+-.LP
+-The interfaces in  \fBlibpam()\fR are MT-Safe only if each thread within the
+-multithreaded application uses its own  \fBPAM\fR handle.
++The interfaces in \fBlibpam\fR(3LIB) are MT-Safe only if each thread within the
++multithreaded application uses its own \fBPAM\fR handle.
+diff --git a/usr/src/man/man3pam/pam_sm.3pam b/usr/src/man/man3pam/pam_sm.3pam
+index b021e05846..1307a427b3 100644
+--- a/usr/src/man/man3pam/pam_sm.3pam
++++ b/usr/src/man/man3pam/pam_sm.3pam
+@@ -4,11 +4,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_SM 3PAM "Mar 16, 2005"
++.TH PAM_SM 3PAM "August 19, 2023"
+ .SH NAME
+ pam_sm \- PAM Service Module APIs
+ .SH SYNOPSIS
+-.LP
+ .nf
+ #include <security/pam_appl.h>
+ #include <security/pam_modules.h>
+@@ -16,8 +15,6 @@ pam_sm \- PAM Service Module APIs
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ \fBPAM\fR gives system administrators the flexibility of choosing any
+ authentication service available on the system to perform authentication. The
+ framework also allows new authentication service modules to be plugged in and
+@@ -26,7 +23,7 @@ made available without modifying the applications.
+ .LP
+ The \fBPAM\fR framework, \fBlibpam\fR, consists of an interface library and
+ multiple authentication  service modules. The \fBPAM\fR interface library is
+-the layer that implements the Application Programming Interface ( \fBAPI\fR ).
++the layer that implements the Application Programming Interface (\fBAPI\fR).
+ The authentication service modules are a set of dynamically loadable objects
+ invoked by the \fBPAM\fR \fBAPI\fR to provide a particular type of user
+ authentication.
+@@ -35,8 +32,6 @@ authentication.
+ This manual page gives an overview of the \fBPAM\fR \fBAPIs\fR for the service
+ modules, also called the Service Provider Interface (\fBPAM\fR-\fBSPI\fR).
+ .SS "Interface Overview"
+-.sp
+-.LP
+ The \fBPAM\fR service module interface consists of functions which can be
+ grouped into four categories. The names for all the authentication library
+ functions start with \fBpam_sm\fR. The only difference between the
+@@ -65,12 +60,10 @@ functionality of \fBpam_open_session\fR(3PAM) and
+ \fBpam_close_session\fR(3PAM), respectively.
+ .sp
+ .LP
+-The fourth category consists a function to change authentication tokens
++The fourth category consists of a function to change authentication tokens
+ \fBpam_sm_chauthtok\fR(3PAM). This back-end function implements the
+ functionality of \fBpam_chauthtok\fR(3PAM).
+ .SS "Stateful Interface"
+-.sp
+-.LP
+ A sequence of calls sharing a common set of state information is referred to as
+ an authentication transaction. An authentication transaction begins with a call
+ to \fBpam_start()\fR. \fBpam_start()\fR allocates space, performs various
+@@ -111,8 +104,6 @@ The module can also store a cleanup function associated with the data. The
+ \fBPAM\fR framework calls this cleanup function, when the application calls
+ \fBpam_end()\fR to close the transaction.
+ .SS "Interaction with the User"
+-.sp
+-.LP
+ The \fBPAM\fR service modules do not communicate directly with the user;
+ instead they rely on the application to perform all such interactions. The
+ application passes a pointer to the function, \fBconv()\fR, along with any
+@@ -123,8 +114,6 @@ to prompt the user for data, output error messages, and display text
+ information. Refer to \fBpam_start\fR(3PAM) for more information. The modules
+ are responsible for the localization of all messages to the user.
+ .SS "Conventions"
+-.sp
+-.LP
+ By convention, applications that need to prompt for a user name should call
+ \fBpam_set_item()\fR and set the value of \fBPAM_USER_PROMPT\fR before calling
+ \fBpam_authenticate()\fR. The service module's \fBpam_sm_authenticate()\fR
+@@ -144,7 +133,7 @@ Architecture specific libraries (for example, sparcv9 or amd64) are located in
+ their respective subdirectories.
+ .sp
+ .LP
+-For every such module, there should be a corresponding manual page in section 5
++For every such module, there should be a corresponding manual page in section 7
+ which should describe the \fImodule_type\fR it supports, the functionality of
+ the module, along with the options it supports. The dependencies should be
+ clearly identified to the system administrator. For example, it should be made
+@@ -184,13 +173,9 @@ writable by either "group" or "other." The service module should also be owned
+ by root. The \fBPAM\fR framework will not load the module if the above
+ permission rules are not followed.
+ .SH ERRORS
+-.sp
+-.LP
+ If there are any errors, the modules should log them using \fBsyslog\fR(3C) at
+ the \fBLOG_ERR\fR level.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ The \fBPAM\fR service module functions may return any of the \fBPAM\fR error
+ numbers specified in the specific man pages. It can also return a
+ \fBPAM_IGNORE\fR error number to mean that the \fBPAM\fR framework should
+@@ -198,8 +183,6 @@ ignore this module regardless of whether it is required, optional or
+ sufficient. This error number is normally returned when the module does not
+ contribute to the decision being made by the \fBPAM\fR framework.
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for description of the following attributes:
+ .sp
+ 
+@@ -216,8 +199,6 @@ MT-Level	MT-Safe with exceptions
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR syslog (3C),
+ .BR pam (3PAM),
+ .BR pam_authenticate (3PAM),
+@@ -243,7 +224,5 @@ MT-Level	MT-Safe with exceptions
+ .BR pam_unix_auth (7),
+ .BR pam_unix_session (7)
+ .SH NOTES
+-.sp
+-.LP
+-The interfaces in \fBlibpam\fR are MT-Safe only if each thread within the
++The interfaces in \fBlibpam\fR(3LIB) are MT-Safe only if each thread within the
+ multithreaded application uses its own \fBPAM\fR handle.
+diff --git a/usr/src/man/man3pam/pam_sm_acct_mgmt.3pam b/usr/src/man/man3pam/pam_sm_acct_mgmt.3pam
+index ec514f3b3d..ad2abe0b1b 100644
+--- a/usr/src/man/man3pam/pam_sm_acct_mgmt.3pam
++++ b/usr/src/man/man3pam/pam_sm_acct_mgmt.3pam
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_SM_ACCT_MGMT 3PAM "Nov 18, 2003"
++.TH PAM_SM_ACCT_MGMT 3PAM "August 19, 2023"
+ .SH NAME
+ pam_sm_acct_mgmt \- service provider implementation for pam_acct_mgmt
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBcc\fR [ \fIflag\fR ... ] \fIfile\fR ... \fB-lpam\fR [ \fIlibrary\fR ... ]
+ #include <security/pam_appl.h>
+@@ -20,8 +19,6 @@ pam_sm_acct_mgmt \- service provider implementation for pam_acct_mgmt
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ In response to a call to \fBpam_acct_mgmt\fR(3PAM), the  \fBPAM\fR framework
+ calls \fBpam_sm_acct_mgmt()\fR from the modules listed in the \fBpam.conf\fR(5)
+ file. The account management provider supplies the back-end functionality for
+@@ -66,11 +63,9 @@ logged through \fBsyslog\fR(3C) and the option ignored.
+ .LP
+ If an account management module determines that the user password has aged or
+ expired, it should save this information as state in the authentication handle,
+-\fIpamh\fR, using  \fBpam_set_data()\fR. \fBpam_chauthok()\fR uses this
++\fIpamh\fR, using  \fBpam_set_data()\fR. \fBpam_chauthtok()\fR uses this
+ information to determine which passwords have expired.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ If there are no restrictions to logging in,  \fBPAM_SUCCESS\fR is returned.
+ The following error values may also be returned upon error:
+ .sp
+@@ -116,12 +111,10 @@ User denied access to account at this time.
+ .ad
+ .RS 24n
+ Ignore underlying account module regardless of whether the control flag is
+-\fIrequired,\fR \fIoptional\fR or \fIsufficient\fR.
++\fIrequired\fR, \fIoptional\fR or \fIsufficient\fR.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for description of the following attributes:
+ .sp
+ 
+@@ -138,8 +131,6 @@ MT-Level	MT-Safe with exceptions
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR syslog (3C),
+ .BR libpam (3LIB),
+ .BR pam (3PAM),
+@@ -149,10 +140,8 @@ MT-Level	MT-Safe with exceptions
+ .BR pam.conf (5),
+ .BR attributes (7)
+ .SH NOTES
+-.sp
+-.LP
+-The interfaces in  \fBlibpam\fR are MT-Safe only if each thread within the
+-multithreaded application uses its own  \fBPAM\fR handle.
++The interfaces in \fBlibpam\fR(3LIB) are MT-Safe only if each thread within the
++multithreaded application uses its own \fBPAM\fR handle.
+ .sp
+ .LP
+ If the \fBPAM_REPOSITORY\fR \fIitem_type\fR is set and a service module does
+diff --git a/usr/src/man/man3pam/pam_sm_authenticate.3pam b/usr/src/man/man3pam/pam_sm_authenticate.3pam
+index 0928b0b398..4a1340550c 100644
+--- a/usr/src/man/man3pam/pam_sm_authenticate.3pam
++++ b/usr/src/man/man3pam/pam_sm_authenticate.3pam
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_SM_AUTHENTICATE 3PAM "Jan 27, 2005"
++.TH PAM_SM_AUTHENTICATE 3PAM "August 19, 2023"
+ .SH NAME
+ pam_sm_authenticate \- service provider implementation for pam_authenticate
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBcc\fR [ \fIflag\fR... ] \fIfile\fR... \fB-lpam\fR [ \fIlibrary\fR... ]
+ #include <security/pam_appl.h>
+@@ -19,8 +18,6 @@ pam_sm_authenticate \- service provider implementation for pam_authenticate
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ In response to a call to \fBpam_authenticate\fR(3PAM), the  \fBPAM\fR framework
+ calls \fBpam_sm_authenticate()\fR from the modules listed in the
+ \fBpam.conf\fR(5) file. The authentication provider supplies the back-end
+@@ -39,7 +36,7 @@ mask this error and continue to prompt the user for a password. It should then
+ return the error, \fBPAM_USER_UNKNOWN\fR.
+ .sp
+ .LP
+-The following flag may be passed in to \fBpam_sm_authenticate()\fR:
++The following flags may be passed in to \fBpam_sm_authenticate()\fR:
+ .sp
+ .ne 2
+ .na
+@@ -88,8 +85,6 @@ for failure) as state in the authentication handle using
+ \fBpam_set_data\fR(3PAM). This information is intended for use by
+ \fBpam_setcred()\fR.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ Upon successful completion,  \fBPAM_SUCCESS\fR must be returned. In addition,
+ the following values may be returned:
+ .sp
+@@ -144,12 +139,10 @@ User not known to underlying authentication module.
+ .ad
+ .RS 25n
+ Ignore underlying authentication module regardless of whether the control flag
+-is \fIrequired\fR,\fIoptional,\fR or \fIsufficient\fR1.
++is \fIrequired\fR, \fIoptional\fR, or \fIsufficient\fR.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for description of the following attributes:
+ .sp
+ 
+@@ -166,8 +159,6 @@ MT-Level	MT-Safe with exceptions
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR libpam (3LIB),
+ .BR pam (3PAM),
+ .BR pam_authenticate (3PAM),
+@@ -179,15 +170,13 @@ MT-Level	MT-Safe with exceptions
+ .BR pam.conf (5),
+ .BR attributes (7)
+ .SH NOTES
+-.sp
+-.LP
+ Modules should not retry the authentication in the event of a failure.
+ Applications handle authentication retries and maintain the retry count. To
+ limit the number of retries, the module can return a \fBPAM_MAXTRIES\fR error.
+ .sp
+ .LP
+-The interfaces in  \fBlibpam\fR are MT-Safe only if each thread within the
+-multithreaded application uses its own  \fBPAM\fR handle.
++The interfaces in \fBlibpam\fR(3LIB) are MT-Safe only if each thread within the
++multithreaded application uses its own \fBPAM\fR handle.
+ .sp
+ .LP
+ If the \fBPAM_REPOSITORY\fR \fIitem_type\fR is set and a service module does
+diff --git a/usr/src/man/man3pam/pam_sm_chauthtok.3pam b/usr/src/man/man3pam/pam_sm_chauthtok.3pam
+index daa6aa09c1..5c4ebf9584 100644
+--- a/usr/src/man/man3pam/pam_sm_chauthtok.3pam
++++ b/usr/src/man/man3pam/pam_sm_chauthtok.3pam
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_SM_CHAUTHTOK 3PAM "Mar 1, 2005"
++.TH PAM_SM_CHAUTHTOK 3PAM "August 19, 2023"
+ .SH NAME
+ pam_sm_chauthtok \- service provider implementation for pam_chauthtok
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBcc\fR [ \fIflag\fR ...] \fIfile\fR ... \fB-lpam\fR [ \fIlibrary\fR ... ]
+ #include <security/pam_appl.h>
+@@ -18,10 +17,8 @@ pam_sm_chauthtok \- service provider implementation for pam_chauthtok
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+-In response to a call to \fBpam_chauthtok()\fR the \fBPAM\fR framework calls
+-pam_sm_chauthtok(3PAM) from the modules listed in the \fBpam.conf\fR(5) file.
++In response to a call to \fBpam_chauthtok\fR(3PAM) the \fBPAM\fR framework calls
++\fBpam_sm_chauthtok\fR() from the modules listed in the \fBpam.conf\fR(5) file.
+ The password management provider supplies the back-end functionality for this
+ interface function.
+ .sp
+@@ -31,7 +28,7 @@ associated with a particular user referenced by the authentication handle
+ \fIpamh\fR.
+ .sp
+ .LP
+-The following flag may be passed to \fBpam_chauthtok()\fR:
++The following flags may be passed to \fBpam_chauthtok()\fR:
+ .sp
+ .ne 2
+ .na
+@@ -110,8 +107,6 @@ and retrieve both \fBPAM_AUTHTOK\fR and \fBPAM_OLDAUTHTOK\fR. If both are
+ \fINULL\fR, \fBpam_sm_chauthtok()\fR should set them to the new and old
+ passwords as entered by the user.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ Upon successful completion, \fBPAM_SUCCESS\fR must be returned. The following
+ values may also be returned:
+ .sp
+@@ -178,8 +173,6 @@ Preliminary check by password service failed.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for description of the following attributes:
+ .sp
+ 
+@@ -196,8 +189,6 @@ MT-Level	MT-Safe with exceptions
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR libpam (3LIB),
+ .BR pam (3PAM),
+ .BR pam_chauthtok (3PAM),
+@@ -208,8 +199,6 @@ MT-Level	MT-Safe with exceptions
+ .BR attributes (7),
+ .BR ping (8)
+ .SH NOTES
+-.sp
+-.LP
+ The \fBPAM\fR framework invokes the password services twice. The first time the
+ modules are invoked with the flag, \fBPAM_PRELIM_CHECK\fR. During this stage,
+ the password modules should only perform preliminary checks. For example, they
+@@ -237,7 +226,7 @@ this information using \fBpam_get_data()\fR to determine whether or not it
+ should prompt the user to update the password for this particular module.
+ .sp
+ .LP
+-The interfaces in \fBlibpam\fR are MT-Safe only if each thread within the
++The interfaces in \fBlibpam\fR(3LIB) are MT-Safe only if each thread within the
+ multithreaded application uses its own \fBPAM\fR handle.
+ .sp
+ .LP
+diff --git a/usr/src/man/man3pam/pam_sm_setcred.3pam b/usr/src/man/man3pam/pam_sm_setcred.3pam
+index 6760949d1d..f3a0ff587d 100644
+--- a/usr/src/man/man3pam/pam_sm_setcred.3pam
++++ b/usr/src/man/man3pam/pam_sm_setcred.3pam
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_SM_SETCRED 3PAM "Nov 18, 2003"
++.TH PAM_SM_SETCRED 3PAM "August 19, 2023"
+ .SH NAME
+ pam_sm_setcred \- service provider implementation for pam_setcred
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBcc\fR [ \fIflag\fR ... ] \fIfile\fR ... \fB-lpam\fR [ \fIlibrary\fR ... ]
+ #include <security/pam_appl.h>
+@@ -20,8 +19,6 @@ pam_sm_setcred \- service provider implementation for pam_setcred
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ In response to a call to \fBpam_setcred\fR(3PAM), the  \fBPAM\fR framework
+ calls \fBpam_sm_setcred()\fR from the modules listed in the \fBpam.conf\fR(5)
+ file.  The authentication provider supplies the back-end functionality for this
+@@ -79,7 +76,7 @@ Authentication service should not generate messages
+ 
+ .sp
+ .LP
+-If no flag is set,  \fBPAM_ESTABLISH\fR \fB_CRED\fR is used as the default.
++If no flag is set, \fBPAM_ESTABLISH_CRED\fR is used as the default.
+ .sp
+ .LP
+ The \fIargc\fR argument represents the number of module options passed in from
+@@ -99,8 +96,6 @@ module-specific state in the authentication handle by the authentication
+ module. The status should be retrieved using \fBpam_get_data()\fR, and used to
+ determine if user credentials should be set.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ Upon successful completion,  \fBPAM_SUCCESS\fR should be returned. The
+ following values may also be returned upon error:
+ .sp
+@@ -146,12 +141,10 @@ Failure in setting user credentials.
+ .ad
+ .RS 20n
+ Ignore underlying authentication module regardless of whether the control flag
+-is \fIrequired\fR,\fIoptional\fR, or  \fIsufficient\fR.
++is \fIrequired\fR, \fIoptional\fR, or \fIsufficient\fR.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for description of the following attributes:
+ .sp
+ 
+@@ -168,8 +161,6 @@ MT-Level	MT-Safe with exceptions
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR pam (3PAM),
+ .BR pam_authenticate (3PAM),
+ .BR pam_get_data (3PAM)
+@@ -179,14 +170,12 @@ MT-Level	MT-Safe with exceptions
+ .BR pam.conf (5),
+ .BR attributes (7)
+ .SH NOTES
+-.sp
+-.LP
+ The \fBpam_sm_setcred()\fR function is passed the same module options that are
+ used by \fBpam_sm_authenticate()\fR.
+ .sp
+ .LP
+-The interfaces in  \fBlibpam\fR are MT-Safe only if each thread within the
+-multithreaded application uses its own  \fBPAM\fR handle.
++The interfaces in \fBlibpam\fR(3LIB) are MT-Safe only if each thread within the
++multithreaded application uses its own \fBPAM\fR handle.
+ .sp
+ .LP
+ If the \fBPAM_REPOSITORY\fR \fIitem_type\fR is set and a service module does
+diff --git a/usr/src/man/man3pam/pam_start.3pam b/usr/src/man/man3pam/pam_start.3pam
+index 462361fb06..e6e001498f 100644
+--- a/usr/src/man/man3pam/pam_start.3pam
++++ b/usr/src/man/man3pam/pam_start.3pam
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_START 3PAM "Feb 22, 2005"
++.TH PAM_START 3PAM "August 19, 2023"
+ .SH NAME
+ pam_start, pam_end \- PAM authentication transaction functions
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBcc\fR [ \fIflag\fR ... ] \fIfile\fR ... \fB-lpam\fR [ \fIlibrary\fR ... ]
+ #include <security/pam_appl.h>
+@@ -22,8 +21,6 @@ pam_start, pam_end \- PAM authentication transaction functions
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBpam_start()\fR function is called to initiate an authentication
+ transaction. It takes as arguments the name of the current service,
+ \fIservice\fR, the name of the user to be authenticated, \fIuser\fR, the
+@@ -165,18 +162,9 @@ the authentication module. The argument, \fIstatus\fR, is passed to the
+ determine what module-specific state must be purged.  A cleanup function is
+ attached to the handle by the underlying \fBPAM\fR modules through a call to
+ \fBpam_set_data\fR(3PAM) to free module-specific data.
+-.sp
+-.LP
+-Refer to \fISolaris Security for Developers Guide\fR for information about
+-providing authentication, account management, session management, and password
+-management through PAM modules.
+ .SH RETURN VALUES
+-.sp
+-.LP
+ Refer to the RETURN VALUES section on \fBpam\fR(3PAM).
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for description of the following attributes:
+ .sp
+ 
+@@ -193,8 +181,6 @@ MT-Level	MT-Safe with exceptions
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR libpam (3LIB),
+ .BR pam (3PAM),
+ .BR pam_acct_mgmt (3PAM),
+@@ -205,11 +191,6 @@ MT-Level	MT-Safe with exceptions
+ .BR pam_setcred (3PAM),
+ .BR pam_strerror (3PAM),
+ .BR attributes (7)
+-.sp
+-.LP
+-\fISolaris Security for Developers Guide\fR
+ .SH NOTES
+-.sp
+-.LP
+-The interfaces in \fBlibpam\fR are MT-Safe only if each thread within the
++The interfaces in \fBlibpam\fR(3LIB) are MT-Safe only if each thread within the
+ multithreaded application uses its own \fBPAM\fR handle.
+diff --git a/usr/src/man/man7/pam_allow.7 b/usr/src/man/man7/pam_allow.7
+index bb4ca27ae0..850d4e307e 100644
+--- a/usr/src/man/man7/pam_allow.7
++++ b/usr/src/man/man7/pam_allow.7
+@@ -3,25 +3,22 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_ALLOW 7 "Aug 25, 2005"
++.TH PAM_ALLOW 7 "August 19, 2023"
+ .SH NAME
+ pam_allow \- PAM authentication, account, session and password management PAM
+ module to allow operations
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBpam_allow.so.1\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBpam_allow\fR module implements all the PAM service module functions and
+ returns \fBPAM_SUCCESS\fR for all calls. Opposite functionality is available in
+ the \fBpam_deny\fR(7) module.
+ .sp
+ .LP
+-Proper Solaris authentication operation requires \fBpam_unix_cred\fR(7) be
++Proper authentication operation requires \fBpam_unix_cred\fR(7) be
+ stacked above \fBpam_allow\fR.
+ .sp
+ .LP
+@@ -37,11 +34,8 @@ LOG_DEBUG\fR level.
+ .RE
+ 
+ .SH ERRORS
+-.sp
+-.LP
+ \fBPAM_SUCCESS\fR is always returned.
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRAllowing \fBssh none\fR
+ .sp
+ .LP
+@@ -75,8 +69,6 @@ gdm-autologin auth  sufficient  pam_allow.so.1
+ .in -2
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -93,8 +85,6 @@ MT Level	MT-Safe with exceptions
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR syslog (3C),
+ .BR libpam (3LIB),
+ .BR pam (3PAM),
+@@ -104,8 +94,6 @@ MT Level	MT-Safe with exceptions
+ .BR pam_deny (7),
+ .BR pam_unix_cred (7)
+ .SH NOTES
+-.sp
+-.LP
+ The interfaces in \fBlibpam\fR(3LIB) are MT-Safe only if each thread within the
+ multi-threaded application uses its own PAM handle.
+ .sp
+diff --git a/usr/src/man/man7/pam_authtok_check.7 b/usr/src/man/man7/pam_authtok_check.7
+index 65dd922781..c32b5e3e2d 100644
+--- a/usr/src/man/man7/pam_authtok_check.7
++++ b/usr/src/man/man7/pam_authtok_check.7
+@@ -4,20 +4,17 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_AUTHTOK_CHECK 7 "Mar 1, 2005"
++.TH PAM_AUTHTOK_CHECK 7 "August 19, 2023"
+ .SH NAME
+ pam_authtok_check \- authentication and password management module
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBpam_authtok_check.so.1\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ \fBpam_authtok_check\fR provides functionality to the Password Management
+-stack. The implementation of \fBpam_sm_chauthtok()\fR performs a number of
++stack. The implementation of \fBpam_sm_chauthtok\fR(3PAM) performs a number of
+ checks on the construction of the newly entered password.
+ \fBpam_sm_chauthtok()\fR is invoked twice by the PAM framework, once with flags
+ set to \fBPAM_PRELIM_CHECK\fR, and once with flags set to
+@@ -136,12 +133,9 @@ flag. The \fBPAM_NO_AUTHTOK_CHECK\fR flag can be set to bypass password checks
+ .RE
+ 
+ .SH RETURN VALUES
+-.sp
+-.LP
+ If the password in \fBPAM_AUTHTOK\fR passes all tests, \fBPAM_SUCCESS\fR is
+ returned. If any of the tests fail, \fBPAM_AUTHTOK_ERR\fR is returned.
+ .SH FILES
+-.sp
+ .ne 2
+ .na
+ \fB/etc/default/passwd\fR
+@@ -151,8 +145,6 @@ See \fBpasswd\fR(1) for a description of the contents.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -169,13 +161,12 @@ MT Level	MT-Safe with exceptions
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR passwd (1),
+ .BR syslog (3C),
+ .BR libpam (3LIB),
+ .BR pam (3PAM),
+ .BR pam_chauthtok (3PAM),
++.BR pam_sm_chauthtok (3PAM),
+ .BR pam.conf (5),
+ .BR passwd (5),
+ .BR shadow (5),
+@@ -189,8 +180,6 @@ MT Level	MT-Safe with exceptions
+ .BR pam_unix_session (7),
+ .BR mkpwdict (8)
+ .SH NOTES
+-.sp
+-.LP
+ The interfaces in \fBlibpam\fR(3LIB) are MT-Safe only if each thread within the
+ multi-threaded application uses its own \fBPAM\fR handle.
+ .sp
+diff --git a/usr/src/man/man7/pam_authtok_get.7 b/usr/src/man/man7/pam_authtok_get.7
+index 4c82c0e9fa..0f1d168e95 100644
+--- a/usr/src/man/man7/pam_authtok_get.7
++++ b/usr/src/man/man7/pam_authtok_get.7
+@@ -3,23 +3,20 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_AUTHTOK_GET 7 "April 9, 2016"
++.TH PAM_AUTHTOK_GET 7 "August 9, 2023"
+ .SH NAME
+ pam_authtok_get \- authentication and password management module
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBpam_authtok_get.so.1\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBpam_authtok_get\fR service module provides password prompting
+-functionality to the PAM stack. It implements \fBpam_sm_authenticate()\fR and
+-\fBpam_sm_chauthtok()\fR, providing functionality to both the Authentication
+-Stack and the Password Management Stack.
++functionality to the PAM stack. It implements \fBpam_sm_authenticate\fR(3PAM)
++and \fBpam_sm_chauthtok\fR(3PAM), providing functionality to both the
++Authentication Stack and the Password Management Stack.
+ .SS "Authentication Service"
+-.LP
+ The implementation of \fBpam_sm_authenticate\fR(3PAM) prompts the user name if
+ not set and then tries to get the authentication token from the pam handle. If
+ the token is not set, it then prompts the user for a password and stores it in
+@@ -27,7 +24,6 @@ the \fBPAM\fR item \fBPAM_AUTHTOK\fR. This module is meant to be the first
+ module on an authentication stack where users are to authenticate using a
+ keyboard.
+ .SS "Password Management Service"
+-.LP
+ Due to the nature of the PAM Password Management stack traversal mechanism, the
+ \fBpam_sm_chauthtok\fR(3PAM) function is called twice. Once with the
+ \fBPAM_PRELIM_CHECK\fR flag, and one with the \fBPAM_UPDATE_AUTHTOK\fR flag.
+@@ -62,7 +58,6 @@ The following option can be passed to the module:
+ .RE
+ 
+ .SH ERRORS
+-.LP
+ The authentication service returns the following error codes:
+ .sp
+ .ne 2
+@@ -104,7 +99,6 @@ Authentication token manipulation error
+ .RE
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -121,17 +115,22 @@ MT Level	MT-Safe with exceptions
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+-\fBpam\fR(3PAM), \fBpam_authenticate\fR(3PAM), \fBsyslog\fR(3C),
+-\fBlibpam\fR(3LIB), \fBpam.conf\fR(5), \fBattributes\fR(7),
+-\fBpam_authtok_check\fR(7), pam_authtok_get(7), \fBpam_authtok_store\fR(7),
++.BR pam (3PAM),
++.BR pam_authenticate (3PAM),
++.BR pam_sm_authenticate (3PAM),
++.BR pam_sm_chauthtok (3PAM),
++.BR syslog (3C),
++.BR libpam (3LIB),
++.BR pam.conf (5),
++.BR attributes (7),
++.BR pam_authtok_check (7),
++.BR pam_authtok_store (7),
+ .BR pam_dhkeys (7),
+ .BR pam_passwd_auth (7),
+ .BR pam_unix_account (7),
+ .BR pam_unix_auth (7),
+ .BR pam_unix_session (7)
+ .SH NOTES
+-.LP
+ The interfaces in \fBlibpam\fR(3LIB) are MT-Safe only if each thread within the
+ multi-threaded application uses its own PAM handle.
+ .sp
+diff --git a/usr/src/man/man7/pam_deny.7 b/usr/src/man/man7/pam_deny.7
+index 3910787eb0..b9122ceff0 100644
+--- a/usr/src/man/man7/pam_deny.7
++++ b/usr/src/man/man7/pam_deny.7
+@@ -3,19 +3,16 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_DENY 7 "Jun 16, 2005"
++.TH PAM_DENY 7 "August 19, 2023"
+ .SH NAME
+ pam_deny \- PAM authentication, account, session and password management PAM
+ module to deny operations
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBpam_deny.so.1\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBpam_deny\fR module implements all the PAM service module functions and
+ returns the module type default failure return code for all calls.
+ .sp
+@@ -32,8 +29,6 @@ levels
+ .RE
+ 
+ .SH ERRORS
+-.sp
+-.LP
+ The following error codes are returned:
+ .sp
+ .ne 2
+@@ -56,7 +51,7 @@ If \fBpam_sm_authenticate\fR is called.
+ .sp
+ .ne 2
+ .na
+-\fB\fBPAM_AUTHOK_ERR\fR\fR
++\fB\fBPAM_AUTHTOK_ERR\fR\fR
+ .ad
+ .RS 20n
+ If \fBpam_sm_chauthtok\fR is called.
+@@ -81,7 +76,6 @@ If \fBpam_sm_open_session\fR or \fBpam_sm_close_session\fR is called.
+ .RE
+ 
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRDisallowing ssh none authentication
+ .sp
+ .in +2
+@@ -108,8 +102,6 @@ If \fBpam_sm_open_session\fR or \fBpam_sm_close_session\fR is called.
+ .sp
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for a description of the following attributes:
+ .sp
+ 
+@@ -126,8 +118,6 @@ MT Level	MT-Safe with exceptions
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR syslog (3C),
+ .BR libpam (3LIB),
+ .BR pam (3PAM),
+@@ -146,8 +136,6 @@ MT Level	MT-Safe with exceptions
+ .BR privileges (7),
+ .BR su (8)
+ .SH NOTES
+-.sp
+-.LP
+ The interfaces in \fBlibpam\fR(3LIB) are MT-Safe only if each thread within the
+ multi-threaded application uses its own PAM handle.
+ .sp
+diff --git a/usr/src/man/man7/pam_dhkeys.7 b/usr/src/man/man7/pam_dhkeys.7
+index 2f403c9d12..0bc35954dc 100644
+--- a/usr/src/man/man7/pam_dhkeys.7
++++ b/usr/src/man/man7/pam_dhkeys.7
+@@ -3,17 +3,15 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_DHKEYS 7 "Feb 25, 2017"
++.TH PAM_DHKEYS 7 "August 19, 2023"
+ .SH NAME
+ pam_dhkeys \- authentication Diffie-Hellman keys management module
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBpam_dhkeys.so.1\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBpam_dhkeys.so.1\fR service module provides functionality to two
+ \fBPAM\fR services: Secure \fBRPC\fR authentication and Secure \fBRPC\fR
+ authentication token management.
+@@ -43,7 +41,6 @@ Turn off warning messages
+ .RE
+ 
+ .SS "Authentication Services"
+-.LP
+ If the user has Diffie-Hellman keys, \fBpam_sm_authenticate()\fR establishes
+ secret keys for the user specified by the \fBPAM_USER\fR (equivalent to running
+ \fBkeylogin\fR(1)), using the authentication token found in the
+@@ -62,14 +59,12 @@ is equivalent to running \fBkeylogout\fR(1).
+ \fBPAM_REINITIALIZE_CRED\fR and \fBPAM_REFRESH_CRED\fR are not supported and
+ return \fBPAM_IGNORE\fR.
+ .SS "Authentication Token Management"
+-.LP
+ The \fBpam_sm_chauthtok()\fR implementation checks whether the old login
+ password decrypts the users secret keys. If it doesn't this module prompts the
+ user for an old Secure \fBRPC\fR password and stores it in a pam data item
+ called \fBSUNW_OLDRPCPASS\fR. This data item can be used by the store module to
+ effectively update the users secret keys.
+ .SH ERRORS
+-.LP
+ The authentication service returns the following error codes:
+ .sp
+ .ne 2
+@@ -166,7 +161,6 @@ Module ran out of memory.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -183,7 +177,6 @@ MT Level	MT-Safe with exceptions
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ .BR keylogin (1),
+ .BR keylogout (1),
+ .BR syslog (3C),
+@@ -191,10 +184,10 @@ MT Level	MT-Safe with exceptions
+ .BR pam (3PAM),
+ .BR pam_authenticate (3PAM),
+ .BR pam_chauthtok (3PAM),
+-.BR pam_get_data (3PAM),
+-.BR pam_get_item (3PAM),
+-.BR pam_set_data (3PAM),
+ .BR pam_setcred (3PAM),
++.BR pam_sm_authenticate (3PAM),
++.BR pam_sm_chauthtok (3PAM),
++.BR pam_sm_setcred (3PAM),
+ .BR pam.conf (5),
+ .BR attributes (7),
+ .BR pam_authtok_check (7),
+@@ -205,7 +198,6 @@ MT Level	MT-Safe with exceptions
+ .BR pam_unix_auth (7),
+ .BR pam_unix_session (7)
+ .SH NOTES
+-.LP
+ The interfaces in \fBlibpam\fR(3LIB) are MT-Safe only if each thread within the
+ multi-threaded application uses its own PAM handle.
+ .sp
+diff --git a/usr/src/man/man7/pam_krb5.7 b/usr/src/man/man7/pam_krb5.7
+index b749852758..021a0bdb3a 100644
+--- a/usr/src/man/man7/pam_krb5.7
++++ b/usr/src/man/man7/pam_krb5.7
+@@ -3,30 +3,24 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_KRB5 7 "Apr 8, 2008"
++.TH PAM_KRB5 7 "August 19, 2023"
+ .SH NAME
+ pam_krb5 \- authentication, account, session, and password management PAM
+ modules for Kerberos V5
+ .SH SYNOPSIS
+-.LP
+ .nf
+-/usr/lib/security/pam_krb5.so.1
++pam_krb5.so.1
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+-The Kerberos V5 service module for \fBPAM\fR provides functionality for all
++The Kerberos V5 service module for \fBPAM\fR, \fBpam_krb5.so.1\fR,
++provides functionality for all
+ four \fBPAM\fR modules: authentication, account management, session management,
+-and password management. The service module is a shared object that can be
+-dynamically loaded to provide the necessary functionality upon demand. Its path
+-is specified in the \fBPAM\fR configuration file.
++and password management.
+ .SS "Kerberos Authentication Module"
+-.sp
+-.LP
+ The Kerberos V5 authentication component provides functions to verify the
+-identity of a user, \fBpam_sm_authenticate()\fR, and to manage the Kerberos
+-credentials cache, \fBpam_sm_setcred()\fR.
++identity of a user, \fBpam_sm_authenticate\fR(3PAM), and to manage the Kerberos
++credentials cache, \fBpam_sm_setcred\fR(3PAM).
+ .sp
+ .LP
+ \fBpam_sm_authenticate()\fR authenticates a user principal through the Kerberos
+@@ -140,8 +134,6 @@ Turns off warning messages.
+ .RE
+ 
+ .SS "Kerberos V5 Account Management Module"
+-.sp
+-.LP
+ The Kerberos account management component provides a function to perform
+ account management, \fBpam_sm_acct_mgmt()\fR. This function checks to see if
+ the \fBpam_krb5\fR authentication module has noted that the user's password has
+@@ -167,15 +159,11 @@ expiration information used to warn the user.
+ .RE
+ 
+ .SS "Kerberos V5 Session Management Module"
+-.sp
+-.LP
+ The Kerberos V5 session management component provides functions to initiate
+ \fBpam_sm_open_session()\fR and terminate \fBpam_sm_close_session()\fR Kerberos
+ sessions. For Kerberos V5, both \fBpam_sm_open_session\fR and
+ \fBpam_sm_close_session()\fR are null functions, returning \fBPAM_IGNORE\fR.
+ .SS "Kerberos V5 Password Management Module"
+-.sp
+-.LP
+ The Kerberos V5 password management component provides a function to change
+ passwords, \fBpam_sm_chauthtok()\fR, in the Key Distribution Center (\fBKDC\fR)
+ database. The following flags may be passed to \fBpam_sm_chauthtok\fR(3PAM):
+@@ -225,8 +213,6 @@ Provides \fBsyslog\fR(3C) debugging information at \fBLOG_DEBUG\fR level.
+ .RE
+ 
+ .SH ERRORS
+-.sp
+-.LP
+ The following error codes are returned for \fBpam_sm_authenticate()\fR:
+ .sp
+ .ne 2
+@@ -479,7 +465,6 @@ Successfully changed the user's Kerberos password.
+ .RE
+ 
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRAuthenticate Users Through Kerberos as First Choice
+ .sp
+ .LP
+@@ -665,8 +650,6 @@ Non-Kerberos users should specify their respective repositories by using the
+ \fB-r\fR option when changing their password with the \fBpasswd\fR(1) command.
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -681,8 +664,6 @@ Interface Stability	Evolving
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR kdestroy (1),
+ .BR kinit (1),
+ .BR kpasswd (1),
+@@ -703,8 +684,6 @@ Interface Stability	Evolving
+ .BR krb5envvar (7),
+ .BR ktkt_warnd (8)
+ .SH NOTES
+-.sp
+-.LP
+ The interfaces in \fBlibpam\fR(3LIB) are MT-Safe only if each thread within the
+ multi-threaded application uses its own \fBPAM\fR handle.
+ .sp
+diff --git a/usr/src/man/man7/pam_krb5_migrate.7 b/usr/src/man/man7/pam_krb5_migrate.7
+index fbdb2be4f8..fe069a6e7d 100644
+--- a/usr/src/man/man7/pam_krb5_migrate.7
++++ b/usr/src/man/man7/pam_krb5_migrate.7
+@@ -3,17 +3,18 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_KRB5_MIGRATE 7 "November 22, 2021"
++.TH PAM_KRB5_MIGRATE 7 "August 19, 2023"
+ .SH NAME
+ pam_krb5_migrate \- authentication PAM module for the KerberosV5 auto-migration
+ of users feature
+ .SH SYNOPSIS
+ .nf
+-\fB/usr/lib/security/pam_krb5_migrate.so.1\fR
++\fBpam_krb5_migrate.so.1\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-The KerberosV5 auto-migrate service module for PAM provides functionality for
++The KerberosV5 auto-migrate service module for \fBPAM\fR,
++\fBpam_krb5_migrate.so.1\fR, provides functionality for
+ the PAM authentication component. The service module helps in the automatic
+ migration of \fBPAM_USER\fR to the client's local Kerberos realm, using
+ \fBPAM_AUTHTOK\fR (the PAM authentication token associated with \fBPAM_USER\fR)
+@@ -44,7 +45,8 @@ unless instructed otherwise by the presence of the \fBquiet\fR option.
+ .LP
+ The authentication component always returns \fBPAM_IGNORE\fR and is meant to be
+ stacked in \fBpam.conf\fR with a requirement that it be listed below
+-pam_authtok_get(7) in the authentication stack. Also, if \fBpam_krb5_migrate\fR
++\fBpam_authtok_get\fR(7) in the authentication stack.
++Also, if \fBpam_krb5_migrate\fR
+ is used in the authentication stack of a particular service, it is mandatory
+ that \fBpam_krb5\fR(7) be listed in the PAM account stack of that service for
+ proper operation (see EXAMPLES).
+diff --git a/usr/src/man/man7/pam_ldap.7 b/usr/src/man/man7/pam_ldap.7
+index 9c3b7fef1e..f522ff8772 100644
+--- a/usr/src/man/man7/pam_ldap.7
++++ b/usr/src/man/man7/pam_ldap.7
+@@ -3,12 +3,12 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_LDAP 7 "Feb 17, 2023"
++.TH PAM_LDAP 7 "August 19, 2023"
+ .SH NAME
+ pam_ldap \- authentication and account management PAM module for LDAP
+ .SH SYNOPSIS
+ .nf
+-\fB/usr/lib/security/pam_ldap.so.1\fR
++\fBpam_ldap.so.1\fR
+ .fi
+ 
+ .SH DESCRIPTION
+@@ -233,7 +233,7 @@ No account is present for the user.
+ .sp
+ .ne 2
+ .na
+-\fB\fBPAM_BUF_ERROR\fR\fR
++\fB\fBPAM_BUF_ERR\fR\fR
+ .ad
+ .RS 24n
+ A memory buffer error occurred.
+diff --git a/usr/src/man/man7/pam_rhosts_auth.7 b/usr/src/man/man7/pam_rhosts_auth.7
+index 68ea961cb6..e6617faa81 100644
+--- a/usr/src/man/man7/pam_rhosts_auth.7
++++ b/usr/src/man/man7/pam_rhosts_auth.7
+@@ -4,28 +4,25 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_RHOSTS_AUTH 7 "Oct 28, 1996"
++.TH PAM_RHOSTS_AUTH 7 "August 19, 2023"
+ .SH NAME
+ pam_rhosts_auth \- authentication management PAM module using ruserok()
+ .SH SYNOPSIS
+-.LP
+ .nf
+-\fB/usr/lib/security/pam_rhosts_auth.so.1\fR
++\fBpam_rhosts_auth.so.1\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+-The rhosts  \fBPAM\fR module,  \fB/usr/lib/security/pam_rhosts_auth.so.1\fR,
++The rhosts \fBPAM\fR module, \fBpam_rhosts_auth.so.1\fR,
+ authenticates a user via the \fBrlogin\fR authentication protocol. Only
+-\fBpam_sm_authenticate()\fR is implemented within this module.
++\fBpam_sm_authenticate\fR(3PAM) is implemented within this module.
+ \fBpam_sm_authenticate()\fR uses the \fBruserok\fR(3SOCKET) library function to
+-authenticate the \fBrlogin\fR or \fBrsh\fR user. \fBpam_sm_setcred()\fR is a
++authenticate the \fBrlogin\fR or \fBrsh\fR user. \fBpam_sm_setcred\fR(3PAM) is a
+ null function.
+ .sp
+ .LP
+-\fB/usr/lib/security/pam_rhosts_auth.so.1\fR is designed to be stacked on top
+-of  the \fB/usr/lib/security/pam_unix.so.1\fR module for both the \fBrlogin\fR
++\fBpam_rhosts_auth.so.1\fR is designed to be stacked on top
++of  the \fBpam_unix.so.1\fR module for both the \fBrlogin\fR
+ and \fBrsh\fR services. This module is normally configured as \fIsufficient\fR
+ so that subsequent authentication is performed only on failure of
+ \fBpam_sm_authenticate()\fR. The following option may be passed in to this
+@@ -40,8 +37,6 @@ service module:
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -56,17 +51,14 @@ MT Level	MT-Safe with exceptions
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR syslog (3C),
+ .BR libpam (3LIB),
+ .BR pam (3PAM),
+-.BR pam_authenticate (3PAM),
++.BR pam_sm_authenticate (3PAM),
++.BR pam_sm_setcred (3PAM),
+ .BR ruserok (3SOCKET),
+ .BR pam.conf (5),
+ .BR attributes (7)
+ .SH NOTES
+-.sp
+-.LP
+-The interfaces in  \fBlibpam()\fR are MT-Safe only if each thread within the
+-multi-threaded application uses its own  \fBPAM\fR handle.
++The interfaces in \fBlibpam\fR(3LIB) are MT-Safe only if each thread within the
++multi-threaded application uses its own \fBPAM\fR handle.
+diff --git a/usr/src/man/man7/pam_roles.7 b/usr/src/man/man7/pam_roles.7
+index ad7b0ce111..eb734b7e4a 100644
+--- a/usr/src/man/man7/pam_roles.7
++++ b/usr/src/man/man7/pam_roles.7
+@@ -3,25 +3,22 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_ROLES 7 "Mar 6, 2007"
++.TH PAM_ROLES 7 "August 19, 2023"
+ .SH NAME
+-pam_roles \- Solaris Roles account management module
++pam_roles \- Roles account management module
+ .SH SYNOPSIS
+-.LP
+ .nf
+ pam_roles.so.1
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBpam_roles\fR module implements \fBpam_sm_acct_mgmt\fR(3PAM). It provides
+ functionality to verify that a user is authorized to assume a role. It also
+ prevents direct logins to a role. The \fBuser_attr\fR(5) database is used to
+ determine which users can assume which roles.
+ .sp
+ .LP
+-The \fBPAM\fR items \fBPAM_USER\fR and \fBPAM_AUSER\fR, and \fBPAM_RHOST\fR are
++The \fBPAM\fR items \fBPAM_USER\fR, \fBPAM_AUSER\fR, and \fBPAM_RHOST\fR are
+ used to determine the outcome of this module. \fBPAM_USER\fR represents the new
+ identity being verified. \fBPAM_AUSER\fR, if set, represents the user asserting
+ a new identity. If \fBPAM_AUSER\fR is not set, the real user \fBID\fR of the
+@@ -52,8 +49,6 @@ Provides \fBsyslog\fR(3C) debugging information at the \fBLOG_DEBUG\fR level.
+ .RE
+ 
+ .SH ERRORS
+-.sp
+-.LP
+ The following values are returned:
+ .sp
+ .ne 2
+@@ -87,7 +82,6 @@ identity name in its list of roles.
+ .RE
+ 
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRUsing the \fBpam_roles.so.1\fR Module
+ .sp
+ .LP
+@@ -119,27 +113,25 @@ for that role.
+ .sp
+ .LP
+ Remote roles should only be allowed from remote services that can be trusted to
+-provide an accurate \fBPAM_AUSER\fRname. This trust is a function of the
+-protocol (such as \fBsshd\fR-hostbased).
++provide an accurate \fBPAM_AUSER\fR name. This trust is a function of the
++protocol (such as \fBsshd-hostbased\fR).
+ 
+ .sp
+ .LP
+ The following is a sample entry for a \fBpam.conf\fR(5) file. It demonstrates
+ the use of \fBpam_roles\fR configuration for remote roles for the
+-\fBsshd\fR-hostbased service.
++\fBsshd-hostbased\fR service.
+ 
+ .sp
+ .in +2
+ .nf
+ sshd-hostbased account requisite pam_roles.so.1 allow_remote
+-sshd-hostbased account required pam_unix_account
++sshd-hostbased account required pam_unix_account.so.1
+ .fi
+ .in -2
+ .sp
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -156,8 +148,6 @@ MT Level	MT-Safe with exceptions
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR roles (1),
+ .BR syslog (3C),
+ .BR libpam (3LIB),
+@@ -180,8 +170,6 @@ MT Level	MT-Safe with exceptions
+ .BR sshd (8),
+ .BR su (8)
+ .SH NOTES
+-.sp
+-.LP
+ The interfaces in \fBlibpam\fR(3LIB) are MT-Safe only if each thread within the
+ multi-threaded application uses its own \fBPAM\fR handle.
+ .sp
+@@ -191,7 +179,7 @@ as it never makes a positive decision.
+ .sp
+ .LP
+ The \fBallow_remote\fR option should only be specified for services that are
+-trusted to correctly identify the remote user (that is, \fBsshd\fR-hostbased).
++trusted to correctly identify the remote user (that is, \fBsshd-hostbased\fR).
+ .sp
+ .LP
+ \fBPAM_AUSER\fR has replaced \fBPAM_RUSER\fR whose definition is limited to the
+diff --git a/usr/src/man/man7/pam_sample.7 b/usr/src/man/man7/pam_sample.7
+index b6f3b9f9ed..021656bd19 100644
+--- a/usr/src/man/man7/pam_sample.7
++++ b/usr/src/man/man7/pam_sample.7
+@@ -3,25 +3,20 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_SAMPLE 7 "Apr 4, 2007"
++.TH PAM_SAMPLE 7 "August 19, 2023"
+ .SH NAME
+ pam_sample \- a sample PAM module
+ .SH SYNOPSIS
+-.LP
+ .nf
+-\fB/usr/lib/security/pam_sample.so.1\fR
++\fBpam_sample.so.1\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+-The SAMPLE service module for \fBPAM\fR is divided into four components:
++The SAMPLE service module for \fBPAM\fR, \fBpam_sample.so.1\fR,
++is divided into four components:
+ authentication, account management, password management, and session
+-management. The sample module is a shared object that is dynamically loaded to
+-provide the necessary functionality.
++management.
+ .SH SAMPLE AUTHENTICATION COMPONENT
+-.sp
+-.LP
+ The SAMPLE authentication module provides functions to test the \fBPAM\fR
+ framework functionality using the \fBpam_sm_authenticate\fR(3PAM) call. The
+ SAMPLE module implementation of the \fBpam_sm_authenticate\fR(3PAM) function
+@@ -124,8 +119,6 @@ The SAMPLE module \fBpam_sm_setcred\fR(3PAM) function always returns
+ .RE
+ 
+ .SH SAMPLE ACCOUNT MANAGEMENT COMPONENT
+-.sp
+-.LP
+ The SAMPLE Account Management Component implements a simple access control
+ scheme that limits machine access to a list of authorized users. The list of
+ authorized users is supplied as option arguments to the entry for the SAMPLE
+@@ -156,19 +149,13 @@ su	account	require	pam_sample.so.1	allow=sam,eric
+ .LP
+ The debug and nowarn options are also supported.
+ .SH SAMPLE PASSWORD MANAGEMENT COMPONENT
+-.sp
+-.LP
+ The SAMPLE Password Management Component function (
+ \fBpam_sm_chauthtok\fR(3PAM)), always returns \fBPAM_SUCCESS.\fR
+ .SH SAMPLE SESSION MANAGEMENT COMPONENT
+-.sp
+-.LP
+ The SAMPLE Session Management Component functions (
+ \fBpam_sm_open_session\fR(3PAM), \fBpam_sm_close_session\fR(3PAM)) always
+ return \fBPAM_SUCCESS.\fR
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for description of the following attributes:
+ .sp
+ 
+@@ -183,8 +170,6 @@ MT Level	MT-Safe with exceptions
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR libpam (3LIB),
+ .BR pam (3PAM),
+ .BR pam_sm_authenticate (3PAM),
+@@ -195,13 +180,9 @@ MT Level	MT-Safe with exceptions
+ .BR pam.conf (5),
+ .BR attributes (7)
+ .SH WARNINGS
+-.sp
+-.LP
+ This module should never be used outside of a closed debug environment. The
+ examples of the \fBuse_first_pass\fR and \fBtry_first_pass\fR options are
+-obsolete for all other Solaris delivered PAM service modules
++obsolete for all other delivered PAM service modules
+ .SH NOTES
+-.sp
+-.LP
+-The interfaces in \fBlibpam()\fR are MT-Safe only if each thread within the
++The interfaces in \fBlibpam\fR(3LIB) are MT-Safe only if each thread within the
+ multi-threaded application uses its own \fBPAM\fR handle.
+diff --git a/usr/src/man/man7/pam_smb_passwd.7 b/usr/src/man/man7/pam_smb_passwd.7
+index b55b0d7229..b3afc1f636 100644
+--- a/usr/src/man/man7/pam_smb_passwd.7
++++ b/usr/src/man/man7/pam_smb_passwd.7
+@@ -3,22 +3,19 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_SMB_PASSWD 7 "Apr 29, 2008"
++.TH PAM_SMB_PASSWD 7 "August 19, 2023"
+ .SH NAME
+ pam_smb_passwd \- SMB password management module
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBpam_smb_passwd.so.1\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBpam_smb_passwd\fR module enhances the PAM password management stack.
+ This functionality supports the changing or adding of SMB passwords for local
+-Solaris users. The Solaris CIFS server uses SMB passwords to authenticate
+-connected Solaris users. This module includes the \fBpam_sm_chauthtok\fR(3PAM)
++users. The CIFS server uses SMB passwords to authenticate
++connected users. This module includes the \fBpam_sm_chauthtok\fR(3PAM)
+ function.
+ .sp
+ .LP
+@@ -83,19 +80,16 @@ Suppresses warning messages.
+ .RE
+ 
+ .SH FILES
+-.sp
+ .ne 2
+ .na
+ \fB\fB/var/smb/smbpasswd\fR\fR
+ .ad
+ .sp .6
+ .RS 4n
+-Stores SMB passwords for Solaris users.
++Stores SMB passwords for users.
+ .RE
+ 
+ .SH ERRORS
+-.sp
+-.LP
+ Upon successful completion of \fBpam_sm_chauthtok()\fR, \fBPAM_SUCCESS\fR is
+ returned. The following error codes are returned upon error:
+ .sp
+@@ -149,8 +143,6 @@ User is unknown
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See the \fBattributes\fR(7) man page for descriptions of the following
+ attributes:
+ .sp
+@@ -168,8 +160,6 @@ MT Level	MT-Safe with exceptions
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR syslog (3C),
+ .BR libpam (3LIB),
+ .BR pam (3PAM),
+@@ -180,10 +170,8 @@ MT Level	MT-Safe with exceptions
+ .BR attributes (7),
+ .BR smbd (8)
+ .SH NOTES
+-.sp
+-.LP
+-The interfaces in \fBlibpam\fR(3LIB) are MT-Safe \fBonly\fR if each thread
+-within the multi-threaded application uses its own PAM handle.
++The interfaces in \fBlibpam\fR(3LIB) are MT-Safe only if each thread within the
++multi-threaded application uses its own PAM handle.
+ .sp
+ .LP
+ The \fBpam_smb_passwd.so.1\fR module should be stacked following all password
+diff --git a/usr/src/man/man7/pam_smbfs_login.7 b/usr/src/man/man7/pam_smbfs_login.7
+index 0ad333585b..95ca23d2cf 100644
+--- a/usr/src/man/man7/pam_smbfs_login.7
++++ b/usr/src/man/man7/pam_smbfs_login.7
+@@ -3,26 +3,23 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_SMBFS_LOGIN 7 "Sep 25, 2008"
++.TH PAM_SMBFS_LOGIN 7 "August 19, 2023"
+ .SH NAME
+ pam_smbfs_login \- PAM user credential authentication module for SMB/CIFS
+ client login
+ .SH SYNOPSIS
+-.LP
+ .nf
+ pam_smb_cred.so.1
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBpam_smbfs_login\fR module  implements \fBpam_sm_setcred\fR(3PAM) to
+ provide functions that act equivalently to the \fBsmbutil\fR(1) login command.
+ .sp
+ .LP
+ This optional functionality is meant  to be used only in environments  that  do
+ not run Active Directory or Kerberos, but which synchronize passwords between
+-Solaris clients and their CIFS/SMB servers.
++clients and their CIFS/SMB servers.
+ .sp
+ .LP
+ This module permits the login password to be stored as if the \fBsmbutil\fR(1)
+@@ -138,7 +135,6 @@ Suppresses warning messages.
+ .RE
+ 
+ .SH FILES
+-.sp
+ .ne 2
+ .na
+ \fB\fB$HOME/.nsmbrc\fR\fR
+@@ -148,8 +144,6 @@ Find default domain, if present.
+ .RE
+ 
+ .SH ERRORS
+-.sp
+-.LP
+ Upon successful completion of \fBpam_sm_setcred\fR(3PAM), \fBPAM_SUCCESS\fR is
+ returned. The  following  error codes are returned upon error:
+ .sp
+@@ -193,8 +187,6 @@ System error.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attribute:
+ .sp
+ 
+@@ -211,8 +203,6 @@ MT Level	MT-Safe with exceptions
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR smbutil (1),
+ .BR syslog (3C),
+ .BR libpam (3LIB),
+@@ -220,13 +210,10 @@ MT Level	MT-Safe with exceptions
+ .BR pam_setcred (3PAM),
+ .BR pam_sm (3PAM),
+ .BR pam_sm_authenticate (3PAM),
+-.BR pam_sm_chauthtok (3PAM),
+ .BR pam_sm_setcred (3PAM),
+ .BR smbfs (4FS),
+ .BR pam.conf (5),
+ .BR attributes (7)
+ .SH NOTES
+-.sp
+-.LP
+-The interfaces in \fBlibpam\fR(3LIB) are MT-Safe only  if each thread within
+-the multi-threaded application uses its own PAM handle.
++The interfaces in \fBlibpam\fR(3LIB) are MT-Safe only if each thread within the
++multi-threaded application uses its own PAM handle.
+diff --git a/usr/src/man/man7/pam_tsol_account.7 b/usr/src/man/man7/pam_tsol_account.7
+index 3b12a24648..dffc727214 100644
+--- a/usr/src/man/man7/pam_tsol_account.7
++++ b/usr/src/man/man7/pam_tsol_account.7
+@@ -3,27 +3,23 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_TSOL_ACCOUNT 7 "Jul 20, 2007"
++.TH PAM_TSOL_ACCOUNT 7 "August 19, 2023"
+ .SH NAME
+ pam_tsol_account \- PAM account management module for Trusted Extensions
+ .SH SYNOPSIS
+-.LP
+ .nf
+-\fB/usr/lib/security/pam_tsol_account.so.1\fR
++\fBpam_tsol_account.so.1\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+-The Solaris Trusted Extensions service module for \fBPAM\fR,
+-\fB/usr/lib/security/pam_tsol_account.so.1\fR, checks account limitations that
+-are related to labels. The \fBpam_tsol_account.so.1\fR module is a shared
+-object that can be dynamically loaded to provide the necessary functionality
+-upon demand. Its path is specified in the \fBPAM\fR configuration file.
++The Trusted Extensions service module for \fBPAM\fR,
++\fBpam_tsol_account.so.1\fR, checks account limitations that
++are related to labels.
+ .sp
+ .LP
+ \fBpam_tsol_account.so.1\fR contains a function to perform account management,
+-\fBpam_sm_acct_mgmt()\fR. The function checks for the allowed label range for
++\fBpam_sm_acct_mgmt\fR(3PAM).
++The function checks for the allowed label range for
+ the user.  The allowable label range is set by the defaults in the
+ \fBlabel_encodings\fR(5) file. These defaults can be overridden by entries in
+ the \fBuser_attr\fR(5) database.
+@@ -42,8 +38,6 @@ other  account required    pam_tsol_account allow_unlabeled
+ .sp
+ 
+ .SH OPTIONS
+-.sp
+-.LP
+ The following options can be passed to the module:
+ .sp
+ .ne 2
+@@ -65,8 +59,6 @@ Provides debugging information at the \fBLOG_DEBUG\fR level. See
+ .RE
+ 
+ .SH RETURN VALUES
+-.sp
+-.LP
+ The following values are returned:
+ .sp
+ .ne 2
+@@ -99,8 +91,6 @@ information on error-related return values, see the \fBpam\fR(3PAM) man page.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for description of the following attributes:
+ .sp
+ 
+@@ -121,8 +111,6 @@ MT Level	MT-Safe with exceptions
+ The interfaces in \fBlibpam\fR(3LIB) are MT-Safe only if each thread within the
+ multi-threaded application uses its own PAM handle.
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR keylogin (1),
+ .BR syslog (3C),
+ .BR libpam (3LIB),
+@@ -133,12 +121,6 @@ multi-threaded application uses its own PAM handle.
+ .BR pam.conf (5),
+ .BR user_attr (5),
+ .BR attributes (7)
+-.sp
+-.LP
+-Chapter 17, \fIUsing PAM,\fR in \fISystem Administration Guide: Security
+-Services\fR
+ .SH NOTES
+-.sp
+-.LP
+ The functionality described on this manual page is available only if the system
+ is configured with Trusted Extensions.
+diff --git a/usr/src/man/man7/pam_unix_account.7 b/usr/src/man/man7/pam_unix_account.7
+index 516f486550..95cecf8e5f 100644
+--- a/usr/src/man/man7/pam_unix_account.7
++++ b/usr/src/man/man7/pam_unix_account.7
+@@ -4,19 +4,16 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_UNIX_ACCOUNT 7 "Feb 14, 2005"
++.TH PAM_UNIX_ACCOUNT 7 "August 19, 2023"
+ .SH NAME
+ pam_unix_account \- PAM account management module for UNIX
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBpam_unix_account.so.1\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+-\fBpam_unix_account\fR module implements \fBpam_sm_acct_mgmt()\fR, which
++The \fBpam_unix_account\fR module implements \fBpam_sm_acct_mgmt\fR(3PAM), which
+ provides functionality to the \fBPAM\fR account management stack. The module
+ provides functions to validate that the user's account is not locked or expired
+ and that the user's password does not need to be changed. The module retrieves
+@@ -54,13 +51,11 @@ switch.
+ .RE
+ 
+ .SH ERRORS
+-.sp
+-.LP
+ The following values are returned:
+ .sp
+ .ne 2
+ .na
+-\fB\fBPAM_UNIX_ACCOUNT\fR\fR
++\fB\fBPAM_ACCT_EXPIRED\fR\fR
+ .ad
+ .RS 24n
+ User account has expired
+@@ -139,8 +134,6 @@ No account is present for the user
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -157,18 +150,15 @@ MT Level	MT-Safe with exceptions
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR syslog (3C),
+ .BR libpam (3LIB),
+ .BR pam (3PAM),
+ .BR pam_authenticate (3PAM),
++.BR pam_sm_acct_mgmt (3PAM),
+ .BR nsswitch.conf (5),
+ .BR pam.conf (5),
+ .BR attributes (7)
+ .SH NOTES
+-.sp
+-.LP
+ The interfaces in \fBlibpam\fR(3LIB) are MT-Safe only if each thread within the
+ multi-threaded application uses its own PAM handle.
+ .sp
+diff --git a/usr/src/man/man7/pam_unix_auth.7 b/usr/src/man/man7/pam_unix_auth.7
+index 9b3f09430f..e947450fbc 100644
+--- a/usr/src/man/man7/pam_unix_auth.7
++++ b/usr/src/man/man7/pam_unix_auth.7
+@@ -3,19 +3,16 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_UNIX_AUTH 7 "Apr 23, 2008"
++.TH PAM_UNIX_AUTH 7 "August 19, 2023"
+ .SH NAME
+ pam_unix_auth \- PAM authentication module for UNIX
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBpam_unix_auth.so.1\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+-The \fBpam_unix_auth\fR module implements \fBpam_sm_authenticate()\fR, which
++The \fBpam_unix_auth\fR module implements \fBpam_sm_authenticate\fR(3PAM), which
+ provides functionality to the PAM authentication stack. It provides functions
+ that use \fBcrypt\fR(3C) to verify that the password contained in the \fBPAM\fR
+ item \fBPAM_AUTHTOK\fR is the correct password for the user specified in the
+@@ -81,8 +78,6 @@ option allows for exempting account locking on a per service basis.
+ .RE
+ 
+ .SH ERRORS
+-.sp
+-.LP
+ The following error codes are returned from \fBpam_sm_authenticate()\fR:
+ .sp
+ .ne 2
+@@ -178,8 +173,6 @@ Ignores this module regardless of the control flag.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -196,16 +189,15 @@ MT Level	MT-Safe with exceptions
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR login (1),
+ .BR passwd (1),
+ .BR crypt (3C),
+ .BR syslog (3C),
+ .BR libpam (3LIB),
+ .BR pam (3PAM),
+-.BR pam_authenticate (3PAM),
+ .BR pam_setcred (3PAM),
++.BR pam_sm_authenticate (3PAM),
++.BR pam_sm_setcred (3PAM),
+ .BR nsswitch.conf (5),
+ .BR pam.conf (5),
+ .BR passwd (5),
+@@ -219,14 +211,9 @@ MT Level	MT-Safe with exceptions
+ .BR pam_dhkeys (7),
+ .BR pam_passwd_auth (7),
+ .BR pam_unix_account (7),
++.BR pam_unix_cred (7),
+ .BR pam_unix_session (7),
+-.BR roleadd (8),
+-.BR rolemod (8),
+-.BR useradd (8),
+-.BR usermod (8)
+ .SH NOTES
+-.sp
+-.LP
+ The interfaces in \fBlibpam\fR(3LIB) are MT-Safe only if each thread within the
+ multi-threaded application uses its own \fBPAM\fR handle.
+ .sp
+diff --git a/usr/src/man/man7/pam_unix_cred.7 b/usr/src/man/man7/pam_unix_cred.7
+index add7af7527..578cf5f861 100644
+--- a/usr/src/man/man7/pam_unix_cred.7
++++ b/usr/src/man/man7/pam_unix_cred.7
+@@ -3,18 +3,15 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_UNIX_CRED 7 "Mar 9, 2005"
++.TH PAM_UNIX_CRED 7 "August 19, 2023"
+ .SH NAME
+-pam_unix_cred \- PAM user credential authentication module for UNIX
++pam_unix_cred \- PAM user credential module for UNIX
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBpam_unix_cred.so.1\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBpam_unix_cred\fR module implements \fBpam_sm_setcred\fR(3PAM). It
+ provides functions that establish user credential information. It is a module
+ separate from the \fBpam_unix_auth\fR(7) module to allow replacement of the
+@@ -101,8 +98,6 @@ Disables any warning messages.
+ .RE
+ 
+ .SH ERRORS
+-.sp
+-.LP
+ Upon successful completion of \fBpam_sm_setcred()\fR, \fBPAM_SUCCESS\fR is
+ returned. The following error codes are returned upon error:
+ .sp
+@@ -172,8 +167,6 @@ Ignores this module regardless of the control flag
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -190,34 +183,18 @@ MT Level	MT-Safe with exceptions
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+-.BR ssh (1),
+-.BR settaskid (2),
+ .BR syslog (3C),
+ .BR libpam (3LIB),
+ .BR pam (3PAM),
+-.BR pam_set_item (3PAM),
+ .BR pam_sm_authenticate (3PAM),
+-.BR getprojent (3PROJECT),
+-.BR setproject (3PROJECT),
+-.BR nsswitch.conf (5),
++.BR pam_sm_setcred (3PAM),
+ .BR pam.conf (5),
+ .BR project (5),
+ .BR attributes (7),
+-.BR pam_authtok_check (7),
+-.BR pam_authtok_get (7),
+-.BR pam_authtok_store (7),
+-.BR pam_dhkeys (7),
+-.BR pam_passwd_auth (7),
+-.BR pam_unix_account (7),
+ .BR pam_unix_auth (7),
+ .BR pam_unix_session (7),
+-.BR privileges (7),
+ .BR su (8)
+ .SH NOTES
+-.sp
+-.LP
+ The interfaces in \fBlibpam\fR(3LIB) are MT-Safe only if each thread within the
+ multi-threaded application uses its own \fBPAM\fR handle.
+ .sp
+diff --git a/usr/src/man/man7/pam_unix_session.7 b/usr/src/man/man7/pam_unix_session.7
+index 1076e93a59..8fa8039f1e 100644
+--- a/usr/src/man/man7/pam_unix_session.7
++++ b/usr/src/man/man7/pam_unix_session.7
+@@ -5,18 +5,15 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH PAM_UNIX_SESSION 7 "Jan 3, 2016"
++.TH PAM_UNIX_SESSION 7 "August 19, 2023"
+ .SH NAME
+-pam_unix_session \- session management PAM module for UNIX
++pam_unix_session \- PAM session management module for UNIX
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBpam_unix_session.so.1\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBpam_unix_session\fR module implements \fBpam_sm_open_session\fR(3PAM)
+ and \fBpam_sm_close_session\fR(3PAM).
+ .sp
+@@ -50,8 +47,6 @@ Turn off last login PAM_TEXT_INFO message.
+ .RE
+ 
+ .SH ERRORS
+-.sp
+-.LP
+ Upon successful completion, \fBPAM_SUCCESS\fR is returned. The following error
+ codes are returned upon error:
+ .sp
+@@ -74,8 +69,6 @@ No account is present for \fIuser\fR.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -92,12 +85,11 @@ MT Level	MT-Safe with exceptions
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR syslog (3C),
+ .BR libpam (3LIB),
+ .BR pam (3PAM),
+-.BR pam_authenticate (3PAM),
++.BR pam_sm_close_session (3PAM),
++.BR pam_sm_open_session (3PAM),
+ .BR nsswitch.conf (5),
+ .BR pam.conf (5),
+ .BR attributes (7),
+@@ -109,8 +101,6 @@ MT Level	MT-Safe with exceptions
+ .BR pam_unix_account (7),
+ .BR pam_unix_auth (7)
+ .SH NOTES
+-.sp
+-.LP
+ The interfaces in \fBlibpam\fR(3LIB) are MT-Safe only if each thread within the
+ multi-threaded application uses its own PAM handle.
+ .sp
+-- 
+2.43.0
+

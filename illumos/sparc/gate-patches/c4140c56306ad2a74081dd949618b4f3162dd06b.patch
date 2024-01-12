@@ -1,0 +1,87 @@
+From c4140c56306ad2a74081dd949618b4f3162dd06b Mon Sep 17 00:00:00 2001
+From: Toomas Soome <tsoome@me.com>
+Date: Sat, 5 Mar 2022 11:14:53 +0200
+Subject: [PATCH] 14552 We should provide 64-bit pam_smb_passwd.so.1 Reviewed
+ by: Peter Tribble <peter.tribble@gmail.com> Reviewed by: Gordon Ross
+ <Gordon.W.Ross@gmail.com> Approved by: Robert Mustacchi <rm@fingolfin.org>
+
+---
+ exception_lists/packaging                       | 17 ++++++++++++++---
+ usr/src/lib/pam_modules/smb/Makefile            |  2 +-
+ .../pkg/manifests/service-file-system-smb.p5m   |  6 ++++++
+ 3 files changed, 21 insertions(+), 4 deletions(-)
+
+diff --git a/exception_lists/packaging b/exception_lists/packaging
+index dc74d6d3bf..4e5ae5f3c8 100644
+--- a/exception_lists/packaging
++++ b/exception_lists/packaging
+@@ -633,9 +633,23 @@ usr/lib/smbsrv/bind-helper
+ usr/lib/smbsrv/fksmbd
+ usr/lib/smbsrv/libfksmbsrv.so
+ usr/lib/smbsrv/libfksmbsrv.so.1
++usr/lib/smbsrv/amd64/libfksmbsrv.so		i386
++usr/lib/smbsrv/amd64/libfksmbsrv.so.1		i386
++usr/lib/smbsrv/sparcv9/libfksmbsrv.so		sparc
++usr/lib/smbsrv/sparcv9/libfksmbsrv.so.1		sparc
+ usr/lib/smbsrv/libmlsvc.so
++usr/lib/smbsrv/amd64/libmlsvc.so		i386
++usr/lib/smbsrv/amd64/libmlsvc.so.1		i386
++usr/lib/smbsrv/sparcv9/libmlsvc.so		sparc
++usr/lib/smbsrv/sparcv9/libmlsvc.so.1		sparc
+ usr/lib/smbsrv/libsmb.so
++usr/lib/smbsrv/amd64/libsmb.so			i386
++usr/lib/smbsrv/sparcv9/libsmb.so		sparc
+ usr/lib/smbsrv/libsmbns.so
++usr/lib/smbsrv/amd64/libsmbns.so		i386
++usr/lib/smbsrv/amd64/libsmbns.so.1		i386
++usr/lib/smbsrv/sparcv9/libsmbns.so		sparc
++usr/lib/smbsrv/sparcv9/libsmbns.so.1		sparc
+ usr/lib/smbsrv/nvlprint
+ usr/lib/smbsrv/test-msgbuf
+ usr/lib/smbsrv/testoplock
+@@ -643,9 +657,6 @@ usr/lib/smbsrv/testoplock
+ #
+ # Private/Internal 64-bit libraries of smbsrv. Do not ship.
+ #
+-usr/lib/smbsrv/amd64				i386
+-usr/lib/smbsrv/sparcv9				sparc
+-
+ usr/lib/reparse/amd64/libreparse_smb.so		i386
+ usr/lib/reparse/amd64/libreparse_smb.so.1	i386
+ usr/lib/reparse/sparcv9/libreparse_smb.so	sparc
+diff --git a/usr/src/lib/pam_modules/smb/Makefile b/usr/src/lib/pam_modules/smb/Makefile
+index b3e928ecf1..32ca2a871f 100644
+--- a/usr/src/lib/pam_modules/smb/Makefile
++++ b/usr/src/lib/pam_modules/smb/Makefile
+@@ -31,7 +31,7 @@ POFILE=		smb_passwd.po
+ MSGFILES=	smb_passwd.c
+ 
+ SUBDIRS=	$(MACH)
+-#$(BUILD64)SUBDIRS += $(MACH64)
++$(BUILD64)SUBDIRS += $(MACH64)
+ 
+ all	:=	TARGET= all
+ clean	:=	TARGET= clean
+diff --git a/usr/src/pkg/manifests/service-file-system-smb.p5m b/usr/src/pkg/manifests/service-file-system-smb.p5m
+index 8340ef7bbc..8944694ad1 100644
+--- a/usr/src/pkg/manifests/service-file-system-smb.p5m
++++ b/usr/src/pkg/manifests/service-file-system-smb.p5m
+@@ -63,9 +63,15 @@ dir  path=usr/lib/reparse
+ link path=usr/lib/reparse/libreparse_smb.so target=libreparse_smb.so.1
+ file path=usr/lib/reparse/libreparse_smb.so.1
+ dir  path=usr/lib/security
++dir  path=usr/lib/security/$(ARCH64)
++link path=usr/lib/security/$(ARCH64)/pam_smb_passwd.so \
++    target=pam_smb_passwd.so.1
++file path=usr/lib/security/$(ARCH64)/pam_smb_passwd.so.1
+ link path=usr/lib/security/pam_smb_passwd.so target=pam_smb_passwd.so.1
+ file path=usr/lib/security/pam_smb_passwd.so.1
+ dir  path=usr/lib/smbsrv
++dir  path=usr/lib/smbsrv/$(ARCH64)
++file path=usr/lib/smbsrv/$(ARCH64)/libsmb.so.1
+ dir  path=usr/lib/smbsrv/dtrace
+ file path=usr/lib/smbsrv/dtrace/nbl-conflict.d mode=0555
+ file path=usr/lib/smbsrv/dtrace/smb-trace.d mode=0555
+-- 
+2.42.0
+

@@ -1,0 +1,138 @@
+From 9495f63eafceb1605bec42e743f2976df42d683a Mon Sep 17 00:00:00 2001
+From: Dan McDonald <danmcd@joyent.com>
+Date: Sat, 30 Oct 2021 00:14:30 -0400
+Subject: [PATCH] 14210 reflecting ICMP of IP-in-IP needs to be more robust
+ Reviewed by: Toomas Soome <tsoome@me.com> Reviewed by: Robert Mustacchi
+ <rm@fingolfin.org> Approved by: Richard Lowe <richlowe@richlowe.net>
+
+---
+ usr/src/uts/common/inet/ip/ip.c  | 33 ++++++++++++++++++++++++++------
+ usr/src/uts/common/inet/ip/ip6.c |  7 ++++---
+ usr/src/uts/common/os/ip_cksum.c |  8 ++++----
+ 3 files changed, 35 insertions(+), 13 deletions(-)
+
+diff --git a/usr/src/uts/common/inet/ip/ip.c b/usr/src/uts/common/inet/ip/ip.c
+index 4a771a8256b0..0f6ac91ce699 100644
+--- a/usr/src/uts/common/inet/ip/ip.c
++++ b/usr/src/uts/common/inet/ip/ip.c
+@@ -24,8 +24,8 @@
+  * Copyright (c) 1990 Mentat Inc.
+  * Copyright (c) 2017 OmniTI Computer Consulting, Inc. All rights reserved.
+  * Copyright (c) 2016 by Delphix. All rights reserved.
+- * Copyright (c) 2019 Joyent, Inc. All rights reserved.
+  * Copyright 2020 OmniOS Community Edition (OmniOSce) Association.
++ * Copyright 2021 Joyent, Inc.
+  */
+ 
+ #include <sys/types.h>
+@@ -2845,6 +2845,20 @@ icmp_pkt(mblk_t *mp, void *stuff, size_t len, ip_recv_attr_t *ira)
+ 	len_needed = IPH_HDR_LENGTH(ipha);
+ 	if (ipha->ipha_protocol == IPPROTO_ENCAP ||
+ 	    ipha->ipha_protocol == IPPROTO_IPV6) {
++		/*
++		 * NOTE: It is posssible that the inner packet is poorly
++		 * formed (e.g. IP version is corrupt, or v6 extension headers
++		 * got cut off).  The receiver of the ICMP message should see
++		 * what we saw.  In the absence of a sane inner-packet (which
++		 * protocol types IPPPROTO_ENCAP and IPPROTO_IPV6 indicate
++		 * would be an IP header), we should send the size of what is
++		 * normally expected to be there (either sizeof (ipha_t) or
++		 * sizeof (ip6_t).  It may be useful for diagnostic purposes.
++		 *
++		 * ALSO NOTE: "inner_ip6h" is the inner packet header, v4 or v6.
++		 */
++		ip6_t *inner_ip6h = (ip6_t *)((uchar_t *)ipha + len_needed);
++
+ 		if (!pullupmsg(mp, -1)) {
+ 			BUMP_MIB(&ipst->ips_ip_mib, ipIfStatsOutDiscards);
+ 			ip_drop_output("ipIfStatsOutDiscards", mp, NULL);
+@@ -2854,13 +2868,20 @@ icmp_pkt(mblk_t *mp, void *stuff, size_t len, ip_recv_attr_t *ira)
+ 		ipha = (ipha_t *)mp->b_rptr;
+ 
+ 		if (ipha->ipha_protocol == IPPROTO_ENCAP) {
+-			len_needed += IPH_HDR_LENGTH(((uchar_t *)ipha +
+-			    len_needed));
++			/*
++			 * Check the inner IP version here to guard against
++			 * bogons.
++			 */
++			if (IPH_HDR_VERSION(inner_ip6h) == IPV4_VERSION) {
++				len_needed +=
++				    IPH_HDR_LENGTH(((uchar_t *)inner_ip6h));
++			} else {
++				len_needed = sizeof (ipha_t);
++			}
+ 		} else {
+-			ip6_t *ip6h = (ip6_t *)((uchar_t *)ipha + len_needed);
+-
+ 			ASSERT(ipha->ipha_protocol == IPPROTO_IPV6);
+-			len_needed += ip_hdr_length_v6(mp, ip6h);
++			/* function called next-line checks inner IP version */
++			len_needed += ip_hdr_length_v6(mp, inner_ip6h);
+ 		}
+ 	}
+ 	len_needed += ipst->ips_ip_icmp_return;
+diff --git a/usr/src/uts/common/inet/ip/ip6.c b/usr/src/uts/common/inet/ip/ip6.c
+index 26e7be2fe812..15ca8adbaad6 100644
+--- a/usr/src/uts/common/inet/ip/ip6.c
++++ b/usr/src/uts/common/inet/ip/ip6.c
+@@ -22,7 +22,7 @@
+  * Copyright (c) 1991, 2010, Oracle and/or its affiliates. All rights reserved.
+  * Copyright (c) 1990 Mentat Inc.
+  * Copyright 2017 OmniTI Computer Consulting, Inc. All rights reserved.
+- * Copyright 2019 Joyent, Inc.
++ * Copyright 2021 Joyent, Inc.
+  */
+ 
+ #include <sys/types.h>
+@@ -2732,14 +2732,15 @@ ip_find_hdr_v6(mblk_t *mp, ip6_t *ip6h, boolean_t label_separate, ip_pkt_t *ipp,
+ 
+ /*
+  * Return the length of the IPv6 related headers (including extension headers)
+- * Returns a length even if the packet is malformed.
++ * If the packet is malformed, this returns the simple IPv6 header length.
+  */
+ uint16_t
+ ip_hdr_length_v6(mblk_t *mp, ip6_t *ip6h)
+ {
+ 	uint16_t hdr_len;
+ 
+-	(void) ip_hdr_length_nexthdr_v6(mp, ip6h, &hdr_len, NULL);
++	if (!ip_hdr_length_nexthdr_v6(mp, ip6h, &hdr_len, NULL))
++		hdr_len = sizeof (*ip6h);
+ 	return (hdr_len);
+ }
+ 
+diff --git a/usr/src/uts/common/os/ip_cksum.c b/usr/src/uts/common/os/ip_cksum.c
+index 0a237e86ecc2..51a93dfa2424 100644
+--- a/usr/src/uts/common/os/ip_cksum.c
++++ b/usr/src/uts/common/os/ip_cksum.c
+@@ -21,7 +21,7 @@
+ /*
+  * Copyright 2009 Sun Microsystems, Inc.  All rights reserved.
+  * Use is subject to license terms.
+- * Copyright 2019 Joyent, Inc.
++ * Copyright 2021 Joyent, Inc.
+  */
+ /* Copyright (c) 1990 Mentat Inc. */
+ 
+@@ -40,8 +40,7 @@
+ #include <sys/multidata.h>
+ #include <sys/multidata_impl.h>
+ 
+-extern unsigned int 	ip_ocsum(ushort_t *address, int halfword_count,
+-    unsigned int sum);
++extern unsigned int ip_ocsum(ushort_t *, int, unsigned int);
+ 
+ /*
+  * Checksum routine for Internet Protocol family headers.
+@@ -587,7 +586,8 @@ ip_hdr_length_nexthdr_v6(mblk_t *mp, ip6_t *ip6h, uint16_t *hdr_length_ptr,
+ 	ip6_rthdr_t *rthdr;
+ 	ip6_frag_t *fraghdr;
+ 
+-	ASSERT(IPH_HDR_VERSION(ip6h) == IPV6_VERSION);
++	if (IPH_HDR_VERSION(ip6h) != IPV6_VERSION)
++		return (B_FALSE);
+ 	length = IPV6_HDR_LEN;
+ 	whereptr = ((uint8_t *)&ip6h[1]); /* point to next hdr */
+ 	endptr = mp->b_wptr;

@@ -1,0 +1,185 @@
+From 11029d9dcf6c3fb63ae0cbb0ad67f86d267db4eb Mon Sep 17 00:00:00 2001
+From: Robert Mustacchi <rm@fingolfin.org>
+Date: Sat, 22 Jan 2022 19:56:16 +0000
+Subject: [PATCH] 14446 ar cqs doesn't work Reviewed by: Hans Rosenfeld
+ <rosenfeld@grumpf.hope-2000.org> Reviewed by: Andy Fiddaman <andy@omnios.org>
+ Approved by: Dan McDonald <danmcd@joyent.com>
+
+---
+ usr/src/cmd/sgs/ar/common/ar.msg            |  6 ++-
+ usr/src/cmd/sgs/ar/common/file.c            |  4 +-
+ usr/src/cmd/sgs/ar/common/main.c            |  4 +-
+ usr/src/man/man1/ar.1                       |  5 ++-
+ usr/src/test/util-tests/tests/ar/artest.ksh | 43 ++++++++++++++++++++-
+ 5 files changed, 54 insertions(+), 8 deletions(-)
+
+diff --git a/usr/src/cmd/sgs/ar/common/ar.msg b/usr/src/cmd/sgs/ar/common/ar.msg
+index 6682ca42af..2c165d0afa 100644
+--- a/usr/src/cmd/sgs/ar/common/ar.msg
++++ b/usr/src/cmd/sgs/ar/common/ar.msg
+@@ -21,7 +21,7 @@
+ 
+ #
+ # Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+-# Copyright 2021 Oxide Computer Company
++# Copyright 2022 Oxide Computer Company
+ #
+ 
+ @ _START_
+@@ -33,7 +33,7 @@
+ @ MSG_USAGE		"usage: ar -d[-SvV] archive file ...\n       \
+ 			 ar -m[-abiSvV] [posname] archive file ...\n       \
+ 			 ar -p[-vV][-sS] archive [file ...]\n       \
+-			 ar -q[-cuvSV] [file ...]\n       \
++			 ar -q[-csuvSV] [file ...]\n       \
+ 			 ar -r[-cuvSV] [-abi] [posname] [file ...]\n       \
+ 			 ar -s[-vV] archive\n       \
+ 			 ar -t[-vV][-sS] archive [file ...]\n       \
+@@ -56,6 +56,8 @@
+ 			 included in archive or not\n"
+ @ MSG_INTERNAL_02	"ar: internal header generation error\n"
+ 
++@ MSG_BAD_CREATE	"ar: failed to create %s: %s, is the path correct?\n"
++
+ @ MSG_SYS_OPEN		"ar: cannot open %s: %s\n"
+ @ MSG_SYS_CLOSE		"ar: cannot close %s: %s\n"
+ @ MSG_SYS_WRITE		"ar: %s: cannot write: %s\n"
+diff --git a/usr/src/cmd/sgs/ar/common/file.c b/usr/src/cmd/sgs/ar/common/file.c
+index 77e91c5898..c729617132 100644
+--- a/usr/src/cmd/sgs/ar/common/file.c
++++ b/usr/src/cmd/sgs/ar/common/file.c
+@@ -21,6 +21,7 @@
+ 
+ /*
+  * Copyright (c) 1995, 2010, Oracle and/or its affiliates. All rights reserved.
++ * Copyright 2022 Oxide Computer Company
+  */
+ 
+ /*
+@@ -1187,7 +1188,8 @@ writefile(Cmd_info *cmd_info)
+ 	ar_outfile.fd = open(ar_outfile.path, O_RDWR|O_CREAT|O_LARGEFILE, 0666);
+ 	if (ar_outfile.fd == -1) {
+ 		int err = errno;
+-		(void) fprintf(stderr, MSG_INTL(MSG_SYS_OPEN),
++		(void) fprintf(stderr, new_archive ?
++		    MSG_INTL(MSG_BAD_CREATE) : MSG_INTL(MSG_SYS_OPEN),
+ 		    ar_outfile.path, strerror(err));
+ 		exit(1);
+ 	}
+diff --git a/usr/src/cmd/sgs/ar/common/main.c b/usr/src/cmd/sgs/ar/common/main.c
+index 3f918e15db..3b95560816 100644
+--- a/usr/src/cmd/sgs/ar/common/main.c
++++ b/usr/src/cmd/sgs/ar/common/main.c
+@@ -27,7 +27,7 @@
+ 
+ /*
+  * Copyright (c) 2018, Joyent, Inc.
+- * Copyright 2021 Oxide Computer Company
++ * Copyright 2022 Oxide Computer Company
+  */
+ 
+ #include "inc.h"
+@@ -141,7 +141,7 @@ main(int argc, char **argv, char *envp[])
+ 		boolean_t req_r = (cmd_info->opt_flgs & r_FLAG) &&
+ 		    (cmd_info->opt_flgs & (a_FLAG | b_FLAG));
+ 		boolean_t req_s = (cmd_info->opt_flgs & s_FLAG) &&
+-		    (cmd_info->opt_flgs & r_FLAG) == 0;
++		    (cmd_info->opt_flgs & (r_FLAG | q_FLAG)) == 0;
+ 
+ 		if (req_arg || req_r || req_s) {
+ 			(void) fprintf(stderr, MSG_INTL(MSG_NOT_FOUND_AR),
+diff --git a/usr/src/man/man1/ar.1 b/usr/src/man/man1/ar.1
+index 66512b0fb7..0a922efc28 100644
+--- a/usr/src/man/man1/ar.1
++++ b/usr/src/man/man1/ar.1
+@@ -43,8 +43,9 @@
+ .\" Copyright 1989 AT&T
+ .\" Portions Copyright (c) 1992, X/Open Company Limited  All Rights Reserved
+ .\" Copyright (c) 2009, Sun Microsystems, Inc.  All Rights Reserved.
++.\" Copyright 2022 Oxide Computer Company
+ .\"
+-.TH AR 1 "September 20, 2021"
++.TH AR 1 "January 23, 2022"
+ .SH NAME
+ ar \- maintain portable archive or library
+ .SH SYNOPSIS
+@@ -64,7 +65,7 @@ ar \- maintain portable archive or library
+ 
+ .LP
+ .nf
+-\fB/usr/bin/ar\fR \fB-q\fR [\fB-cVv\fR] \fIarchive\fR \fIfile\fR...
++\fB/usr/bin/ar\fR \fB-q\fR [\fB-csVv\fR] \fIarchive\fR \fIfile\fR...
+ .fi
+ 
+ .LP
+diff --git a/usr/src/test/util-tests/tests/ar/artest.ksh b/usr/src/test/util-tests/tests/ar/artest.ksh
+index ad494ef85a..5854a95c3a 100644
+--- a/usr/src/test/util-tests/tests/ar/artest.ksh
++++ b/usr/src/test/util-tests/tests/ar/artest.ksh
+@@ -11,7 +11,7 @@
+ #
+ 
+ #
+-# Copyright 2021 Oxide Computer Company
++# Copyright 2022 Oxide Computer Company
+ #
+ 
+ #
+@@ -437,6 +437,46 @@ function test_t
+ 	fi
+ }
+ 
++function test_q
++{
++	typeset alt="$ar_tmpdir/q.a"
++
++	if ! $ar_prog q $alt $ar_data1 $ar_data0; then
++		warn "ar -q: did not create an archive"
++	fi
++
++	if ! compare_files $ar_f10 $alt; then
++		warn "ar -q: did not create expected file"
++	else
++		print "TEST PASSED: ar -q creates archives"
++	fi
++
++	rm -f $alt
++
++	if ! $ar_prog cq $alt $ar_data1 $ar_data0; then
++		warn "ar -rs: did not create an archive"
++	fi
++
++	if ! compare_files $ar_f10 $alt; then
++		warn "ar -cq: did not create expected file"
++	else
++		print "TEST PASSED: ar -cq creates archives"
++	fi
++
++	rm -f $alt
++
++	if ! $ar_prog cqs $alt $ar_data1 $ar_data0; then
++		warn "ar -cqs: did not create an archive"
++	fi
++
++	if ! compare_files $ar_f10 $alt; then
++		warn "ar -cqs: did not create expected file"
++	else
++		print "TEST PASSED: ar -cqs creates archives"
++	fi
++
++}
++
+ function test_err
+ {
+ 	if $ar_prog $@ 2>/dev/null 1>/dev/null; then
+@@ -483,6 +523,7 @@ test_x
+ test_xs
+ test_m
+ test_t
++test_q
+ 
+ #
+ # Note, there are many cases here which probably should be failures and
+-- 
+2.40.1
+

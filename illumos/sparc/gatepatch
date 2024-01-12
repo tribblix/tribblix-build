@@ -1,0 +1,72 @@
+#!/bin/sh
+#
+# {{{ CDDL HEADER
+#
+# This file and its contents are supplied under the terms of the
+# Common Development and Distribution License ("CDDL"), version 1.0.
+# You may only use this file in accordance with the terms of version
+# 1.0 of the CDDL.
+#
+# A full copy of the text of the CDDL should have accompanied this
+# source. A copy of the CDDL is also available via the Internet at
+# http://www.illumos.org/license/CDDL.
+#
+# }}}
+#
+# Copyright 2024 Peter Tribble
+#
+
+#
+# applies a given commit
+#
+# the way this works is that it pulls the patches from a cache
+# this not only saves the time and bandwidth to pull a patch
+# repeatedly, it also allows you to modify a patch if necessary
+#
+# if a patch is modified, save the original as {}.orig so we
+# know it's been modified
+#
+THOME=${THOME:-/packages/localsrc/Tribblix}
+PCACHE="${THOME}/tribblix-build/illumos/sparc/gate-patches"
+REPOURL="https://github.com/illumos/illumos-gate"
+LOCALGATE="${HOME}/Illumos-reference/illumos-gate"
+
+DRYRUN=""
+
+case $1 in
+    -n)
+	DRYRUN="--dry-run"
+	shift
+	;;
+esac
+
+if [ ! -d "${PCACHE}" ]; then
+    mkdir ${PCACHE}
+fi
+
+#
+# retrieve the patches into the cache
+#
+for patch in $*
+do
+    if [ ! -f "${PCACHE}/${patch}.patch" ]; then
+	if [ -d ${LOCALGATE} ]; then
+	    (cd $LOCALGATE ; git format-patch --stdout -1 ${patch} > ${PCACHE}//${patch}.patch)
+	else
+	    wget -O ${PCACHE}/${patch}.patch ${REPOURL}/commit/${patch}.patch
+	fi
+    fi
+done
+
+#
+# apply
+# always try and go forward, so use -N == --forward to reject any
+# apparently reversed hunks
+#
+for patch in $*
+do
+    if [ -f "${PCACHE}/${patch}.patch" ]; then
+	grep ^Subject: ${PCACHE}/${patch}.patch
+	gpatch -N -p1 $DRYRUN < ${PCACHE}/${patch}.patch
+    fi
+done

@@ -1,0 +1,616 @@
+From 56b75c05d0c84c701fbb1eb2a572b0ecee66f012 Mon Sep 17 00:00:00 2001
+From: Andy Fiddaman <omnios@citrus-it.co.uk>
+Date: Tue, 26 Apr 2022 19:27:09 +0000
+Subject: [PATCH] 14659 strip can lose its identity Reviewed by: Rich Lowe
+ <richlowe@richlowe.net> Reviewed by: Michael Zeller <mike@mikezeller.net>
+ Reviewed by: Toomas Soome <tsoome@me.com> Approved by: Robert Mustacchi
+ <rm@fingolfin.org>
+
+---
+ usr/src/cmd/sgs/mcs/Makefile.com   |  1 +
+ usr/src/cmd/sgs/mcs/common/file.c  | 74 +++++++++++++++++-------------
+ usr/src/cmd/sgs/mcs/common/main.c  | 26 ++++++-----
+ usr/src/cmd/sgs/mcs/common/mcs.h   | 34 ++++++++------
+ usr/src/cmd/sgs/mcs/common/utils.c | 53 +++++++++++----------
+ 5 files changed, 103 insertions(+), 85 deletions(-)
+
+diff --git a/usr/src/cmd/sgs/mcs/Makefile.com b/usr/src/cmd/sgs/mcs/Makefile.com
+index 988a4c462f..d826fa5a1f 100644
+--- a/usr/src/cmd/sgs/mcs/Makefile.com
++++ b/usr/src/cmd/sgs/mcs/Makefile.com
+@@ -33,6 +33,7 @@ ROOTLINKS=	$(VAR_SGSBIN)/$(STRIPFILE)
+ 
+ include		$(SRC)/cmd/Makefile.cmd
+ include		$(SRC)/cmd/sgs/Makefile.com
++include		$(SRC)/cmd/Makefile.ctf
+ 
+ COMOBJS =	main.o		file.o		utils.o		global.o \
+ 		message.o
+diff --git a/usr/src/cmd/sgs/mcs/common/file.c b/usr/src/cmd/sgs/mcs/common/file.c
+index af6d7b8e0a..f48ee623ff 100644
+--- a/usr/src/cmd/sgs/mcs/common/file.c
++++ b/usr/src/cmd/sgs/mcs/common/file.c
+@@ -25,6 +25,9 @@
+  *
+  * Copyright (c) 1995, 2010, Oracle and/or its affiliates. All rights reserved.
+  */
++/*
++ * Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
++ */
+ 
+ #include <errno.h>
+ #include "alist.h"
+@@ -83,7 +86,7 @@ each_file(char *cur_file, Cmd_Info *cmd_info)
+ 	int fd;
+ 	int oflag;
+ 
+-	if (cmd_info->flags & MIGHT_CHG)
++	if (CHK_OPT(cmd_info, MIGHT_CHG))
+ 		oflag = O_RDWR;
+ 	else
+ 		oflag = O_RDONLY;
+@@ -358,12 +361,12 @@ traverse_file(Elf *elf, GElf_Ehdr * ehdr, char *cur_file, Cmd_Info *cmd_info,
+ 		sinfo->scn	= scn;
+ 		sinfo->secno	= scn_index;
+ 		sinfo->osecno	= scn_index;
+-		SET_ACTION(sinfo->flags, ACT_NOP);
++		SET_ACTION(sinfo->si_flags, ACT_NOP);
+ 		sinfo->name	= name;
+ 		if (ehdr->e_phnum == 0)
+-			SET_LOC(sinfo->flags, NOSEG);
++			SET_LOC(sinfo->si_flags, NOSEG);
+ 		else
+-			SET_LOC(sinfo->flags, scn_location(scn, elf, state));
++			SET_LOC(sinfo->si_flags, scn_location(scn, elf, state));
+ 
+ 		if (shdr->sh_type == SHT_GROUP) {
+ 			if (aplist_append(&cmd_info->sh_groups,
+@@ -411,7 +414,7 @@ traverse_file(Elf *elf, GElf_Ehdr * ehdr, char *cur_file, Cmd_Info *cmd_info,
+ 		 * action to be processes.
+ 		 */
+ 		if ((name != NULL) && (sectcmp(name) == 0)) {
+-			SET_CANDIDATE(sinfo->flags);
++			SET_CANDIDATE(sinfo->si_flags);
+ 
+ 			/*
+ 			 * This flag just shows that there was a
+@@ -428,7 +431,7 @@ traverse_file(Elf *elf, GElf_Ehdr * ehdr, char *cur_file, Cmd_Info *cmd_info,
+ 		if (CHK_OPT(cmd_info, I_AM_STRIP) &&
+ 		    ((shdr->sh_type == SHT_SUNW_DEBUG) ||
+ 		    (shdr->sh_type == SHT_SUNW_DEBUGSTR))) {
+-			SET_CANDIDATE(sinfo->flags);
++			SET_CANDIDATE(sinfo->si_flags);
+ 			state->Sect_exists++;
+ 		}
+ 
+@@ -436,12 +439,12 @@ traverse_file(Elf *elf, GElf_Ehdr * ehdr, char *cur_file, Cmd_Info *cmd_info,
+ 		/*
+ 		 * Zap this file ?
+ 		 */
+-		if ((cmd_info->flags & zFLAG) &&
++		if (CHK_OPT(cmd_info, zFLAG) &&
+ 		    (shdr->sh_type == SHT_PROGBITS)) {
+-			SET_CANDIDATE(sinfo->flags);
++			SET_CANDIDATE(sinfo->si_flags);
+ 			state->Sect_exists++;
+ 		}
+-		x = GET_LOC(sinfo->flags);
++		x = GET_LOC(sinfo->si_flags);
+ 
+ 		/*
+ 		 * Remember the note section index so that we can
+@@ -470,7 +473,7 @@ traverse_file(Elf *elf, GElf_Ehdr * ehdr, char *cur_file, Cmd_Info *cmd_info,
+ 		 * If this section satisfies the condition,
+ 		 * apply the actions specified.
+ 		 */
+-		if (ISCANDIDATE(sinfo->flags)) {
++		if (ISCANDIDATE(sinfo->si_flags)) {
+ 			ret += apply_action(sinfo, cur_file, cmd_info);
+ 		}
+ 
+@@ -481,7 +484,7 @@ traverse_file(Elf *elf, GElf_Ehdr * ehdr, char *cur_file, Cmd_Info *cmd_info,
+ 		    (CHK_OPT(cmd_info, xFLAG) == 0) &&
+ 		    (CHK_OPT(cmd_info, lFLAG) == 0)) {
+ 			if (shdr->sh_type == SHT_SYMTAB &&
+-			    GET_LOC(sinfo->flags) == AFTER) {
++			    GET_LOC(sinfo->si_flags) == AFTER) {
+ 				SYM = scn_index;
+ 			}
+ 		}
+@@ -508,7 +511,7 @@ traverse_file(Elf *elf, GElf_Ehdr * ehdr, char *cur_file, Cmd_Info *cmd_info,
+ 		++(cmd_info->no_of_nulled);
+ 		if (state->Sect_exists == 0)
+ 			++state->Sect_exists;
+-		SET_ACTION(state->sec_table[SYM].flags, ACT_DELETE);
++		SET_ACTION(state->sec_table[SYM].si_flags, ACT_DELETE);
+ 		state->off_table[SYM] = 0;
+ 		/*
+ 		 * Can I remove section header
+@@ -517,14 +520,14 @@ traverse_file(Elf *elf, GElf_Ehdr * ehdr, char *cur_file, Cmd_Info *cmd_info,
+ 		if ((tmp_shdr.sh_link < shnum) &&
+ 		    (tmp_shdr.sh_link != SHN_UNDEF) &&
+ 		    (tmp_shdr.sh_link != shstrndx) &&
+-		    (GET_LOC(state->sec_table[tmp_shdr.sh_link].flags) ==
++		    (GET_LOC(state->sec_table[tmp_shdr.sh_link].si_flags) ==
+ 		    AFTER)) {
+ 			state->sec_table[tmp_shdr.sh_link].secno =
+ 			    (GElf_Word)DELETED;
+ 			++(cmd_info->no_of_nulled);
+ 			if (state->Sect_exists == 0)
+ 				++state->Sect_exists;
+-			SET_ACTION(state->sec_table[tmp_shdr.sh_link].flags,
++			SET_ACTION(state->sec_table[tmp_shdr.sh_link].si_flags,
+ 			    ACT_DELETE);
+ 			state->off_table[tmp_shdr.sh_link] = 0;
+ 		}
+@@ -598,14 +601,17 @@ traverse_file(Elf *elf, GElf_Ehdr * ehdr, char *cur_file, Cmd_Info *cmd_info,
+ 				    (GElf_Word)NULLED)) &&
+ 				    sinfo->rel_loc != IN) {
+ 					if (GET_LOC(state->
+-					    sec_table[rel_idx].flags) == PRIOR)
++					    sec_table[rel_idx].si_flags) ==
++					    PRIOR) {
+ 						state->sec_table[rel_idx].
+ 						    secno = (GElf_Word)NULLED;
+-					else
++					} else {
+ 						state->sec_table[rel_idx].
+ 						    secno = (GElf_Word)DELETED;
+-					SET_ACTION(state->sec_table[rel_idx].
+-					    flags, ACT_DELETE);
++					}
++					SET_ACTION(
++					    state->sec_table[rel_idx].si_flags,
++					    ACT_DELETE);
+ 				}
+ 
+ 				/*
+@@ -617,15 +623,15 @@ traverse_file(Elf *elf, GElf_Ehdr * ehdr, char *cur_file, Cmd_Info *cmd_info,
+ 				    (GElf_Word)DELETED) ||
+ 				    (state->sec_table[rel_idx].secno ==
+ 				    (GElf_Word)NULLED)) &&
+-				    (GET_LOC(sinfo->flags) != IN)) {
+-					if (GET_LOC(sinfo->flags) ==
++				    (GET_LOC(sinfo->si_flags) != IN)) {
++					if (GET_LOC(sinfo->si_flags) ==
+ 					    PRIOR)
+ 						sinfo->secno =
+ 						    (GElf_Word)NULLED;
+ 					else
+ 						sinfo->secno =
+ 						    (GElf_Word)DELETED;
+-					SET_ACTION(sinfo->flags, ACT_DELETE);
++					SET_ACTION(sinfo->si_flags, ACT_DELETE);
+ 				}
+ 			}
+ 
+@@ -642,9 +648,10 @@ traverse_file(Elf *elf, GElf_Ehdr * ehdr, char *cur_file, Cmd_Info *cmd_info,
+ 					 * section is a member may be able
+ 					 * to be removed. See post_process().
+ 					 */
+-					if (shdr->sh_flags & SHF_GROUP)
+-						cmd_info->flags |=
+-						    SHF_GROUP_DEL;
++					if (shdr->sh_flags & SHF_GROUP) {
++						SET_OPT(cmd_info,
++						    SHF_GROUP_DEL);
++					}
+ 				} else {
+ 					/*
+ 					 * The data buffer of SHT_GROUP this
+@@ -653,9 +660,10 @@ traverse_file(Elf *elf, GElf_Ehdr * ehdr, char *cur_file, Cmd_Info *cmd_info,
+ 					 */
+ 					sinfo->secno -= acc;
+ 					if ((shdr->sh_flags & SHF_GROUP) &&
+-					    (acc != 0))
+-						cmd_info->flags |=
+-						    SHF_GROUP_MOVE;
++					    (acc != 0)) {
++						SET_OPT(cmd_info,
++						    SHF_GROUP_MOVE);
++					}
+ 				}
+ 				sinfo++;
+ 			}
+@@ -934,8 +942,8 @@ build_file(Elf *src_elf, GElf_Ehdr *src_ehdr, Cmd_Info *cmd_info,
+ 			 * If the section is to be updated,
+ 			 * do so.
+ 			 */
+-			if (ISCANDIDATE(info->flags)) {
+-				if ((GET_LOC(info->flags) == PRIOR) &&
++			if (ISCANDIDATE(info->si_flags)) {
++				if ((GET_LOC(info->si_flags) == PRIOR) &&
+ 				    (((int)info->secno == NULLED) ||
+ 				    ((int)info->secno == EXPANDED) ||
+ 				    ((int)info->secno == SHRUNK))) {
+@@ -948,7 +956,7 @@ build_file(Elf *src_elf, GElf_Ehdr *src_ehdr, Cmd_Info *cmd_info,
+ 					dst_shdr.sh_type = SHT_PROGBITS;
+ 					if ((int)info->secno != NULLED) {
+ 						(cmd_info->no_of_moved)++;
+-						SET_MOVING(info->flags);
++						SET_MOVING(info->si_flags);
+ 					}
+ 				} else {
+ 					/*
+@@ -1079,7 +1087,7 @@ build_file(Elf *src_elf, GElf_Ehdr *src_ehdr, Cmd_Info *cmd_info,
+ 		info = &state->sec_table[0];
+ 
+ 		for (cnt = 0; cnt < shnum; cnt++, info++) {
+-			if ((GET_MOVING(info->flags)) == 0)
++			if ((GET_MOVING(info->si_flags)) == 0)
+ 				continue;
+ 
+ 			if ((src_scn = elf_getscn(src_elf, info->osecno)) ==
+@@ -1555,14 +1563,14 @@ post_process(Cmd_Info *cmd_info, file_state_t *state)
+ 	/*
+ 	 * If no change is required, then return.
+ 	 */
+-	if ((cmd_info->flags & (SHF_GROUP_MOVE|SHF_GROUP_DEL)) == 0)
++	if (!CHK_OPT(cmd_info, SHF_GROUP_MOVE|SHF_GROUP_DEL))
+ 		return;
+ 
+ 	/*
+ 	 * If SHF_GROUP sections were removed, we might need to
+ 	 * remove SHT_GROUP sections.
+ 	 */
+-	if (cmd_info->flags & SHF_GROUP_DEL) {
++	if (CHK_OPT(cmd_info, SHF_GROUP_DEL)) {
+ 		Word	grpcnt;
+ 		int	deleted = 0;
+ 
+diff --git a/usr/src/cmd/sgs/mcs/common/main.c b/usr/src/cmd/sgs/mcs/common/main.c
+index 03410bf26c..f5cdf1cff9 100644
+--- a/usr/src/cmd/sgs/mcs/common/main.c
++++ b/usr/src/cmd/sgs/mcs/common/main.c
+@@ -29,6 +29,9 @@
+  * Copyright 2008 Sun Microsystems, Inc.  All rights reserved.
+  * Use is subject to license terms.
+  */
++/*
++ * Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
++ */
+ 
+ #include "stdlib.h"
+ #include "conv.h"
+@@ -105,31 +108,31 @@ main(int argc, char ** argv, char ** envp)
+ 		exit(FAILURE);
+ 	}
+ 	if (my_prog == STRIP)
+-		cmd_info->flags |= I_AM_STRIP;
++		SET_OPT(cmd_info, I_AM_STRIP);
+ 
+ 	while ((c = getopt(argc, argv, (char *)opt)) != EOF) {
+ 		switch (c) {
+ 		case 'a':
+ 			optcnt++;
+ 			queue(ACT_APPEND, optarg);
+-			cmd_info->flags |= (MIGHT_CHG | aFLAG);
++			SET_OPT(cmd_info, MIGHT_CHG | aFLAG);
+ 			cmd_info->str_size += strlen(optarg) + 1;
+ 			break;
+ 		case 'c':
+ 			optcnt++;
+ 			queue(ACT_COMPRESS, NULL);
+-			cmd_info->flags |= (MIGHT_CHG | cFLAG);
++			SET_OPT(cmd_info, MIGHT_CHG | cFLAG);
+ 			break;
+ 		case 'd':
+ 			optcnt++;
+-			if (CHK_OPT(cmd_info, dFLAG) == 0)
++			if (!CHK_OPT(cmd_info, dFLAG))
+ 				queue(ACT_DELETE, NULL);
+-			cmd_info->flags |= (MIGHT_CHG | dFLAG);
++			SET_OPT(cmd_info, MIGHT_CHG | dFLAG);
+ 			break;
+ 		case 'z':
+ 			optcnt++;
+ 			queue(ACT_ZAP, NULL);
+-			cmd_info->flags |= (MIGHT_CHG | zFLAG);
++			SET_OPT(cmd_info, MIGHT_CHG | zFLAG);
+ 			break;
+ 		case 'n':
+ 			(void) setup_sectname(optarg, my_prog);
+@@ -137,19 +140,19 @@ main(int argc, char ** argv, char ** envp)
+ 			break;
+ 		case 'l':
+ 			optcnt++;
+-			cmd_info->flags |= lFLAG;
++			SET_OPT(cmd_info, lFLAG);
+ 			break;
+ 		case 'p':
+ 			optcnt++;
+ 			queue(ACT_PRINT, NULL);
+-			cmd_info->flags |= pFLAG;
++			SET_OPT(cmd_info, pFLAG);
+ 			break;
+ 		case 'x':
+ 			optcnt++;
+-			cmd_info->flags |= xFLAG;
++			SET_OPT(cmd_info, xFLAG);
+ 			break;
+ 		case 'V':
+-			cmd_info->flags |= VFLAG;
++			SET_OPT(cmd_info, VFLAG);
+ 			(void) fprintf(stderr, "%s: %s %s\n", prog,
+ 			    (const char *)SGU_PKG, (const char *)SGU_REL);
+ 			break;
+@@ -211,8 +214,7 @@ main(int argc, char ** argv, char ** envp)
+ 		}
+ 		if (CHK_OPT(cmd_info, dFLAG) == 0) {
+ 			queue(ACT_DELETE, NULL);
+-			cmd_info->flags |= MIGHT_CHG;
+-			cmd_info->flags |= dFLAG;
++			SET_OPT(cmd_info, MIGHT_CHG | dFLAG);
+ 		}
+ 	}
+ 
+diff --git a/usr/src/cmd/sgs/mcs/common/mcs.h b/usr/src/cmd/sgs/mcs/common/mcs.h
+index b81fe08a19..f4cfa113c2 100644
+--- a/usr/src/cmd/sgs/mcs/common/mcs.h
++++ b/usr/src/cmd/sgs/mcs/common/mcs.h
+@@ -26,6 +26,9 @@
+  * Copyright 2009 Sun Microsystems, Inc.  All rights reserved.
+  * Use is subject to license terms.
+  */
++/*
++ * Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
++ */
+ 
+ #ifndef	_MCS_H
+ #define	_MCS_H
+@@ -68,16 +71,16 @@ extern "C" {
+ #define	SET_ACTION(x, y)	x = (x & 0xfffffff0) | y
+ #define	GET_ACTION(x)		(x & 0x0000000f)
+ 
+-#define	NOSEG 		0x00000010
+-#define	IN    		0x00000020 /* section is IN a segment */
+-#define	PRIOR 		0x00000030 /* section is PRIOR to a segment */
+-#define	AFTER 		0x00000040 /* section is AFTER a segment */
++#define	NOSEG		0x00000010
++#define	IN		0x00000020 /* section is IN a segment */
++#define	PRIOR		0x00000030 /* section is PRIOR to a segment */
++#define	AFTER		0x00000040 /* section is AFTER a segment */
+ #define	SET_LOC(x, y)	x = (x & 0xffffff0f) | y
+ #define	GET_LOC(x)	(x & 0x000000f0)
+ 
+-#define	CANDIDATE 	0x00000100
+-#define	MOVING  	0x00000200
+-#define	MODIFIED  	0x00000400
++#define	CANDIDATE	0x00000100
++#define	MOVING		0x00000200
++#define	MODIFIED	0x00000400
+ 
+ #define	UNSET_CANDIDATE(x)	x = x & ~CANDIDATE
+ #define	SET_CANDIDATE(x)	x = x | CANDIDATE
+@@ -107,14 +110,14 @@ typedef struct section_info_table {
+ 	 */
+ 	Elf_Scn		*scn;		/* Section */
+ 	Elf_Data	*data;		/* Original data */
+-	Elf_Data	*mdata; 	/* Modified data */
++	Elf_Data	*mdata;		/* Modified data */
+ 	char		*name;		/* Section name, or NULL if unknown */
+ 	char		*rel_name;
+ 	GElf_Shdr	shdr;
+ 	GElf_Word	secno;		/* The new index */
+ 	GElf_Word	osecno;		/* The original index */
+ 	GElf_Word	rel_scn_index;
+-	GElf_Xword	flags;
++	GElf_Xword	si_flags;
+ 	GElf_Xword	rel_loc;
+ } section_info_table;
+ 
+@@ -131,7 +134,7 @@ typedef struct action {
+  * Structure to hold the section names specified.
+  */
+ typedef struct s_name {
+-	char 		*name;
++	char		*name;
+ 	struct s_name	*next;
+ 	unsigned char	flags;
+ } S_Name;
+@@ -144,13 +147,13 @@ typedef struct s_name {
+  */
+ typedef struct cmd_info {
+ 	APlist	*sh_groups;	/* list of SHT_GROUP sections */
+-	int 	no_of_append;
++	int	no_of_append;
+ 	int	no_of_delete;
+ 	int	no_of_nulled;
+ 	int	no_of_compressed;
+ 	int	no_of_moved;
+ 	size_t	str_size;	/* size of string to be appended */
+-	int	flags;		/* Various flags */
++	int	ci_flags;	/* Various flags */
+ } Cmd_Info;
+ 
+ #define	MIGHT_CHG	0x0001
+@@ -166,7 +169,8 @@ typedef struct cmd_info {
+ #define	SHF_GROUP_MOVE	0x0400	/* SHF_GROUP section moves */
+ #define	SHF_GROUP_DEL	0x0800	/* SHF_GROUP section deleted */
+ 
+-#define	CHK_OPT(_x, _y)	(_x->flags & _y)
++#define	CHK_OPT(_x, _y)	(((_x)->ci_flags & (_y)) != 0)
++#define	SET_OPT(_x, _y)	((_x)->ci_flags |= (_y))
+ 
+ /*
+  * Segment Table
+@@ -208,8 +212,8 @@ void		free_tempfile(Tmp_File *);
+ #define	GETARHDR_ERROR		7
+ #define	FILE_TYPE_ERROR		8
+ #define	NOT_MANIPULATED_ERROR	9
+-#define	WRN_MANIPULATED_ERROR 	10
+-#define	NO_SECT_TABLE_ERROR 	11
++#define	WRN_MANIPULATED_ERROR	10
++#define	NO_SECT_TABLE_ERROR	11
+ #define	READ_ERROR		12
+ #define	READ_MANI_ERROR		13
+ #define	WRITE_MANI_ERROR	14
+diff --git a/usr/src/cmd/sgs/mcs/common/utils.c b/usr/src/cmd/sgs/mcs/common/utils.c
+index 0016c27b25..934a666591 100644
+--- a/usr/src/cmd/sgs/mcs/common/utils.c
++++ b/usr/src/cmd/sgs/mcs/common/utils.c
+@@ -28,6 +28,9 @@
+  * Copyright 2009 Sun Microsystems, Inc.  All rights reserved.
+  * Use is subject to license terms.
+  */
++/*
++ * Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
++ */
+ 
+ #include "mcs.h"
+ #include "extern.h"
+@@ -60,14 +63,14 @@ apply_action(section_info_table *info, char *cur_file, Cmd_Info *cmd_info)
+ 		Action[act_index].a_cnt++;
+ 		switch (Action[act_index].a_action) {
+ 		case ACT_ZAP:
+-			if (GET_ACTION(info->flags) == ACT_DELETE)
++			if (GET_ACTION(info->si_flags) == ACT_DELETE)
+ 				break;
+ 			dozap(info);
+-			SET_ACTION(info->flags, ACT_ZAP);
+-			SET_MODIFIED(info->flags);
++			SET_ACTION(info->si_flags, ACT_ZAP);
++			SET_MODIFIED(info->si_flags);
+ 			break;
+ 		case ACT_PRINT:
+-			if (GET_ACTION(info->flags) == ACT_DELETE)
++			if (GET_ACTION(info->si_flags) == ACT_DELETE)
+ 				break;
+ 			if (shdr.sh_type == SHT_NOBITS) {
+ 				error_message(ACT_PRINT_ERROR, PLAIN_ERROR,
+@@ -81,17 +84,17 @@ apply_action(section_info_table *info, char *cur_file, Cmd_Info *cmd_info)
+ 			 * If I am strip command, this is the
+ 			 * only action I can take.
+ 			 */
+-			if (GET_ACTION(info->flags) == ACT_DELETE)
++			if (GET_ACTION(info->si_flags) == ACT_DELETE)
+ 				break;
+-			if (GET_LOC(info->flags) == IN) {
++			if (GET_LOC(info->si_flags) == IN) {
+ 				/*
+ 				 * If I am 'strip', I have to
+ 				 * unset the candidate flag and
+ 				 * unset the error return code.
+ 				 */
+-				if (CHK_OPT(info, I_AM_STRIP)) {
++				if (CHK_OPT(cmd_info, I_AM_STRIP)) {
+ 					ret = 0;
+-					UNSET_CANDIDATE(info->flags);
++					UNSET_CANDIDATE(info->si_flags);
+ 				} else {
+ 					char *name = info->name;
+ 
+@@ -109,9 +112,9 @@ apply_action(section_info_table *info, char *cur_file, Cmd_Info *cmd_info)
+ 				 * unset the candidate flag and
+ 				 * unset the error return code.
+ 				 */
+-				if (CHK_OPT(info, I_AM_STRIP)) {
++				if (CHK_OPT(cmd_info, I_AM_STRIP)) {
+ 					ret = 0;
+-					UNSET_CANDIDATE(info->flags);
++					UNSET_CANDIDATE(info->si_flags);
+ 				} else {
+ 					ret++;
+ 					error_message(ACT_DELETE2_ERROR,
+@@ -120,7 +123,7 @@ apply_action(section_info_table *info, char *cur_file, Cmd_Info *cmd_info)
+ 					    info->rel_name);
+ 				}
+ 				break;
+-			} else if (GET_LOC(info->flags) == PRIOR) {
++			} else if (GET_LOC(info->si_flags) == PRIOR) {
+ 				/*
+ 				 * I can not delete this
+ 				 * section. I can only NULL
+@@ -132,8 +135,8 @@ apply_action(section_info_table *info, char *cur_file, Cmd_Info *cmd_info)
+ 				info->secno = (GElf_Word)DELETED;
+ 				(cmd_info->no_of_delete)++;
+ 			}
+-			SET_ACTION(info->flags, ACT_DELETE);
+-			SET_MODIFIED(info->flags);
++			SET_ACTION(info->si_flags, ACT_DELETE);
++			SET_MODIFIED(info->si_flags);
+ 			break;
+ 		case ACT_APPEND:
+ 			if (shdr.sh_type == SHT_NOBITS) {
+@@ -141,7 +144,7 @@ apply_action(section_info_table *info, char *cur_file, Cmd_Info *cmd_info)
+ 				error_message(ACT_APPEND1_ERROR, PLAIN_ERROR,
+ 				    NULL, prog, cur_file, SECT_NAME);
+ 				break;
+-			} else if (GET_LOC(info->flags) == IN) {
++			} else if (GET_LOC(info->si_flags) == IN) {
+ 				ret++;
+ 				error_message(ACT_APPEND2_ERROR, PLAIN_ERROR,
+ 				    NULL, prog, cur_file, SECT_NAME);
+@@ -150,9 +153,9 @@ apply_action(section_info_table *info, char *cur_file, Cmd_Info *cmd_info)
+ 			doappend(Action[act_index].a_string, info);
+ 			(cmd_info->no_of_append)++;
+ 			info->secno = info->osecno;
+-			SET_ACTION(info->flags, ACT_APPEND);
+-			SET_MODIFIED(info->flags);
+-			if (GET_LOC(info->flags) == PRIOR)
++			SET_ACTION(info->si_flags, ACT_APPEND);
++			SET_MODIFIED(info->si_flags);
++			if (GET_LOC(info->si_flags) == PRIOR)
+ 				info->secno = (GElf_Word)EXPANDED;
+ 			break;
+ 		case ACT_COMPRESS:
+@@ -160,14 +163,14 @@ apply_action(section_info_table *info, char *cur_file, Cmd_Info *cmd_info)
+ 			 * If this section is already deleted,
+ 			 * don't do anything.
+ 			 */
+-			if (GET_ACTION(info->flags) == ACT_DELETE)
++			if (GET_ACTION(info->si_flags) == ACT_DELETE)
+ 				break;
+ 			if (shdr.sh_type == SHT_NOBITS) {
+ 				ret++;
+ 				error_message(ACT_COMPRESS1_ERROR, PLAIN_ERROR,
+ 				    NULL, prog, cur_file, SECT_NAME);
+ 				break;
+-			} else if (GET_LOC(info->flags) == IN) {
++			} else if (GET_LOC(info->si_flags) == IN) {
+ 				ret++;
+ 				error_message(ACT_COMPRESS2_ERROR, PLAIN_ERROR,
+ 				    NULL, prog, cur_file, SECT_NAME);
+@@ -176,9 +179,9 @@ apply_action(section_info_table *info, char *cur_file, Cmd_Info *cmd_info)
+ 
+ 			docompress(info);
+ 			(cmd_info->no_of_compressed)++;
+-			SET_ACTION(info->flags, ACT_COMPRESS);
+-			SET_MODIFIED(info->flags);
+-			if (GET_LOC(info->flags) == PRIOR)
++			SET_ACTION(info->si_flags, ACT_COMPRESS);
++			SET_MODIFIED(info->si_flags);
++			if (GET_LOC(info->si_flags) == PRIOR)
+ 				info->secno = (GElf_Word)SHRUNK;
+ 			break;
+ 		}
+@@ -217,7 +220,7 @@ doprint(char *cur_file, section_info_table *info)
+ 	size_t	temp_size;
+ 	char	*temp_string;
+ 
+-	if (GET_MODIFIED(info->flags) == 0)
++	if (GET_MODIFIED(info->si_flags) == 0)
+ 		data = info->data;
+ 	else
+ 		data = info->mdata;
+@@ -289,7 +292,7 @@ doappend(char *a_string, section_info_table *info)
+ 		 * Check if the section is deleted or not.
+ 		 * Or if the size is 0 or not.
+ 		 */
+-		if ((GET_ACTION(info->flags) == ACT_DELETE) ||
++		if ((GET_ACTION(info->si_flags) == ACT_DELETE) ||
+ 		    data->d_size == 0) {
+ 			/*
+ 			 * The section was deleated.
+@@ -328,7 +331,7 @@ doappend(char *a_string, section_info_table *info)
+ 		 * Modify it.
+ 		 */
+ 		data = info->mdata;
+-		if ((GET_ACTION(info->flags) == ACT_DELETE) ||
++		if ((GET_ACTION(info->si_flags) == ACT_DELETE) ||
+ 		    data->d_size == 0) {
+ 			/*
+ 			 * The section was deleated.
+-- 
+2.42.0
+

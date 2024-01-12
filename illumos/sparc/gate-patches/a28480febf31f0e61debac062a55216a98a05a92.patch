@@ -1,0 +1,1697 @@
+From a28480febf31f0e61debac062a55216a98a05a92 Mon Sep 17 00:00:00 2001
+From: Andy Fiddaman <omnios@citrus-it.co.uk>
+Date: Fri, 29 Oct 2021 14:25:17 +0000
+Subject: [PATCH] =?UTF-8?q?14208=20zoneadmd=20should=20not=20inherit=20zon?=
+ =?UTF-8?q?eadm's=20environment=20Reviewed=20by:=20Robert=20Mustacchi=20<r?=
+ =?UTF-8?q?m+illumos@fingolfin.org>=20Reviewed=20by:=20Gerg=C5=91=20Mih?=
+ =?UTF-8?q?=C3=A1ly=20Doma=20<domag02@gmail.com>=20Reviewed=20by:=20Toomas?=
+ =?UTF-8?q?=20Soome=20<tsoome@me.com>=20Reviewed=20by:=20Jason=20King=20<j?=
+ =?UTF-8?q?ason.brian.king@gmail.com>=20Approved=20by:=20Dan=20McDonald=20?=
+ =?UTF-8?q?<danmcd@joyent.com>?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ exception_lists/wscheck                       |   1 +
+ usr/src/cmd/init/Makefile                     |  11 +-
+ usr/src/cmd/init/init.c                       | 146 +++++-------
+ usr/src/cmd/svc/startd/Makefile               |  18 +-
+ usr/src/cmd/svc/startd/env.c                  | 116 +++-------
+ usr/src/common/definit/definit.c              | 188 ++++++++++++++++
+ usr/src/common/definit/definit.h              |  47 ++++
+ usr/src/lib/libzonecfg/Makefile.com           |   8 +-
+ usr/src/lib/libzonecfg/common/libzonecfg.c    | 149 +++++++++++--
+ usr/src/lib/libzonecfg/common/zonecfg_impl.h  |   6 +-
+ usr/src/man/man4/Makefile                     |   3 +
+ usr/src/man/man4/init.4                       | 208 ++++++++++++------
+ usr/src/pkg/manifests/SUNWcs.man4.inc         |   2 +
+ usr/src/pkg/manifests/system-test-ostest.p5m  |   6 +
+ usr/src/test/os-tests/runfiles/default.run    |   2 +
+ usr/src/test/os-tests/tests/Makefile          |   1 +
+ usr/src/test/os-tests/tests/definit/Makefile  |  82 +++++++
+ .../test/os-tests/tests/definit/definit.ksh   |  41 ++++
+ .../os-tests/tests/definit/definit_test.c     |  41 ++++
+ usr/src/test/os-tests/tests/definit/init.data |  77 +++++++
+ .../test/os-tests/tests/definit/init.expected |  58 +++++
+ 21 files changed, 925 insertions(+), 286 deletions(-)
+ create mode 100644 usr/src/common/definit/definit.c
+ create mode 100644 usr/src/common/definit/definit.h
+ create mode 100644 usr/src/test/os-tests/tests/definit/Makefile
+ create mode 100644 usr/src/test/os-tests/tests/definit/definit.ksh
+ create mode 100644 usr/src/test/os-tests/tests/definit/definit_test.c
+ create mode 100644 usr/src/test/os-tests/tests/definit/init.data
+ create mode 100644 usr/src/test/os-tests/tests/definit/init.expected
+
+diff --git a/exception_lists/wscheck b/exception_lists/wscheck
+index 33ed6b9fa3..b51ef414fd 100644
+--- a/exception_lists/wscheck
++++ b/exception_lists/wscheck
+@@ -21,6 +21,7 @@ usr/src/data/hwdata/usb.ids
+ usr/src/data/perfmon/readme.txt
+ usr/src/data/ucode/intel/*
+ usr/src/test/crypto-tests/tests/digest/data/*.rsp
++usr/src/test/os-tests/tests/definit/init.data
+ usr/src/test/util-tests/tests/dis/i386/*.out
+ usr/src/test/libc-tests/tests/qsort/*.c
+ usr/src/tools/smatch/src/*
+diff --git a/usr/src/cmd/init/Makefile b/usr/src/cmd/init/Makefile
+index 521c9c26a7..190df38b1b 100644
+--- a/usr/src/cmd/init/Makefile
++++ b/usr/src/cmd/init/Makefile
+@@ -25,6 +25,7 @@
+ #
+ # Copyright (c) 2018, Joyent, Inc.
+ # Copyright 2020 Oxide Computer Company
++# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
+ 
+ PROG= init
+ ROOTFS_PROG= $(PROG)
+@@ -33,12 +34,13 @@ DEFAULTFILES= init.dfl
+ 
+ include ../Makefile.cmd
+ 
+-OBJS = init.o bootbanner.o
++OBJS = init.o bootbanner.o definit.o
+ CSTD = $(CSTD_GNU99)
+ LDLIBS += -lpam -lbsm -lcontract -lscf
+ CERRWARN += -_gcc=-Wno-parentheses
+ CERRWARN += $(CNOWARN_UNINIT)
+ CLOBBERFILES= $(STATIC)
++CPPFLAGS += -I$(SRC)/common/definit
+ CPPFLAGS += -DBOOTBANNER1='"$(BOOTBANNER1)"'
+ CPPFLAGS += -DBOOTBANNER2='"$(BOOTBANNER2)"'
+ CPPFLAGS += -DBOOTBANNER3='"$(BOOTBANNER3)"'
+@@ -67,12 +69,17 @@ $(PROG):	$(OBJS)
+ 	$(POST_PROCESS)
+ 
+ %.o:	$(SRC)/common/bootbanner/%.c
+-	$(COMPILE.c) $(OUTPUT_OPTION) $<
++	$(COMPILE.c) $<
++	$(POST_PROCESS_O)
++
++%.o:	$(SRC)/common/definit/%.c
++	$(COMPILE.c) $<
+ 	$(POST_PROCESS_O)
+ 
+ test:
+ 	rtest $(PROG)
+ 
+ clean:
++	$(RM) $(OBJS)
+ 
+ include ../Makefile.targ
+diff --git a/usr/src/cmd/init/init.c b/usr/src/cmd/init/init.c
+index 460fd42036..844f22d895 100644
+--- a/usr/src/cmd/init/init.c
++++ b/usr/src/cmd/init/init.c
+@@ -20,6 +20,7 @@
+  */
+ 
+ /*
++ * Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
+  * Copyright 2020 Oxide Computer Company
+  * Copyright (c) 2013 Gary Mills
+  *
+@@ -27,7 +28,7 @@
+  */
+ 
+ /*	Copyright (c) 1984, 1986, 1987, 1988, 1989 AT&T	*/
+-/*	  All Rights Reserved  	*/
++/*	  All Rights Reserved	*/
+ 
+ /*
+  * University Copyright- Copyright (c) 1982, 1986, 1988
+@@ -108,6 +109,7 @@
+ 
+ #include <assert.h>
+ #include <ctype.h>
++#include <definit.h>
+ #include <dirent.h>
+ #include <errno.h>
+ #include <fcntl.h>
+@@ -239,14 +241,14 @@ static lvl_t lvls[] = {
+ 	{ LVLQ,		0,	'Q', 0					},
+ 	{ LVLQ,		0,	'q', 0					},
+ 	{ LVL0,		MASK0,	'0', LSEL_RUNLEVEL			},
+-	{ LVL1, 	MASK1,	'1', LSEL_RUNLEVEL			},
+-	{ LVL2, 	MASK2,	'2', LSEL_RUNLEVEL			},
+-	{ LVL3, 	MASK3,	'3', LSEL_RUNLEVEL			},
+-	{ LVL4, 	MASK4,	'4', LSEL_RUNLEVEL			},
+-	{ LVL5, 	MASK5,	'5', LSEL_RUNLEVEL			},
+-	{ LVL6, 	MASK6, 	'6', LSEL_RUNLEVEL			},
+-	{ SINGLE_USER, 	MASKSU, 'S', LSEL_RUNLEVEL			},
+-	{ SINGLE_USER, 	MASKSU, 's', LSEL_RUNLEVEL			},
++	{ LVL1,		MASK1,	'1', LSEL_RUNLEVEL			},
++	{ LVL2,		MASK2,	'2', LSEL_RUNLEVEL			},
++	{ LVL3,		MASK3,	'3', LSEL_RUNLEVEL			},
++	{ LVL4,		MASK4,	'4', LSEL_RUNLEVEL			},
++	{ LVL5,		MASK5,	'5', LSEL_RUNLEVEL			},
++	{ LVL6,		MASK6,	'6', LSEL_RUNLEVEL			},
++	{ SINGLE_USER,	MASKSU, 'S', LSEL_RUNLEVEL			},
++	{ SINGLE_USER,	MASKSU, 's', LSEL_RUNLEVEL			},
+ 	{ LVLa,		MASKa,	'a', 0					},
+ 	{ LVLb,		MASKb,	'b', 0					},
+ 	{ LVLc,		MASKc,	'c', 0					}
+@@ -486,7 +488,7 @@ static char *INITTAB	 = "/etc/inittab";	/* Script file for "init" */
+ static char *SYSTTY	 = "/dev/systty";	/* System Console */
+ static char *SYSCON	 = "/dev/syscon";	/* Virtual System console */
+ static char *IOCTLSYSCON = "/etc/ioctl.syscon";	/* Last syscon modes */
+-static char *ENVFILE	 = "/etc/default/init";	/* Default env. */
++static char *ENVFILE	 = DEFINIT_DEFAULT_FILE; /* Default env. */
+ static char *SU	= "/etc/sulogin";	/* Super-user program for single user */
+ static char *SH	= "/sbin/sh";		/* Standard shell */
+ 
+@@ -1527,7 +1529,7 @@ getcmd(struct CMD_LINE *cmd, char *shcmd)
+ {
+ 	char	*ptr;
+ 	int	c, lastc, state;
+-	char 	*ptr1;
++	char	*ptr1;
+ 	int	answer, i, proceed;
+ 	struct	stat	sbuf;
+ 	static char *actions[] = {
+@@ -1930,16 +1932,14 @@ killproc(pid_t pid)
+ /*
+  * Set up the default environment for all procs to be forked from init.
+  * Read the values from the /etc/default/init file, except for PATH.  If
+- * there's not enough room in the environment array, the environment
+- * lines that don't fit are silently discarded.
++ * there is not enough room in the environment array, the environment
++ * lines that don't fit are discarded and a message is written to the console.
+  */
+ void
+ init_env()
+ {
+-	char	line[MAXCMDL];
+-	FILE	*fp;
+-	int	inquotes, length, wslength;
+-	char	*tokp, *cp1, *cp2;
++	void		*dstate;
++	const char	*tokp;
+ 
+ 	glob_envp[0] = malloc((unsigned)(strlen(DEF_PATH)+2));
+ 	(void) strcpy(glob_envp[0], DEF_PATH);
+@@ -1957,95 +1957,47 @@ init_env()
+ 		++glob_envn;
+ 	}
+ 
+-	if ((fp = fopen(ENVFILE, "r")) == NULL) {
++	if (definit_open(ENVFILE, &dstate) != 0) {
+ 		console(B_TRUE,
+ 		    "Cannot open %s. Environment not initialized.\n",
+ 		    ENVFILE);
+-	} else {
+-		while (fgets(line, MAXCMDL - 1, fp) != NULL &&
+-		    glob_envn < MAXENVENT - 2) {
+-			/*
+-			 * Toss newline
+-			 */
+-			length = strlen(line);
+-			if (line[length - 1] == '\n')
+-				line[length - 1] = '\0';
+-
+-			/*
+-			 * Ignore blank or comment lines.
+-			 */
+-			if (line[0] == '#' || line[0] == '\0' ||
+-			    (wslength = strspn(line, " \t\n")) ==
+-			    strlen(line) ||
+-			    strchr(line, '#') == line + wslength)
+-				continue;
+-
+-			/*
+-			 * First make a pass through the line and change
+-			 * any non-quoted semi-colons to blanks so they
+-			 * will be treated as token separators below.
+-			 */
+-			inquotes = 0;
+-			for (cp1 = line; *cp1 != '\0'; cp1++) {
+-				if (*cp1 == '"') {
+-					if (inquotes == 0)
+-						inquotes = 1;
+-					else
+-						inquotes = 0;
+-				} else if (*cp1 == ';') {
+-					if (inquotes == 0)
+-						*cp1 = ' ';
+-				}
+-			}
++		return;
++	}
+ 
+-			/*
+-			 * Tokens within the line are separated by blanks
+-			 *  and tabs.  For each token in the line which
+-			 * contains a '=' we strip out any quotes and then
+-			 * stick the token in the environment array.
+-			 */
+-			if ((tokp = strtok(line, " \t")) == NULL)
+-				continue;
+-			do {
+-				if (strchr(tokp, '=') == NULL)
+-					continue;
+-				length = strlen(tokp);
+-				while ((cp1 = strpbrk(tokp, "\"\'")) != NULL) {
+-					for (cp2 = cp1;
+-					    cp2 < &tokp[length]; cp2++)
+-						*cp2 = *(cp2 + 1);
+-					length--;
+-				}
++	while ((tokp = definit_token(dstate)) != NULL &&
++	    glob_envn < MAXENVENT - 2) {
+ 
+-				if (strncmp(tokp, "CMASK=",
+-				    sizeof ("CMASK=") - 1) == 0) {
+-					long t;
++		if (strncmp(tokp, "CMASK=", sizeof ("CMASK=") - 1) == 0) {
++			long t;
+ 
+-					/* We know there's an = */
+-					t = strtol(strchr(tokp, '=') + 1, NULL,
+-					    8);
++			/* We know there's an = */
++			t = strtol(strchr(tokp, '=') + 1, NULL, 8);
+ 
+-					/* Sanity */
+-					if (t <= 077 && t >= 0)
+-						cmask = (int)t;
+-					(void) umask(cmask);
+-					continue;
+-				}
+-				glob_envp[glob_envn] =
+-				    malloc((unsigned)(length + 1));
+-				(void) strcpy(glob_envp[glob_envn], tokp);
+-				if (++glob_envn >= MAXENVENT - 1)
+-					break;
+-			} while ((tokp = strtok(NULL, " \t")) != NULL);
++			/* Sanity */
++			if (t >= DEFINIT_MIN_UMASK && t <= DEFINIT_MAX_UMASK)
++				cmask = (int)t;
++			(void) umask(cmask);
++			continue;
++		}
++		glob_envp[glob_envn] = strdup(tokp);
++		if (glob_envp[glob_envn] == NULL) {
++			console(B_TRUE, "Out of memory building environment, "
++			    "truncated.\n");
++			break;
++		}
++		if (++glob_envn >= MAXENVENT - 1) {
++			console(B_TRUE, "Too many variables in %s; "
++			    "environment not fully initialized.\n", ENVFILE);
++			break;
+ 		}
+-
+-		/*
+-		 * Append a null pointer to the environment array
+-		 * to mark its end.
+-		 */
+-		glob_envp[glob_envn] = NULL;
+-		(void) fclose(fp);
+ 	}
++
++	/*
++	 * Append a null pointer to the environment array to mark its end.
++	 */
++	glob_envp[glob_envn] = NULL;
++
++	definit_close(dstate);
+ }
+ 
+ /*
+diff --git a/usr/src/cmd/svc/startd/Makefile b/usr/src/cmd/svc/startd/Makefile
+index bfd2ad2a15..962b20dc39 100644
+--- a/usr/src/cmd/svc/startd/Makefile
++++ b/usr/src/cmd/svc/startd/Makefile
+@@ -23,6 +23,7 @@
+ # Copyright 2012 Milan Jurik. All rights reserved.
+ # Copyright 2016 Toomas Soome <tsoome@me.com>
+ # Copyright (c) 2018, Joyent, Inc.
++# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
+ #
+ 
+ PROG = svc.startd
+@@ -49,10 +50,12 @@ OBJS = \
+ 
+ ALLOBJS = $(OBJS) \
+ 	proc.o \
++	definit.o \
+ 	manifest_hash.o
+ 
+ SRCS = $(OBJS:%.o=%.c) \
+ 	proc.c \
++	$(SRC)/common/definit/definit.c \
+ 	../common/manifest_hash.c
+ 
+ POFILES = $(OBJS:%.o=%.po) \
+@@ -64,7 +67,7 @@ include ../../Makefile.ctf
+ 
+ $(NOT_RELEASE_BUILD)CPPFLAGS += -DDEBUG
+ CFLAGS += $(CCVERBOSE)
+-CPPFLAGS += -I. -I../common
++CPPFLAGS += -I. -I../common -I$(SRC)/common/definit
+ 
+ CERRWARN += -_gcc=-Wno-parentheses
+ CERRWARN += -_gcc=-Wno-unused-label
+@@ -82,8 +85,9 @@ proc.o := CPPFLAGS += -D_REENTRANT
+ 	$(COMPILE.c) $(OUTPUT_OPTION) $<
+ 	$(POST_PROCESS_O)
+ 
+-%.ln:	../common/%.c
+-	$(LINT.c) $(OUTPUT_OPTION) -c $<
++%.o:	$(SRC)/common/definit/%.c
++	$(COMPILE.c) $(OUTPUT_OPTION) $<
++	$(POST_PROCESS_O)
+ 
+ LDLIBS += \
+ 	-lcontract \
+@@ -110,12 +114,6 @@ LDFLAGS +=	-R/lib/fm
+ 
+ FILEMODE = 0555
+ 
+-# lint doesn't like the unused _umem_*_init()
+-# And lint thinks uadmin() is undefined.
+-lint_SRCS := LINTFLAGS += -U_FILE_OFFSET_BITS -xerroff=E_NAME_DEF_NOT_USED2 -u
+-lint_SRCS := CPPFLAGS += \
+-	-I. -I../common -D_REENTRANT -D_FILE_OFFSET_BITS=64
+-
+ .KEEP_STATE:
+ 
+ .PARALLEL: $(ALLOBJS)
+@@ -134,6 +132,4 @@ install: all $(ROOTLIBSVCBINPROG)
+ clean:
+ 	$(RM) $(ALLOBJS)
+ 
+-lint:   lint_SRCS
+-
+ include ../../Makefile.targ
+diff --git a/usr/src/cmd/svc/startd/env.c b/usr/src/cmd/svc/startd/env.c
+index 1e54124cd6..9ef61dac15 100644
+--- a/usr/src/cmd/svc/startd/env.c
++++ b/usr/src/cmd/svc/startd/env.c
+@@ -21,9 +21,11 @@
+ /*
+  * Copyright 2009 Sun Microsystems, Inc.  All rights reserved.
+  * Use is subject to license terms.
++ * Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
+  */
+ 
+ #include <assert.h>
++#include <definit.h>
+ #include <libuutil.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+@@ -42,8 +44,6 @@
+ #define	MAXCMDL		512
+ #define	DEF_PATH	"PATH=/usr/sbin:/usr/bin"
+ 
+-static char *ENVFILE	= "/etc/default/init"; /* Default env. */
+-
+ static char **glob_envp;	/* Array of environment strings */
+ static int glob_env_n;		/* Number of environment slots allocated. */
+ 
+@@ -57,12 +57,9 @@ static char zonename[ZONENAME_MAX];
+ void
+ init_env()
+ {
+-	int	i;
+-	char	line[MAXCMDL];
+-	FILE	*fp;
+-	int	inquotes, length, wslength;
+-	char	*tokp, *cp1, *cp2;
+-	char	**newp;
++	void		*dstate;
++	const char	*tokp;
++	int		i;
+ 
+ 	glob_env_n = 16;
+ 	glob_envp = startd_alloc(sizeof (*glob_envp) * glob_env_n);
+@@ -70,103 +67,52 @@ init_env()
+ 	glob_envp[0] = startd_alloc((unsigned)(strlen(DEF_PATH)+2));
+ 	(void) strcpy(glob_envp[0], DEF_PATH);
+ 
+-	if ((fp = fopen(ENVFILE, "r")) == NULL) {
++	if (definit_open(DEFINIT_DEFAULT_FILE, &dstate) != 0) {
+ 		uu_warn("Cannot open %s. Environment not initialized.\n",
+-		    ENVFILE);
++		    DEFINIT_DEFAULT_FILE);
+ 
+ 		glob_envp[1] = NULL;
+ 		return;
+ 	}
+ 
+ 	i = 1;
++	while ((tokp = definit_token(dstate)) != NULL) {
++		size_t length = strlen(tokp);
+ 
+-	while (fgets(line, MAXCMDL - 1, fp) != NULL) {
+ 		/*
+-		 * Toss newline
++		 * init already started us with this umask, and we
++		 * handled it in startd.c, so just skip it.
+ 		 */
+-		length = strlen(line);
+-		if (line[length - 1] == '\n')
+-			line[length - 1] = '\0';
+-
+-		/*
+-		 * Ignore blank or comment lines.
+-		 */
+-		if (line[0] == '#' || line[0] == '\0' ||
+-		    (wslength = strspn(line, " \t\n")) == strlen(line) ||
+-		    strchr(line, '#') == line + wslength)
++		if (strncmp(tokp, "CMASK=", 6) == 0 ||
++		    strncmp(tokp, "SMF_", 4) == 0) {
+ 			continue;
+-
+-		/*
+-		 * First make a pass through the line and change
+-		 * any non-quoted semi-colons to blanks so they
+-		 * will be treated as token separators below.
+-		 */
+-		inquotes = 0;
+-		for (cp1 = line; *cp1 != '\0'; cp1++) {
+-			if (*cp1 == '"') {
+-				if (inquotes == 0)
+-					inquotes = 1;
+-				else
+-					inquotes = 0;
+-			} else if (*cp1 == ';') {
+-				if (inquotes == 0)
+-					*cp1 = ' ';
+-			}
+ 		}
+ 
++		glob_envp[i] = startd_alloc((unsigned)(length + 1));
++		(void) strcpy(glob_envp[i], tokp);
++
+ 		/*
+-		 * Tokens within the line are separated by blanks
+-		 *  and tabs.  For each token in the line which
+-		 * contains a '=' we strip out any quotes and then
+-		 * stick the token in the environment array.
++		 * Double the environment size whenever it is
++		 * full.
+ 		 */
+-		if ((tokp = strtok(line, " \t")) == NULL)
+-			continue;
+-
+-		do {
+-			cp1 = strchr(tokp, '=');
+-			if (cp1 == NULL || cp1 == tokp)
+-				continue;
+-			length = strlen(tokp);
+-			while ((cp1 = strpbrk(tokp, "\"\'")) != NULL) {
+-				for (cp2 = cp1; cp2 < &tokp[length]; cp2++)
+-					*cp2 = *(cp2 + 1);
+-				length--;
+-			}
+-
+-			/*
+-			 * init already started us with this umask, and we
+-			 * handled it in startd.c, so just skip it.
+-			 */
+-			if (strncmp(tokp, "CMASK=", 6) == 0 ||
+-			    strncmp(tokp, "SMF_", 4) == 0)
+-				continue;
+-
+-			glob_envp[i] = startd_alloc((unsigned)(length + 1));
+-			(void) strcpy(glob_envp[i], tokp);
+-
+-			/*
+-			 * Double the environment size whenever it is
+-			 * full.
+-			 */
+-			if (++i == glob_env_n) {
+-				glob_env_n *= 2;
+-				newp = startd_alloc(sizeof (*glob_envp) *
+-				    glob_env_n);
+-				(void) memcpy(newp, glob_envp,
+-				    sizeof (*glob_envp) * glob_env_n / 2);
+-				startd_free(glob_envp,
+-				    sizeof (*glob_envp) * glob_env_n / 2);
+-				glob_envp = newp;
+-			}
+-		} while ((tokp = strtok(NULL, " \t")) != NULL);
++		if (++i == glob_env_n) {
++			char **newp;
++
++			glob_env_n *= 2;
++			newp = startd_alloc(sizeof (*glob_envp) * glob_env_n);
++			(void) memcpy(newp, glob_envp,
++			    sizeof (*glob_envp) * glob_env_n / 2);
++			startd_free(glob_envp,
++			    sizeof (*glob_envp) * glob_env_n / 2);
++			glob_envp = newp;
++		}
+ 	}
+ 
+-	startd_fclose(fp);
+-
+ 	/* Append a null pointer to the environment array to mark its end. */
+ 	glob_envp[i] = NULL;
+ 
++	definit_close(dstate);
++
+ 	/*
+ 	 * Get the zonename once; it is used to set SMF_ZONENAME for methods.
+ 	 */
+diff --git a/usr/src/common/definit/definit.c b/usr/src/common/definit/definit.c
+new file mode 100644
+index 0000000000..56d77f871d
+--- /dev/null
++++ b/usr/src/common/definit/definit.c
+@@ -0,0 +1,188 @@
++/*
++ * CDDL HEADER START
++ *
++ * The contents of this file are subject to the terms of the
++ * Common Development and Distribution License (the "License").
++ * You may not use this file except in compliance with the License.
++ *
++ * You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++ * or http://www.opensolaris.org/os/licensing.
++ * See the License for the specific language governing permissions
++ * and limitations under the License.
++ *
++ * When distributing Covered Code, include this CDDL HEADER in each
++ * file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++ * If applicable, add the following below this CDDL HEADER, with the
++ * fields enclosed by brackets "[]" replaced with your own identifying
++ * information: Portions Copyright [yyyy] [name of copyright owner]
++ *
++ * CDDL HEADER END
++ */
++/*
++ * Copyright 2009 Sun Microsystems, Inc.  All rights reserved.
++ * Use is subject to license terms.
++ *
++ * Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
++ */
++
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <errno.h>
++#include <sys/types.h>
++#include <definit.h>
++
++/* Tokens are separated by spaces, tabs and newlines. */
++#define	SEPARATORS " \t\n"
++
++typedef struct definit {
++	FILE *di_fp;
++	char *di_line;
++	char *di_tok;
++} definit_t;
++
++int
++definit_open(const char *file, void **statep)
++{
++	FILE *fp;
++	int _errno;
++	definit_t *state = NULL;
++
++	if ((fp = fopen(file, "r")) == NULL)
++		return (-1);
++
++	if ((state = calloc(1, sizeof (*state))) == NULL)
++		goto err;
++
++	if ((state->di_line = calloc(DEFINIT_MAXLINE, sizeof (char))) == NULL)
++		goto err;
++
++	state->di_fp = fp;
++	*statep = state;
++
++	return (0);
++
++err:
++	_errno = errno;
++	(void) fclose(fp);
++	if (state != NULL) {
++		free(state->di_line);
++		free(state);
++	}
++	errno = _errno;
++	return (-1);
++}
++
++void
++definit_close(void *statep)
++{
++	definit_t *state = statep;
++
++	(void) fclose(state->di_fp);
++	free(state->di_line);
++	free(state);
++}
++
++/*
++ * This parser was written to produce the same output as the ones it replaced
++ * in init and svc.startd. As such it has some shortcomings:
++ * - Values may be quoted but the quotes are just stripped and separators such
++ *   as whitespace are not treated specially within quotes;
++ * - Lines which are longer than DEFINIT_MAXLINE -1 bytes are split. Tokens
++ *   which span a split will be truncated, one way or another.
++ * - Comments at the end of a line (after a token) are not supported.
++ * These could be corrected in the future if strict backwards compatibility is
++ * not required.
++ */
++
++static char *
++definit_nextline(definit_t *state)
++{
++	char *line;
++
++	while ((line = fgets(state->di_line, DEFINIT_MAXLINE, state->di_fp))
++	    != NULL) {
++		boolean_t inquotes;
++		char *p, *bp;
++		size_t wslength;
++
++		/*
++		 * Ignore blank or comment lines.
++		 */
++		if (line[0] == '#' || line[0] == '\0' ||
++		    (wslength = strspn(line, SEPARATORS)) == strlen(line) ||
++		    line[wslength] == '#') {
++			continue;
++		}
++
++		/*
++		 * Make a pass through the line and:
++		 * - Replace any non-quoted semicolons with spaces;
++		 * - Remove any quote characters.
++		 *
++		 * While walking this, 'p' is the current position in the line
++		 * and, if any characters have been found which need to be
++		 * removed, 'bp' tracks the position in the line where
++		 * subsequent characters need to be written in order to close
++		 * the gap; 'bp' trails 'p'.
++		 * If 'bp' is NULL, no characters to remove have been found.
++		 */
++		inquotes = B_FALSE;
++		for (p = line, bp = NULL; *p != '\0'; p++) {
++			switch (*p) {
++			case '"':
++			case '\'':
++				inquotes = !inquotes;
++				if (bp == NULL)
++					bp = p;
++				break;
++			case ';':
++				if (!inquotes)
++					*p = ' ';
++				/* FALLTHROUGH */
++			default:
++				if (bp != NULL)
++					*bp++ = *p;
++				break;
++			}
++		}
++		if (bp != NULL)
++			*bp = '\0';
++
++		/*
++		 * Perform an initial strtok_r() call on the new line.
++		 * definit_token() will repeatedly call strtok_r() until the
++		 * line is consumed, and then call this function again for
++		 * more input.
++		 */
++		if ((p = strtok_r(line, SEPARATORS, &state->di_tok)) != NULL)
++			return (p);
++	}
++
++	return (NULL);
++}
++
++const char *
++definit_token(void *statep)
++{
++	definit_t *state = statep;
++	char *tok;
++
++	for (;;) {
++		tok = NULL;
++
++		if (state->di_tok != NULL)
++			tok = strtok_r(NULL, SEPARATORS, &state->di_tok);
++
++		if (tok == NULL)
++			tok = definit_nextline(state);
++
++		if (tok == NULL)
++			break;
++
++		if (strchr(tok, '=') != NULL && *tok != '=')
++			return (tok);
++	}
++
++	return (NULL);
++}
+diff --git a/usr/src/common/definit/definit.h b/usr/src/common/definit/definit.h
+new file mode 100644
+index 0000000000..24338220de
+--- /dev/null
++++ b/usr/src/common/definit/definit.h
+@@ -0,0 +1,47 @@
++/*
++ * This file and its contents are supplied under the terms of the
++ * Common Development and Distribution License ("CDDL"), version 1.0.
++ * You may only use this file in accordance with the terms of version
++ * 1.0 of the CDDL.
++ *
++ * A full copy of the text of the CDDL should have accompanied this
++ * source. A copy of the CDDL is also available via the Internet at
++ * http://www.illumos.org/license/CDDL.
++ */
++
++/*
++ * Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
++ */
++
++#ifndef	_DEFINIT_H
++#define	_DEFINIT_H
++
++#ifdef	__cplusplus
++extern "C" {
++#endif
++
++/*
++ * Routines for parsing the default init file, /etc/default/init.
++ * Used by init, svc.startd and libzonecfg for setting up a default
++ * environment.
++ *
++ * After calling definit_open(), callers should call definit_token() in a loop
++ * until it returns NULL, indicating that all tokens in the file have been
++ * processed. To clean up when finished, call definit_close().
++ */
++
++#define	DEFINIT_DEFAULT_FILE	"/etc/default/init"
++#define	DEFINIT_MAXLINE		512
++
++#define	DEFINIT_MIN_UMASK	0
++#define	DEFINIT_MAX_UMASK	077
++
++int definit_open(const char *, void **);
++void definit_close(void *);
++const char *definit_token(void *);
++
++#ifdef	__cplusplus
++}
++#endif
++
++#endif /* !_DEFINIT_H */
+diff --git a/usr/src/lib/libzonecfg/Makefile.com b/usr/src/lib/libzonecfg/Makefile.com
+index aa7dea9cc9..d73f6cf6d6 100644
+--- a/usr/src/lib/libzonecfg/Makefile.com
++++ b/usr/src/lib/libzonecfg/Makefile.com
+@@ -20,11 +20,12 @@
+ #
+ #
+ # Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
++# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
+ #
+ 
+ LIBRARY=	libzonecfg.a
+ VERS=		.1
+-OBJECTS=	libzonecfg.o getzoneent.o scratchops.o
++OBJECTS=	libzonecfg.o getzoneent.o scratchops.o definit.o
+ 
+ include ../../Makefile.lib
+ 
+@@ -37,6 +38,7 @@ NATIVE_LIBS +=	libxml2.so
+ 
+ SRCDIR =	../common
+ CPPFLAGS +=	-I$(ADJUNCT_PROTO)/usr/include/libxml2 -I$(SRCDIR) -D_REENTRANT
++CPPFLAGS +=	-I$(SRC)/common/definit
+ CERRWARN +=	$(CNOWARN_UNINIT)
+ CERRWARN +=	-_gcc=-Wno-parentheses
+ 
+@@ -44,4 +46,8 @@ CERRWARN +=	-_gcc=-Wno-parentheses
+ 
+ all:	$(LIBS)
+ 
++pics/%.o:	$(SRC)/common/definit/%.c
++		$(COMPILE.c) -o $@ $<
++		$(POST_PROCESS_O)
++
+ include ../../Makefile.targ
+diff --git a/usr/src/lib/libzonecfg/common/libzonecfg.c b/usr/src/lib/libzonecfg/common/libzonecfg.c
+index b4eade5826..2149c546a1 100644
+--- a/usr/src/lib/libzonecfg/common/libzonecfg.c
++++ b/usr/src/lib/libzonecfg/common/libzonecfg.c
+@@ -24,6 +24,7 @@
+  * Copyright (c) 2003, 2010, Oracle and/or its affiliates. All rights reserved.
+  * Copyright (c) 2018, Joyent, Inc.
+  * Copyright 2015 Nexenta Systems, Inc. All rights reserved.
++ * Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
+  */
+ 
+ #include <libsysevent.h>
+@@ -60,6 +61,7 @@
+ #include <secdb.h>
+ #include <user_attr.h>
+ #include <prof_attr.h>
++#include <definit.h>
+ 
+ #include <arpa/inet.h>
+ #include <netdb.h>
+@@ -1173,26 +1175,26 @@ zonecfg_refresh_index_file(zone_dochandle_t handle)
+  * Strategy:
+  *
+  * New zone 'foo' configuration:
+- * 	Create tmpfile (zonecfg.xxxxxx)
+- * 	Write XML to tmpfile
+- * 	Rename tmpfile to xmlfile (zonecfg.xxxxxx -> foo.xml)
+- * 	Add entry to index file
+- * 	If it fails, delete foo.xml, leaving nothing behind.
++ *	Create tmpfile (zonecfg.xxxxxx)
++ *	Write XML to tmpfile
++ *	Rename tmpfile to xmlfile (zonecfg.xxxxxx -> foo.xml)
++ *	Add entry to index file
++ *	If it fails, delete foo.xml, leaving nothing behind.
+  *
+  * Save existing zone 'foo':
+- * 	Make backup of foo.xml -> .backup
+- * 	Create tmpfile (zonecfg.xxxxxx)
+- * 	Write XML to tmpfile
+- * 	Rename tmpfile to xmlfile (zonecfg.xxxxxx -> foo.xml)
+- * 	Modify index file as needed
+- * 	If it fails, recover from .backup -> foo.xml
++ *	Make backup of foo.xml -> .backup
++ *	Create tmpfile (zonecfg.xxxxxx)
++ *	Write XML to tmpfile
++ *	Rename tmpfile to xmlfile (zonecfg.xxxxxx -> foo.xml)
++ *	Modify index file as needed
++ *	If it fails, recover from .backup -> foo.xml
+  *
+  * Rename 'foo' to 'bar':
+- * 	Create tmpfile (zonecfg.xxxxxx)
+- * 	Write XML to tmpfile
+- * 	Rename tmpfile to xmlfile (zonecfg.xxxxxx -> bar.xml)
+- * 	Add entry for 'bar' to index file, Remove entry for 'foo' (refresh)
+- * 	If it fails, delete bar.xml; foo.xml is left behind.
++ *	Create tmpfile (zonecfg.xxxxxx)
++ *	Write XML to tmpfile
++ *	Rename tmpfile to xmlfile (zonecfg.xxxxxx -> bar.xml)
++ *	Add entry for 'bar' to index file, Remove entry for 'foo' (refresh)
++ *	If it fails, delete bar.xml; foo.xml is left behind.
+  */
+ static int
+ zonecfg_save_impl(zone_dochandle_t handle, char *filename)
+@@ -7521,6 +7523,110 @@ prepare_audit_context(const char *zone_name)
+ 	(void) adt_end_session(ah);
+ }
+ 
++static const char **
++get_zoneadmd_envp(void)
++{
++	const char **envp = NULL;
++	size_t envlen;
++	size_t envslot = 0;
++	const char *tok;
++	void *dstate = NULL;
++
++	/*
++	 * This initial array size is enough to hold the two variables
++	 * set below, up to five additional entries from /etc/default/init,
++	 * and the NULL terminator. /etc/default/init commonly includes only
++	 * TZ, LANG and LC_ALL. The array will be grown if necessary by
++	 * doubling the size whenever it is full.
++	 */
++	envlen = 8;
++
++	if ((envp = recallocarray(NULL, 0, envlen, sizeof (char *))) == NULL)
++		return (NULL);
++
++	/*
++	 * See the comment above zonecfg_init_lock_file() for details on the
++	 * implementation of the locking mechanism.
++	 * zoneadmd is started with an inherited lock, indicated by the
++	 * environment variable being set. Once the starting zoneadm exits,
++	 * zoneadmd may persist and will continue to believe that it has the
++	 * lock. This is okay as long as the only things that connect to the
++	 * zoneadmd door and cause it to do work that requires a lock have
++	 * grabbed the lock in advance, which zoneadm does in all cases today.
++	 */
++	envp[envslot++] = zoneadm_lock_held;
++
++	if (asprintf((char **)&tok, "PATH=%s", ZONEADMD_PATH) == -1) {
++		free(envp);
++		return (NULL);
++	}
++	envp[envslot++] = tok;
++
++	if (definit_open(DEFINIT_DEFAULT_FILE, &dstate) != 0) {
++		if (errno == ENOENT) {
++			/*
++			 * If the configuration file does not exist, return the
++			 * environment populated so far (with PATH and the
++			 * zoneadm lock).
++			 */
++			envp[envslot] = NULL;
++			return (envp);
++		}
++		goto err;
++	}
++
++	while ((tok = definit_token(dstate)) != NULL) {
++
++		if (strncmp(tok, "CMASK=", 6) == 0) {
++			long t;
++
++			t = strtol(tok + 6, NULL, 8);
++
++			if (t >= DEFINIT_MIN_UMASK && t <= DEFINIT_MAX_UMASK)
++				(void) umask((int)t);
++			continue;
++		}
++
++		/*
++		 * Always ensure there is space for a terminating
++		 * NULL in addition to the new entry being added.
++		 */
++		if (envslot + 2 >= envlen) {
++			const char **newenvp;
++
++			newenvp = recallocarray(envp, envlen, envlen * 2,
++			    sizeof (char *));
++			if (newenvp == NULL)
++				goto err;
++			envp = newenvp;
++			envlen *= 2;
++		}
++
++		envp[envslot] = strdup(tok);
++		if (envp[envslot] == NULL)
++			goto err;
++		envslot++;
++	}
++
++	definit_close(dstate);
++	envp[envslot] = NULL;
++	return (envp);
++
++err:
++	if (dstate != NULL)
++		definit_close(dstate);
++
++	/*
++	 * The first slot in envp is 'zoneadm_lock_held' and should not be
++	 * freed.
++	 */
++	while (--envslot > 0)
++		free((void *)envp[envslot]);
++	free(envp);
++
++	return (NULL);
++}
++
+ static int
+ start_zoneadmd(const char *zone_name, boolean_t lock)
+ {
+@@ -7564,6 +7670,7 @@ start_zoneadmd(const char *zone_name, boolean_t lock)
+ 
+ 	if (child_pid == 0) {
+ 		const char *argv[6], **ap;
++		const char **envp;
+ 
+ 		/* child process */
+ 		prepare_audit_context(zone_name);
+@@ -7578,7 +7685,15 @@ start_zoneadmd(const char *zone_name, boolean_t lock)
+ 		}
+ 		*ap = NULL;
+ 
+-		(void) execv("/usr/lib/zones/zoneadmd", (char * const *)argv);
++		envp = get_zoneadmd_envp();
++		if (envp == NULL) {
++			zperror(gettext(
++			    "could not build environment for zoneadmd"));
++			_exit(1);
++		}
++
++		(void) execve("/usr/lib/zones/zoneadmd",
++		    (char * const *)argv, (char * const *)envp);
+ 		/*
+ 		 * TRANSLATION_NOTE
+ 		 * zoneadmd is a literal that should not be translated.
+diff --git a/usr/src/lib/libzonecfg/common/zonecfg_impl.h b/usr/src/lib/libzonecfg/common/zonecfg_impl.h
+index d6be1387e4..c117a13526 100644
+--- a/usr/src/lib/libzonecfg/common/zonecfg_impl.h
++++ b/usr/src/lib/libzonecfg/common/zonecfg_impl.h
+@@ -21,13 +21,13 @@
+ /*
+  * Copyright 2006 Sun Microsystems, Inc.  All rights reserved.
+  * Use is subject to license terms.
++ *
++ * Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
+  */
+ 
+ #ifndef _ZONECFG_IMPL_H
+ #define	_ZONECFG_IMPL_H
+ 
+-#pragma ident	"%Z%%M%	%I%	%E% SMI"
+-
+ #ifdef	__cplusplus
+ extern "C" {
+ #endif
+@@ -39,6 +39,8 @@ extern "C" {
+ #define	TEXT_DOMAIN	"SYS_TEST"	/* Use this only if it wasn't */
+ #endif
+ 
++#define	ZONEADMD_PATH	"/usr/sbin:/usr/bin"
++
+ typedef enum {
+ 	PZE_MODIFY = -1,
+ 	PZE_REMOVE = 0,
+diff --git a/usr/src/man/man4/Makefile b/usr/src/man/man4/Makefile
+index 642829e62a..40c7f78d41 100644
+--- a/usr/src/man/man4/Makefile
++++ b/usr/src/man/man4/Makefile
+@@ -229,6 +229,7 @@ _MANLINKS=	addresses.4			\
+ 		pcie.4				\
+ 		qop.4				\
+ 		rhosts.4			\
++		TIMEZONE.4			\
+ 		sendmail.cf.4			\
+ 		snapshot_cache.4		\
+ 		submit.cf.4			\
+@@ -258,6 +259,8 @@ dir.4				:= LINKSRC = dir_ufs.4
+ 
+ rhosts.4			:= LINKSRC = hosts.equiv.4
+ 
++TIMEZONE.4			:= LINKSRC = init.4
++
+ hosts.allow.4			:= LINKSRC = hosts_access.4
+ hosts.deny.4			:= LINKSRC = hosts_access.4
+ 
+diff --git a/usr/src/man/man4/init.4 b/usr/src/man/man4/init.4
+index ffc17dad95..be72691a62 100644
+--- a/usr/src/man/man4/init.4
++++ b/usr/src/man/man4/init.4
+@@ -1,75 +1,141 @@
+-'\" te
++'\"
++.\" Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
+ .\" Copyright 2014 Garrett D'Amore
+ .\" Copyright (c) 2003, Sun Microsystems, Inc. All Rights Reserved.
+ .\" Copyright 1989 AT&T
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+-.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+-.\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH INIT 4 "Mar 15, 2014"
+-.SH NAME
+-init \- set default system time zone and locale
+-.SH SYNOPSIS
+-.LP
+-.nf
+-\fB/etc/default/init\fR
+-.fi
+-
+-.SH DESCRIPTION
+-.sp
+-.LP
+-This file sets the time zone environment variable \fBTZ\fR, and the
+-locale-related environment variables \fBLANG\fR, \fBLC_COLLATE\fR,
+-\fBLC_CTYPE\fR, \fBLC_MESSAGES\fR, \fBLC_MONETARY\fR, \fBLC_NUMERIC\fR, and
+-\fBLC_TIME\fR.
+-.sp
+-.LP
+-\fB/etc/TIMEZONE\fR is a symbolic link to \fB/etc/default/init\fR.  This
+-link exists for compatibility with legacy software, is obsolete, and may
++.\"
++.\" The contents of this file are subject to the terms of the
++.\" Common Development and Distribution License (the "License").
++.\" You may not use this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
++.\" or http://www.opensolaris.org/os/licensing.
++.\" See the License for the specific language governing permissions
++.\" and limitations under the License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each
++.\" file and include the License file at usr/src/OPENSOLARIS.LICENSE.
++.\" If applicable, add the following below this CDDL HEADER, with the
++.\" fields enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
++.\"
++.Dd November 7, 2021
++.Dt INIT 4
++.Os
++.Sh NAME
++.Nm init ,
++.Nm TIMEZONE
++.Nd set default system time zone and locale
++.Sh SYNOPSIS
++.Pa /etc/default/init
++.Pp
++.Pa /etc/TIMEZONE
++.Sh DESCRIPTION
++This file sets the time zone environment variable
++.Ev TZ ,
++and the locale-related environment variables
++.Ev LANG ,
++.Ev LC_COLLATE ,
++.Ev LC_CTYPE ,
++.Ev LC_MESSAGES ,
++.Ev LC_MONETARY ,
++.Ev LC_NUMERIC
++and
++.Ev LC_TIME .
++.Pp
++It can also be used to set any additional environment variables which should be
++present in all processes started by
++.Xr init 1M
++or
++.Xr svc.startd 1M ,
++and in any
++.Xr zoneadmd 1M
++daemons started automatically to support zone operations.
++.Pp
++The format of the file is a set of tokens of the form:
++.Pp
++.Dl Ar VAR Ns No \&= Ns Ar value
++.Pp
++where
++.Ar VAR
++is an environment variable and
++.Ar value
++is the value assigned to the variable.
++.Ar value
++can be enclosed in double quotes
++.Pq \&"
++or single quotes
++.Pq \&' ,
++however, these quotes cannot be part of the value.
++Neither
++.Ar VAR
++nor
++.Ar value
++may contain whitespace.
++Multiple
++.Ar VAR Ns No \&= Ns Ar value
++pairs can occur on the same line, separated by whitespace or a semicolon
++.Pq \&; ,
++but, for compatibility with existing software, the
++.Ev TZ
++variable
++.Em must
++appear on its own line with no leading whitespace.
++Comments are supported; each comment must be on its own line and begin with a
++hash
++.Pq #
++character.
++.Pp
++If the
++.Ev CMASK
++variable is specified, it is not passed to the environment but the value is
++used to set the initial umask that
++.Xr init 1M
++uses and that every other process inherits.
++The
++.Ev CMASK
++value is specified in octal and must be between 000 and 077 to be accepted; the
++value is silently ignored otherwise.
++If the value is missing or cannot be parsed as an octal number, then a value
++of 0 is assumed.
++A sequence of valid octal digits followed by other trailing characters will be
++treated as if the trailing characters were not present.
++.Pp
++For
++.Xr init 1M ,
++the number of environment variables that can be set is limited to 20.
++.Pp
++.Pa /etc/TIMEZONE
++is a symbolic link to
++.Pa /etc/default/init .
++This link exists for compatibility with legacy software, is obsolete, and may
+ be removed in a future release.
+-.sp
+-.LP
+-The number of environment variables that can be set from
+-\fB/etc/default/init\fR is limited to 20.
+-.sp
+-.LP
+-The format of the file is:
+-.sp
+-.in +2
+-.nf
+-\fIVAR\fR\fB=\fR\fIvalue\fR
+-.fi
+-.in -2
+-.sp
+-
+-.sp
+-.LP
+-where \fIVAR\fR is a timezone environment variable and \fIvalue\fR is the value
+-assigned to the variable. \fIvalue\fR can be enclosed in double quotes (") or
+-single quotes (\&'). The double or single quotes cannot be part of the value.
+-.SH SEE ALSO
+-.sp
+-.LP
+-\fBinit\fR(1M), \fBrtc\fR(1M), \fBctime\fR(3C), \fBenviron\fR(5)
+-.SH NOTES
+-.sp
+-.LP
+-When changing the \fBTZ\fR setting on x86 systems, you must make a
+-corresponding change to the \fB/etc/rtc_config\fR file to account for the new
+-timezone setting. This can be accomplished by executing the following commands,
+-followed by a reboot, to make the changes take effect:
+-.sp
+-.in +2
+-.nf
+-# rtc \fB-z\fR \fIzone-name\fR
+-# rtc \fB-c\fR
+-
+-.fi
+-.in -2
+-.sp
+-
+-.sp
+-.LP
+-where \fIzone-name\fR is the same name as the \fBTZ\fR variable setting.
+-.sp
+-.LP
+-See \fBrtc\fR(1M) for information on the \fBrtc\fR command.
++.Sh SEE ALSO
++.Xr init 1M ,
++.Xr rtc 1M ,
++.Xr svc.startd 1M ,
++.Xr zoneadmd 1M ,
++.Xr ctime 3C ,
++.Xr environ 5
++.Sh NOTES
++When changing the
++.Ev TZ
++setting on x86 systems, you must make a corresponding change to the
++.Pa /etc/rtc_config
++file to account for the new timezone setting.
++This can be accomplished by executing the following commands, followed by a
++reboot, to make the changes take effect:
++.Bd -literal -offset indent
++# rtc -z zone-name
++# rtc -c
++.Ed
++.Pp
++where
++.Ar zone-name
++is the same name as the
++.Ev TZ
++variable setting.
++.Pp
++See
++.Xr rtc 1M
++for more information.
+diff --git a/usr/src/pkg/manifests/SUNWcs.man4.inc b/usr/src/pkg/manifests/SUNWcs.man4.inc
+index 3c959adf09..0dd3795067 100644
+--- a/usr/src/pkg/manifests/SUNWcs.man4.inc
++++ b/usr/src/pkg/manifests/SUNWcs.man4.inc
+@@ -12,9 +12,11 @@
+ #
+ # Copyright 2011, Richard Lowe
+ # Copyright 2012 Nexenta Systems, Inc. All rights reserved.
++# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
+ #
+ 
+ file path=usr/share/man/man4/Intro.4
++link path=usr/share/man/man4/TIMEZONE.4 target=init.4
+ file path=usr/share/man/man4/audit.log.4
+ file path=usr/share/man/man4/audit_class.4
+ file path=usr/share/man/man4/audit_event.4
+diff --git a/usr/src/pkg/manifests/system-test-ostest.p5m b/usr/src/pkg/manifests/system-test-ostest.p5m
+index 967e8f1384..8f8f38407c 100644
+--- a/usr/src/pkg/manifests/system-test-ostest.p5m
++++ b/usr/src/pkg/manifests/system-test-ostest.p5m
+@@ -49,6 +49,12 @@ dir  path=opt/os-tests/tests/ddi_ufm
+ file path=opt/os-tests/tests/ddi_ufm/ufm-test mode=0555
+ file path=opt/os-tests/tests/ddi_ufm/ufm-test-cleanup mode=0555
+ file path=opt/os-tests/tests/ddi_ufm/ufm-test-setup mode=0555
++dir  path=opt/os-tests/tests/definit
++file path=opt/os-tests/tests/definit/definit mode=0555
++file path=opt/os-tests/tests/definit/definit_test.32 mode=0555
++file path=opt/os-tests/tests/definit/definit_test.64 mode=0555
++file path=opt/os-tests/tests/definit/init.data mode=0444
++file path=opt/os-tests/tests/definit/init.expected mode=0444
+ file path=opt/os-tests/tests/epoll_test mode=0555
+ file path=opt/os-tests/tests/eventfd.32 mode=0555
+ file path=opt/os-tests/tests/eventfd.64 mode=0555
+diff --git a/usr/src/test/os-tests/runfiles/default.run b/usr/src/test/os-tests/runfiles/default.run
+index 426433b7a5..6de9a11637 100644
+--- a/usr/src/test/os-tests/runfiles/default.run
++++ b/usr/src/test/os-tests/runfiles/default.run
+@@ -87,6 +87,8 @@ tests = ['acquire-compare', 'kmc-update']
+ user = root
+ tests = ['ufm-test-setup', 'ufm-test', 'ufm-test-cleanup']
+ 
++[/opt/os-tests/tests/definit]
++
+ [/opt/os-tests/tests/i386]
+ user = root
+ arch = i86pc
+diff --git a/usr/src/test/os-tests/tests/Makefile b/usr/src/test/os-tests/tests/Makefile
+index 059fc2ddd8..8b5a45ab04 100644
+--- a/usr/src/test/os-tests/tests/Makefile
++++ b/usr/src/test/os-tests/tests/Makefile
+@@ -21,6 +21,7 @@ SUBDIRS_i386 = i386 imc
+ SUBDIRS =       \
+ 		cores \
+ 		ddi_ufm \
++		definit \
+ 		file-locking \
+ 		ksensor \
+ 		libtopo \
+diff --git a/usr/src/test/os-tests/tests/definit/Makefile b/usr/src/test/os-tests/tests/definit/Makefile
+new file mode 100644
+index 0000000000..ed81285120
+--- /dev/null
++++ b/usr/src/test/os-tests/tests/definit/Makefile
+@@ -0,0 +1,82 @@
++#
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
++#
++# A full copy of the text of the CDDL should have accompanied this
++# source.  A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
++#
++
++#
++# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
++#
++
++include $(SRC)/cmd/Makefile.cmd
++include $(SRC)/test/Makefile.com
++
++PROG = definit_test.32 definit_test.64
++
++OBJS = definit.o definit_test.o
++OBJS32 = $(OBJS:.o=.32.o)
++OBJS64 = $(OBJS:.o=.64.o)
++
++DATAFILES = init.data init.expected
++
++CSTD = $(CSTD_GNU99)
++CPPFLAGS += -I$(SRC)/common/definit
++
++ROOTOPTPKG = $(ROOT)/opt/os-tests
++TESTDIR = $(ROOTOPTPKG)/tests/definit
++
++CMDS = $(PROG:%=$(TESTDIR)/%) $(TESTDIR)/definit
++$(CMDS) := FILEMODE = 0555
++DATA = $(DATAFILES:%=$(TESTDIR)/%)
++$(DATA) := FILEMODE = 0444
++
++LDLIBS += -lc
++LDLIBS64 += -lc
++
++all: $(PROG)
++
++install: $(CMDS) $(DATA)
++
++clobber: clean
++	-$(RM) $(PROG)
++
++clean:
++	-$(RM) $(OBJS32) $(OBJS64)
++
++$(CMDS): $(TESTDIR) $(PROG)
++
++$(TESTDIR):
++	$(INS.dir)
++
++$(TESTDIR)/%: %
++	$(INS.file)
++
++$(TESTDIR)/%: %.ksh
++	$(INS.rename)
++
++%.32.o: %.c
++	$(COMPILE.c) $< -o $@
++
++%.64.o: %.c
++	$(COMPILE64.c) $< -o $@
++
++%.32.o: $(SRC)/common/definit/%.c
++	$(COMPILE.c) $< -o $@
++
++%.64.o: $(SRC)/common/definit/%.c
++	$(COMPILE64.c) $< -o $@
++
++definit_test.64: $(OBJS64)
++	$(LINK64.c) -o $@ $(OBJS64) $(LDLIBS64)
++	$(POST_PROCESS)
++
++definit_test.32: $(OBJS32)
++	$(LINK.c) -o $@ $(OBJS32) $(LDLIBS)
++	$(POST_PROCESS)
++
++
+diff --git a/usr/src/test/os-tests/tests/definit/definit.ksh b/usr/src/test/os-tests/tests/definit/definit.ksh
+new file mode 100644
+index 0000000000..ddec04b0d5
+--- /dev/null
++++ b/usr/src/test/os-tests/tests/definit/definit.ksh
+@@ -0,0 +1,41 @@
++#!/usr/bin/ksh
++#
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
++#
++# A full copy of the text of the CDDL should have accompanied this
++# source. A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
++#
++
++# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
++
++typeset dir=$(dirname $0)
++
++typeset tf=$(mktemp)
++if [[ -z "$tf" || ! -f "$tf" ]]; then
++	print "Could not create temporary file."
++	exit 1
++fi
++trap 'rm -f $tf' EXIT
++
++integer exitval=0
++
++for b in 32 64; do
++	typeset bin=definit_test.$b
++	print "Testing $bin"
++	if ! $dir/$bin $dir/init.data > $tf; then
++		print "Failed to run $bin"
++		exitval=1
++	fi
++	if ! diff $tf $dir/init.expected; then
++		print "Output from $bin did not match"
++		exitval=1
++	fi
++done
++
++((exitval == 0)) && print "All tests passed successfully"
++
++exit $exitval
+diff --git a/usr/src/test/os-tests/tests/definit/definit_test.c b/usr/src/test/os-tests/tests/definit/definit_test.c
+new file mode 100644
+index 0000000000..39b215beb4
+--- /dev/null
++++ b/usr/src/test/os-tests/tests/definit/definit_test.c
+@@ -0,0 +1,41 @@
++/*
++ * This file and its contents are supplied under the terms of the
++ * Common Development and Distribution License ("CDDL"), version 1.0.
++ * You may only use this file in accordance with the terms of version
++ * 1.0 of the CDDL.
++ *
++ * A full copy of the text of the CDDL should have accompanied this
++ * source.  A copy of the CDDL is also available via the Internet at
++ * http://www.illumos.org/license/CDDL.
++ */
++
++/*
++ * Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
++ */
++
++#include <stdio.h>
++#include <stdlib.h>
++#include <err.h>
++#include <definit.h>
++
++int
++main(int argc, char **argv)
++{
++	void *state;
++	const char *p;
++
++	if (argc != 2) {
++		fprintf(stderr, "Syntax: %s <init file>\n", argv[0]);
++		exit(EXIT_FAILURE);
++	}
++
++	if (definit_open(argv[1], &state) != 0)
++		err(EXIT_FAILURE, "Open of %s failed.", argv[1]);
++
++	while ((p = definit_token(state)) != NULL)
++		printf(":%s:\n", p);
++
++	definit_close(state);
++
++	return (0);
++}
+diff --git a/usr/src/test/os-tests/tests/definit/init.data b/usr/src/test/os-tests/tests/definit/init.data
+new file mode 100644
+index 0000000000..f27851ac0a
+--- /dev/null
++++ b/usr/src/test/os-tests/tests/definit/init.data
+@@ -0,0 +1,77 @@
++#
++# This is a test input file for the 'definit' parser
++#
++  # comment indented with spaces
++	# comment indented with tabs
++	 # comment indented with both spaces and tabs
++ 	 	 # comment indented with alternating spaces and tabs
++# blank line follows
++
++# lines consisting of only spaces follow
++  
++	
++ 	
++	 
++  	  	
++# Simple assignment, variously indented
++TZ=UTC
++ TZSI=UTCSI
++	TZTI=UTCTI
++ 	TZSTI=UTCSTI
++	 TZTSI=UTCTSI
++ 	 	 	 TZMI=UTCMI
++; LEADING=semicolon
++
++# Quoted assignment, quotes do not have to match nor be balanced. They are
++# just stripped early in parsing.
++CMASK1="001"
++CMASK2='002'
++CMASK3='003"
++CMASK4="004'
++CMASK5="005
++CMASK6='006
++CMASK7=007"
++CMASK8=010'
++CMASK9='"'"'011 ''''''''''''''''  
++
++# Quoted with a semicolon
++QSC="test1;tryst2"
++QSCS='test3;tryst4'
++QSCSS='test5;tryst6"
++QSCSSS="test5;tryst6'
++
++# Multiple on one line
++MULTI1=multi1 MULTI2=multi2 MULTI3=multi3
++MULTIS1=multis1;MULTIS2=multis2;MULTIS3=multis3
++MULTISS1=multiss1; MULTISS2=multiss2; MULTISS3=multiss3
++MULTISSS1=multisss1 ; MULTISSS2=multisss2 ; MULTISSS3=multisss3
++	 SMULTI1=smulti1 SMULTI2=smulti2 SMULTI3=smulti3
++	 SMULTIS1=smultis1;SMULTIS2=smultis2;SMULTIS3=smultis3
++	 SMULTISS1=smultiss1; SMULTISS2=smultiss2; SMULTISS3=smultiss3
++	 SMULTISSS1=smultisss1 ; SMULTISSS2=smultisss2 ; SMULTISSS3=smultisss3
++
++# Tokens without = should be skipped
++PLAIN
++OK=1 NOEQUALS
++ANOTHER BAD=54 IGNORED
++
++# Tokens with a comment after, the comment will be parsed for tokens
++THIS=this 	# not a comment so if it includes THAT=that then it's found
++
++# Line which is at the maximum allowed length (512 characters including newline)
++                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            Z=b
++
++# Lines which exceed the maximum allowed length (last item will be truncated)
++                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            X=cccccc
++
++                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            YYYYYY=d
++
++# More complex examples
++UMEM_DEBUG="default"; MAXIMUS BOB=fred; SUE='test' BARNEY=dino
++
++# quoted value containing a space. NOTE this does not parse as you might expect
++# and will just result in 'SPACED=test1'. This is consistent with the way that
++# init and svc.startd have always interpreted a quoted value containing a space.
++SPACED="test1 test2"
++SPACED2="test3 test4 another=test5"
++
+diff --git a/usr/src/test/os-tests/tests/definit/init.expected b/usr/src/test/os-tests/tests/definit/init.expected
+new file mode 100644
+index 0000000000..6755cbf571
+--- /dev/null
++++ b/usr/src/test/os-tests/tests/definit/init.expected
+@@ -0,0 +1,58 @@
++:TZ=UTC:
++:TZSI=UTCSI:
++:TZTI=UTCTI:
++:TZSTI=UTCSTI:
++:TZTSI=UTCTSI:
++:TZMI=UTCMI:
++:LEADING=semicolon:
++:CMASK1=001:
++:CMASK2=002:
++:CMASK3=003:
++:CMASK4=004:
++:CMASK5=005:
++:CMASK6=006:
++:CMASK7=007:
++:CMASK8=010:
++:CMASK9=011:
++:QSC=test1;tryst2:
++:QSCS=test3;tryst4:
++:QSCSS=test5;tryst6:
++:QSCSSS=test5;tryst6:
++:MULTI1=multi1:
++:MULTI2=multi2:
++:MULTI3=multi3:
++:MULTIS1=multis1:
++:MULTIS2=multis2:
++:MULTIS3=multis3:
++:MULTISS1=multiss1:
++:MULTISS2=multiss2:
++:MULTISS3=multiss3:
++:MULTISSS1=multisss1:
++:MULTISSS2=multisss2:
++:MULTISSS3=multisss3:
++:SMULTI1=smulti1:
++:SMULTI2=smulti2:
++:SMULTI3=smulti3:
++:SMULTIS1=smultis1:
++:SMULTIS2=smultis2:
++:SMULTIS3=smultis3:
++:SMULTISS1=smultiss1:
++:SMULTISS2=smultiss2:
++:SMULTISS3=smultiss3:
++:SMULTISSS1=smultisss1:
++:SMULTISSS2=smultisss2:
++:SMULTISSS3=smultisss3:
++:OK=1:
++:BAD=54:
++:THIS=this:
++:THAT=that:
++:Z=b:
++:X=c:
++:YYY=d:
++:UMEM_DEBUG=default:
++:BOB=fred:
++:SUE=test:
++:BARNEY=dino:
++:SPACED=test1:
++:SPACED2=test3:
++:another=test5:
+-- 
+2.40.1
+

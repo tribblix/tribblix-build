@@ -1,0 +1,569 @@
+From 5b0d53307d70a828ad7aef4dc6d8a3ad7d5c231b Mon Sep 17 00:00:00 2001
+From: Peter Tribble <peter.tribble@gmail.com>
+Date: Sun, 22 May 2022 15:44:06 +0100
+Subject: [PATCH] 14704 Duplicate full stops in the manual Reviewed by: Yuri
+ Pankov <ypankov@tintri.com> Reviewed by: Andy Fiddaman <andy@omnios.org>
+ Reviewed by: Richard Lowe <richlowe@richlowe.net> Approved by: Dan McDonald
+ <danmcd@mnx.io>
+
+---
+ usr/src/man/man1/elfedit.1                    |  6 +++---
+ usr/src/man/man1/msgfmt.1                     | 16 +++-----------
+ .../man/man3dat/dat_ep_create_with_srq.3dat   |  4 ++--
+ .../man3sasl/sasl_client_plug_init_t.3sasl    | 15 ++-----------
+ usr/src/man/man4d/bfe.4d                      | 13 ++----------
+ usr/src/man/man5/sasl_appname.conf.5          | 13 +++---------
+ usr/src/man/man8/audit_warn.8                 | 10 ++-------
+ usr/src/man/man8/in.telnetd.8                 |  4 ++--
+ usr/src/man/man8/luxadm.8                     |  4 ++--
+ usr/src/man/man9e/open.9e                     | 21 +++++++------------
+ usr/src/man/man9f/mkiocb.9f                   |  4 ++--
+ 11 files changed, 30 insertions(+), 80 deletions(-)
+
+diff --git a/usr/src/man/man1/elfedit.1 b/usr/src/man/man1/elfedit.1
+index d436572005..e67c775339 100644
+--- a/usr/src/man/man1/elfedit.1
++++ b/usr/src/man/man1/elfedit.1
+@@ -4,7 +4,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH ELFEDIT 1 "May 17, 2020"
++.TH ELFEDIT 1 "May 21, 2022"
+ .SH NAME
+ elfedit \- examine or edit ELF files
+ .SH SYNOPSIS
+@@ -556,7 +556,7 @@ useful for performing simple operations from shell scripts and makefiles.
+ .ad
+ .RS 29n
+ Sets default path for locating \fBelfedit\fR modules. Modules are described in
+-\fBModule Search Path\fR section of this manual page..
++\fBModule Search Path\fR section of this manual page.
+ .RE
+ 
+ .sp
+@@ -677,7 +677,7 @@ allow access to the command documentation available from the help
+ .LP
+ If one or more \fB-e\fR options are specified, the commands they supply are
+ executed in the order given. \fBelfedit\fR adds implicit calls to write
+-(\fBsys:write\fR) and quit (\fBsys:qui\fRt) immediately following the given
++(\fBsys:write\fR) and quit (\fBsys:quit\fR) immediately following the given
+ commands, causing the output file to be written and the \fBelfedit\fR process
+ to exit. This form of use is convenient in shell scripts and makefiles.
+ .sp
+diff --git a/usr/src/man/man1/msgfmt.1 b/usr/src/man/man1/msgfmt.1
+index 5555877daf..7bcb75b27f 100644
+--- a/usr/src/man/man1/msgfmt.1
++++ b/usr/src/man/man1/msgfmt.1
+@@ -3,11 +3,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH MSGFMT 1 "Sep 17, 2001"
++.TH MSGFMT 1 "May 21, 2022"
+ .SH NAME
+ msgfmt \- create a message object from a message file
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBmsgfmt\fR [\fB-D\fR \fIdir\fR | \fB-\(midirectory\fR=\fIdir\fR]
+      [\fB-f\fR | \fB-\(miuse-fuzzy\fR] [\fB-g\fR]
+@@ -16,7 +15,6 @@ msgfmt \- create a message object from a message file
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBmsgfmt\fR utility creates message object files from portable object
+ files (\fIfilename\fR\fB\&.po\fR), without changing the portable object files.
+ .sp
+@@ -34,7 +32,6 @@ script or programs.
+ the \fBLC_CTYPE\fR locale category or according to the codeset specified in the
+ \fB\&.po\fR file.
+ .SH OPTIONS
+-.LP
+ The following options are supported:
+ .sp
+ .ne 2
+@@ -133,7 +130,6 @@ check is performed.
+ .RE
+ 
+ .SH USAGE
+-.LP
+ The format of portable object files (\fB\&.po\fR files) is defined as follows.
+ Each \fB\&.po\fR file contains one or more lines, with each line containing
+ either a comment or a statement. Comments start the line with a pound sign
+@@ -258,8 +254,8 @@ Solaris message files):
+ .nf
+ # \fItranslator-comments\fR
+ #. \fIautomatic-comments\fR
+-#: \fIreference\fR..
+-#, \fIflag\fR
++#: \fIreference\fR...
++#, \fIflag\fR...
+ .fi
+ .in -2
+ .sp
+@@ -350,7 +346,6 @@ codeset is determined by the current locale's codeset (the return value of
+ \fBnl_langinfo(CODESET\fR)) by default, and can be changed by the call of
+ \fBbind_textdomain_codeset()\fR.
+ .SS "Message catalog file format"
+-.LP
+ The \fBmsgfmt\fR utility can generate the message object both in Solaris
+ message catalog file format and in GNU-compatible message catalog file format.
+ If the \fB-s\fR option is specified and the input file is a Solaris \fB\&.po\fR
+@@ -383,7 +378,6 @@ that are specific to the GNU-compatible message catalog file format, such as
+ \fBmsgid_plural\fR and \fBmsgstr\fR[\fIn\fR], the \fBmsgfmt\fR utility handles
+ those directives as invalid specifications.
+ .SH EXAMPLES
+-.LP
+ \fBExample 1 \fRCreating message objects from message files
+ .sp
+ .LP
+@@ -463,12 +457,10 @@ example% \fBmsgfmt -o hello.mo module1.po module2.po\fR
+ .sp
+ 
+ .SH ENVIRONMENT VARIABLES
+-.LP
+ See \fBenviron\fR(7) for descriptions of the following environmental variables
+ that affect the execution of \fBmsgfmt\fR: \fBLC_CTYPE\fR, \fBLC_MESSAGES\fR,
+ and \fBNLSPATH\fR.
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -483,13 +475,11 @@ CSI	Enabled
+ .TE
+ 
+ .SH SEE ALSO
+-.LP
+ .BR xgettext (1),
+ .BR gettext (3C),
+ .BR setlocale (3C),
+ .BR attributes (7),
+ .BR environ (7)
+ .SH NOTES
+-.LP
+ Installing message catalogs under the C locale is pointless, since they are
+ ignored for the sake of efficiency.
+diff --git a/usr/src/man/man3dat/dat_ep_create_with_srq.3dat b/usr/src/man/man3dat/dat_ep_create_with_srq.3dat
+index 76fd15dd42..b04f2a5804 100644
+--- a/usr/src/man/man3dat/dat_ep_create_with_srq.3dat
++++ b/usr/src/man/man3dat/dat_ep_create_with_srq.3dat
+@@ -4,7 +4,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH DAT_EP_CREATE_WITH_SRQ 3DAT "September 22, 2020"
++.TH DAT_EP_CREATE_WITH_SRQ 3DAT "May 21, 2022"
+ .SH NAME
+ dat_ep_create_with_srq \- create an instance of End Point with Shared Receive
+ Queue
+@@ -204,7 +204,7 @@ Invalid DAT handle.
+ Invalid parameter. One of the requested EP parameters or attributes was invalid
+ or a combination of attributes or parameters is invalid. For example,
+ \fIpz_handle\fR specified does not match the one for SRQ or the requested
+-maximum RDMA Read IOV exceeds IA capabilities..
++maximum RDMA Read IOV exceeds IA capabilities.
+ .RE
+ 
+ .sp
+diff --git a/usr/src/man/man3sasl/sasl_client_plug_init_t.3sasl b/usr/src/man/man3sasl/sasl_client_plug_init_t.3sasl
+index 6ce78913a2..d669e842f3 100644
+--- a/usr/src/man/man3sasl/sasl_client_plug_init_t.3sasl
++++ b/usr/src/man/man3sasl/sasl_client_plug_init_t.3sasl
+@@ -5,11 +5,10 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH SASL_CLIENT_PLUG_INIT_T 3SASL "Oct 27, 2003"
++.TH SASL_CLIENT_PLUG_INIT_T 3SASL "May 21, 2022"
+ .SH NAME
+ sasl_client_plug_init_t \- client plug-in entry point
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fBcc\fR [ \fIflag\fR ... ] \fIfile\fR ... \fB-lsasl\fR   [ \fIlibrary\fR ... ]
+ #include <sasl/saslplug.h>
+@@ -19,12 +18,9 @@ sasl_client_plug_init_t \- client plug-in entry point
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBsasl_client_plug_init_t()\fR callback function is the client plug-in
+ entry point.
+ .SH PARAMETERS
+-.sp
+ .ne 2
+ .na
+ \fB\fIutils\fR\fR
+@@ -48,7 +44,7 @@ The highest client plug-in version supported.
+ \fB\fIout_version\fR\fR
+ .ad
+ .RS 15n
+-The client plug-in version of the result..
++The client plug-in version of the result.
+ .RE
+ 
+ .sp
+@@ -70,13 +66,10 @@ The number of client mechanism plug-ins.
+ .RE
+ 
+ .SH RETURN VALUES
+-.sp
+-.LP
+ Like other SASL callback functions, \fBsasl_client_plug_init_t()\fR returns an
+ integer that corresponds to a SASL error code. See <\fBsasl.h\fR> for a
+ complete list of SASL error codes.
+ .SH ERRORS
+-.sp
+ .ne 2
+ .na
+ \fB\fBSASL_OK\fR\fR
+@@ -89,8 +82,6 @@ The call to \fBsasl_client_plug_init_t()\fR was successful.
+ .LP
+ See \fBsasl_errors\fR(3SASL) for information on SASL error codes.
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -107,7 +98,5 @@ MT-Level	MT-Safe
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR sasl_errors (3SASL),
+ .BR attributes (7)
+diff --git a/usr/src/man/man4d/bfe.4d b/usr/src/man/man4d/bfe.4d
+index 5e3079e3a7..44aa4735ac 100644
+--- a/usr/src/man/man4d/bfe.4d
++++ b/usr/src/man/man4d/bfe.4d
+@@ -3,21 +3,17 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License"). You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+ .\"  See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE. If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH BFE 4D "Jun 23, 2009"
++.TH BFE 4D "May 21, 2022"
+ .SH NAME
+ bfe \- Device driver for Broadcom BCM4401 100Base-T NIC
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fBbfe\fR Fast Ethernet driver is GLD-based and supports the Broadcom
+-BCM4401 100Base-T NIC adapters :\fBpci14e4,170c Broadcom BCM4401 100Base-T.\fR.
++BCM4401 100Base-T NIC adapters :\fBpci14e4,170c Broadcom BCM4401 100Base-T\fR.
+ .sp
+ .LP
+ The \fBbfe\fR driver supports IEEE 802.3 auto-negotiation, flow control and
+ VLAN tagging.
+ .SS "Configuration"
+-.sp
+-.LP
+ The default configuration is auto-negotiation with bidirectional flow control.
+ The advertised capabilities for auto-negotiation are based on the capabilities
+ of the \fBPHY\fR.
+@@ -29,7 +25,6 @@ with en (enabled) in the parameters listed by the command \fBdladm\fR(8). Each
+ of these boolean parameters determines if the device advertises that mode of
+ operation when the hardware supports it.
+ .SH FILES
+-.sp
+ .ne 2
+ .na
+ \fB\fB/dev/bfe\fR\fR
+@@ -57,8 +52,6 @@ Special character device
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for a description of the following attributes:
+ .sp
+ 
+@@ -73,8 +66,6 @@ Architecture	SPARC, x86
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR streamio (4I),
+ .BR dlpi (4P),
+ .BR driver.conf (5),
+diff --git a/usr/src/man/man5/sasl_appname.conf.5 b/usr/src/man/man5/sasl_appname.conf.5
+index 739202b917..076c9668bd 100644
+--- a/usr/src/man/man5/sasl_appname.conf.5
++++ b/usr/src/man/man5/sasl_appname.conf.5
+@@ -4,18 +4,15 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH SASL_APPNAME.CONF 5 "Oct 14, 2003"
++.TH SASL_APPNAME.CONF 5 "May 21, 2022"
+ .SH NAME
+ sasl_appname.conf \- SASL options and configuration file
+ .SH SYNOPSIS
+-.LP
+ .nf
+ /etc/sasl/\fIappname\fR\fB\&.conf\fR
+ .fi
+ 
+ .SH DESCRIPTION
+-.sp
+-.LP
+ The \fB/etc/sasl/\fIappname\fR.conf\fR file is a user-supplied configuration
+ file that supports user set options for server applications.
+ .sp
+@@ -73,8 +70,8 @@ default, SASL will use or query all available auxiliary property plug-ins.
+ .ad
+ .RS 25n
+ The name of the canonical user plug-in to use. By default, the value of
+-\fBcanon_user_plugin\fR is \fBINTERNAL\fR, to indicated the use of built-in
+-plug-ins..
++\fBcanon_user_plugin\fR is \fBINTERNAL\fR, to indicate the use of built-in
++plug-ins.
+ .RE
+ 
+ .sp
+@@ -149,8 +146,6 @@ the GSS client security context. The default value of \fBuser_authid\fR is
+ .RE
+ 
+ .SH ATTRIBUTES
+-.sp
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -165,6 +160,4 @@ Interface Stability	Evolving
+ .TE
+ 
+ .SH SEE ALSO
+-.sp
+-.LP
+ .BR attributes (7)
+diff --git a/usr/src/man/man8/audit_warn.8 b/usr/src/man/man8/audit_warn.8
+index 6ede6c07cd..6ffcec4c77 100644
+--- a/usr/src/man/man8/audit_warn.8
++++ b/usr/src/man/man8/audit_warn.8
+@@ -4,17 +4,15 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH AUDIT_WARN 8 "Mar 6, 2017"
++.TH AUDIT_WARN 8 "May 21, 2022"
+ .SH NAME
+ audit_warn \- audit daemon warning script
+ .SH SYNOPSIS
+-.LP
+ .nf
+ \fB/etc/security/audit_warn\fR [\fIoption\fR [\fIarguments\fR]]
+ .fi
+ 
+ .SH DESCRIPTION
+-.LP
+ The \fBaudit_warn\fR utility processes warning or error messages from the audit
+ daemon. When a problem is encountered, the audit daemon, \fBauditd\fR(8) calls
+ \fBaudit_warn\fR with the appropriate arguments. The \fIoption\fR argument
+@@ -26,7 +24,6 @@ when an audit_warn situation arises by defining a mail alias called
+ \fBaudit_warn\fR in \fBaliases\fR(5). The users that make up the
+ \fBaudit_warn\fR alias are typically the \fBaudit\fR and \fBroot\fR users.
+ .SH OPTIONS
+-.LP
+ The following options are supported:
+ .sp
+ .ne 2
+@@ -197,11 +194,10 @@ write a message to the machine console.
+ .sp .6
+ .RS 4n
+ Indicates that there was a problem creating a symlink from
+-\fB/var/run/.audit.log\fR to the current audit log file..
++\fB/var/run/.audit.log\fR to the current audit log file.
+ .RE
+ 
+ .SH ATTRIBUTES
+-.LP
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+ 
+@@ -219,14 +215,12 @@ Interface Stability	Evolving
+ .LP
+ The interface stability is evolving. The file content is unstable.
+ .SH SEE ALSO
+-.LP
+ .BR aliases (5),
+ .BR audit.log (5),
+ .BR attributes (7),
+ .BR audit (8),
+ .BR auditd (8)
+ .SH NOTES
+-.LP
+ If the audit policy \fBperzone\fR is set, the \fB/etc/security/audit_warn\fR
+ script for the local zone is used for notifications from the local zone's
+ instance of \fBauditd\fR. If the \fBperzone\fR policy is not set, all
+diff --git a/usr/src/man/man8/in.telnetd.8 b/usr/src/man/man8/in.telnetd.8
+index 2ca2d2b7d3..f677f8546d 100644
+--- a/usr/src/man/man8/in.telnetd.8
++++ b/usr/src/man/man8/in.telnetd.8
+@@ -4,7 +4,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH IN.TELNETD 8 "February 5, 2022"
++.TH IN.TELNETD 8 "May 21, 2022"
+ .SH NAME
+ in.telnetd, telnetd \- DARPA TELNET protocol server
+ .SH SYNOPSIS
+@@ -385,7 +385,7 @@ intelligent flushing of input and output queues.
+ \fBin.telnetd\fR never sends \fBTELNET\fR \fIgo\fR \fIahead\fR commands.
+ .sp
+ .LP
+-The \fBpam_unix\fR(7) module is no longer supported.. Similar functionality is
++The \fBpam_unix\fR(7) module is no longer supported. Similar functionality is
+ provided by \fBpam_authtok_check\fR(7), \fBpam_authtok_get\fR(7),
+ \fBpam_authtok_store\fR(7), \fBpam_dhkeys\fR(7), \fBpam_passwd_auth\fR(7),
+ \fBpam_unix_account\fR(7), \fBpam_unix_auth\fR(7), and
+diff --git a/usr/src/man/man8/luxadm.8 b/usr/src/man/man8/luxadm.8
+index 4e7615996f..bd7d7160c0 100644
+--- a/usr/src/man/man8/luxadm.8
++++ b/usr/src/man/man8/luxadm.8
+@@ -3,7 +3,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH LUXADM 8 "May 17, 2020"
++.TH LUXADM 8 "May 21, 2022"
+ .SH NAME
+ luxadm \- administer Sun Fire 880 storage subsystem and FC_AL devices
+ .SH SYNOPSIS
+@@ -559,7 +559,7 @@ sure of the consequences of overriding normal checks.
+ .sp .6
+ .RS 4n
+ Causes the \fBSENA\fR subsystem to go out of the power-save mode, when this
+-subcommand is addressed to a \fBSENA.\fR. When this subcommand is addressed to
++subcommand is addressed to a \fBSENA\fR. When this subcommand is addressed to
+ a drive the drive is set to its normal start-up state. This command does not
+ apply to the Sun Fire 880 internal storage subsystem.
+ .RE
+diff --git a/usr/src/man/man9e/open.9e b/usr/src/man/man9e/open.9e
+index 08712f500c..80fdff0f4e 100644
+--- a/usr/src/man/man9e/open.9e
++++ b/usr/src/man/man9e/open.9e
+@@ -5,12 +5,11 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH OPEN 9E "March 7, 2019"
++.TH OPEN 9E "May 21, 2022"
+ .SH NAME
+ open \- gain access to a device
+ .SH SYNOPSIS
+ .SS "Block and Character"
+-.LP
+ .nf
+ #include <sys/types.h>
+ #include <sys/file.h>
+@@ -27,7 +26,6 @@ open \- gain access to a device
+ .fi
+ 
+ .SS "STREAMS"
+-.LP
+ .nf
+ #include <sys/file.h>
+ #include <sys/stream.h>
+@@ -41,9 +39,8 @@ open \- gain access to a device
+ .fi
+ 
+ .SH INTERFACE LEVEL
+-.LP
+ Architecture independent level 1 (DDI/DKI). This entry point is required, but
+-it can be \fBnulldev\fR(9F)
++it can be \fBnulldev\fR(9F).
+ .SH PARAMETERS
+ .SS "Block and Character"
+ .ne 2
+@@ -98,8 +95,8 @@ allow both read and write access.
+ \fB\fBFWRITE\fR\fR
+ .ad
+ .RS 11n
+-Open a device with write-only permission. If ORed with \fBFREAD\fR, allow both
+-read and write access.
++Open a device with write-only permission. If \fBOR\fRed with \fBFREAD\fR,
++allow both read and write access.
+ .RE
+ 
+ .RE
+@@ -116,7 +113,7 @@ function can be called many times, but the \fBclose\fR(9E) function is called
+ only when the last reference to a device is removed. If the device is accessed
+ through file descriptors, it is done by a call to \fBclose\fR(2) or
+ \fBexit\fR(2). If the device is accessed through memory mapping, it is done by
+-a call to  \fBmunmap\fR(2) or \fBexit\fR(2). For \fBOTYP_LYR\fR, there is
++a call to \fBmunmap\fR(2) or \fBexit\fR(2). For \fBOTYP_LYR\fR, there is
+ exactly one \fBclose\fR(9E) for each \fBopen()\fR operation that is called.
+ This permits software drivers to exist above hardware drivers and removes any
+ ambiguity from the hardware driver regarding how a device is used.
+@@ -188,7 +185,7 @@ stream.
+ .ad
+ .RS 10n
+ Valid \fIoflag\fR values are \fBFEXCL\fR, \fBFNDELAY\fR, \fBFREAD\fR, and
+-\fBFWRITEL\fR \(em the same as those listed above for \fIflag.\fR. For
++\fBFWRITEL\fR \(em the same as those listed above for \fIflag\fR. For
+ \fBSTREAMS\fR modules, \fIoflag\fR is always set to \fB0\fR.
+ .RE
+ 
+@@ -242,8 +239,7 @@ Pointer to the user credential structure.
+ .RE
+ 
+ .SH DESCRIPTION
+-.LP
+-The driver's  \fBopen()\fR function is called by the kernel during an
++The driver's \fBopen()\fR function is called by the kernel during an
+ \fBopen\fR(2) or a \fBmount\fR(2) on the special file for the device. A device
+ can be opened simultaneously by multiple processes and the \fBopen()\fR driver
+ operation is called for each open. Note that a device is referenced once its
+@@ -300,11 +296,9 @@ occurs.
+ .in -2
+ 
+ .SH RETURN VALUES
+-.LP
+ The \fBopen()\fR function should return \fB0\fR for success, or the appropriate
+ error number.
+ .SH SEE ALSO
+-.LP
+ .BR close (2),
+ .BR exit (2),
+ .BR mmap (2),
+@@ -327,7 +321,6 @@ error number.
+ .LP
+ \fISTREAMS Programming Guide\fR
+ .SH WARNINGS
+-.LP
+ Do not attempt to change the major number.
+ .sp
+ .LP
+diff --git a/usr/src/man/man9f/mkiocb.9f b/usr/src/man/man9f/mkiocb.9f
+index 4dddb73a39..b74b515ab8 100644
+--- a/usr/src/man/man9f/mkiocb.9f
++++ b/usr/src/man/man9f/mkiocb.9f
+@@ -3,7 +3,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH MKIOCB 9F "Jan 16, 2006"
++.TH MKIOCB 9F "May 21, 2022"
+ .SH NAME
+ mkiocb \- allocates a STREAMS ioctl block for M_IOCTL messages in the kernel.
+ .SH SYNOPSIS
+@@ -54,7 +54,7 @@ Set to \fBb_rptr + sizeof(struct iocblk)\fR.
+ \fB\fBb_cont\fR\fR
+ .ad
+ .RS 20n
+-Set to \fINULL.\fR.
++Set to \fINULL\fR.
+ .RE
+ 
+ .sp
+-- 
+2.42.0
+
