@@ -1119,6 +1119,15 @@ transform_noisaexeclink() {
     transform_symlink path=$isafile target=../$filename
 }
 
+#
+# change the NAME field in pkginfo
+# can't use : as the separator because it's used in packaging
+#
+transform_name() {
+    newname="$1"
+    sed -i "s#^NAME=.*#NAME=${newname}#" ${BDIR}/pkginfo
+}
+
 case $# in
 2)
     INPKG=$1
@@ -1332,6 +1341,9 @@ replace)
     ;;
 rename)
     transform_rename $pathname $line
+    ;;
+name)
+    transform_name "$pathname $line"
     ;;
 noisaexec)
     transform_noisaexec $pathname
