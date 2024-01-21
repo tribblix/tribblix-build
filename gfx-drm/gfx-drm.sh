@@ -20,7 +20,35 @@
 # build the gfx-drm packages
 #
 
+PKG_VERSION="0.33"
 THOME=${THOME:-/packages/localsrc/Tribblix}
+GATE="${HOME}/Illumos/gfx-drm"
+DESTTOP="/var/tmp"
+SIGNCERT=${HOME}/f/elfcert
+
+#
+# flags, a lot simply pass through to the packaging step
+#
+while getopts "V:T:D:S:" opt; do
+    case $opt in
+        V)
+	    PKG_VERSION="$OPTARG"
+	    ;;
+        T)
+	    THOME="$OPTARG"
+	    ;;
+        D)
+	    DESTTOP="$OPTARG"
+	    ;;
+        S)
+	    SIGNCERT="$OPTARG"
+	    ;;
+        *)
+	    usage
+	    ;;
+    esac
+done
+shift $((OPTIND-1))
 
 if [ ! -f /opt/onbld/bin/validate_pkg ]; then
     echo "Unable to find validate_pkg"
@@ -42,6 +70,7 @@ fi
 
 git clone https://github.com/illumos/gfx-drm
 cd gfx-drm || exit
+GATE=$(pwd)
 gpatch -p1 < "${THOME}/tribblix-build/gfx-drm/0001-Fix-manual-for-IPD4.patch"
 gpatch -p1 < "${THOME}/tribblix-build/gfx-drm/sparc-fixes.patch"
 #
@@ -85,4 +114,5 @@ sed -i 's:2.7:3:' usr/src/Makefile.master
 #
 # and package it
 #
-"${THOME}/tribblix-build/gfx-drm/package.sh"
+mkdir -p ${DESTTOP}
+"${THOME}/tribblix-build/gfx-drm/package.sh" -G ${GATE} -V ${PKG_VERSION} -T ${THOME} -D ${DESTTOP} -S ${SIGNCERT}
