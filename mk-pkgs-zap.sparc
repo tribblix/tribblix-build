@@ -155,7 +155,7 @@ fi
 #
 rm -fr $ZAPDIR
 mkdir -p $ZAPDIR
-if [ ! -d $SZAPDIR ]; then
+if [ ! -d $ZAPDIR ]; then
     echo "ERROR: unable to create $ZAPDIR"
     rm -f $TFILE
     exit 1
