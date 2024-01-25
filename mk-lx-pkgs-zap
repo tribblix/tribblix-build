@@ -93,7 +93,7 @@ esac
 TFILE="/tmp/mkzap.$$"
 rm -fr ${TFILE}
 touch $TFILE
-for opkg in `cat ${OVLIST}`
+for opkg in $(<${OVLIST})
 do
     if [ -f ${THOME}/${OVDIR}/${opkg}.pkgs.${VARIANT} ]; then
 	cat ${THOME}/${OVDIR}/${opkg}.pkgs.${VARIANT} >> $TFILE

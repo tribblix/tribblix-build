@@ -155,14 +155,14 @@ fi
 #
 VALID=yes
 ERRLIST=""
-for mypkg in `cat ${PKGLIST} | egrep -v '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$'` TRIBsys-install-media-internal
+for mypkg in $(egrep -vh '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$' ${PKGLIST}) TRIBsys-install-media-internal
 do
   THISVER="XXX"
   ILVER="XXX"
   PKGI=${THOME}/build/${mypkg}/pkginfo
   if [ -f ${PKGI} ]; then
       if [ -f ${THOME}/build/${mypkg}/version.sparc ]; then
-	  THISVER=`cat ${THOME}/build/${mypkg}/version.sparc`
+	  THISVER=$(<${THOME}/build/${mypkg}/version.sparc)
       else
 	  THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
       fi
@@ -213,14 +213,14 @@ fi
 #
 # now install
 #
-for mypkg in `cat ${PKGLIST} | egrep -v '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$'` TRIBsys-install-media-internal
+for mypkg in $(egrep -vh '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$' ${PKGLIST}) TRIBsys-install-media-internal
 do
   THISVER="XXX"
   ILVER="XXX"
   PKGI=${THOME}/build/${mypkg}/pkginfo
   if [ -f ${PKGI} ]; then
       if [ -f ${THOME}/build/${mypkg}/version.sparc ]; then
-	  THISVER=`cat ${THOME}/build/${mypkg}/version.sparc`
+	  THISVER=$(<${THOME}/build/${mypkg}/version.sparc)
       else
 	  THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
       fi
