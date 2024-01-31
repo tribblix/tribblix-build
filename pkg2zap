@@ -22,7 +22,7 @@
 case $# in
 2)
 	FPKG="$1"
-	ODIR="$2"
+	BROOT="$2"
 	;;
 *)
 	echo "Usage: $0 input_pkg output_dir"
@@ -49,7 +49,7 @@ if [ ! -f "$FPKG" ]; then
    exit 1
 fi
 
-if [ ! -d "$ODIR" ]; then
+if [ ! -d "$BROOT" ]; then
    echo "ERROR: output directory not found"
    exit 1
 fi
@@ -63,17 +63,17 @@ pkgtrans $FPKG $TDIR all
 cd $TDIR
 BPKG=${FPKG##*/}
 # 7z gives us an extra 2-3% reduction in file size
-#zip -9 -q -r ${ODIR}/${BPKG%.pkg}.zap *
-7za a -tzip -mx=9 -mfb=256 ${ODIR}/${BPKG%.pkg}.zap *
-chmod a+r ${ODIR}/${BPKG%.pkg}.zap
+#zip -9 -q -r ${BROOT}/${BPKG%.pkg}.zap *
+7za a -tzip -mx=9 -mfb=256 ${BROOT}/${BPKG%.pkg}.zap *
+chmod a+r ${BROOT}/${BPKG%.pkg}.zap
 cd /
 # pregenerate the md5 checksum ready for catalog creation
-openssl md5 ${ODIR}/${BPKG%.pkg}.zap | /usr/bin/awk '{print $NF}' > ${ODIR}/${BPKG%.pkg}.zap.md5
+openssl md5 ${BROOT}/${BPKG%.pkg}.zap | /usr/bin/awk '{print $NF}' > ${BROOT}/${BPKG%.pkg}.zap.md5
 # sign the zap file
-${BUILD}/sign-file ${ODIR}/${BPKG%.pkg}.zap
+${BUILD}/sign-file ${BROOT}/${BPKG%.pkg}.zap
 
 #
 # clean up
 #
 rm -fr $TDIR
-ls -lsh ${ODIR}/${BPKG%.pkg}.zap
+ls -lsh ${BROOT}/${BPKG%.pkg}.zap
