@@ -13,7 +13,7 @@
 #
 # }}}
 #
-# Copyright 2023 Peter Tribble
+# Copyright 2024 Peter Tribble
 #
 
 #
@@ -76,4 +76,4 @@ ${BUILD}/sign-file ${BROOT}/${BPKG%.pkg}.zap
 # clean up
 #
 rm -fr $TDIR
-ls -lsh ${BROOT}/${BPKG%.pkg}.zap
+ls -lh ${BROOT}/${BPKG%.pkg}.zap

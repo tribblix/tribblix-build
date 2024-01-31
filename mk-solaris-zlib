@@ -13,7 +13,7 @@
 #
 # }}}
 #
-# Copyright 2023 Peter Tribble
+# Copyright 2024 Peter Tribble
 #
 
 #
@@ -38,6 +38,6 @@ SORT_OPTION=""
 mkisofs -o solaris.zlib $SORT_OPTION -quiet -N -l -R \
     -U -allow-multidot -no-iso-translate -cache-inodes \
     -d -D -V "compress" usr
-ls -lsh solaris.zlib
+ls -lh solaris.zlib
 lofiadm -C ${CLEVEL} solaris.zlib
-ls -lsh solaris.zlib
+ls -lh solaris.zlib
