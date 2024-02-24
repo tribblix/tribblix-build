@@ -13,7 +13,7 @@
 #
 # }}}
 #
-# Copyright 2023 Peter Tribble
+# Copyright 2024 Peter Tribble
 #
 
 RELEASE=33lx
@@ -87,23 +87,12 @@ esac
 PKGLIST=""
 
 #
-# if there's a named variant of the overlay then use that, but normally
-# we use the default
+# collect package lists from requested overlays
 #
 for OVL in $OVLIST
 do
 case $# in
-1)
-	if [ -f ${OVDIR}/${OVL}.pkgs.$1 ]; then
-	    PKGLIST="${PKGLIST} ${OVDIR}/${OVL}.pkgs.$1"
-	elif [ -f ${OVDIR}/${OVL}.pkgs ]; then
-	    PKGLIST="${PKGLIST} ${OVDIR}/${OVL}.pkgs"
-	else
-	    echo "Missing overlay $OVL"
-	    exit 1
-	fi
-	;;
-0)
+0|1)
 	if [ -f ${OVDIR}/${OVL}.pkgs ]; then
 	    PKGLIST="${PKGLIST} ${OVDIR}/${OVL}.pkgs"
 	else

@@ -129,16 +129,22 @@ case $# in
 	fi
 	;;
 esac
+if [ ! -f ${OVLIST} ]; then
+    echo "ERROR: no overlay list found"
+    exit 1
+fi
 
 TFILE="/tmp/mkzap.$$"
 rm -fr ${TFILE}
 touch $TFILE
 for opkg in $(<${OVLIST})
 do
-    if [ -f ${THOME}/${OVDIR}/${opkg}.pkgs.${VARIANT} ]; then
-	cat ${THOME}/${OVDIR}/${opkg}.pkgs.${VARIANT} >> $TFILE
-    else
+    if [ -f ${THOME}/${OVDIR}/${opkg}.pkgs ]; then
 	cat ${THOME}/${OVDIR}/${opkg}.pkgs >> $TFILE
+    else
+	echo "ERROR: missing overlay $opkg"
+	rm -f $TFILE
+	exit 1
     fi
 done
 
