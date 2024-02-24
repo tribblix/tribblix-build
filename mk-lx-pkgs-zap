@@ -13,7 +13,7 @@
 #
 # }}}
 #
-# Copyright 2023 Peter Tribble
+# Copyright 2024 Peter Tribble
 #
 
 #
@@ -66,10 +66,46 @@ TPKGDIR=${THOME}/pkgs
 IPKGDIR=${THOME}/illumos-pkgs-m${RELEASE}/pkgs
 
 #
-# check we have illumos packages, and a catalog
+# check we have packages, and metadata
 #
+if [ ! -d ${IPKGDIR} ]; then
+    echo "ERROR: no illumos packages for release $RELEASE"
+    exit 1
+fi
+if [ ! -d ${TPKGDIR} ]; then
+    echo "ERROR: no tribblix packages found"
+    exit 1
+fi
+if [ ! -d ${THOME}/${OVDIR} ]; then
+    echo "ERROR: no overlays found"
+    exit 1
+fi
 if [ ! -f ${IPKGDIR}/catalog ]; then
-    echo "ERROR: no illumos packages (or catalog) for release $RELEASE"
+    echo "ERROR: no illumos package catalog for release $RELEASE"
+    exit 1
+fi
+if [ ! -f ${TPKGDIR}/catalog ]; then
+    echo "ERROR: no tribblix package catalog found"
+    exit 1
+fi
+if [ ! -f ${THOME}/${OVDIR}/catalog ]; then
+    echo "ERROR: no overlay catalog found"
+    exit 1
+fi
+if [ ! -f ${IPKGDIR}/aliases ]; then
+    echo "ERROR: no illumos package aliases for release $RELEASE"
+    exit 1
+fi
+if [ ! -f ${TPKGDIR}/aliases ]; then
+    echo "ERROR: no tribblix package aliases found"
+    exit 1
+fi
+if [ ! -f ${IPKGDIR}/filelist.bz2 ]; then
+    echo "ERROR: no illumos package filelist for release $RELEASE"
+    exit 1
+fi
+if [ ! -f ${TPKGDIR}/filelist.bz2 ]; then
+    echo "ERROR: no tribblix package filelist found"
     exit 1
 fi
 
@@ -183,54 +219,17 @@ done
 rm -f $TFILE
 
 #
-# preload package catalogs and aliases
+# preload repository metadata
+# existence was checked for earlier
 #
 cd ${THOME}/build
-if [ -f ${TPKGDIR}/catalog ]; then
-    cp ${TPKGDIR}/catalog ${DISTROOT}/etc/zap/repositories/tribblix.catalog
-else
-    ./create-catalog ${TPKGDIR} > ${DISTROOT}/etc/zap/repositories/tribblix.catalog
-fi
-if [ -f ${IPKGDIR}/catalog ]; then
-    cp ${IPKGDIR}/catalog ${DISTROOT}/etc/zap/repositories/illumos.catalog
-else
-    ./create-illumos-catalog ${IPKGDIR} > ${DISTROOT}/etc/zap/repositories/illumos.catalog
-fi
-if [ -f ${TPKGDIR}/aliases ]; then
-    cp ${TPKGDIR}/aliases ${DISTROOT}/etc/zap/repositories/tribblix.aliases
-else
-    ./create-aliases-from-catalog > ${DISTROOT}/etc/zap/repositories/tribblix.aliases
-fi
-if [ -f ${IPKGDIR}/aliases ]; then
-    cp ${IPKGDIR}/aliases ${DISTROOT}/etc/zap/repositories/illumos.aliases
-else
-    ./create-illumos-aliases ${IPKGDIR} > ${DISTROOT}/etc/zap/repositories/illumos.aliases
-fi
-#
-# and filelists
-#
-if [ -f ${TPKGDIR}/filelist.bz2 ]; then
-    cp ${TPKGDIR}/filelist.bz2 ${DISTROOT}/etc/zap/repositories/tribblix.filelist.bz2
-else
-    ./create-file-list ${TPKGDIR}
-    cp ${TPKGDIR}/filelist.bz2 ${DISTROOT}/etc/zap/repositories/tribblix.filelist.bz2
-fi
-if [ -f ${IPKGDIR}/filelist.bz2 ]; then
-    cp ${IPKGDIR}/filelist.bz2 ${DISTROOT}/etc/zap/repositories/illumos.filelist.bz2
-else
-    ./create-file-list ${IPKGDIR}
-    cp ${IPKGDIR}/filelist.bz2 ${DISTROOT}/etc/zap/repositories/illumos.filelist.bz2
-fi
-
-#
-# preload overlay catalog
-#
-cd ${THOME}/${OVDIR}
-if [ -f catalog ]; then
-    cp catalog ${DISTROOT}/etc/zap/repositories/tribblix.overlays
-else
-    ${THOME}/build/create-overlay-catalog > ${DISTROOT}/etc/zap/repositories/tribblix.overlays
-fi
+cp ${TPKGDIR}/catalog ${DISTROOT}/etc/zap/repositories/tribblix.catalog
+cp ${IPKGDIR}/catalog ${DISTROOT}/etc/zap/repositories/illumos.catalog
+cp ${TPKGDIR}/aliases ${DISTROOT}/etc/zap/repositories/tribblix.aliases
+cp ${IPKGDIR}/aliases ${DISTROOT}/etc/zap/repositories/illumos.aliases
+cp ${TPKGDIR}/filelist.bz2 ${DISTROOT}/etc/zap/repositories/tribblix.filelist.bz2
+cp ${IPKGDIR}/filelist.bz2 ${DISTROOT}/etc/zap/repositories/illumos.filelist.bz2
+cp ${THOME}/${OVDIR}/catalog ${DISTROOT}/etc/zap/repositories/tribblix.overlays
 
 #
 # show the space used
