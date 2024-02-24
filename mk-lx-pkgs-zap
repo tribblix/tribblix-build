@@ -80,6 +80,10 @@ if [ ! -d ${THOME}/${OVDIR} ]; then
     echo "ERROR: no overlays found"
     exit 1
 fi
+if [ ! -d ${THOME}/build ]; then
+    echo "ERROR: missing build directory"
+    exit 1
+fi
 if [ ! -f ${IPKGDIR}/catalog ]; then
     echo "ERROR: no illumos package catalog for release $RELEASE"
     exit 1
@@ -222,7 +226,6 @@ rm -f $TFILE
 # preload repository metadata
 # existence was checked for earlier
 #
-cd ${THOME}/build
 cp ${TPKGDIR}/catalog ${DISTROOT}/etc/zap/repositories/tribblix.catalog
 cp ${IPKGDIR}/catalog ${DISTROOT}/etc/zap/repositories/illumos.catalog
 cp ${TPKGDIR}/aliases ${DISTROOT}/etc/zap/repositories/tribblix.aliases
