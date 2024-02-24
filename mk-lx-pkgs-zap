@@ -199,7 +199,7 @@ fi
 if [ -f ${TPKGDIR}/aliases ]; then
     cp ${TPKGDIR}/aliases ${DISTROOT}/etc/zap/repositories/tribblix.aliases
 else
-    ./create-aliases ${TPKGDIR} > ${DISTROOT}/etc/zap/repositories/tribblix.aliases
+    ./create-aliases-from-catalog > ${DISTROOT}/etc/zap/repositories/tribblix.aliases
 fi
 if [ -f ${IPKGDIR}/aliases ]; then
     cp ${IPKGDIR}/aliases ${DISTROOT}/etc/zap/repositories/illumos.aliases

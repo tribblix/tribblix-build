@@ -205,7 +205,7 @@ cd ${THOME}/build
 if [ -f ${TPKGDIR}/catalog ]; then
     cp ${TPKGDIR}/catalog ${DISTROOT}/etc/zap/repositories/tribblix.catalog
 else
-    ./create-catalog ${TPKGDIR} > ${DISTROOT}/etc/zap/repositories/tribblix.catalog
+    ./create-sparc-catalog ${TPKGDIR} > ${DISTROOT}/etc/zap/repositories/tribblix.catalog
 fi
 if [ -f ${EXTRAPKGDIR}/catalog ]; then
     cp ${EXTRAPKGDIR}/catalog ${DISTROOT}/etc/zap/repositories/opensxce.catalog
@@ -220,7 +220,7 @@ fi
 if [ -f ${TPKGDIR}/aliases ]; then
     cp ${TPKGDIR}/aliases ${DISTROOT}/etc/zap/repositories/tribblix.aliases
 else
-    ./create-aliases ${TPKGDIR} > ${DISTROOT}/etc/zap/repositories/tribblix.aliases
+    ./create-aliases-from-catalog -p sparc > ${DISTROOT}/etc/zap/repositories/tribblix.aliases
 fi
 if [ -f ${IPKGDIR}/aliases ]; then
     cp ${IPKGDIR}/aliases ${DISTROOT}/etc/zap/repositories/illumos.aliases
