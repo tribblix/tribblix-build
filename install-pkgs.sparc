@@ -20,7 +20,6 @@ RELEASE=29
 
 THOME=${THOME:-/packages/localsrc/Tribblix}
 DESTDIR=/export/tribblix/dist
-FDEFAULT=${THOME}/tribblix-build/pkg.default
 INSTZAP=/usr/lib/zap/instzap
 DRYRUN=""
 ECHO="echo"
