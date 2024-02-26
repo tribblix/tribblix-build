@@ -35,13 +35,11 @@ case `uname -p` in
 i386)
 	MRSIZE=256m
 	NBPI=8192
-	XARCH="i86"
 	;;
 sparc)
 	MRSIZE=360m
 	BASIZE=368640
 	NBPI=20480
-	XARCH="sparcv7"
 	;;
 *)
 	echo "ERROR: unrecognized architecture"
