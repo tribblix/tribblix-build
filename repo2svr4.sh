@@ -233,7 +233,8 @@ if [ ! -f ${BDIR}/install/i.preserve ]; then
 cat > ${BDIR}/install/i.preserve <<EOF
 #!/bin/sh
 #
-# bone-headed class-action script for preserve
+# simplistic class-action script for preserve
+# copies the new file iff it doesn't already exist
 #
 while read src dest
 do
@@ -243,7 +244,20 @@ do
 done
 exit 0
 EOF
+chmod 555 ${BDIR}/install/i.preserve
 echo "i i.preserve=./install/i.preserve" >> ${BDIR}/prototype
+fi
+if [ ! -f ${BDIR}/install/r.preserve ]; then
+cat > ${BDIR}/install/r.preserve <<EOF
+#!/bin/sh
+#
+# simplistic class-action script for preserve
+# retains the old file as-is
+#
+exit 0
+EOF
+chmod 555 ${BDIR}/install/r.preserve
+echo "i r.preserve=./install/r.preserve" >> ${BDIR}/prototype
 fi
 }
 
