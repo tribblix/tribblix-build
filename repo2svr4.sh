@@ -238,8 +238,8 @@ cat > ${BDIR}/install/i.preserve <<EOF
 #
 while read src dest
 do
-  if [ ! -f $dest ] ; then
-    cp $src $dest
+  if [ ! -f \$dest ] ; then
+    cp \$src \$dest
   fi
 done
 exit 0
@@ -251,9 +251,22 @@ if [ ! -f ${BDIR}/install/r.preserve ]; then
 cat > ${BDIR}/install/r.preserve <<EOF
 #!/bin/sh
 #
-# simplistic class-action script for preserve
-# retains the old file as-is
+# class-action script for preserve
+# retains the old file if it's been modified
 #
+while read dest
+do
+    # need to strip off the alternate root
+    ndest=\${dest/\${PKG_INSTALL_ROOT}/}
+    if [ -f "\${PKG_INSTALL_ROOT}/var/sadm/pkg/\${PKGINST}/save/pspool/\${PKGINST}/reloc/\${ndest}" ]; then
+        if /usr/bin/cmp -s "\${PKG_INSTALL_ROOT}/var/sadm/pkg/\${PKGINST}/save/pspool/\${PKGINST}/reloc/\${ndest}" "\${dest}"
+        then
+	    /usr/bin/rm -f \$dest
+	else
+	    echo Retaining modified \$dest
+	fi
+    fi
+done
 exit 0
 EOF
 chmod 555 ${BDIR}/install/r.preserve
@@ -601,8 +614,8 @@ restart_fmri)
     ;;
 preserve)
     FTYPE="e"
-    #FCLASS="preserve"
-    #init_preserve
+    FCLASS="preserve"
+    init_preserve
     ;;
 *)
     echo "unhandled file attribute $frag"
