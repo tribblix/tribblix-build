@@ -55,7 +55,7 @@ doesn't have to be root.
 ${THOME}/tribblix-build/repo_all.sh \
   -G ${HOME}/Illumos/gfx-drm \
   -D /var/tmp/gfx-pkgs \
-  -V 0.33 \
+  -V 0.34 \
   -R drm \
   -S ${HOME}/f/elfcert >& /var/tmp/gfx.log
 
@@ -65,7 +65,7 @@ we have to duplicate all the packages.
 ${THOME}/tribblix-build/repo_all.sh \
   -G ${HOME}/Illumos/gfx-drm \
   -D /var/tmp/omni-gfx-pkgs \
-  -V 0.33lx \
+  -V 0.34lx \
   -R drm \
   -S ${HOME}/f/elfcert >& /var/tmp/omni-gfx.log
 
