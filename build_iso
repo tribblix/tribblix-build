@@ -13,7 +13,7 @@
 #
 # }}}
 #
-# Copyright 2023 Peter Tribble
+# Copyright 2024 Peter Tribble
 #
 
 #
@@ -22,7 +22,7 @@
 
 THOME=${THOME:-/packages/localsrc/Tribblix}
 
-RELEASE=33
+RELEASE=34
 TRIBNAME="Tribblix"
 TRIBSTYLE=""
 TRIBTYPE=""
