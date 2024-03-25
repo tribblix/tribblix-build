@@ -23,7 +23,7 @@ DESTDIR=/export/tribblix/dist
 INSTZAP=/usr/lib/zap/instzap
 DRYRUN=""
 ECHO="echo"
-OVLIST="base-iso"
+OVLIST="core-tribblix base-iso"
 
 #
 # flags
@@ -143,7 +143,7 @@ fi
 #
 VALID=yes
 ERRLIST=""
-for mypkg in $(egrep -vh '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$' ${PKGLIST}) TRIBsys-install-media-internal
+for mypkg in $(egrep -vh '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$' ${PKGLIST} | sort -u) TRIBsys-install-media-internal
 do
   THISVER="XXX"
   ILVER="XXX"
@@ -201,7 +201,7 @@ fi
 #
 # now install
 #
-for mypkg in $(egrep -vh '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$' ${PKGLIST}) TRIBsys-install-media-internal
+for mypkg in $(egrep -vh '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$' ${PKGLIST} | sort -u) TRIBsys-install-media-internal
 do
   THISVER="XXX"
   ILVER="XXX"

@@ -11,8 +11,8 @@ where all the relevant Tribblix repos are checked out.
 The first step is to create a distribution area. It's named
 /export/tribblix by default, and ought to contain a 'dist' directory
 and a 'prebuilt' directory. First run install-pkgs to install the
-base. The list of packages in the minimal system is the base-iso
-overlay.
+base. The list of packages installed on the regular ISO image is the
+base-iso overlay, which is kernel and drivers atop core-tribblix.
 
 You'll need to run mk-pkgs-zap to populate the ISO with the additional
 packages referenced in the overlays.
