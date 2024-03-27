@@ -1,0 +1,31 @@
+All supported processors must be 64-bit capable, so must support SSE2.
+Enable SSE2 for libc_hwcap1 (intel). The only difference between libc_hwcap1
+and libc_hwcap2 is then sysenter vs syscall.
+
+We don't ship libc_hwcap3 at all, but that is transformed away at the
+packaging stage.
+
+diff --git a/usr/src/lib/libc/i386_hwcap1/Makefile b/usr/src/lib/libc/i386_hwcap1/Makefile
+index a9ce500424..c09cccf0bb 100644
+--- a/usr/src/lib/libc/i386_hwcap1/Makefile
++++ b/usr/src/lib/libc/i386_hwcap1/Makefile
+@@ -28,7 +28,7 @@ LIBCBASE=	../i386
+ 
+ LIBRARY=	libc_hwcap1.a
+ 
+-EXTN_CPPFLAGS=	-D_CMOV_INSN -D_SSE_INSN -D_MMX_INSN -D_SEP_INSN
++EXTN_CPPFLAGS=	-D_CMOV_INSN -D_SSE_INSN -D_SSE2_INSN -D_MMX_INSN -D_SEP_INSN
+ EXTN_CFLAGS=	-xtarget=pentium_pro
+ EXTN_DYNFLAGS=	-Wl,-Mmapfile
+ 
+diff --git a/usr/src/lib/libc/i386_hwcap1/mapfile b/usr/src/lib/libc/i386_hwcap1/mapfile
+index 68e51d8f9b..764353b802 100644
+--- a/usr/src/lib/libc/i386_hwcap1/mapfile
++++ b/usr/src/lib/libc/i386_hwcap1/mapfile
+@@ -24,5 +24,5 @@
+ $mapfile_version 2
+ 
+ CAPABILITY {
+-	hw += fpu cmov sep mmx sse;
++	hw += fpu cmov sep mmx sse sse2;
+ };
