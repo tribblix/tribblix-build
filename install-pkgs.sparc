@@ -194,11 +194,6 @@ if [ -n "${DRYRUN}" ]; then
 fi
 
 #
-# building Tribblix in a zone on Tribblix, this needs to be created first
-# but most everything fails in a zone, so don't bother
-#
-#mkdir -p ${DESTDIR}/var/sadm/install
-#
 # now install, force SUNWcsd first to make sure state files exist
 #
 for mypkg in SUNWcsd $(egrep -vh '^(SUNWcsd|TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$' ${PKGLIST}) TRIBsys-install-media-internal
