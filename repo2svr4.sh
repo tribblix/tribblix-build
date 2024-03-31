@@ -865,6 +865,7 @@ cat ${BDIR}/prototype.transform | grep -v " ${filepath}=${filepath} " > ${BDIR}/
 
 #
 # transform to change the ftype of a pathname from this package
+# need to have the class set to match
 #
 transform_type() {
 filepath=$1
@@ -873,6 +874,14 @@ if [ -f ${BDIR}/${filepath} ]; then
   /usr/bin/mv ${BDIR}/prototype ${BDIR}/prototype.transform
   cat ${BDIR}/prototype.transform | grep " ${filepath}=${filepath} " | read otype oclass opath operm ouser ogroup
   cat ${BDIR}/prototype.transform | grep -v " ${filepath}=${filepath} " > ${BDIR}/prototype
+  case $newtype in
+      e)
+	  oclass="preserve"
+	  ;;
+      *)
+	  oclass="none"
+	  ;;
+  esac
   echo "${newtype} ${oclass} ${opath} ${operm} ${ouser} ${ogroup}" >> ${BDIR}/prototype
   /usr/bin/rm ${BDIR}/prototype.transform
 else
