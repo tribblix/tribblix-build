@@ -191,9 +191,9 @@ fi
 #
 #mkdir -p ${DESTDIR}/var/sadm/install
 #
-# now install
+# now install, force SUNWcsd first to make sure state files exist
 #
-for mypkg in $(egrep -vh '^(TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$' ${PKGLIST} | sort -u) TRIBsys-install-media-internal
+for mypkg in SUNWcsd $(egrep -vh '^(SUNWcsd|TRIBzap|TRIBzap-upgrade|TRIBrelease-name)$' ${PKGLIST}) TRIBsys-install-media-internal
 do
   THISVER="XXX"
   ILVER="XXX"
