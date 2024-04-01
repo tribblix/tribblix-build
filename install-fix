@@ -13,7 +13,7 @@
 #
 # }}}
 #
-# Copyright 2023 Peter Tribble
+# Copyright 2024 Peter Tribble
 #
 
 DESTTOP=/export/tribblix
@@ -21,14 +21,8 @@ DESTDIR=${DESTTOP}/dist
 THOME=${THOME:-/packages/localsrc/Tribblix}
 MKREPO=${THOME}/tribblix-build/mkrepo
 
-case $# in
-1)
-	DESTDIR=${DESTDIR}.$1
-	;;
-esac
-
 #
-# This sets the size of the ramdisk.
+# This sets the default size of the ramdisk.
 # More inodes on x86 as each disk has more device nodes.
 #
 case `uname -p` in
@@ -44,6 +38,32 @@ sparc)
 *)
 	echo "ERROR: unrecognized architecture"
 	exit 1
+	;;
+esac
+
+#
+# allow MRSIZE to be overriden
+# -M new_size
+#
+while getopts "M:" opt; do
+    case $opt in
+        M)
+	    MRSIZE="$OPTARG"
+	    ;;
+    esac
+done
+shift $((OPTIND-1))
+case $MRSIZE in
+    *m)
+	:
+	;;
+    *)
+	MRSIZE="${MRSIZE}m"
+	;;
+esac
+case $# in
+1)
+	DESTDIR=${DESTDIR}.$1
 	;;
 esac
 

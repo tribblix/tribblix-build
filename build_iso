@@ -29,18 +29,23 @@ TRIBTYPE=""
 ISOROOT="tribblix"
 DESTTOP=/export/tribblix
 OVSUFFIX=""
+MRSIZE="360m"
 
 #
 # flags
 # -D desttop -> DESTTOP
+# -M size -> MRSIZE, size of ramdisk
 # -R release string -> RELEASE
 # -S style (empty or split) -> TRIBSTYLE
 # -T type (empty or lx) -> TRIBTYPE
 #
-while getopts "D:R:S:T:" opt; do
+while getopts "D:M:R:S:T:" opt; do
     case $opt in
         D)
 	    DESTTOP="$OPTARG"
+	    ;;
+        M)
+	    MRSIZE="$OPTARG"
 	    ;;
         R)
 	    RELEASE="$OPTARG"
@@ -152,10 +157,10 @@ chmod 755 ${DESTDIR}/etc/rc2.d/S99auto_install
 echo "Fixing image"
 case $TRIBSTYLE in
 split)
-	${TBHOME}/install-fix-split $*
+	${TBHOME}/install-fix-split -M "${MRSIZE}" $*
 	;;
 *)
-	${TBHOME}/install-fix $*
+	${TBHOME}/install-fix -M "${MRSIZE}" $*
 	;;
 esac
 

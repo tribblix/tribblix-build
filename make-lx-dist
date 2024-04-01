@@ -23,20 +23,25 @@ RELEASE=34lx
 NFLAG=""
 QFLAG=""
 OVFLAG=""
+MRSIZE="360m"
 
 #
 # flags
 # -D desttop -> DESTTOP
+# -M size -> MRSIZE, size of ramdisk
 # -N -> no install, dry run
 # -O overlay -> install additional overlay
 # -Q -> quiet, less output
 # -R release string -> RELEASE
 #
-while getopts "D:NO:QR:" opt; do
+while getopts "D:M:NO:QR:" opt; do
     case $opt in
         D)
 	    DESTTOP="$OPTARG"
 	    DESTDIR=${DESTTOP}/dist
+	    ;;
+        M)
+	    MRSIZE="$OPTARG"
 	    ;;
         N)
 	    NFLAG="-N"
@@ -104,4 +109,4 @@ if [ ! -f ${DESTDIR}/pkgs/catalog ]; then
     exit 1
 fi
 
-$TDIR/build_iso -T lx -D $DESTTOP -R ${RELEASE} $*
+$TDIR/build_iso -T lx -D $DESTTOP -R ${RELEASE} -M "${MRSIZE}" $*
