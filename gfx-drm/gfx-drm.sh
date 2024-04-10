@@ -114,5 +114,5 @@ sed -i 's:2.7:3:' usr/src/Makefile.master
 #
 # and package it
 #
-mkdir -p ${DESTTOP}
-"${THOME}/tribblix-build/gfx-drm/package.sh" -G ${GATE} -V ${PKG_VERSION} -T ${THOME} -D ${DESTTOP} -S ${SIGNCERT}
+mkdir -p "${DESTTOP}"
+"${THOME}/tribblix-build/gfx-drm/package.sh" -G "${GATE}" -V "${PKG_VERSION}" -T "${THOME}" -D "${DESTTOP}" -S "${SIGNCERT}"

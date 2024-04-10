@@ -13,7 +13,7 @@
 #
 # }}}
 #
-# Copyright 2023 Peter Tribble
+# Copyright 2024 Peter Tribble
 #
 
 #
@@ -26,7 +26,7 @@ THOME=${THOME:-/packages/localsrc/Tribblix}
 export THOME
 
 ILLSH=no.such.file
-ARCH=`uname -p`
+ARCH=$(uname -p)
 
 #
 # we expect one argument, which is the name of the release

@@ -13,7 +13,7 @@
 #
 # }}}
 #
-# Copyright 2023 Peter Tribble
+# Copyright 2024 Peter Tribble
 #
 
 #
@@ -28,7 +28,7 @@ THOME=${THOME:-/packages/localsrc/Tribblix}
 export THOME
 
 ILLSH=illumos.sh.debug
-ARCH=`uname -p`
+ARCH=$(uname -p)
 
 case $1 in
     -q)
