@@ -71,8 +71,8 @@ fi
 #
 # read an external configuration file, if supplied
 #
-IPROFILE=`/sbin/devprop install_profile`
-if [ ! -z "$IPROFILE" ]; then
+IPROFILE=$(/sbin/devprop install_profile)
+if [ -n "$IPROFILE" ]; then
 REBOOT="yes"
 case $IPROFILE in
 nfs*)
@@ -80,8 +80,8 @@ nfs*)
 	mkdir -p ${TMPMNT}
 	IPROFDIR=${IPROFILE%/*}
 	IPROFNAME=${IPROFILE##*/}
-	mount $IPROFDIR $TMPMNT
-	if [ -f ${TMPMNT}/${IPROFNAME} ]; then
+	mount "$IPROFDIR" $TMPMNT
+	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
 	    . ${TMPMNT}/${IPROFNAME}
 	fi
 	umount ${TMPMNT}
@@ -93,8 +93,8 @@ http*)
 	while [ ! -f "$TMPF" ]
 	do
 	    sleep $DELAY
-	    DELAY=$(($DELAY+1))
-	    ${WCLIENT} ${WARGS} $TMPF $IPROFILE
+	    DELAY=$((DELAY+1))
+	    ${WCLIENT} ${WARGS} $TMPF "$IPROFILE"
 	done
 	. $TMPF
 	rm -fr $TMPF
@@ -116,8 +116,8 @@ nfs*)
 	mkdir -p ${TMPMNT}
 	IPROFDIR=${BEGIN_SCRIPT%/*}
 	IPROFNAME=${BEGIN_SCRIPT##*/}
-	mount $IPROFDIR $TMPMNT
-	if [ -f ${TMPMNT}/${IPROFNAME} ]; then
+	mount "$IPROFDIR" $TMPMNT
+	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
 	    ${TMPMNT}/${IPROFNAME} > $BEGINF
 	fi
 	umount ${TMPMNT}
@@ -125,7 +125,7 @@ nfs*)
 	;;
 http*)
 	TMPF="/tmp/profile.$$"
-	${WCLIENT} ${WARGS} $TMPF $BEGIN_SCRIPT
+	${WCLIENT} ${WARGS} $TMPF "$BEGIN_SCRIPT"
 	if [ -s "$TMPF" ]; then
 	    chmod a+x $TMPF
 	    $TMPF > $BEGINF
@@ -246,14 +246,14 @@ OVERLAYS="$OVERLAYS $*"
 #
 # first download the image
 #
-if [ ! -f $IMGTMP ]; then
-    ${WCLIENT} ${WARGS} $IMGTMP $IMGSRC
-    if [ ! -f $IMGTMP ]; then
+if [ ! -f "$IMGTMP" ]; then
+    ${WCLIENT} ${WARGS} "$IMGTMP" "$IMGSRC"
+    if [ ! -f "$IMGTMP" ]; then
 	echo "Download failed, stopping"
 	exit 1
     fi
 fi
-DLSUM=`openssl sha1 $IMGTMP | awk '{print $NF}'`
+DLSUM=$(openssl sha1 "$IMGTMP" | awk '{print $NF}')
 if [ "X${IMGSUM}" != "X${DLSUM}" ]; then
     echo "Download has wrong checksum, stopping"
     exit 1
@@ -262,16 +262,16 @@ fi
 # now we have an image, mount it up and verify
 # the check might need adjusting for other images
 #
-AFDEV=`/usr/sbin/lofiadm -a $IMGTMP`
+AFDEV=$(/usr/sbin/lofiadm -a "$IMGTMP")
 AFMNT="/mnt.${NEWBE}"
-mkdir $AFMNT
-/usr/sbin/mount -Fufs -o ro $AFDEV $AFMNT
-if [ ! -f ${AFMNT}/usr/bin/ls ]; then
+mkdir "$AFMNT"
+/usr/sbin/mount -Fufs -o ro "$AFDEV" "$AFMNT"
+if [ ! -f "${AFMNT}/usr/bin/ls" ]; then
     echo "Image downloaded is unsuitable, no /usr/bin/ls"
     echo "Cleaning up and stopping"
-    /usr/sbin/umount $AFMNT
-    /usr/sbin/lofiadm -d $AFDEV
-    rmdir $AFMNT
+    /usr/sbin/umount "$AFMNT"
+    /usr/sbin/lofiadm -d "$AFDEV"
+    rmdir "$AFMNT"
     exit 1
 fi
 #
@@ -288,34 +288,34 @@ SMFREPODIR="${AFMNT}/usr/lib/zap"
 # this is what the original boot file system was set to
 # we mount it later to recover specific data
 #
-OLDBE=`/usr/sbin/zpool get -Hp -o value bootfs ${ROOTPOOL}`
+OLDBE=$(/usr/sbin/zpool get -Hp -o value bootfs "${ROOTPOOL}")
 if [ -z "$OLDBE" ]; then
     echo "Pool ${ROOTPOOL} has no bootfs property, cannot use."
     exit 1
 fi
 
 echo "Creating filesystems"
-/usr/sbin/zfs create -o mountpoint=${ALTROOT} ${ROOTPOOL}/ROOT/${NEWBE}
-/usr/sbin/zpool set bootfs=${ROOTPOOL}/ROOT/${NEWBE} ${ROOTPOOL}
+/usr/sbin/zfs create -o mountpoint=${ALTROOT} "${ROOTPOOL}/ROOT/${NEWBE}"
+/usr/sbin/zpool set bootfs="${ROOTPOOL}/ROOT/${NEWBE}" "${ROOTPOOL}"
 
 #
 # we copy from the image here, not from / as on the live system
 #
 echo "Copying main filesystems"
-cd $AFMNT
+cd "$AFMNT"
 ZONELIB=""
 if [ -d zonelib ]; then
     ZONELIB="zonelib"
 fi
 /usr/bin/find boot kernel lib platform root sbin usr etc var opt ${ZONELIB} -print -depth | cpio -pdm ${ALTROOT}
 echo "Copying other filesystems"
-/usr/bin/find boot -print -depth | cpio -pdm /${ROOTPOOL}
+/usr/bin/find boot -print -depth | cpio -pdm /"${ROOTPOOL}"
 
 #
 # this gives the BE a UUID, necessary for 'beadm list -H'
 # to not show null, and for zone uninstall to work
 #
-/usr/sbin/zfs set org.opensolaris.libbe:uuid=`${ALTROOT}/usr/lib/zap/generate-uuid` ${ROOTPOOL}/ROOT/${NEWBE}
+/usr/sbin/zfs set org.opensolaris.libbe:uuid=$(${ALTROOT}/usr/lib/zap/generate-uuid) "${ROOTPOOL}/ROOT/${NEWBE}"
 
 #
 echo "Adding extra directories"
@@ -361,7 +361,7 @@ fi
 # give ourselves some swap to avoid /tmp exhaustion
 # do it after copying the main OS as it changes the dump settings
 #
-swap -a /dev/zvol/dsk/${ROOTPOOL}/swap
+swap -a "/dev/zvol/dsk/${ROOTPOOL}/swap"
 LOGFILE="${ALTROOT}/var/sadm/install/logs/initial.log"
 echo "Installing overlays" | tee $LOGFILE
 /usr/bin/date | tee -a $LOGFILE
@@ -372,7 +372,7 @@ if [ -d ${PKGLOC} ]; then
     for overlay in base $OVERLAYS
     do
 	echo "Installing $overlay overlay" | tee -a $LOGFILE
-	/usr/lib/zap/install-overlay -R ${ALTROOT} -s ${PKGLOC} $overlay | tee -a $LOGFILE
+	/usr/lib/zap/install-overlay -R ${ALTROOT} -s ${PKGLOC} "$overlay" | tee -a $LOGFILE
     done
 else
     echo "No local packages found, trying to install overlays from the network"
@@ -383,7 +383,7 @@ else
 	for overlay in $OVERLAYS
 	do
 	    echo "Installing $overlay overlay" | tee -a $LOGFILE
-	    /usr/lib/zap/install-overlay -R ${ALTROOT} $overlay | tee -a $LOGFILE
+	    /usr/lib/zap/install-overlay -R ${ALTROOT} "$overlay" | tee -a $LOGFILE
 	done
     else
 	echo "Ignoring overlay installation due to failure" | tee -a $LOGFILE
@@ -400,26 +400,26 @@ echo "Deleting live package" | tee -a $LOGFILE
 # use a prebuilt repository if available
 #
 /usr/bin/rm ${ALTROOT}/etc/svc/repository.db
-if [ -f ${SMFREPODIR}/repository-installed.db.gz ]; then
-    /usr/bin/cp -p ${SMFREPODIR}/repository-installed.db.gz ${ALTROOT}/etc/svc/repository.db.gz
+if [ -f "${SMFREPODIR}/repository-installed.db.gz" ]; then
+    /usr/bin/cp -p "${SMFREPODIR}/repository-installed.db.gz" ${ALTROOT}/etc/svc/repository.db.gz
     /usr/bin/gunzip ${ALTROOT}/etc/svc/repository.db.gz
 else
-    /usr/bin/cp -p /lib/svc/seed/global.db ${ALTROOT}/etc/svc/repository.db
+    /usr/bin/cp -p ${ALTROOT}/lib/svc/seed/global.db ${ALTROOT}/etc/svc/repository.db
 fi
 #
 # We have an x11 version because we have to enable hal
 #
 if [ -f ${ALTROOT}/var/sadm/overlays/installed/x11 ]; then
-    if [ -f ${SMFREPODIR}/repository-x11.db.gz ]; then
+    if [ -f "${SMFREPODIR}/repository-x11.db.gz" ]; then
 	/usr/bin/rm ${ALTROOT}/etc/svc/repository.db
-	/usr/bin/cp -p ${SMFREPODIR}/repository-x11.db.gz ${ALTROOT}/etc/svc/repository.db.gz
+	/usr/bin/cp -p "${SMFREPODIR}/repository-x11.db.gz" ${ALTROOT}/etc/svc/repository.db.gz
 	/usr/bin/gunzip ${ALTROOT}/etc/svc/repository.db.gz
     fi
 fi
 if [ -f ${ALTROOT}/var/sadm/overlays/installed/kitchen-sink ]; then
-    if [ -f ${SMFREPODIR}/repository-kitchen-sink.db.gz ]; then
+    if [ -f "${SMFREPODIR}/repository-kitchen-sink.db.gz" ]; then
 	/usr/bin/rm ${ALTROOT}/etc/svc/repository.db
-	/usr/bin/cp -p ${SMFREPODIR}/repository-kitchen-sink.db.gz ${ALTROOT}/etc/svc/repository.db.gz
+	/usr/bin/cp -p "${SMFREPODIR}/repository-kitchen-sink.db.gz" ${ALTROOT}/etc/svc/repository.db.gz
 	/usr/bin/gunzip ${ALTROOT}/etc/svc/repository.db.gz
     fi
 fi
@@ -452,7 +452,7 @@ touch ${ALTROOT}/reconfigure
 echo "Setting up boot"
 
 # new loader
-/usr/bin/cat > /${ROOTPOOL}/boot/menu.lst << _EOF
+/usr/bin/cat > /"${ROOTPOOL}"/boot/menu.lst << _EOF
 title Tribblix ${RELEASE}
 bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 _EOF
@@ -461,21 +461,21 @@ _EOF
 # set nodename if requested
 #
 if [ -n "$NODENAME" ]; then
-    echo $NODENAME > ${ALTROOT}/etc/nodename
+    echo "$NODENAME" > ${ALTROOT}/etc/nodename
 fi
 
 #
 # set domain name if requested
 #
 if [ -n "$DOMAINNAME" ]; then
-    echo $DOMAINNAME > ${ALTROOT}/etc/defaultdomain
+    echo "$DOMAINNAME" > ${ALTROOT}/etc/defaultdomain
 fi
 
 #
 # set timezone if requested
 #
 if [ -n "$TIMEZONE" ]; then
-    /usr/bin/sed -i s:PST8PDT:${TIMEZONE}: ${ALTROOT}/etc/default/init
+    /usr/bin/sed -i s:PST8PDT:"${TIMEZONE}": ${ALTROOT}/etc/default/init
 fi
 
 #
@@ -486,7 +486,7 @@ fi
 #
 # Copy /jack to the installed system
 #
-cd $AFMNT
+cd "$AFMNT"
 find jack -print | cpio -pmud ${ALTROOT}
 /usr/bin/rm -f ${ALTROOT}/jack/.bash_history
 
@@ -507,16 +507,16 @@ nfs*)
 	mkdir -p ${TMPMNT}
 	IPROFDIR=${FINISH_SCRIPT%/*}
 	IPROFNAME=${FINISH_SCRIPT##*/}
-	mount $IPROFDIR $TMPMNT
-	if [ -f ${TMPMNT}/${IPROFNAME} ]; then
-	    ${TMPMNT}/${IPROFNAME} ${ALTROOT}
+	mount "$IPROFDIR" $TMPMNT
+	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
+	    "${TMPMNT}/${IPROFNAME}" ${ALTROOT}
 	fi
 	umount ${TMPMNT}
 	rmdir ${TMPMNT}
 	;;
 http*)
 	TMPF="/tmp/profile.$$"
-	${WCLIENT} ${WARGS} $TMPF $FINISH_SCRIPT
+	${WCLIENT} ${WARGS} $TMPF "$FINISH_SCRIPT"
 	if [ -s "$TMPF" ]; then
 	    chmod a+x $TMPF
 	    $TMPF ${ALTROOT}
@@ -546,16 +546,16 @@ nfs*)
 	mkdir -p ${TMPMNT}
 	IPROFDIR=${FIRSTBOOT_SCRIPT%/*}
 	IPROFNAME=${FIRSTBOOT_SCRIPT##*/}
-	mount $IPROFDIR $TMPMNT
-	if [ -f ${TMPMNT}/${IPROFNAME} ]; then
-	    cp ${TMPMNT}/${IPROFNAME} ${FIRSTF}
+	mount "$IPROFDIR" $TMPMNT
+	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
+	    cp "${TMPMNT}/${IPROFNAME}" ${FIRSTF}
 	fi
 	umount ${TMPMNT}
 	rmdir ${TMPMNT}
 	;;
 http*)
 	TMPF="/tmp/profile.$$"
-	${WCLIENT} ${WARGS} $TMPF $FIRSTBOOT_SCRIPT
+	${WCLIENT} ${WARGS} $TMPF "$FIRSTBOOT_SCRIPT"
 	if [ -s "$TMPF" ]; then
 	    cp $TMPF $FIRSTF
 	fi
@@ -580,9 +580,9 @@ fi
 #
 # copy selected keyboard type to installed system
 #
-KLAYOUT=`/usr/bin/kbd -l | /usr/bin/awk -F'[= ]' '{if ($1 == "layout") print $2}'`
+KLAYOUT=$(/usr/bin/kbd -l | /usr/bin/awk -F'[= ]' '{if ($1 == "layout") print $2}')
 if [ -n "${KLAYOUT}" ]; then
-  NLAYOUT=`/usr/bin/awk -v ntyp=${KLAYOUT} -F= '{if ($2 == ntyp) print $1}' /usr/share/lib/keytables/type_6/kbd_layouts`
+  NLAYOUT=$(/usr/bin/awk -v ntyp="${KLAYOUT}" -F= '{if ($2 == ntyp) print $1}' /usr/share/lib/keytables/type_6/kbd_layouts)
   if [ -n "${NLAYOUT}" ]; then
     /usr/bin/grep -v keyboard-layout ${ALTROOT}/boot/solaris/bootenv.rc > ${ALTROOT}/boot/solaris/bootenv.rc.tmp
     echo "setprop keyboard-layout ${NLAYOUT}" >> ${ALTROOT}/boot/solaris/bootenv.rc.tmp
@@ -623,7 +623,7 @@ if [ -f /root/.ssh/authorized-keys ]; then
     /usr/bin/cp -p /root/.ssh/authorized-keys ${ALTROOT}/root/.ssh
     /usr/bin/sed -i 's:PermitRootLogin no:PermitRootLogin without-password:' ${ALTROOT}/etc/ssh/sshd_config
 fi
-/usr/sbin/zfs set canmount=noauto ${OLDBE}
+/usr/sbin/zfs set canmount=noauto "${OLDBE}"
 
 #
 # moved later, must be done after we change any files such as bootenv.rc
@@ -636,15 +636,15 @@ echo "Updating boot archive"
 # remount zfs filesystem in the right place for next boot
 #
 echo "The mount error below is expected"
-/usr/sbin/zfs set canmount=noauto ${ROOTPOOL}/ROOT/${NEWBE}
-/usr/sbin/zfs set mountpoint=/ ${ROOTPOOL}/ROOT/${NEWBE}
+/usr/sbin/zfs set canmount=noauto "${ROOTPOOL}/ROOT/${NEWBE}"
+/usr/sbin/zfs set mountpoint=/ "${ROOTPOOL}/ROOT/${NEWBE}"
 
 #
 # we need to install our bootloader to be sure we have one
 # that is compatible
 # we overwrite the MBR if -B was passed
 #
-/sbin/bootadm install-bootloader ${BFLAG} -f -P ${ROOTPOOL}
+/sbin/bootadm install-bootloader ${BFLAG} -f -P "${ROOTPOOL}"
 
 #
 # if specified, reboot
