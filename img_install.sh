@@ -13,7 +13,7 @@
 #
 # }}}
 #
-# Copyright 2023 Peter Tribble
+# Copyright 2024 Peter Tribble
 #
 
 #
@@ -52,7 +52,7 @@ DOMAINNAME=""
 BEGIN_SCRIPT=""
 FINISH_SCRIPT=""
 FIRSTBOOT_SCRIPT=""
-RELEASE="m30"
+RELEASE="m34"
 DLHOST="https://pkgs.tribblix.org"
 NFLAG=""
 
@@ -170,18 +170,6 @@ NEWBE="tribblix-${RELEASE}"
 IMGTMP="/var/tmp/${NEWBE}.archive"
 IMGSRC="${DLHOST}/${RELEASE}/platform/i86pc/boot_archive"
 case $RELEASE in
-    m28)
-	IMGSUM="20396ed15f160036ecd3b6ac1f6f01564aea6a17"
-	;;
-    m28lx)
-	IMGSUM="933aad39c7a9f1a0358dfe027973d12f9bcfeefb"
-	;;
-    m29)
-	IMGSUM="a9874ab4137db1df6a2e4001e5fd5c9fd5bb0d2d"
-	;;
-    m29lx)
-	IMGSUM="ce588ec9f0ea715a08d78855971a3906721a0619"
-	;;
     m30)
 	IMGSUM="328d858dc6d782f7db163167ebc75f450b7fd90f"
 	;;
@@ -193,6 +181,24 @@ case $RELEASE in
 	;;
     m31lx)
 	IMGSUM="fba19239806ed28e87f0251ebd677d7d5362369a"
+	;;
+    m32)
+	IMGSUM="a194e5003e948b8ef9c8ea8153f65ad42c6d57d8"
+	;;
+    m32lx)
+	IMGSUM="faabb1af50a21a599a986f81e214957f2cbd15de"
+	;;
+    m33)
+	IMGSUM="32c6a1795a1256f43a6c9cd75ea5ec7599029f1d"
+	;;
+    m33lx)
+	IMGSUM="a03c8ce7762b0236d9636bfafcbae3c9839cd4b3"
+	;;
+    m34)
+	IMGSUM="09c643f95957d9a61ec957f6fa10566ef8fa07ad"
+	;;
+    m34lx)
+	IMGSUM="a093c62941db9fb347ec02d1644bc948b5ef9eb3"
 	;;
     *)
 	echo "Unrecognised release"
