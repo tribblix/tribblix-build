@@ -1,0 +1,160 @@
+From 0a1985fd5d819434967276b189f6f06494028e2c Mon Sep 17 00:00:00 2001
+From: Bill Sommerfeld <sommerfeld@hamachi.org>
+Date: Tue, 19 Dec 2023 11:57:01 -0800
+Subject: [PATCH] 16127 regex misidentifies mixed sets as singletons Reviewed
+ by: Igor Kozhukhov <igor@dilos.org> Reviewed by: Yuri Pankov
+ <yuri@aetern.org>
+
+---
+ usr/src/lib/libc/port/regex/regcomp.c         | 26 ++++++++++++----
+ .../pkg/manifests/system-test-libctest.p5m    |  2 ++
+ usr/src/test/libc-tests/tests/regex/Makefile  |  2 ++
+ .../libc-tests/tests/regex/data/bug16127.dat  | 30 +++++++++++++++++++
+ .../libc-tests/tests/regex/data/bug16127.out  |  0
+ .../test/libc-tests/tests/regex/regex_test.sh |  3 +-
+ 6 files changed, 57 insertions(+), 6 deletions(-)
+ create mode 100644 usr/src/test/libc-tests/tests/regex/data/bug16127.dat
+ create mode 100644 usr/src/test/libc-tests/tests/regex/data/bug16127.out
+
+diff --git a/usr/src/lib/libc/port/regex/regcomp.c b/usr/src/lib/libc/port/regex/regcomp.c
+index d4ab5b40b6..c0cafc3e9e 100644
+--- a/usr/src/lib/libc/port/regex/regcomp.c
++++ b/usr/src/lib/libc/port/regex/regcomp.c
+@@ -1,4 +1,5 @@
+ /*
++ * Copyright 2023 Bill Sommerfeld <sommerfeld@hamachi.org>
+  * Copyright 2013 Garrett D'Amore <garrett@damore.org>
+  * Copyright 2019 Nexenta by DDN, Inc. All rights reserved.
+  * Copyright 2012 Milan Jurik. All rights reserved.
+@@ -1287,17 +1288,32 @@ singleton(cset *cs)
+ {
+ 	wint_t i, s, n;
+ 
++	/* Exclude the complicated cases we don't want to deal with */
++	if (cs->nranges != 0 || cs->ntypes != 0 || cs->icase != 0)
++		return (OUT);
++
++	if (cs->nwides > 1)
++		return (OUT);
++
++	/* Count the number of characters present in the bitmap */
+ 	for (i = n = 0; i < NC; i++)
+ 		if (CHIN(cs, i)) {
+ 			n++;
+ 			s = i;
+ 		}
+-	if (n == 1)
+-		return (s);
+-	if (cs->nwides == 1 && cs->nranges == 0 && cs->ntypes == 0 &&
+-	    cs->icase == 0)
++
++	if (n > 1)
++		return (OUT);
++
++	if (n == 1) {
++		if (cs->nwides == 0)
++			return (s);
++		else
++			return (OUT);
++	}
++	if (cs->nwides == 1)
+ 		return (cs->wides[0]);
+-	/* Don't bother handling the other cases. */
++
+ 	return (OUT);
+ }
+ 
+diff --git a/usr/src/pkg/manifests/system-test-libctest.p5m b/usr/src/pkg/manifests/system-test-libctest.p5m
+index 44f318fcb3..abea7a1b20 100644
+--- a/usr/src/pkg/manifests/system-test-libctest.p5m
++++ b/usr/src/pkg/manifests/system-test-libctest.p5m
+@@ -164,6 +164,8 @@ dir  path=opt/libc-tests/tests/regex
+ dir  path=opt/libc-tests/tests/regex/data
+ file path=opt/libc-tests/tests/regex/data/basic.dat mode=0444
+ file path=opt/libc-tests/tests/regex/data/basic.out mode=0444
++file path=opt/libc-tests/tests/regex/data/bug16127.dat mode=0444
++file path=opt/libc-tests/tests/regex/data/bug16127.out mode=0444
+ file path=opt/libc-tests/tests/regex/data/categorize.dat mode=0444
+ file path=opt/libc-tests/tests/regex/data/categorize.out mode=0444
+ file path=opt/libc-tests/tests/regex/data/forcedassoc.dat mode=0444
+diff --git a/usr/src/test/libc-tests/tests/regex/Makefile b/usr/src/test/libc-tests/tests/regex/Makefile
+index f1b2ce45ac..094c82da2c 100644
+--- a/usr/src/test/libc-tests/tests/regex/Makefile
++++ b/usr/src/test/libc-tests/tests/regex/Makefile
+@@ -11,6 +11,7 @@
+ 
+ #
+ # Copyright 2018 Nexenta Systems, Inc.
++# Copyright 2023 Bill Sommerfeld <sommerfeld@hamachi.org>
+ #
+ 
+ include		$(SRC)/Makefile.master
+@@ -24,6 +25,7 @@ PROG=		testregex
+ SHPROG=		regex_test
+ 
+ DATA=		basic.dat basic.out \
++		bug16127.dat bug16127.out \
+ 		categorize.dat categorize.out \
+ 		forcedassoc.dat forcedassoc.out \
+ 		leftassoc.dat leftassoc.out \
+diff --git a/usr/src/test/libc-tests/tests/regex/data/bug16127.dat b/usr/src/test/libc-tests/tests/regex/data/bug16127.dat
+new file mode 100644
+index 0000000000..7ebd620ae2
+--- /dev/null
++++ b/usr/src/test/libc-tests/tests/regex/data/bug16127.dat
+@@ -0,0 +1,30 @@
++NOTE test cases for illumos bug 16127
++#
++# This involved an erroneously implemented optimization which reduces
++# single-element sets to an exact match with a single codepoint.
++# Match sets record small-codepoint characters in a bitmap and large-codepoint
++# characters in an array; the optimization would falsely trigger if either
++# the bitmap or the array was a singleton, ignoring the members of the other
++# side of the set.
++#
++# To exercise this, we construct sets which have one member of one side and
++# one or more of the other, and verify that all members can be found.
++
++{C	C.UTF-8
++B	[aà]	a	(0,1)
++B	[aà]	à	(0,2)
++B	[aàá]	a	(0,1)
++B	[aàá]	à	(0,2)
++B	[aàá]	á	(0,2)
++B	[abà]	à	(0,2)
++B	[abà]	a	(0,1)
++B	[abà]	b	(0,1)
++E	[aà]	a	(0,1)
++E	[aà]	à	(0,2)
++E	[aàá]	a	(0,1)
++E	[aàá]	à	(0,2)
++E	[aàá]	á	(0,2)
++E	[abà]	à	(0,2)
++E	[abà]	a	(0,1)
++E	[abà]	b	(0,1)
++}
+diff --git a/usr/src/test/libc-tests/tests/regex/data/bug16127.out b/usr/src/test/libc-tests/tests/regex/data/bug16127.out
+new file mode 100644
+index 0000000000..e69de29bb2
+diff --git a/usr/src/test/libc-tests/tests/regex/regex_test.sh b/usr/src/test/libc-tests/tests/regex/regex_test.sh
+index e00a243b53..edfa8d8927 100644
+--- a/usr/src/test/libc-tests/tests/regex/regex_test.sh
++++ b/usr/src/test/libc-tests/tests/regex/regex_test.sh
+@@ -13,12 +13,13 @@
+ 
+ #
+ # Copyright 2018 Nexenta Systems, Inc.
++# Copyright 2023 Bill Sommerfeld <sommerfeld@hamachi.org>
+ #
+ 
+ TESTDIR=$(dirname $0)
+ TREGEX=${TESTDIR}/testregex
+ 
+-for t in basic categorize forcedassoc leftassoc \
++for t in basic bug16127 categorize forcedassoc leftassoc \
+     nullsubexpr repetition rightassoc; do
+ 	${TREGEX} -F ${TESTDIR}/data/${t}.dat | \
+ 	    diff -u - ${TESTDIR}/data/${t}.out || \
+-- 
+2.43.2
+

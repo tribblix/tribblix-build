@@ -1,0 +1,135 @@
+From fdd3baea1de807613d7541b2fad475760768584b Mon Sep 17 00:00:00 2001
+From: Bill Sommerfeld <sommerfeld@hamachi.org>
+Date: Wed, 28 Feb 2024 11:35:38 -0800
+Subject: [PATCH] 16349 SHA2Update length is now of type size_t, not unsigned
+ int Reviewed by: Robert Mustacchi <rm+illumos@fingolfin.org> Reviewed by: Dan
+ McDonald <danmcd@mnx.io> Approved by: Joshua M. Clulow <josh@sysmgr.org>
+
+---
+ usr/src/man/man3ext/md4.3ext  |  8 ++++----
+ usr/src/man/man3ext/sha1.3ext |  8 ++++----
+ usr/src/man/man3ext/sha2.3ext | 10 +++++-----
+ 3 files changed, 13 insertions(+), 13 deletions(-)
+
+diff --git a/usr/src/man/man3ext/md4.3ext b/usr/src/man/man3ext/md4.3ext
+index fb61aa21fc..3583a6b46b 100644
+--- a/usr/src/man/man3ext/md4.3ext
++++ b/usr/src/man/man3ext/md4.3ext
+@@ -3,7 +3,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH MD4 3EXT "Nov 13, 2007"
++.TH MD4 3EXT "Feb 28, 2024"
+ .SH NAME
+ md4, MD4Init, MD4Update, MD4Final \- MD4 digest functions
+ .SH SYNOPSIS
+@@ -18,7 +18,7 @@ md4, MD4Init, MD4Update, MD4Final \- MD4 digest functions
+ .LP
+ .nf
+ \fBvoid\fR \fBMD4Update\fR(\fBMD4_CTX *\fR\fIcontext\fR, \fBunsigned char *\fR\fIinput\fR,
+-     \fBunsigned int\fR \fIinlen\fR);
++     \fBsize_t\fR \fIinlen\fR);
+ .fi
+ 
+ .LP
+@@ -89,10 +89,10 @@ buffer that will contain the result of the \fBMD4\fR digest.
+ 
+ int
+ AuthenticateMsg(unsigned char *auth_buffer, struct iovec
+-                *messageIov, unsigned int num_buffers)
++                *messageIov, size_t num_buffers)
+ {
+     MD4_CTX ctx;
+-    unsigned int i;
++    size_t i;
+ 
+     MD4Init(&ctx);
+ 
+diff --git a/usr/src/man/man3ext/sha1.3ext b/usr/src/man/man3ext/sha1.3ext
+index 73fd624465..3b2ab80443 100644
+--- a/usr/src/man/man3ext/sha1.3ext
++++ b/usr/src/man/man3ext/sha1.3ext
+@@ -3,7 +3,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH SHA1 3EXT "Nov 13, 2007"
++.TH SHA1 3EXT "Feb 28, 2024"
+ .SH NAME
+ sha1, SHA1Init, SHA1Update, SHA1Final \- SHA1 digest functions
+ .SH SYNOPSIS
+@@ -18,7 +18,7 @@ sha1, SHA1Init, SHA1Update, SHA1Final \- SHA1 digest functions
+ .LP
+ .nf
+ \fBvoid\fR \fBSHA1Update\fR(\fBSHA1_CTX *\fR\fIcontext\fR, \fBunsigned char *\fR\fIinput\fR,
+-     \fBunsigned int\fR \fIinlen\fR);
++     \fBsize_t\fR \fIinlen\fR);
+ .fi
+ 
+ .LP
+@@ -93,10 +93,10 @@ contain the result of the \fBSHA1\fR digest.
+ 
+ int
+ AuthenticateMsg(unsigned char *auth_buffer, struct iovec
+-                *messageIov, unsigned int num_buffers)
++                *messageIov, size_t num_buffers)
+ {
+     SHA1_CTX sha1_context;
+-    unsigned int i;
++    size_t i;
+ 
+     SHA1Init(&sha1_context);
+ 
+diff --git a/usr/src/man/man3ext/sha2.3ext b/usr/src/man/man3ext/sha2.3ext
+index 49ba7c269e..c6273ac74f 100644
+--- a/usr/src/man/man3ext/sha2.3ext
++++ b/usr/src/man/man3ext/sha2.3ext
+@@ -4,7 +4,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH SHA2 3EXT "Sep 10, 2018"
++.TH SHA2 3EXT "Feb 28, 2024"
+ .SH NAME
+ sha2, SHA2Init, SHA2Update, SHA2Final, SHA256Init, SHA256Update, SHA256Final,
+ SHA384Init, SHA384Update, SHA384Final, SHA512Init, SHA512Update, SHA512Final \-
+@@ -21,7 +21,7 @@ SHA2 digest functions
+ .LP
+ .nf
+ \fBvoid\fR \fBSHA2Update\fR(\fBSHA2_CTX *\fR\fIcontext\fR, \fBunsigned char *\fR\fIinput\fR,
+-     \fBunsigned int\fR \fIinlen\fR);
++     \fBsize_t\fR \fIinlen\fR);
+ .fi
+ 
+ .LP
+@@ -37,7 +37,7 @@ SHA2 digest functions
+ .LP
+ .nf
+ \fBvoid\fR \fBSHA256Update\fR(\fBSHA256_CTX *\fR\fIcontext\fR, \fBunsigned char *\fR\fIinput\fR,
+-     \fBunsigned int\fR \fIinlen\fR);
++     \fBsize_t\fR \fIinlen\fR);
+ .fi
+ 
+ .LP
+@@ -53,7 +53,7 @@ SHA2 digest functions
+ .LP
+ .nf
+ \fBvoid\fR \fBSHA384Update\fR(\fBSHA384_CTX *\fR\fIcontext\fR, \fBunsigned char *\fR\fIinput\fR,
+-     \fBunsigned int\fR \fIinlen\fR);
++     \fBsize_t\fR \fIinlen\fR);
+ .fi
+ 
+ .LP
+@@ -69,7 +69,7 @@ SHA2 digest functions
+ .LP
+ .nf
+ \fBvoid\fR \fBSHA512Update\fR(\fBSHA512_CTX *\fR\fIcontext\fR, \fBunsigned char *\fR\fIinput\fR,
+-     \fBunsigned int\fR \fIinlen\fR);
++     \fBsize_t\fR \fIinlen\fR);
+ .fi
+ 
+ .LP
+-- 
+2.43.2
+

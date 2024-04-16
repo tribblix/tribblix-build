@@ -1,0 +1,28 @@
+From 8921fdcfbfb8b373c7ffece11589a7bb081d2aea Mon Sep 17 00:00:00 2001
+From: rigzba21 <jonathan.velando01@gmail.com>
+Date: Tue, 20 Feb 2024 20:37:35 -0500
+Subject: [PATCH] 16311 ps: Inconsistant formatting of options in usage output
+ Reviewed by: Bill Sommerfeld <sommerfeld@hamachi.org> Reviewed by: Marco van
+ Wieringen <marco.van.wieringen@planets.elm.net> Approved by: Dan McDonald
+ <danmcd@mnx.io>
+
+---
+ usr/src/cmd/ps/ps.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/usr/src/cmd/ps/ps.c b/usr/src/cmd/ps/ps.c
+index c6e3f250ff..04b307dec4 100644
+--- a/usr/src/cmd/ps/ps.c
++++ b/usr/src/cmd/ps/ps.c
+@@ -1069,7 +1069,7 @@ usage(void)		/* print usage message and quit */
+ 	static char usage3[] =
+ 	    "\t[ -p proclist ] [ -g pgrplist ] [ -s sidlist ]";
+ 	static char usage4[] =
+-	    "\t[ -z zonelist ] [-h lgrplist]";
++	    "\t[ -z zonelist ] [ -h lgrplist ]";
+ 	static char usage5[] =
+ 	    "  'format' is one or more of:";
+ 
+-- 
+2.43.2
+

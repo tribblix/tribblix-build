@@ -1,0 +1,417 @@
+From 14247eb6021ea270e0af749dc79eb5bec64631f2 Mon Sep 17 00:00:00 2001
+From: Bill Sommerfeld <sommerfeld@hamachi.org>
+Date: Wed, 20 Dec 2023 10:46:55 -0800
+Subject: [PATCH] 15667 libc regcomp/regexec show pathological behavior for
+ "warn:|warning:" Reviewed by: Robert Mustacchi <rm+illumos@fingolfin.org>
+ Approved by: Gordon Ross <gordon.w.ross@gmail.com>
+
+---
+ usr/src/lib/libc/port/regex/engine.c  | 15 ++++++-----
+ usr/src/lib/libc/port/regex/regcomp.c | 37 +++++++++++++++++++--------
+ usr/src/lib/libc/port/regex/regex2.h  | 20 ++++++++-------
+ usr/src/lib/libc/port/regex/regexec.c |  8 +++++-
+ usr/src/lib/libc/port/regex/regfree.c |  5 ----
+ usr/src/lib/libc/port/regex/utils.h   |  3 ++-
+ usr/src/man/man3c/regcomp.3c          | 19 ++++++++++++--
+ 7 files changed, 71 insertions(+), 36 deletions(-)
+
+diff --git a/usr/src/lib/libc/port/regex/engine.c b/usr/src/lib/libc/port/regex/engine.c
+index f9d4f5f587..ef40254b9c 100644
+--- a/usr/src/lib/libc/port/regex/engine.c
++++ b/usr/src/lib/libc/port/regex/engine.c
+@@ -1,4 +1,5 @@
+ /*
++ * Copyright 2023 Bill Sommerfeld <sommerfeld@hamachi.org>
+  * Copyright 2019 Nexenta by DDN, Inc. All rights reserved.
+  * Copyright 2012 Milan Jurik. All rights reserved.
+  * Copyright (c) 2016 by Delphix. All rights reserved.
+@@ -149,19 +150,19 @@ static const char *pchar(int ch);
+  * from current position pointed to by cur.
+  */
+ static const char *
+-stepback(const char *start, const char *cur, int nchar)
++stepback(const char *start, const char *cur, int nchar, unsigned int max)
+ {
+ 	const char *ret;
+ 	int wc, mbc;
+ 	mbstate_t mbs;
+ 	size_t clen;
+ 
+-	if (MB_CUR_MAX == 1)
++	if (max == 1)
+ 		return ((cur - nchar) > start ? cur - nchar : NULL);
+ 
+ 	ret = cur;
+ 	for (wc = nchar; wc > 0; wc--) {
+-		for (mbc = 1; mbc <= MB_CUR_MAX; mbc++) {
++		for (mbc = 1; mbc <= max; mbc++) {
+ 			if ((ret - mbc) < start)
+ 				return (NULL);
+ 			memset(&mbs, 0, sizeof (mbs));
+@@ -169,7 +170,7 @@ stepback(const char *start, const char *cur, int nchar)
+ 			if (clen != (size_t)-1 && clen != (size_t)-2)
+ 				break;
+ 		}
+-		if (mbc > MB_CUR_MAX)
++		if (mbc > max)
+ 			return (NULL);
+ 		ret -= mbc;
+ 	}
+@@ -282,7 +283,7 @@ matcher(struct re_guts *g, const char *string, size_t nmatch,
+ 	if (dp != NULL && g->moffset > -1) {
+ 		const char *nstart;
+ 
+-		nstart = stepback(start, dp, g->moffset);
++		nstart = stepback(start, dp, g->moffset, g->mb_cur_max);
+ 		if (nstart != NULL)
+ 			start = nstart;
+ 	}
+@@ -632,7 +633,7 @@ backref(struct match *m, const char *start, const char *stop, sopno startst,
+ 				return (NULL);
+ 			cs = &m->g->sets[OPND(s)];
+ 			sp += XMBRTOWC(&wc, sp, stop - sp, &m->mbs, BADCHAR);
+-			if (wc == BADCHAR || !CHIN(cs, wc))
++			if (wc == BADCHAR || !CHIN(NC_ENGINE, cs, wc))
+ 				return (NULL);
+ 			break;
+ 		case OBOL:
+@@ -950,7 +951,7 @@ step(struct re_guts *g,
+ 			break;
+ 		case OANYOF:
+ 			cs = &g->sets[OPND(s)];
+-			if (!NONCHAR(ch) && CHIN(cs, ch))
++			if (!NONCHAR(ch) && CHIN(NC_ENGINE, cs, ch))
+ 				FWD(aft, bef, 1);
+ 			break;
+ 		case OBACK_:		/* ignored here */
+diff --git a/usr/src/lib/libc/port/regex/regcomp.c b/usr/src/lib/libc/port/regex/regcomp.c
+index c0cafc3e9e..0c963a0263 100644
+--- a/usr/src/lib/libc/port/regex/regcomp.c
++++ b/usr/src/lib/libc/port/regex/regcomp.c
+@@ -87,6 +87,7 @@ struct parse {
+ 	sopno ssize;		/* malloced strip size (allocated) */
+ 	sopno slen;		/* malloced strip length (used) */
+ 	int ncsalloc;		/* number of csets allocated */
++	wint_t nc;		/* size of small-char bitmap in cset */
+ 	struct re_guts *g;
+ #define	NPAREN	10		/* we need to remember () 1-9 for back refs */
+ 	sopno pbegin[NPAREN];	/* -> ( ([0] unused) */
+@@ -133,7 +134,7 @@ static void freeset(struct parse *p, cset *cs);
+ static void CHadd(struct parse *p, cset *cs, wint_t ch);
+ static void CHaddrange(struct parse *p, cset *cs, wint_t min, wint_t max);
+ static void CHaddtype(struct parse *p, cset *cs, wctype_t wct);
+-static wint_t singleton(cset *cs);
++static wint_t singleton(struct parse *p, cset *cs);
+ static sopno dupl(struct parse *p, sopno start, sopno finish);
+ static void doemit(struct parse *p, sop op, size_t opnd);
+ static void doinsert(struct parse *p, sop op, size_t opnd, sopno pos);
+@@ -211,6 +212,19 @@ regcomp(regex_t *_RESTRICT_KYWD preg, const char *_RESTRICT_KYWD pattern,
+ #define	GOODFLAGS(f)	((f)&~REG_DUMP)
+ #endif
+ 
++	/*
++	 * Which character values are kept in cset bitmaps?
++	 *
++	 * Character sets store their members as a bitmap (for low-codepoint
++	 * characters) or as elements of an array; pa.nc sets the dividing
++	 * point between them.
++	 *
++	 * The value of MB_CUR_MAX depends on the current locale; fetching the
++	 * current locale can be expensive, so we pick a value now and stick
++	 * with it for the lifetime of the compiled regex.
++	 */
++	pa.nc = ((MB_CUR_MAX) == 1 ? (NC_MAX) : (NC_WIDE));
++
+ 	/* We had REG_INVARG, but we don't have that on Solaris. */
+ 	cflags = GOODFLAGS(cflags);
+ 	if ((cflags&REG_EXTENDED) && (cflags&REG_NOSPEC))
+@@ -227,6 +241,7 @@ regcomp(regex_t *_RESTRICT_KYWD preg, const char *_RESTRICT_KYWD pattern,
+ 	g = (struct re_guts *)malloc(sizeof (struct re_guts));
+ 	if (g == NULL)
+ 		return (REG_ESPACE);
++	g->mb_cur_max = MB_CUR_MAX;
+ 	/*
+ 	 * Limit the pattern space to avoid a 32-bit overflow on buffer
+ 	 * extension.  Also avoid any signed overflow in case of conversion
+@@ -869,7 +884,7 @@ p_bracket(struct parse *p)
+ 	if (cs->invert && p->g->cflags&REG_NEWLINE)
+ 		cs->bmp['\n' >> 3] |= 1 << ('\n' & 7);
+ 
+-	if ((ch = singleton(cs)) != OUT) {	/* optimize singleton sets */
++	if ((ch = singleton(p, cs)) != OUT) {	/* optimize singleton sets */
+ 		ordinary(p, ch);
+ 		freeset(p, cs);
+ 	} else
+@@ -1284,7 +1299,7 @@ freeset(struct parse *p, cset *cs)
+  * returning it if so, otherwise returning OUT.
+  */
+ static wint_t
+-singleton(cset *cs)
++singleton(struct parse *p, cset *cs)
+ {
+ 	wint_t i, s, n;
+ 
+@@ -1296,8 +1311,8 @@ singleton(cset *cs)
+ 		return (OUT);
+ 
+ 	/* Count the number of characters present in the bitmap */
+-	for (i = n = 0; i < NC; i++)
+-		if (CHIN(cs, i)) {
++	for (i = n = 0; i < p->nc; i++)
++		if (CHIN(p->nc, cs, i)) {
+ 			n++;
+ 			s = i;
+ 		}
+@@ -1325,7 +1340,7 @@ CHadd(struct parse *p, cset *cs, wint_t ch)
+ {
+ 	wint_t nch, *newwides;
+ 	assert(ch >= 0);
+-	if (ch < NC)
++	if (ch < p->nc)
+ 		cs->bmp[ch >> 3] |= 1 << (ch & 7);
+ 	else {
+ 		newwides = realloc(cs->wides, (cs->nwides + 1) *
+@@ -1338,9 +1353,9 @@ CHadd(struct parse *p, cset *cs, wint_t ch)
+ 		cs->wides[cs->nwides++] = ch;
+ 	}
+ 	if (cs->icase) {
+-		if ((nch = towlower(ch)) < NC)
++		if ((nch = towlower(ch)) < p->nc)
+ 			cs->bmp[nch >> 3] |= 1 << (nch & 7);
+-		if ((nch = towupper(ch)) < NC)
++		if ((nch = towupper(ch)) < p->nc)
+ 			cs->bmp[nch >> 3] |= 1 << (nch & 7);
+ 	}
+ }
+@@ -1353,7 +1368,7 @@ CHaddrange(struct parse *p, cset *cs, wint_t min, wint_t max)
+ {
+ 	crange *newranges;
+ 
+-	for (; min < NC && min <= max; min++)
++	for (; min < p->nc && min <= max; min++)
+ 		CHadd(p, cs, min);
+ 	if (min >= max)
+ 		return;
+@@ -1378,7 +1393,7 @@ CHaddtype(struct parse *p, cset *cs, wctype_t wct)
+ 	wint_t i;
+ 	wctype_t *newtypes;
+ 
+-	for (i = 0; i < NC; i++)
++	for (i = 0; i < p->nc; i++)
+ 		if (iswctype(i, wct))
+ 			CHadd(p, cs, i);
+ 	newtypes = realloc(cs->types, (cs->ntypes + 1) *
+@@ -1557,7 +1572,7 @@ findmust(struct parse *p, struct re_guts *g)
+ 	 * multibyte character strings, but it's safe for at least
+ 	 * UTF-8 (see RFC 3629).
+ 	 */
+-	if (MB_CUR_MAX > 1 &&
++	if (g->mb_cur_max > 1 &&
+ 	    strcmp(loc->runelocale->__encoding, "UTF-8") != 0)
+ 		return;
+ 
+diff --git a/usr/src/lib/libc/port/regex/regex2.h b/usr/src/lib/libc/port/regex/regex2.h
+index dafc8dccc4..c1a5ffb0cb 100644
+--- a/usr/src/lib/libc/port/regex/regex2.h
++++ b/usr/src/lib/libc/port/regex/regex2.h
+@@ -1,4 +1,5 @@
+ /*
++ * Copyright 2023 Bill Sommerfeld <sommerfeld@hamachi.org>
+  * Copyright (c) 1992, 1993, 1994 Henry Spencer.
+  * Copyright (c) 1992, 1993, 1994
+  *	The Regents of the University of California.  All rights reserved.
+@@ -119,13 +120,13 @@ typedef struct {
+ 	int		icase;
+ } cset;
+ 
+-static int
+-CHIN1(cset *cs, wint_t ch)
++static inline int
++CHIN1(int nc, cset *cs, wint_t ch)
+ {
+ 	unsigned int i;
+ 
+ 	assert(ch >= 0);
+-	if (ch < NC)
++	if (ch < nc)
+ 		return (((cs->bmp[ch >> 3] & (1 << (ch & 7))) != 0) ^
+ 		    cs->invert);
+ 	for (i = 0; i < cs->nwides; i++) {
+@@ -145,19 +146,19 @@ CHIN1(cset *cs, wint_t ch)
+ 	return (cs->invert);
+ }
+ 
+-static int
+-CHIN(cset *cs, wint_t ch)
++static inline int
++CHIN(int nc, cset *cs, wint_t ch)
+ {
+ 
+ 	assert(ch >= 0);
+-	if (ch < NC)
++	if (ch < nc)
+ 		return (((cs->bmp[ch >> 3] & (1 << (ch & 7))) != 0) ^
+ 		    cs->invert);
+ 	else if (cs->icase)
+-		return (CHIN1(cs, ch) || CHIN1(cs, towlower(ch)) ||
+-		    CHIN1(cs, towupper(ch)));
++		return (CHIN1(nc, cs, ch) || CHIN1(nc, cs, towlower(ch)) ||
++		    CHIN1(nc, cs, towupper(ch)));
+ 	else
+-		return (CHIN1(cs, ch));
++		return (CHIN1(nc, cs, ch));
+ }
+ 
+ /*
+@@ -187,6 +188,7 @@ struct re_guts {
+ 	size_t nsub;		/* copy of re_nsub */
+ 	int backrefs;		/* does it use back references? */
+ 	sopno nplus;		/* how deep does it nest +s? */
++	unsigned int mb_cur_max;
+ };
+ 
+ /* misc utilities */
+diff --git a/usr/src/lib/libc/port/regex/regexec.c b/usr/src/lib/libc/port/regex/regexec.c
+index 4d697f71df..8614257adc 100644
+--- a/usr/src/lib/libc/port/regex/regexec.c
++++ b/usr/src/lib/libc/port/regex/regexec.c
+@@ -1,4 +1,5 @@
+ /*
++ * Copyright 2023 Bill Sommerfeld <sommerfeld@hamachi.org>
+  * Copyright 2010 Nexenta Systems, Inc.  All rights reserved.
+  * Copyright (c) 1992, 1993, 1994 Henry Spencer.
+  * Copyright (c) 1992, 1993, 1994
+@@ -109,6 +110,7 @@ xmbrtowc_dummy(wint_t *wi, const char *s, size_t n __unused,
+ /* no multibyte support */
+ #define	XMBRTOWC	xmbrtowc_dummy
+ #define	ZAPSTATE(mbs)	((void)(mbs))
++#define	NC_ENGINE NC_MAX
+ /* function names */
+ #define	SNAMES			/* engine.c looks after details */
+ 
+@@ -136,6 +138,7 @@ xmbrtowc_dummy(wint_t *wi, const char *s, size_t n __unused,
+ #undef	SNAMES
+ #undef	XMBRTOWC
+ #undef	ZAPSTATE
++#undef	NC_ENGINE
+ 
+ /* macros for manipulating states, large version */
+ #define	states	char *
+@@ -164,6 +167,7 @@ xmbrtowc_dummy(wint_t *wi, const char *s, size_t n __unused,
+ /* no multibyte support */
+ #define	XMBRTOWC	xmbrtowc_dummy
+ #define	ZAPSTATE(mbs)	((void)(mbs))
++#define	NC_ENGINE NC_MAX
+ /* function names */
+ #define	LNAMES			/* flag */
+ 
+@@ -173,7 +177,9 @@ xmbrtowc_dummy(wint_t *wi, const char *s, size_t n __unused,
+ #undef	LNAMES
+ #undef	XMBRTOWC
+ #undef	ZAPSTATE
++#undef	NC_ENGINE
+ #define	XMBRTOWC	xmbrtowc
++#define	NC_ENGINE NC_WIDE
+ #define	ZAPSTATE(mbs)	(void) memset((mbs), 0, sizeof (*(mbs)))
+ #define	MNAMES
+ 
+@@ -208,7 +214,7 @@ regexec(const regex_t *_RESTRICT_KYWD preg, const char *_RESTRICT_KYWD string,
+ 		return (REG_BADPAT);
+ 	eflags = GOODFLAGS(eflags);
+ 
+-	if (MB_CUR_MAX > 1)
++	if (g->mb_cur_max > 1)
+ 		return (mmatcher(g, string, nmatch, pmatch, eflags));
+ 	else if (g->nstates <= CHAR_BIT*sizeof (states1) && !(eflags&REG_LARGE))
+ 		return (smatcher(g, string, nmatch, pmatch, eflags));
+diff --git a/usr/src/lib/libc/port/regex/regfree.c b/usr/src/lib/libc/port/regex/regfree.c
+index 0e84f0d8cc..108d3387af 100644
+--- a/usr/src/lib/libc/port/regex/regfree.c
++++ b/usr/src/lib/libc/port/regex/regfree.c
+@@ -54,11 +54,6 @@ regfree(regex_t *preg)
+ 	struct re_guts *g;
+ 	int i;
+ 
+-#ifdef	__lint
+-	/* shut up lint! */
+-	CHIN(NULL, 0);
+-#endif
+-
+ 	if (preg->re_magic != MAGIC1)	/* oops */
+ 		return;			/* nice to complain, but hard */
+ 
+diff --git a/usr/src/lib/libc/port/regex/utils.h b/usr/src/lib/libc/port/regex/utils.h
+index a1e34f3d75..08168d31bc 100644
+--- a/usr/src/lib/libc/port/regex/utils.h
++++ b/usr/src/lib/libc/port/regex/utils.h
+@@ -1,4 +1,5 @@
+ /*
++ * Copyright 2023 Bill Sommerfeld <sommerfeld@hamachi.org>
+  * Copyright 2019 Nexenta by DDN, Inc. All rights reserved.
+  * Copyright (c) 1992, 1993, 1994 Henry Spencer.
+  * Copyright (c) 1992, 1993, 1994
+@@ -37,7 +38,7 @@
+ #define	INFINITY	(DUPMAX + 1)
+ 
+ #define	NC_MAX		(CHAR_MAX - CHAR_MIN + 1)
+-#define	NC		((MB_CUR_MAX) == 1 ? (NC_MAX) : (128))
++#define	NC_WIDE		(128)
+ typedef unsigned char uch;
+ 
+ /* switch off assertions (if not already off) if no REDEBUG */
+diff --git a/usr/src/man/man3c/regcomp.3c b/usr/src/man/man3c/regcomp.3c
+index bc6c8d3126..39143e0bef 100644
+--- a/usr/src/man/man3c/regcomp.3c
++++ b/usr/src/man/man3c/regcomp.3c
+@@ -74,7 +74,7 @@
+ .\" Portions Copyright (c) 2003, Sun Microsystems, Inc.  All Rights Reserved.
+ .\" Copyright 2017 Nexenta Systems, Inc.
+ .\"
+-.Dd June 14, 2017
++.Dd December 26, 2023
+ .Dt REGCOMP 3C
+ .Os
+ .Sh NAME
+@@ -120,6 +120,14 @@ and
+ frees any dynamically-allocated storage used by the internal form
+ of an RE.
+ .Pp
++The translation of an RE into the internal form contained in a
++.Ft regex_t
++is inherently locale-specific; changes to the locale in effect between
++.Fn regcomp
++and subsequent calls to
++.Fn regexec
++may result in unexpected or undefined behavior.
++.Pp
+ The header
+ .In regex.h
+ declares two structure types,
+@@ -244,6 +252,10 @@ The RE must have been compiled by a previous invocation of
+ The compiled form is not altered during execution of
+ .Fn regexec ,
+ so a single compiled RE can be used simultaneously by multiple threads.
++The locale in effect at the time of
++.Fn regexec
++must be the same as the one in effect when the RE was compiled by
++.Fn regcomp .
+ .Pp
+ By default, the NUL-terminated string pointed to by
+ .Fa string
+@@ -748,9 +760,12 @@ The
+ .Fn regcomp
+ function can be used safely in a multithreaded application as long as
+ .Xr setlocale 3C
+-is not being called to change the locale.
++or
++.Xr uselocale 3C
++are not being called to change the locale.
+ .Sh SEE ALSO
+ .Xr attributes 7 ,
++.Xr locale 7 ,
+ .Xr regex 7 ,
+ .Xr standards 7
+ .Pp
+-- 
+2.43.2
+

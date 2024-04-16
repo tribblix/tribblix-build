@@ -42676,7 +42676,7 @@ diff --git a/usr/src/pkg/manifests/system-library.mf b/usr/src/pkg/manifests/sys
 index 4c50a4dd9c22..c133104787ef 100644
 --- a/usr/src/pkg/manifests/system-library.mf
 +++ b/usr/src/pkg/manifests/system-library.mf
-@@ -77,678 +77,328 @@
+@@ -77,680 +77,328 @@
  <include system-library.man5.inc>
  <include system-library.man7p.inc>
  set name=pkg.fmri value=pkg:/system/library@$(PKGVERS)
@@ -42981,6 +42981,7 @@ index 4c50a4dd9c22..c133104787ef 100644
 -file path=usr/lib/$(ARCH64)/libpkcs11.so.1
 -file path=usr/lib/$(ARCH64)/libproject.so.1
 -file path=usr/lib/$(ARCH64)/libraidcfg.so.1
+-file path=usr/lib/$(ARCH64)/librename.so.1
 -file path=usr/lib/$(ARCH64)/libreparse.so.1
 -$(i386_ONLY)file path=usr/lib/$(ARCH64)/libsaveargs.so.1
 -file path=usr/lib/$(ARCH64)/libsched.so.1
@@ -43054,6 +43055,7 @@ index 4c50a4dd9c22..c133104787ef 100644
 -file path=usr/lib/libpkcs11.so.1
 -file path=usr/lib/libproject.so.1
 -file path=usr/lib/libraidcfg.so.1
+-file path=usr/lib/librename.so.1
 -file path=usr/lib/libreparse.so.1
 -file path=usr/lib/libsched.so.1
 -file path=usr/lib/libsctp.so.1
@@ -43737,7 +43739,7 @@ index 4c50a4dd9c22..c133104787ef 100644
  link path=usr/lib/$(ARCH64)/libposix4.so \
      target=../../../lib/$(ARCH64)/librt.so.1
  link path=usr/lib/$(ARCH64)/libposix4.so.1 \
-@@ -932,15 +600,17 @@ link path=usr/lib/$(ARCH64)/libproc.so \
+@@ -932,15 +600,18 @@ link path=usr/lib/$(ARCH64)/libproc.so \
  link path=usr/lib/$(ARCH64)/libproc.so.1 \
      target=../../../lib/$(ARCH64)/libproc.so.1
  link path=usr/lib/$(ARCH64)/libproject.so target=libproject.so.1
@@ -43752,6 +43754,7 @@ index 4c50a4dd9c22..c133104787ef 100644
 +link path=usr/lib/$(ARCH64)/librcm.so target=../../../lib/$(ARCH64)/librcm.so.1
  link path=usr/lib/$(ARCH64)/librcm.so.1 \
      target=../../../lib/$(ARCH64)/librcm.so.1
++file path=usr/lib/$(ARCH64)/librename.so.1
  link path=usr/lib/$(ARCH64)/libreparse.so target=libreparse.so.1
 +file path=usr/lib/$(ARCH64)/libreparse.so.1
  link path=usr/lib/$(ARCH64)/libresolv.so \
@@ -43982,7 +43985,7 @@ index 4c50a4dd9c22..c133104787ef 100644
  link path=usr/lib/libnsl.so target=../../lib/libnsl.so.1
  link path=usr/lib/libnsl.so.1 target=../../lib/libnsl.so.1
  link path=usr/lib/libnvpair.so target=../../lib/libnvpair.so.1
-@@ -1157,17 +897,23 @@ link path=usr/lib/libnvpair.so.1 target=../../lib/libnvpair.so.1
+@@ -1157,17 +897,24 @@ link path=usr/lib/libnvpair.so.1 target=../../lib/libnvpair.so.1
  link path=usr/lib/libpam.so target=../../lib/libpam.so.1
  link path=usr/lib/libpam.so.1 target=../../lib/libpam.so.1
  link path=usr/lib/libpanel.so target=./libpanel.so.1
@@ -44001,6 +44004,7 @@ index 4c50a4dd9c22..c133104787ef 100644
 +file path=usr/lib/libraidcfg.so.1
  link path=usr/lib/librcm.so target=../../lib/librcm.so.1
  link path=usr/lib/librcm.so.1 target=../../lib/librcm.so.1
++file path=usr/lib/librename.so.1
  link path=usr/lib/libreparse.so target=./libreparse.so.1
 +file path=usr/lib/libreparse.so.1
  link path=usr/lib/libresolv.so target=../../lib/libresolv.so.2
