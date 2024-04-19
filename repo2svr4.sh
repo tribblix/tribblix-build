@@ -34,6 +34,12 @@ QUICKMODE=""
 export PATH=/usr/bin:/usr/sbin:/sbin:/usr/gnu/bin
 
 #
+# packages should have consistent times
+#
+TZ=UTC
+export TZ
+
+#
 # locations and variables should be passed as arguments
 #
 while getopts "QV:T:G:D:R:S:" opt; do
