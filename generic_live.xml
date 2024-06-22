@@ -26,7 +26,7 @@
 -->
 <service_bundle type='profile' name='generic_live'>
   <!--
-      svc.startd(1M) services
+      svc.startd(8) services
   -->
   <service name='system/boot-archive-update' version='1' type='service'>
     <instance name='default' enabled='false'/>
