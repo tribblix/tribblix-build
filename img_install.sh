@@ -172,18 +172,6 @@ NEWBE="tribblix-${RELEASE}"
 IMGTMP="/var/tmp/${NEWBE}.archive"
 IMGSRC="${DLHOST}/${RELEASE}/platform/i86pc/boot_archive"
 case $RELEASE in
-    m30)
-	IMGSUM="328d858dc6d782f7db163167ebc75f450b7fd90f"
-	;;
-    m30lx)
-	IMGSUM="8b0e79aa14293315317b20d108a6ae5309e73f90"
-	;;
-    m31)
-	IMGSUM="30bc450a3aea01eb50c8fa5625fa69231a5c427a"
-	;;
-    m31lx)
-	IMGSUM="fba19239806ed28e87f0251ebd677d7d5362369a"
-	;;
     m32)
 	IMGSUM="a194e5003e948b8ef9c8ea8153f65ad42c6d57d8"
 	;;
