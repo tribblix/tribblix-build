@@ -42,7 +42,7 @@ sparc)
 esac
 
 #
-# allow MRSIZE to be overriden
+# allow MRSIZE to be overridden
 # -M new_size
 #
 while getopts "M:" opt; do

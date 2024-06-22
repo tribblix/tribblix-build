@@ -1,5 +1,7 @@
 #!/bin/sh
 #
+# SPDX-License-Identifier: CDDL-1.0
+#
 # {{{ CDDL HEADER
 #
 # This file and its contents are supplied under the terms of the
@@ -44,7 +46,7 @@ sparc)
 esac
 
 #
-# allow MRSIZE to be overriden
+# allow MRSIZE to be overridden
 # -M new_size
 #
 while getopts "M:" opt; do
@@ -200,7 +202,7 @@ tar cf - bin/cat bin/head bin/${XARCH}/ksh93 bin/ls bin/sh sbin/lofiadm \
         lib/libsmbios.so lib/libsmbios.so.1 | ( cd ${BFS}/usr ; tar xf -)
 cd $BFS
 ln -s usr/bin bin
-strip usr/bin/* usr/sbin/* usr/lib/* 
+strip usr/bin/* usr/sbin/* usr/lib/*
 mkdir -p dev/fd devices/pseudo opt var var/run mnt
 /usr/sbin/devfsadm -r ${BFS}
 #

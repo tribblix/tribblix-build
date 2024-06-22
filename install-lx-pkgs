@@ -23,7 +23,7 @@ DESTDIR=/export/tribblix/dist
 INSTZAP=/usr/lib/zap/instzap
 DRYRUN=""
 ECHO="echo"
-OVLIST="core-tribblix base-iso"
+OVLIST="core-tribblix base-cloud"
 
 #
 # flags

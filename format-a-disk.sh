@@ -1,5 +1,7 @@
 #!/bin/sh
 #
+# SPDX-License-Identifier: CDDL-1.0
+#
 # {{{ CDDL HEADER
 #
 # This file and its contents are supplied under the terms of the
@@ -13,7 +15,7 @@
 #
 # }}}
 #
-# Copyright 2023 Peter Tribble
+# Copyright 2024 Peter Tribble
 #
 
 #
@@ -23,7 +25,6 @@
 
 #
 # we want two slices - 8, and 0, plus slice 2
-# slice 0 starts at the sector count for 
 #
 
 PRTVTOC=/usr/sbin/prtvtoc

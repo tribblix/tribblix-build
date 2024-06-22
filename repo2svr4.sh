@@ -1,5 +1,7 @@
 #!/bin/ksh
 #
+# SPDX-License-Identifier: CDDL-1.0
+#
 # {{{ CDDL HEADER
 #
 # This file and its contents are supplied under the terms of the
@@ -115,7 +117,7 @@ fi
 # 3. Copy all relevant files into target directory hierarchy, using
 #    manifest to map pathnames and build the prototype file as we go
 # 4. create a pkginfo file from manifest or manifest.legacy (if it exists)
-# 5. Create install/depend from depend actions in the manifest, 
+# 5. Create install/depend from depend actions in the manifest,
 #    ignoring incorporations
 # 7. run pkgmk
 #
@@ -1236,7 +1238,7 @@ echo "i pkginfo=./pkginfo" >> ${BDIR}/prototype
 #
 cat $MANIFEST |
 {
-while read directive line ; 
+while read directive line ;
 do
 case $directive in
 dir)

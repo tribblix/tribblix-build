@@ -1,5 +1,7 @@
 #!/bin/sh
 #
+# SPDX-License-Identifier: CDDL-1.0
+#
 # {{{ CDDL HEADER
 #
 # This file and its contents are supplied under the terms of the
@@ -238,7 +240,7 @@ if [ -n "${BFLAG}" -a -n "${GFLAG}" ]; then
 fi
 
 #
-# if we have a drive list at this point, it must be from cardigan or raidz, 
+# if we have a drive list at this point, it must be from cardigan or raidz,
 # so check the list for validity
 #
 if [ -n "$DRIVELIST" ]; then

@@ -1,5 +1,7 @@
 #!/bin/sh
 #
+# SPDX-License-Identifier: CDDL-1.0
+#
 # {{{ CDDL HEADER
 #
 # This file and its contents are supplied under the terms of the
@@ -278,7 +280,7 @@ fi
 # at this point we should have a valid image
 #
 SMFREPODIR="${AFMNT}/usr/lib/zap"
-  
+
 #
 # use the existing pool
 #
