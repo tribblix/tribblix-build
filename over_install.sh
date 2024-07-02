@@ -1,5 +1,7 @@
 #!/bin/sh
 #
+# SPDX-License-Identifier: CDDL-1.0
+#
 # {{{ CDDL HEADER
 #
 # This file and its contents are supplied under the terms of the
@@ -50,7 +52,7 @@ DOMAINNAME=""
 BEGIN_SCRIPT=""
 FINISH_SCRIPT=""
 FIRSTBOOT_SCRIPT=""
-NEWBE="tribblix-m34"
+NEWBE="tribblix-m35"
 NFLAG=""
 
 FSTYPE="ZFS"
@@ -375,7 +377,7 @@ echo "Setting up boot"
 
 # new loader
 /usr/bin/cat > /${ROOTPOOL}/boot/menu.lst << _EOF
-title Tribblix 0.34
+title Tribblix 0.35
 bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 _EOF
 
