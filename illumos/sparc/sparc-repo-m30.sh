@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# this script reproduces the m29 sparc repo
+# this script reproduces the m30 sparc repo
 #
 # WORK IN PROGRESS
 #
