@@ -205,6 +205,8 @@ if [ ! -f ${BDIR}/install/postinstall ]; then
 cat > ${BDIR}/install/postinstall <<EOF
 #!/sbin/sh
 #
+# SPDX-License-Identifier: CDDL-1.0
+#
 # Automatically generated driver install script
 #
 CMD=/usr/sbin/add_drv
@@ -216,6 +218,8 @@ fi
 EOF
 cat > ${BDIR}/install/postremove <<EOF
 #!/sbin/sh
+#
+# SPDX-License-Identifier: CDDL-1.0
 #
 # Automatically generated driver remove script
 #
@@ -240,6 +244,8 @@ if [ ! -f ${BDIR}/install/i.preserve ]; then
 cat > ${BDIR}/install/i.preserve <<EOF
 #!/bin/sh
 #
+# SPDX-License-Identifier: CDDL-1.0
+#
 # simplistic class-action script for preserve
 # copies the new file iff it doesn't already exist
 #
@@ -257,6 +263,8 @@ fi
 if [ ! -f ${BDIR}/install/r.preserve ]; then
 cat > ${BDIR}/install/r.preserve <<EOF
 #!/bin/sh
+#
+# SPDX-License-Identifier: CDDL-1.0
 #
 # class-action script for preserve
 # retains the old file if it's been modified
@@ -310,11 +318,15 @@ if [ ! -f ${BDIR}/install/postinstall ]; then
 cat > ${BDIR}/install/postinstall <<EOF
 #!/sbin/sh
 #
+# SPDX-License-Identifier: CDDL-1.0
+#
 # Automatically generated service restart script
 #
 EOF
 cat > ${BDIR}/install/postremove <<EOF
 #!/sbin/sh
+#
+# SPDX-License-Identifier: CDDL-1.0
 #
 # Automatically generated service restart script
 #
