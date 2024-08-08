@@ -226,7 +226,6 @@ else
     BFLAGS="-b \${BASEDIR}"
 fi
 EOF
-chmod 0555 ${BDIR}/install/postremove ${BDIR}/install/postinstall
 echo "i postinstall=./install/postinstall" >> ${BDIR}/prototype
 echo "i postremove=./install/postremove" >> ${BDIR}/prototype
 fi
@@ -320,7 +319,6 @@ cat > ${BDIR}/install/postremove <<EOF
 # Automatically generated service restart script
 #
 EOF
-chmod 0555 ${BDIR}/install/postremove ${BDIR}/install/postinstall
 echo "i postinstall=./install/postinstall" >> ${BDIR}/prototype
 echo "i postremove=./install/postremove" >> ${BDIR}/prototype
 fi
@@ -1483,9 +1481,11 @@ handle_restarts
 #
 if [ -f ${BDIR}/install/postinstall ]; then
     echo "exit 0" >> ${BDIR}/install/postinstall
+    chmod 0555 ${BDIR}/install/postinstall
 fi
 if [ -f ${BDIR}/install/postremove ]; then
     echo "exit 0" >> ${BDIR}/install/postremove
+    chmod 0555 ${BDIR}/install/postremove
 fi
 
 #
