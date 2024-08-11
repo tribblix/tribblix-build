@@ -70,6 +70,11 @@ if [ ! -x $WCLIENT ]; then
     WARGS="-q --tries=6 --retry-connrefused --waitretry=2 -O"
 fi
 
+bail() {
+    echo "ERROR: $1"
+    exit 1
+}
+
 #
 # read an external configuration file, if supplied
 #
@@ -84,7 +89,7 @@ nfs*)
 	IPROFNAME=${IPROFILE##*/}
 	mount "$IPROFDIR" $TMPMNT
 	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
-	    . ${TMPMNT}/${IPROFNAME}
+	    . "${TMPMNT}/${IPROFNAME}"
 	fi
 	umount ${TMPMNT}
 	rmdir ${TMPMNT}
@@ -191,8 +196,7 @@ case $RELEASE in
 	IMGSUM="a093c62941db9fb347ec02d1644bc948b5ef9eb3"
 	;;
     *)
-	echo "Unrecognised release"
-	exit 1
+	bail "Unrecognised release"
 	;;
 esac
 
@@ -218,9 +222,7 @@ esac
 #
 case $1 in
 -*)
-	echo "ERROR: unexpected argument $*"
-	echo "(expecting overlays)"
-	exit 1
+	bail "unexpected argument $* (expecting overlays)"
 	;;
 esac
 
@@ -239,14 +241,12 @@ OVERLAYS="$OVERLAYS $*"
 if [ ! -f "$IMGTMP" ]; then
     ${WCLIENT} ${WARGS} "$IMGTMP" "$IMGSRC"
     if [ ! -f "$IMGTMP" ]; then
-	echo "Download failed, stopping"
-	exit 1
+	bail "Download failed, stopping"
     fi
 fi
 DLSUM=$(openssl sha1 "$IMGTMP" | awk '{print $NF}')
 if [ "X${IMGSUM}" != "X${DLSUM}" ]; then
-    echo "Download has wrong checksum, stopping"
-    exit 1
+    bail "Download has wrong checksum, stopping"
 fi
 #
 # now we have an image, mount it up and verify
@@ -281,6 +281,9 @@ SMFREPODIR="${AFMNT}/usr/lib/zap"
 OLDBE=$(/usr/sbin/zpool get -Hp -o value bootfs "${ROOTPOOL}")
 if [ -z "$OLDBE" ]; then
     echo "Pool ${ROOTPOOL} has no bootfs property, cannot use."
+    /usr/sbin/umount "$AFMNT"
+    /usr/sbin/lofiadm -d "$AFDEV"
+    rmdir "$AFMNT"
     exit 1
 fi
 
@@ -292,7 +295,7 @@ echo "Creating filesystems"
 # we copy from the image here, not from / as on the live system
 #
 echo "Copying main filesystems"
-cd "$AFMNT"
+cd "$AFMNT" || bail "cd to image failed"
 ZONELIB=""
 if [ -d zonelib ]; then
     ZONELIB="zonelib"
@@ -309,7 +312,7 @@ echo "Copying other filesystems"
 
 #
 echo "Adding extra directories"
-cd ${ALTROOT}
+cd ${ALTROOT} || bail "cd to alternate root failed"
 /usr/bin/ln -s ./usr/bin .
 /usr/bin/mkdir -m 1777 tmp
 /usr/bin/mkdir -p system/contract system/object system/boot proc mnt dev devices/pseudo
@@ -317,7 +320,7 @@ cd ${ALTROOT}
 /usr/bin/mkdir -p dev/sad dev/pts dev/term dev/vt dev/zcons
 /usr/bin/chgrp -R sys dev devices mnt
 /usr/bin/chmod 555 system system/* proc
-cd dev
+cd dev || bail "cd to dev in alternate root failed"
 /usr/bin/ln -s ./fd/2 stderr
 /usr/bin/ln -s ./fd/1 stdout
 /usr/bin/ln -s ./fd/0 stdin
@@ -328,7 +331,7 @@ cd /
 # the man pages might be compressed to save space
 #
 if [ -f ${ALTROOT}/usr/share/liveman.tar.bz2 ] ; then
-    cd ${ALTROOT}/usr/share
+    cd ${ALTROOT}/usr/share || bail "cd to usr/share in alternate root failed"
     bzcat liveman.tar.bz2 | tar xf -
     rm -f liveman.tar.bz2
     cd /
@@ -476,7 +479,7 @@ fi
 #
 # Copy /jack to the installed system
 #
-cd "$AFMNT"
+cd "$AFMNT" || bail "cd to image failed"
 find jack -print | cpio -pmud ${ALTROOT}
 /usr/bin/rm -f ${ALTROOT}/jack/.bash_history
 

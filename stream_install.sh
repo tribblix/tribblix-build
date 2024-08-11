@@ -42,7 +42,6 @@ NEWBE="tribblix"
 DRIVE1=""
 DRIVE2=""
 PKGLOC="/.cdrom/pkgs"
-SMFREPODIR="/usr/lib/zap"
 ALTROOT="/a"
 
 WCLIENT=/usr/bin/curl
@@ -55,8 +54,8 @@ fi
 #
 # read an external configuration file, if supplied
 #
-IPROFILE=`/sbin/devprop install_profile`
-if [ ! -z "$IPROFILE" ]; then
+IPROFILE=$(/sbin/devprop install_profile)
+if [ -n "$IPROFILE" ]; then
 REBOOT="yes"
 case $IPROFILE in
 nfs*)
@@ -64,9 +63,9 @@ nfs*)
 	mkdir -p ${TMPMNT}
 	IPROFDIR=${IPROFILE%/*}
 	IPROFNAME=${IPROFILE##*/}
-	mount $IPROFDIR $TMPMNT
-	if [ -f ${TMPMNT}/${IPROFNAME} ]; then
-	    . ${TMPMNT}/${IPROFNAME}
+	mount "$IPROFDIR" $TMPMNT
+	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
+	    . "${TMPMNT}/${IPROFNAME}"
 	fi
 	umount ${TMPMNT}
 	rmdir ${TMPMNT}
@@ -100,8 +99,8 @@ nfs*)
 	mkdir -p ${TMPMNT}
 	IPROFDIR=${BEGIN_SCRIPT%/*}
 	IPROFNAME=${BEGIN_SCRIPT##*/}
-	mount $IPROFDIR $TMPMNT
-	if [ -f ${TMPMNT}/${IPROFNAME} ]; then
+	mount "$IPROFDIR" $TMPMNT
+	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
 	    ${TMPMNT}/${IPROFNAME} > $BEGINF
 	fi
 	umount ${TMPMNT}
@@ -343,15 +342,15 @@ echo "Creating root pool"
 /usr/sbin/zpool create -f ${ZPOOLARGS} -o failmode=continue ${COMPRESSARGS} ${ROOTPOOL} $ZFSARGS $DRIVELIST
 
 echo "Creating filesystems"
-/usr/sbin/zfs create -o mountpoint=legacy ${ROOTPOOL}/ROOT
-/usr/sbin/zfs create -o mountpoint=${ALTROOT} ${ROOTPOOL}/ROOT/${NEWBE}
-/usr/sbin/zpool set bootfs=${ROOTPOOL}/ROOT/${NEWBE} ${ROOTPOOL}
+/usr/sbin/zfs create -o mountpoint=legacy "${ROOTPOOL}/ROOT"
+/usr/sbin/zfs create -o mountpoint=${ALTROOT} "${ROOTPOOL}/ROOT/${NEWBE}"
+/usr/sbin/zpool set bootfs="${ROOTPOOL}/ROOT/${NEWBE}" "${ROOTPOOL}"
 #
 # create swap area unless it's been explicitly disabled by setting
 # SWAPSIZE to the empty string
 #
 if [ -n "${SWAPSIZE}" ]; then
-    /usr/sbin/zfs create -V ${SWAPSIZE} -b 4k ${ROOTPOOL}/swap
+    /usr/sbin/zfs create -V "${SWAPSIZE}" -b 4k "${ROOTPOOL}/swap"
 fi
 #
 # only create dump device if DUMPSIZE has a value
@@ -359,8 +358,8 @@ fi
 # be copied to the installed system
 #
 if [ -n "${DUMPSIZE}" ]; then
-    /usr/sbin/zfs create -V ${DUMPSIZE} ${ROOTPOOL}/dump
-    /usr/sbin/dumpadm -c kernel -d /dev/zvol/dsk/${ROOTPOOL}/dump -y
+    /usr/sbin/zfs create -V "${DUMPSIZE}" "${ROOTPOOL}/dump"
+    /usr/sbin/dumpadm -c kernel -d /dev/zvol/dsk/"${ROOTPOOL}"/dump -y
 fi
 
 #
@@ -495,8 +494,8 @@ nfs*)
 	mkdir -p ${TMPMNT}
 	IPROFDIR=${FINISH_SCRIPT%/*}
 	IPROFNAME=${FINISH_SCRIPT##*/}
-	mount $IPROFDIR $TMPMNT
-	if [ -f ${TMPMNT}/${IPROFNAME} ]; then
+	mount "$IPROFDIR" $TMPMNT
+	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
 	    ${TMPMNT}/${IPROFNAME} ${ALTROOT}
 	fi
 	umount ${TMPMNT}
@@ -504,7 +503,7 @@ nfs*)
 	;;
 http*)
 	TMPF="/tmp/profile.$$"
-	${WCLIENT} ${WARGS} $TMPF $FINISH_SCRIPT
+	${WCLIENT} ${WARGS} $TMPF "$FINISH_SCRIPT"
 	if [ -s "$TMPF" ]; then
 	    chmod a+x $TMPF
 	    $TMPF ${ALTROOT}
@@ -534,8 +533,8 @@ nfs*)
 	mkdir -p ${TMPMNT}
 	IPROFDIR=${FIRSTBOOT_SCRIPT%/*}
 	IPROFNAME=${FIRSTBOOT_SCRIPT##*/}
-	mount $IPROFDIR $TMPMNT
-	if [ -f ${TMPMNT}/${IPROFNAME} ]; then
+	mount "$IPROFDIR" $TMPMNT
+	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
 	    cp ${TMPMNT}/${IPROFNAME} ${FIRSTF}
 	fi
 	umount ${TMPMNT}
@@ -543,7 +542,7 @@ nfs*)
 	;;
 http*)
 	TMPF="/tmp/profile.$$"
-	${WCLIENT} ${WARGS} $TMPF $FIRSTBOOT_SCRIPT
+	${WCLIENT} ${WARGS} $TMPF "$FIRSTBOOT_SCRIPT"
 	if [ -s "$TMPF" ]; then
 	    cp $TMPF $FIRSTF
 	fi

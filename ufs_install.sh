@@ -15,7 +15,7 @@
 #
 # }}}
 #
-# Copyright 2023 Peter Tribble
+# Copyright 2024 Peter Tribble
 #
 
 #
@@ -62,7 +62,7 @@ fi
 # read an external configuration file, if supplied
 #
 IPROFILE=`/sbin/devprop install_profile`
-if [ ! -z "$IPROFILE" ]; then
+if [ -n "$IPROFILE" ]; then
 REBOOT="yes"
 case $IPROFILE in
 nfs*)
@@ -70,9 +70,9 @@ nfs*)
 	mkdir -p ${TMPMNT}
 	IPROFDIR=${IPROFILE%/*}
 	IPROFNAME=${IPROFILE##*/}
-	mount $IPROFDIR $TMPMNT
-	if [ -f ${TMPMNT}/${IPROFNAME} ]; then
-	    . ${TMPMNT}/${IPROFNAME}
+	mount "$IPROFDIR" $TMPMNT
+	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
+	    . "${TMPMNT}/${IPROFNAME}"
 	fi
 	umount ${TMPMNT}
 	rmdir ${TMPMNT}
@@ -106,8 +106,8 @@ nfs*)
 	mkdir -p ${TMPMNT}
 	IPROFDIR=${BEGIN_SCRIPT%/*}
 	IPROFNAME=${BEGIN_SCRIPT##*/}
-	mount $IPROFDIR $TMPMNT
-	if [ -f ${TMPMNT}/${IPROFNAME} ]; then
+	mount "$IPROFDIR" $TMPMNT
+	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
 	    ${TMPMNT}/${IPROFNAME} > $BEGINF
 	fi
 	umount ${TMPMNT}
@@ -115,7 +115,7 @@ nfs*)
 	;;
 http*)
 	TMPF="/tmp/profile.$$"
-	${WCLIENT} ${WARGS} $TMPF $BEGIN_SCRIPT
+	${WCLIENT} ${WARGS} $TMPF "$BEGIN_SCRIPT"
 	if [ -s "$TMPF" ]; then
 	    chmod a+x $TMPF
 	    $TMPF > $BEGINF
@@ -376,8 +376,8 @@ nfs*)
 	mkdir -p ${TMPMNT}
 	IPROFDIR=${FINISH_SCRIPT%/*}
 	IPROFNAME=${FINISH_SCRIPT##*/}
-	mount $IPROFDIR $TMPMNT
-	if [ -f ${TMPMNT}/${IPROFNAME} ]; then
+	mount "$IPROFDIR" $TMPMNT
+	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
 	    ${TMPMNT}/${IPROFNAME} ${ALTROOT}
 	fi
 	umount ${TMPMNT}
@@ -385,7 +385,7 @@ nfs*)
 	;;
 http*)
 	TMPF="/tmp/profile.$$"
-	${WCLIENT} ${WARGS} $TMPF $FINISH_SCRIPT
+	${WCLIENT} ${WARGS} $TMPF "$FINISH_SCRIPT"
 	if [ -s "$TMPF" ]; then
 	    chmod a+x $TMPF
 	    $TMPF ${ALTROOT}
@@ -415,8 +415,8 @@ nfs*)
 	mkdir -p ${TMPMNT}
 	IPROFDIR=${FIRSTBOOT_SCRIPT%/*}
 	IPROFNAME=${FIRSTBOOT_SCRIPT##*/}
-	mount $IPROFDIR $TMPMNT
-	if [ -f ${TMPMNT}/${IPROFNAME} ]; then
+	mount "$IPROFDIR" $TMPMNT
+	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
 	    cp ${TMPMNT}/${IPROFNAME} ${FIRSTF}
 	fi
 	umount ${TMPMNT}
@@ -424,7 +424,7 @@ nfs*)
 	;;
 http*)
 	TMPF="/tmp/profile.$$"
-	${WCLIENT} ${WARGS} $TMPF $FIRSTBOOT_SCRIPT
+	${WCLIENT} ${WARGS} $TMPF "$FIRSTBOOT_SCRIPT"
 	if [ -s "$TMPF" ]; then
 	    cp $TMPF $FIRSTF
 	fi

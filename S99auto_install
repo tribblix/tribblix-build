@@ -1,5 +1,7 @@
 #!/bin/sh
 #
+# SPDX-License-Identifier: CDDL-1.0
+#
 # {{{ CDDL HEADER
 #
 # This file and its contents are supplied under the terms of the
@@ -13,7 +15,7 @@
 #
 # }}}
 #
-# Copyright 2023 Peter Tribble
+# Copyright 2024 Peter Tribble
 #
 
 #
@@ -22,8 +24,8 @@
 
 case $1 in
 start)
-IPROFILE=`/sbin/devprop install_profile`
-if [ ! -z "$IPROFILE" ]; then
+IPROFILE=$(/sbin/devprop install_profile)
+if [ -n "$IPROFILE" ]; then
   echo "PLEASE WAIT" | tee /dev/msglog
   echo "Automatically installing Tribblix" | tee /dev/msglog
   echo "Install profile is $IPROFILE" | tee /dev/msglog

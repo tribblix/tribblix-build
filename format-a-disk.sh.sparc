@@ -1,5 +1,7 @@
 #!/bin/sh
 #
+# SPDX-License-Identifier: CDDL-1.0
+#
 # {{{ CDDL HEADER
 #
 # This file and its contents are supplied under the terms of the
@@ -13,15 +15,12 @@
 #
 # }}}
 #
-# Copyright 2023 Peter Tribble
+# Copyright 2024 Peter Tribble
 #
 
 #
 # given a drive, partitions it with a single large slice 0
 #
-
-PRTVTOC=/usr/sbin/prtvtoc
-FMTHARD=/usr/sbin/fmthard
 
 TFILE=/tmp/prtvtoc-input.$$
 OFILE=/tmp/prtvtoc-output.$$
@@ -58,21 +57,21 @@ case $DISKDEV in
 	;;
 esac
 
-if [ ! -e $DISKDEV ]; then
+if [ ! -e "$DISKDEV" ]; then
     echo "Error: unable to find disk device $DISKDEV"
     exit 1
 fi
 
-$PRTVTOC $DISKDEV | /usr/bin/grep -v '^\*' > $TFILE
+/usr/sbin/prtvtoc "$DISKDEV" | /usr/bin/grep -v '^\*' > $TFILE
 
 #
 # copy slice 2 to slice 0
 #
-SIZE0=`/usr/bin/awk '{ if ($1 == "2") print $5}' $TFILE`
+SIZE0=$(/usr/bin/awk '{ if ($1 == "2") print $5}' $TFILE)
 
 echo "0 2 00 0 $SIZE0" > $OFILE
 echo "2 5 00 0 $SIZE0" >> $OFILE
 
-$FMTHARD -s $OFILE $DISKDEV
+/usr/sbin/fmthard -s $OFILE "$DISKDEV"
 
-/bin/rm -f $TFILE $OFILE
+/usr/bin/rm -f $TFILE $OFILE

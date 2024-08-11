@@ -69,8 +69,8 @@ fi
 #
 # read an external configuration file, if supplied
 #
-IPROFILE=`/sbin/devprop install_profile`
-if [ ! -z "$IPROFILE" ]; then
+IPROFILE=$(/sbin/devprop install_profile)
+if [ -n "$IPROFILE" ]; then
 REBOOT="yes"
 case $IPROFILE in
 nfs*)
@@ -78,9 +78,9 @@ nfs*)
 	mkdir -p ${TMPMNT}
 	IPROFDIR=${IPROFILE%/*}
 	IPROFNAME=${IPROFILE##*/}
-	mount $IPROFDIR $TMPMNT
-	if [ -f ${TMPMNT}/${IPROFNAME} ]; then
-	    . ${TMPMNT}/${IPROFNAME}
+	mount "$IPROFDIR" $TMPMNT
+	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
+	    . "${TMPMNT}/${IPROFNAME}"
 	fi
 	umount ${TMPMNT}
 	rmdir ${TMPMNT}
@@ -114,8 +114,8 @@ nfs*)
 	mkdir -p ${TMPMNT}
 	IPROFDIR=${BEGIN_SCRIPT%/*}
 	IPROFNAME=${BEGIN_SCRIPT##*/}
-	mount $IPROFDIR $TMPMNT
-	if [ -f ${TMPMNT}/${IPROFNAME} ]; then
+	mount "$IPROFDIR" $TMPMNT
+	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
 	    ${TMPMNT}/${IPROFNAME} > $BEGINF
 	fi
 	umount ${TMPMNT}
@@ -222,8 +222,8 @@ if [ -z "$OLDBE" ]; then
 fi
 
 echo "Creating filesystems"
-/usr/sbin/zfs create -o mountpoint=${ALTROOT} ${ROOTPOOL}/ROOT/${NEWBE}
-/usr/sbin/zpool set bootfs=${ROOTPOOL}/ROOT/${NEWBE} ${ROOTPOOL}
+/usr/sbin/zfs create -o mountpoint=${ALTROOT} "${ROOTPOOL}/ROOT/${NEWBE}"
+/usr/sbin/zpool set bootfs="${ROOTPOOL}/ROOT/${NEWBE}" "${ROOTPOOL}"
 
 #
 # this gives the BE a UUID, necessary for 'beadm list -H'
@@ -430,8 +430,8 @@ nfs*)
 	mkdir -p ${TMPMNT}
 	IPROFDIR=${FINISH_SCRIPT%/*}
 	IPROFNAME=${FINISH_SCRIPT##*/}
-	mount $IPROFDIR $TMPMNT
-	if [ -f ${TMPMNT}/${IPROFNAME} ]; then
+	mount "$IPROFDIR" $TMPMNT
+	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
 	    ${TMPMNT}/${IPROFNAME} ${ALTROOT}
 	fi
 	umount ${TMPMNT}
@@ -439,7 +439,7 @@ nfs*)
 	;;
 http*)
 	TMPF="/tmp/profile.$$"
-	${WCLIENT} ${WARGS} $TMPF $FINISH_SCRIPT
+	${WCLIENT} ${WARGS} $TMPF "$FINISH_SCRIPT"
 	if [ -s "$TMPF" ]; then
 	    chmod a+x $TMPF
 	    $TMPF ${ALTROOT}
@@ -469,8 +469,8 @@ nfs*)
 	mkdir -p ${TMPMNT}
 	IPROFDIR=${FIRSTBOOT_SCRIPT%/*}
 	IPROFNAME=${FIRSTBOOT_SCRIPT##*/}
-	mount $IPROFDIR $TMPMNT
-	if [ -f ${TMPMNT}/${IPROFNAME} ]; then
+	mount "$IPROFDIR" $TMPMNT
+	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
 	    cp ${TMPMNT}/${IPROFNAME} ${FIRSTF}
 	fi
 	umount ${TMPMNT}
@@ -478,7 +478,7 @@ nfs*)
 	;;
 http*)
 	TMPF="/tmp/profile.$$"
-	${WCLIENT} ${WARGS} $TMPF $FIRSTBOOT_SCRIPT
+	${WCLIENT} ${WARGS} $TMPF "$FIRSTBOOT_SCRIPT"
 	if [ -s "$TMPF" ]; then
 	    cp $TMPF $FIRSTF
 	fi
@@ -530,8 +530,8 @@ fi
 if [ -z "$NFLAG" ]; then
     TDIR=/tmp/oldmnt
     mkdir -p $TDIR
-    /usr/sbin/zfs set mountpoint=${TDIR} ${OLDBE}
-    /usr/sbin/zfs mount ${OLDBE}
+    /usr/sbin/zfs set mountpoint=${TDIR} "${OLDBE}"
+    /usr/sbin/zfs mount "${OLDBE}"
     /usr/bin/cp -p ${TDIR}/etc/passwd ${ALTROOT}/etc/passwd
     /usr/bin/cp -p ${TDIR}/etc/group ${ALTROOT}/etc/group
     /usr/bin/cp -p ${TDIR}/etc/shadow ${ALTROOT}/etc/shadow
@@ -539,9 +539,9 @@ if [ -z "$NFLAG" ]; then
     if [ -z "$NODENAME" ]; then
 	/usr/bin/cp -p ${TDIR}/etc/nodename ${ALTROOT}/etc/nodename
     fi
-    /usr/sbin/zfs unmount ${OLDBE}
+    /usr/sbin/zfs unmount "${OLDBE}"
 fi
-/usr/sbin/zfs set canmount=noauto ${OLDBE}
+/usr/sbin/zfs set canmount=noauto "${OLDBE}"
 
 #
 # moved later, must be done after we change any files such as bootenv.rc
@@ -554,8 +554,8 @@ echo "Updating boot archive"
 # remount zfs filesystem in the right place for next boot
 #
 echo "The mount error below is expected"
-/usr/sbin/zfs set canmount=noauto ${ROOTPOOL}/ROOT/${NEWBE}
-/usr/sbin/zfs set mountpoint=/ ${ROOTPOOL}/ROOT/${NEWBE}
+/usr/sbin/zfs set canmount=noauto "${ROOTPOOL}/ROOT/${NEWBE}"
+/usr/sbin/zfs set mountpoint=/ "${ROOTPOOL}/ROOT/${NEWBE}"
 
 #
 # we need to install our bootloader to be sure we have one
