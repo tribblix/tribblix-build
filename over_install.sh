@@ -55,7 +55,6 @@ FIRSTBOOT_SCRIPT=""
 NEWBE="tribblix-m35"
 NFLAG=""
 
-FSTYPE="ZFS"
 PKGLOC="/.cdrom/pkgs"
 SMFREPODIR="/usr/lib/zap"
 ALTROOT="/a"

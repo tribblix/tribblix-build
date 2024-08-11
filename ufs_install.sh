@@ -1,5 +1,7 @@
 #!/bin/sh
 #
+# SPDX-License-Identifier: CDDL-1.0
+#
 # {{{ CDDL HEADER
 #
 # This file and its contents are supplied under the terms of the
@@ -44,7 +46,6 @@ BEGIN_SCRIPT=""
 FINISH_SCRIPT=""
 FIRSTBOOT_SCRIPT=""
 
-FSTYPE="UFS"
 DRIVE1=""
 PKGLOC="/.cdrom/pkgs"
 SMFREPODIR="/usr/lib/zap"

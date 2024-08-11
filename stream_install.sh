@@ -39,7 +39,6 @@ FINISH_SCRIPT=""
 FIRSTBOOT_SCRIPT=""
 NEWBE="tribblix"
 
-FSTYPE="ZFS"
 DRIVE1=""
 DRIVE2=""
 PKGLOC="/.cdrom/pkgs"
