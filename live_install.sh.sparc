@@ -26,10 +26,8 @@ DRIVELIST=""
 SWAPSIZE="2g"
 DUMPSIZE=""
 ZFSARGS=""
-ZPOOLARGS=""
 COMPRESSARGS=""
 BFLAG=""
-GFLAG=""
 REBOOT="no"
 OVERLAYS=""
 NODENAME=""
@@ -144,8 +142,7 @@ while getopts "BCd:E:Gm:n:P:s:t:z:Z:" opt; do
 	    NEWBE="$OPTARG"
 	    ;;
         G)
-	    GFLAG="-G"
-	    ZPOOLARGS="-B"
+	    BFLAG="-B"
 	    ;;
         m)
 	    ZFSARGS="mirror"
@@ -209,14 +206,6 @@ OVERLAYS="$OVERLAYS $*"
 #
 
 #
-# cannot specify both -B and -G
-#
-if [ -n "${BFLAG}" -a -n "${GFLAG}" ]; then
-    echo "ERROR: specify only one of -B and -G"
-    exit 1
-fi
-
-#
 # if we have a drive list at this point, it must be from cardigan or raidz,
 # so check the list for validity
 #
@@ -264,7 +253,7 @@ fi
 #
 if [ -z "$DRIVELIST" ]; then
     echo "ERROR: no installation drives specified or found"
-    echo "Usage: $0 [-B] [-n hostname] [-t timezone] [-m mirror_device] device [overlay ... ]"
+    echo "Usage: $0 [-G] [-n hostname] [-t timezone] [-m mirror_device] device [overlay ... ]"
     exit 1
 fi
 
@@ -486,6 +475,8 @@ fi
 echo "Configuring devices"
 ${ALTROOT}/usr/sbin/devfsadm -r ${ALTROOT}
 touch ${ALTROOT}/reconfigure
+
+echo "Setting up boot"
 
 for DRIVE in $DRIVELIST
 do
