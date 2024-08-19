@@ -96,7 +96,7 @@ for OVL in $OVLIST
 do
 case $# in
 0|1)
-	if [ -f ${OVDIR}/${OVL}.pkgs ]; then
+	if [ -f "${OVDIR}/${OVL}.pkgs" ]; then
 	    PKGLIST="${PKGLIST} ${OVDIR}/${OVL}.pkgs"
 	else
 	    echo "Missing overlay $OVL"
@@ -113,7 +113,7 @@ done
 #
 # check we have illumos packages, and a catalog
 #
-if [ ! -f ${IPKGDIR}/catalog ]; then
+if [ ! -f "${IPKGDIR}/catalog" ]; then
     echo "ERROR: no illumos packages (or catalog) for release $RELEASE"
     exit 1
 fi
@@ -150,19 +150,19 @@ do
   THISVER="XXX"
   ILVER="XXX"
   PKGI=${THOME}/build/${mypkg}/pkginfo
-  if [ -f ${PKGI} ]; then
-      if [ -f ${THOME}/build/${mypkg}/version.sparc ]; then
-	  THISVER=$(<${THOME}/build/${mypkg}/version.sparc)
+  if [ -f "${PKGI}" ]; then
+      if [ -f "${THOME}/build/${mypkg}/version.sparc" ]; then
+	  THISVER=$(<"${THOME}/build/${mypkg}/version.sparc")
       else
-	  THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
+	  THISVER=$(awk -F= '{if ($1 == "VERSION") print $2}' "$PKGI" | sed 's="==g')
       fi
   fi
-  ILVER=`awk -v V=${mypkg} -F'|' '{if ($1==V) print $2}' ${IPKGDIR}/catalog`
-  if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.zap ]; then
+  ILVER=$(awk -v V=${mypkg} -F'|' '{if ($1==V) print $2}' "${IPKGDIR}/catalog")
+  if [ -f "${TPKGDIR}/${mypkg}.${THISVER}.zap" ]; then
       $ECHO "Installing $mypkg from Tribblix"
-  elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.zap ]; then
+  elif [ -f "${IPKGDIR}/${mypkg}.${ILVER}.zap" ]; then
       $ECHO "Installing $mypkg from Illumos"
-  elif [ -f ${EXTRAPKGDIR}/${mypkg}.${EXTRAVER}.zap ]; then
+  elif [ -f "${EXTRAPKGDIR}/${mypkg}.${EXTRAVER}.zap" ]; then
       $ECHO "Installing $mypkg from OpenSXCE"
   else
       echo "ERROR: package $mypkg not found"
@@ -177,7 +177,7 @@ if [ "X$VALID" = "Xno" ]; then
     exit 1
 fi
 
-if [ ! -d ${DESTDIR} ]; then
+if [ ! -d "${DESTDIR}" ]; then
     echo "ERROR: Target destination ${DESTDIR} not found, install aborted"
     exit 1
 fi
@@ -203,20 +203,20 @@ do
   THISVER="XXX"
   ILVER="XXX"
   PKGI=${THOME}/build/${mypkg}/pkginfo
-  if [ -f ${PKGI} ]; then
-      if [ -f ${THOME}/build/${mypkg}/version.sparc ]; then
-	  THISVER=$(<${THOME}/build/${mypkg}/version.sparc)
+  if [ -f "${PKGI}" ]; then
+      if [ -f "${THOME}/build/${mypkg}/version.sparc" ]; then
+	  THISVER=$(<"${THOME}/build/${mypkg}/version.sparc")
       else
-	  THISVER=`awk -F= '{if ($1 == "VERSION") print $2}' $PKGI | sed 's="==g'`
+	  THISVER=$(awk -F= '{if ($1 == "VERSION") print $2}' "$PKGI" | sed 's="==g')
       fi
   fi
-  ILVER=`awk -v V=${mypkg} -F'|' '{if ($1==V) print $2}' ${IPKGDIR}/catalog`
-  if [ -f ${TPKGDIR}/${mypkg}.${THISVER}.zap ]; then
-    $INSTZAP -R $DESTDIR ${TPKGDIR}/${mypkg}.${THISVER}.zap ${mypkg}
-  elif [ -f ${IPKGDIR}/${mypkg}.${ILVER}.zap ]; then
-    $INSTZAP -R $DESTDIR ${IPKGDIR}/${mypkg}.${ILVER}.zap ${mypkg}
-  elif [ -f ${EXTRAPKGDIR}/${mypkg}.${EXTRAVER}.zap ]; then
-    $INSTZAP -R $DESTDIR ${EXTRAPKGDIR}/${mypkg}.${EXTRAVER}.zap ${mypkg}
+  ILVER=$(awk -v V=${mypkg} -F'|' '{if ($1==V) print $2}' "${IPKGDIR}/catalog")
+  if [ -f "${TPKGDIR}/${mypkg}.${THISVER}.zap" ]; then
+    $INSTZAP -R "$DESTDIR" "${TPKGDIR}/${mypkg}.${THISVER}.zap" "${mypkg}"
+  elif [ -f "${IPKGDIR}/${mypkg}.${ILVER}.zap" ]; then
+    $INSTZAP -R "$DESTDIR" "${IPKGDIR}/${mypkg}.${ILVER}.zap" "${mypkg}"
+  elif [ -f "${EXTRAPKGDIR}/${mypkg}.${EXTRAVER}.zap" ]; then
+    $INSTZAP -R "$DESTDIR" "${EXTRAPKGDIR}/${mypkg}.${EXTRAVER}.zap" "${mypkg}"
   fi
 done
 
@@ -224,24 +224,24 @@ done
 # now the release packages
 #
 echo "Installing release packages for $RELEASE"
-$INSTZAP -R $DESTDIR ${RPKGDIR}/TRIBrelease-name.0.${RELVER}.zap TRIBrelease-name
-$INSTZAP -R $DESTDIR ${RPKGDIR}/TRIBzap-upgrade.0.${URELVER}.zap TRIBzap-upgrade
-$INSTZAP -R $DESTDIR ${RPKGDIR}/TRIBzap.0.0.${RELVER}.zap TRIBzap
+$INSTZAP -R "$DESTDIR" "${RPKGDIR}/TRIBrelease-name.0.${RELVER}.zap" TRIBrelease-name
+$INSTZAP -R "$DESTDIR" "${RPKGDIR}/TRIBzap-upgrade.0.${URELVER}.zap" TRIBzap-upgrade
+$INSTZAP -R "$DESTDIR" "${RPKGDIR}/TRIBzap.0.0.${RELVER}.zap" TRIBzap
 if [ -f "${RPKGDIR}/catalog" ]; then
-    cp ${RPKGDIR}/catalog ${DESTDIR}/etc/zap/repositories/release.catalog
+    cp "${RPKGDIR}/catalog" "${DESTDIR}/etc/zap/repositories/release.catalog"
 fi
 
 #
 # need to mark the designated overlay(s) as installed
 #
-mkdir -p ${DESTDIR}/var/sadm/overlays/installed
+mkdir -p "${DESTDIR}/var/sadm/overlays/installed"
 for OVL in $OVLIST
 do
-    touch ${DESTDIR}/var/sadm/overlays/installed/${OVL}
+    touch "${DESTDIR}/var/sadm/overlays/installed/${OVL}"
 done
 
 #
 # close pkgserv to stop it holding files open
 #
 sync
-pkgadm sync -R ${DESTDIR} -q
+pkgadm sync -R "${DESTDIR}" -q
