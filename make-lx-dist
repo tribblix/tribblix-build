@@ -24,7 +24,7 @@ DESTDIR=${DESTTOP}/dist
 RELEASE=35lx
 NFLAG=""
 QFLAG=""
-OVFLAG=""
+OVFLAG="-O base-iso"
 MRSIZE="360m"
 
 #
@@ -32,11 +32,10 @@ MRSIZE="360m"
 # -D desttop -> DESTTOP
 # -M size -> MRSIZE, size of ramdisk
 # -N -> no install, dry run
-# -O overlay -> install additional overlay
 # -Q -> quiet, less output
 # -R release string -> RELEASE
 #
-while getopts "D:M:NO:QR:" opt; do
+while getopts "D:M:NQR:" opt; do
     case $opt in
         D)
 	    DESTTOP="$OPTARG"
@@ -47,9 +46,6 @@ while getopts "D:M:NO:QR:" opt; do
 	    ;;
         N)
 	    NFLAG="-N"
-	    ;;
-        O)
-	    OVFLAG="${OVFLAG} -O $OPTARG"
 	    ;;
         Q)
 	    QFLAG="-Q"
@@ -74,6 +70,14 @@ esac
 case $# in
     1)
 	DESTDIR="${DESTDIR}.$1"
+	case $1 in
+	    minimal)
+		OVFLAG="-O base-server"
+		;;
+	    ec2)
+		OVFLAG="-O base-cloud"
+		;;
+	esac
 	;;
 esac
 
