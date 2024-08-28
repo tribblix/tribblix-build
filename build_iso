@@ -134,6 +134,13 @@ cp ${OVSRC}/*.pkgs ${DESTDIR}/var/sadm/overlays
 cp ${OVSRC}/*.ovl ${DESTDIR}/var/sadm/overlays
 
 #
+# run a customization script specific to this image variant
+#
+if [ -x "${TBHOME}/customize-iso.$1" ]; then
+    ${TBHOME}/customize-iso.$1 ${DESTDIR}
+fi
+
+#
 # make sure the install script is up to date
 #
 mkdir -p ${DESTDIR}/root
