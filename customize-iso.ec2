@@ -1,0 +1,56 @@
+#!/bin/sh
+#
+# SPDX-License-Identifier: CDDL-1.0
+#
+# {{{ CDDL HEADER
+#
+# This file and its contents are supplied under the terms of the
+# Common Development and Distribution License ("CDDL"), version 1.0.
+# You may only use this file in accordance with the terms of version
+# 1.0 of the CDDL.
+#
+# A full copy of the text of the CDDL should have accompanied this
+# source. A copy of the CDDL is also available via the Internet at
+# http://www.illumos.org/license/CDDL.
+#
+# }}}
+#
+# Copyright 2024 Peter Tribble
+#
+
+THOME=${THOME:-/packages/localsrc/Tribblix}
+
+#
+# applies customizations specific to the ec2 iso image
+#
+# sets up resolv.conf to avoid having to do it postinstall
+#
+# sticks metadata-agent into the download cache so that the
+# Digital Ocean build can find it without network access (the
+# image unconfigure will make sure it doesn't get shipped)
+#
+case $# in
+    1)
+	DESTDIR="$1"
+	;;
+    *)
+	echo "Invalid arguments to $0"
+	exit 0
+	;;
+esac
+
+if [ ! -d "${DESTDIR}" ]; then
+    echo "Cannot find DESTDIR"
+    exit 0
+fi
+
+if [ ! -d "${DESTDIR}/etc" ]; then
+    echo "Cannot find etc in DESTDIR"
+    exit 0
+fi
+
+cat > "${DESTDIR}/etc/resolv.conf" <<_EOF
+nameserver	8.8.8.8
+_EOF
+
+cp $(ls -1tr "${THOME}"/pkgs/TRIBmetadata-agent.*.zap | tail -1) "${DESTDIR}/var/zap/cache"
