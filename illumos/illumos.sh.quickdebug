@@ -93,7 +93,7 @@ export CODEMGR_WS="`git rev-parse --show-toplevel`"
 # To disable shadow compilation, unset SHADOW_* or set them to the empty string.
 #
 # Tribblix debug/rti build is gcc10 primary, gcc7 secondary, smatch
-# Tribblix production build on x86 is gcc7
+# Tribblix production build on x86 is gcc10
 #
 export GNUC_ROOT=/opt/gcc/10.4.0
 export PRIMARY_CC=gcc10,/opt/gcc/10.4.0/bin/gcc,gnu
@@ -131,13 +131,13 @@ export BUILDPERL32='#'
 #export PYTHON3_SUFFIX=
 
 #
-# Tribblix uses python3.11
+# Tribblix uses python3.12
 #
 #
 # we don't build python artefacts, but still need the tools
 #
-export PYTHON3_VERSION=3.11
-export PYTHON3_PKGVERS=-311
+export PYTHON3_VERSION=3.12
+export PYTHON3_PKGVERS=-312
 export PYTHON3_SUFFIX=
 #
 # don't build python artefacts, we would throw them away anyway
@@ -270,9 +270,9 @@ export MULTI_PROTO="no"
 # when the release slips (nah) or you move an environment file to a new
 # release
 #
-export VERSION="tribblix-m31"
+export VERSION="tribblix-m35"
 export BOOTBANNER1='Welcome to Tribblix, the retro ^o distribution'
-export BOOTBANNER2='^v | July 2023 | http://www.tribblix.org/'
+export BOOTBANNER2='^v | August 2024 | http://www.tribblix.org/'
 
 #
 # the RELEASE and RELEASE_DATE variables are set in Makefile.master;
