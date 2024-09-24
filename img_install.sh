@@ -125,7 +125,7 @@ nfs*)
 	IPROFNAME=${BEGIN_SCRIPT##*/}
 	mount "$IPROFDIR" $TMPMNT
 	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
-	    ${TMPMNT}/${IPROFNAME} > $BEGINF
+	    "${TMPMNT}/${IPROFNAME}" > $BEGINF
 	fi
 	umount ${TMPMNT}
 	rmdir ${TMPMNT}

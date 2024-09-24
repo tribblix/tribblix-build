@@ -76,8 +76,8 @@ http*)
 	while [ ! -f "$TMPF" ]
 	do
 	    sleep $DELAY
-	    DELAY=$(($DELAY+1))
-	    ${WCLIENT} ${WARGS} $TMPF $IPROFILE
+	    DELAY=$((DELAY+1))
+	    ${WCLIENT} ${WARGS} $TMPF "$IPROFILE"
 	done
 	. $TMPF
 	rm -fr $TMPF
@@ -101,7 +101,7 @@ nfs*)
 	IPROFNAME=${BEGIN_SCRIPT##*/}
 	mount "$IPROFDIR" $TMPMNT
 	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
-	    ${TMPMNT}/${IPROFNAME} > $BEGINF
+	    "${TMPMNT}/${IPROFNAME}" > $BEGINF
 	fi
 	umount ${TMPMNT}
 	rmdir ${TMPMNT}
@@ -431,7 +431,7 @@ ls ${ALTROOT}
 
 #
 echo "Installing boot loader"
-/sbin/bootadm install-bootloader -f -M -P ${ROOTPOOL}
+/sbin/bootadm install-bootloader -f -M -P "${ROOTPOOL}"
 
 echo "Configuring devices"
 ${ALTROOT}/usr/sbin/devfsadm -r ${ALTROOT}
@@ -449,14 +449,14 @@ _EOF
 # set nodename if requested
 #
 if [ -n "$NODENAME" ]; then
-    echo $NODENAME > ${ALTROOT}/etc/nodename
+    echo "$NODENAME" > ${ALTROOT}/etc/nodename
 fi
 
 #
 # set domain name if requested
 #
 if [ -n "$DOMAINNAME" ]; then
-    echo $DOMAINNAME > ${ALTROOT}/etc/defaultdomain
+    echo "$DOMAINNAME" > ${ALTROOT}/etc/defaultdomain
 fi
 
 #
@@ -496,7 +496,7 @@ nfs*)
 	IPROFNAME=${FINISH_SCRIPT##*/}
 	mount "$IPROFDIR" $TMPMNT
 	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
-	    ${TMPMNT}/${IPROFNAME} ${ALTROOT}
+	    "${TMPMNT}/${IPROFNAME}" ${ALTROOT}
 	fi
 	umount ${TMPMNT}
 	rmdir ${TMPMNT}
@@ -535,7 +535,7 @@ nfs*)
 	IPROFNAME=${FIRSTBOOT_SCRIPT##*/}
 	mount "$IPROFDIR" $TMPMNT
 	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
-	    cp ${TMPMNT}/${IPROFNAME} ${FIRSTF}
+	    cp "${TMPMNT}/${IPROFNAME}" ${FIRSTF}
 	fi
 	umount ${TMPMNT}
 	rmdir ${TMPMNT}

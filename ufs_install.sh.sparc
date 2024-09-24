@@ -61,7 +61,7 @@ fi
 #
 # read an external configuration file, if supplied
 #
-IPROFILE=`/sbin/devprop install_profile`
+IPROFILE=$(/sbin/devprop install_profile)
 if [ -n "$IPROFILE" ]; then
 REBOOT="yes"
 case $IPROFILE in
@@ -72,7 +72,7 @@ nfs*)
 	IPROFNAME=${IPROFILE##*/}
 	mount "$IPROFDIR" $TMPMNT
 	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
-	    . ${TMPMNT}/${IPROFNAME}
+	    . "${TMPMNT}/${IPROFNAME}"
 	fi
 	umount ${TMPMNT}
 	rmdir ${TMPMNT}
@@ -83,7 +83,7 @@ http*)
 	while [ ! -f "$TMPF" ]
 	do
 	    sleep $DELAY
-	    DELAY=$(($DELAY+1))
+	    DELAY=$((DELAY+1))
 	    ${WCLIENT} ${WARGS} $TMPF "$IPROFILE"
 	done
 	. $TMPF
@@ -108,7 +108,7 @@ nfs*)
 	IPROFNAME=${BEGIN_SCRIPT##*/}
 	mount "$IPROFDIR" $TMPMNT
 	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
-	    ${TMPMNT}/${IPROFNAME} > $BEGINF
+	    "${TMPMNT}/${IPROFNAME}" > $BEGINF
 	fi
 	umount ${TMPMNT}
 	rmdir ${TMPMNT}
@@ -171,8 +171,8 @@ esac
 
 /usr/bin/mkdir -p ${ALTROOT}
 echo "Creating root file system"
-env NOINUSE_CHECK=1 /usr/sbin/newfs /dev/rdsk/$DRIVE1
-/usr/sbin/mount /dev/dsk/$DRIVE1 ${ALTROOT}
+env NOINUSE_CHECK=1 /usr/sbin/newfs "/dev/rdsk/$DRIVE1"
+/usr/sbin/mount "/dev/dsk/$DRIVE1" ${ALTROOT}
 mkdir -p ${ALTROOT}/export/home
 
 echo "Copying main filesystems"
@@ -227,7 +227,7 @@ fi
 # give ourselves some swap to avoid /tmp exhaustion
 # do it after copying the main OS as it changes the dump settings
 #
-swap -a /dev/dsk/$SWAPDEV
+swap -a "/dev/dsk/$SWAPDEV"
 LOGFILE="${ALTROOT}/var/sadm/install/logs/initial.log"
 echo "Installing overlays" | tee $LOGFILE
 /usr/bin/date | tee -a $LOGFILE
@@ -238,7 +238,7 @@ if [ -d ${PKGLOC} ]; then
     for overlay in base $*
     do
 	echo "Installing $overlay overlay" | tee -a $LOGFILE
-	/usr/lib/zap/install-overlay -R ${ALTROOT} -s ${PKGLOC} $overlay | tee -a $LOGFILE
+	/usr/lib/zap/install-overlay -R ${ALTROOT} -s ${PKGLOC} "$overlay" | tee -a $LOGFILE
     done
 else
     echo "No local packages found, trying to install overlays from the network"
@@ -249,7 +249,7 @@ else
 	for overlay in $OVERLAYS
 	do
 	    echo "Installing $overlay overlay" | tee -a $LOGFILE
-	    /usr/lib/zap/install-overlay -R ${ALTROOT} $overlay | tee -a $LOGFILE
+	    /usr/lib/zap/install-overlay -R ${ALTROOT} "$overlay" | tee -a $LOGFILE
 	done
     else
 	echo "Ignoring overlay installation due to failure" | tee -a $LOGFILE
@@ -333,14 +333,14 @@ touch ${ALTROOT}/reconfigure
 # set nodename if requested
 #
 if [ -n "$NODENAME" ]; then
-    echo $NODENAME > ${ALTROOT}/etc/nodename
+    echo "$NODENAME" > ${ALTROOT}/etc/nodename
 fi
 
 #
 # set domain name if requested
 #
 if [ -n "$DOMAINNAME" ]; then
-    echo $DOMAINNAME > ${ALTROOT}/etc/defaultdomain
+    echo "$DOMAINNAME" > ${ALTROOT}/etc/defaultdomain
 fi
 
 #
@@ -376,7 +376,7 @@ nfs*)
 	IPROFNAME=${FINISH_SCRIPT##*/}
 	mount "$IPROFDIR" $TMPMNT
 	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
-	    ${TMPMNT}/${IPROFNAME} ${ALTROOT}
+	    "${TMPMNT}/${IPROFNAME}" ${ALTROOT}
 	fi
 	umount ${TMPMNT}
 	rmdir ${TMPMNT}
@@ -415,7 +415,7 @@ nfs*)
 	IPROFNAME=${FIRSTBOOT_SCRIPT##*/}
 	mount "$IPROFDIR" $TMPMNT
 	if [ -f "${TMPMNT}/${IPROFNAME}" ]; then
-	    cp ${TMPMNT}/${IPROFNAME} ${FIRSTF}
+	    cp "${TMPMNT}/${IPROFNAME}" ${FIRSTF}
 	fi
 	umount ${TMPMNT}
 	rmdir ${TMPMNT}
