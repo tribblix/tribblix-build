@@ -8,6 +8,10 @@ Subject: [PATCH] 16530 cmd/audio should deal in big-endian and little-endian,
  by: Peter Tribble <peter.tribble@gmail.com> Approved by: Robert Mustacchi
  <rm@fingolfin.org>
 
+Modified from the original, which incorrectly had __BIG_ENDIAN
+with 2 leading underscores rather than the correct _BIG_ENDIAN
+with just the one.
+
 ---
  usr/src/cmd/audio/include/aiff.h    |  5 ++---
  usr/src/cmd/audio/include/archdep.h | 23 +++++------------------
@@ -25,7 +29,7 @@ index f3f7c0f44f..cb5c1a48f4 100644
 -
  /* byte swapping macros */
 -#if defined(__sparc)				/* big endian */
-+#if defined(__BIG_ENDIAN)
++#if defined(_BIG_ENDIAN)
  #define	AUDIO_AIFF_FILE2HOST_INT(from, to)				\
  		*((int *)(to)) = *((int *)(from))
  #define	AUDIO_AIFF_FILE2HOST_SHORT(from, to)				\
