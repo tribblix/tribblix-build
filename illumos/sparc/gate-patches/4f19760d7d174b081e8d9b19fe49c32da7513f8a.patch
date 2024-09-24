@@ -41,6 +41,20 @@ index d9186492e7..33257b3cef 100644
  #
  #	Define targets
  #
+--- a/usr/src/uts/sparc/bofi/Makefile
++++ b/usr/src/uts/sparc/bofi/Makefile
+@@ -47,11 +47,6 @@ CONF_SRCDIR	= $(UTSBASE)/common/io
+ #
+ include $(UTSBASE)/sparc/Makefile.sparc
+ 
+-#
+-#	Override defaults.
+-#
+-FILEMODE	= 644
+-
+ #
+ #	Define targets
+ #
 -- 
 2.46.0
 
