@@ -65,7 +65,7 @@ do
     elif [ -f "${PKGS}/${pkg}.${ver}.zap" ]; then
 	echo "MEDIAPKGS $pkg"
     else
-	INOVL=$(grep -h '^'$pkg'$' ${OVDIR}/*.pkgs)
+	INOVL=$(grep -h '^'"$pkg"'$' "${OVDIR}"/*.pkgs)
 	if [ -n "$INOVL" ]; then
 	    echo "OVERLAY $pkg"
 	else
