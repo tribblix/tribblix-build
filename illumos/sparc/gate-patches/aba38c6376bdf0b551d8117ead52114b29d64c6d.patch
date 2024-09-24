@@ -1,0 +1,34 @@
+From aba38c6376bdf0b551d8117ead52114b29d64c6d Mon Sep 17 00:00:00 2001
+From: Olaf Bohlen <olbohlen@eenfach.de>
+Date: Wed, 10 Apr 2024 13:37:03 +0200
+Subject: [PATCH] 16459 want emlxs to support Oracle branded LP adapters
+ Reviewed by: Andy Fiddaman <illumos@fiddaman.net> Reviewed by: Hans Rosenfeld
+ <rosenfeld@grumpf.hope-2000.org> Reviewed by: Peter Tribble
+ <peter.tribble@gmail.com> Approved by: Robert Mustacchi <rm@fingolfin.org>
+
+---
+ .../uts/common/io/fibre-channel/fca/emlxs/emlxs_solaris.c | 8 --------
+ 1 file changed, 8 deletions(-)
+
+diff --git a/usr/src/uts/common/io/fibre-channel/fca/emlxs/emlxs_solaris.c b/usr/src/uts/common/io/fibre-channel/fca/emlxs/emlxs_solaris.c
+index 18fb7ff7bb..554b642fc2 100644
+--- a/usr/src/uts/common/io/fibre-channel/fca/emlxs/emlxs_solaris.c
++++ b/usr/src/uts/common/io/fibre-channel/fca/emlxs/emlxs_solaris.c
+@@ -7198,14 +7198,6 @@ emlxs_hba_attach(dev_info_t *dip)
+ 		    hba->model_info.model);
+ 		goto failed;
+ 	}
+-#define	FILTER_ORACLE_BRANDED
+-#ifdef FILTER_ORACLE_BRANDED
+-
+-	/* Oracle branded adapters are not supported in this driver */
+-	if (hba->model_info.flags & EMLXS_ORACLE_BRANDED) {
+-		hba->model_info.flags |= EMLXS_NOT_SUPPORTED;
+-	}
+-#endif /* FILTER_ORACLE_BRANDED */
+ 
+ 	/* Check if adapter is not supported */
+ 	if (hba->model_info.flags & EMLXS_NOT_SUPPORTED) {
+-- 
+2.46.0
+

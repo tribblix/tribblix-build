@@ -1,0 +1,30 @@
+From 6f914afdc10e2ab6ea408f51db33c53ff977b382 Mon Sep 17 00:00:00 2001
+From: Toomas Soome <tsoome@me.com>
+Date: Sat, 9 Mar 2024 23:52:57 +0200
+Subject: [PATCH] 16385 rpcmod: should use kstat x_ksp->ks_lock Reviewed by:
+ Jason King <jason.brian.king@gmail.com> Reviewed by: Gordon Ross
+ <Gordon.W.Ross@gmail.com> Approved by: Dan McDonald <danmcd@mnx.io>
+
+---
+ usr/src/uts/common/rpc/clnt_cots.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/usr/src/uts/common/rpc/clnt_cots.c b/usr/src/uts/common/rpc/clnt_cots.c
+index d15710d467..c76ae63ef0 100644
+--- a/usr/src/uts/common/rpc/clnt_cots.c
++++ b/usr/src/uts/common/rpc/clnt_cots.c
+@@ -2543,9 +2543,9 @@ connmgr_close(struct cm_xprt *cm_entry)
+ 
+ 	mutex_exit(&cm_entry->x_lock);
+ 	if (cm_entry->x_ksp != NULL) {
+-		mutex_enter(&connmgr_lock);
++		mutex_enter(cm_entry->x_ksp->ks_lock);
+ 		cm_entry->x_ksp->ks_private = NULL;
+-		mutex_exit(&connmgr_lock);
++		mutex_exit(cm_entry->x_ksp->ks_lock);
+ 
+ 		/*
+ 		 * Must free the buffer we allocated for the
+-- 
+2.46.0
+

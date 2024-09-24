@@ -1,0 +1,701 @@
+From 8efd981e8468a29f137fe78d8fe4a739aa206fb0 Mon Sep 17 00:00:00 2001
+From: Keith M Wesolowski <wesolows@oxide.computer>
+Date: Mon, 13 Nov 2023 22:44:26 -0800
+Subject: [PATCH] 11745 fmdump missing -i and -I parameter documentation in the
+ man pages 16051 fmdump -A, -a, -H, -j, and -p should be documented 16052
+ fmdump -O uses unchecked strtoull 16054 fmdump mishandles interleaved
+ arguments with -A 16056 want fmdump ability to AND event property filters
+ Reviewed by: Bill Sommerfeld <sommerfeld@hamachi.org> Approved by: Gordon
+ Ross <Gordon.W.Ross@gmail.com>
+
+---
+ usr/src/cmd/fm/fmdump/Makefile.com            |   3 +
+ usr/src/cmd/fm/fmdump/common/fmdump.c         | 171 ++++++++++++++++--
+ usr/src/lib/fm/libfmd_log/Makefile.com        |   3 +
+ usr/src/lib/fm/libfmd_log/common/fmd_filter.c |  81 +++++++--
+ usr/src/lib/fm/libfmd_log/common/fmd_log.h    |   6 +-
+ usr/src/lib/fm/libfmd_log/common/mapfile-vers |   2 +
+ usr/src/man/man8/fmdump.8                     | 166 ++++++++++++++++-
+ 7 files changed, 387 insertions(+), 45 deletions(-)
+
+diff --git a/usr/src/cmd/fm/fmdump/Makefile.com b/usr/src/cmd/fm/fmdump/Makefile.com
+index c215f69803..3f43749078 100644
+--- a/usr/src/cmd/fm/fmdump/Makefile.com
++++ b/usr/src/cmd/fm/fmdump/Makefile.com
+@@ -20,6 +20,7 @@
+ #
+ #
+ # Copyright (c) 2004, 2010, Oracle and/or its affiliates. All rights reserved.
++# Copyright 2024 Oxide Computer Co.
+ #
+ 
+ .KEEP_STATE:
+@@ -41,6 +42,8 @@ LINTFLAGS += -mnu
+ CERRWARN += -_gcc=-Wno-parentheses
+ CERRWARN += $(CNOWARN_UNINIT)
+ 
++CSTD =	$(CSTD_GNU99)
++
+ .NO_PARALLEL:
+ .PARALLEL: $(OBJS) $(LINTFILES)
+ 
+diff --git a/usr/src/cmd/fm/fmdump/common/fmdump.c b/usr/src/cmd/fm/fmdump/common/fmdump.c
+index 0cd3905e0c..aa4f271e7a 100644
+--- a/usr/src/cmd/fm/fmdump/common/fmdump.c
++++ b/usr/src/cmd/fm/fmdump/common/fmdump.c
+@@ -23,6 +23,7 @@
+  * Copyright (c) 2004, 2010, Oracle and/or its affiliates. All rights reserved.
+  * Copyright 2012 Nexenta Systems, Inc. All rights reserved.
+  * Copyright (c) 2013, Joyent, Inc. All rights reserved.
++ * Copyright 2024 Oxide Computer Co.
+  */
+ 
+ #include <alloca.h>
+@@ -179,8 +180,9 @@ fmdump_year(char *buf, size_t len, const fmd_log_record_t *rp)
+ 
+ /* BEGIN CSTYLED */
+ static const char *synopsis =
+-"Usage: %s [[-e | -i | -I] | -A ] [-f] [-mvVp] [-c class] [-R root]\n"
+-	"\t      [-t time ][-T time] [-u uuid] [-n name[.name]*[=value]] "
++"Usage: %s [[-e | -i | -I | -u] | -A ] [-f] [-aHmvVp] [-c class] [-R root]\n"
++	"\t      [-t time] [-T time] [-u uuid] [-n name[.name]*[=value]]\n"
++	"\t      [-N name[.name]*[=value][;name[.name]*[=value]]*] "
+ 							"[file]...\n    "
+     "Log selection: [-e | -i | -I] or one [file]; default is the fault log\n"
+ 	"\t-e  display error log content\n"
+@@ -189,19 +191,22 @@ static const char *synopsis =
+ 	"\t-R  set root directory for pathname expansions\n    "
+     "Command behaviour:\n"
+ 	"\t-A  Aggregate specified [file]s or, if no [file], all known logs\n"
++	"\t-H  display the log's header attributes instead of contents\n"
+ 	"\t-f  follow growth of log file by waiting for additional data\n    "
+     "Output options:\n"
++	"\t-j  Used with -V: emit JSON-formatted output\n"
+ 	"\t-m  display human-readable messages (only for fault logs)\n"
+-	"\t-v  set verbose mode: display additional event detail\n"
+-	"\t-V  set very verbose mode: display complete event contents\n"
+ 	"\t-p  Used with -V: apply some output prettification\n"
+-	"\t-j  Used with -V: emit JSON-formatted output\n    "
++	"\t-v  set verbose mode: display additional event detail\n"
++	"\t-V  set very verbose mode: display complete event contents\n    "
+     "Selection filters:\n"
++	"\t-a  select all events, including normally silent events\n"
+ 	"\t-c  select events that match the specified class\n"
++	"\t-n  select events containing named nvpair (with matching value)\n"
++	"\t-N  select events matching multiple property names (or nvpairs)\n"
+ 	"\t-t  select events that occurred after the specified time\n"
+ 	"\t-T  select events that occurred before the specified time\n"
+-	"\t-u  select events that match the specified diagnosis uuid\n"
+-	"\t-n  select events containing named nvpair (with matching value)\n";
++	"\t-u  select events that match the specified diagnosis uuid\n";
+ /* END CSTYLED */
+ 
+ static int
+@@ -442,7 +447,7 @@ setupnamevalue(char *namevalue)
+ 		}
+ 	}
+ 
+-	if ((argt = malloc(sizeof (fmd_log_filter_nvarg_t))) == NULL)
++	if ((argt = calloc(1, sizeof (fmd_log_filter_nvarg_t))) == NULL)
+ 		fmdump_fatal("failed to allocate memory");
+ 
+ 	argt->nvarg_name = namevalue;		/* now just name */
+@@ -451,6 +456,110 @@ setupnamevalue(char *namevalue)
+ 	return (argt);
+ }
+ 
++/*
++ * As for setupnamevalue() above, create our chain of filter arguments for -N
++ * [name[=value][;name[=value]]*.  This would be simple except for the problems
++ * of escaping something in a string.  To accommodate the use of the ; within
++ * the chain, we allow it to be escaped.  One might imagine that the backslash
++ * character should be used to escape it, but that opens Pandora's box because
++ * the value portion of each entry (if present) is allowed to be a regex.  The
++ * treatment of backslashes within regexes is not something we want to replicate
++ * here, which would be necessary if we wanted to allow escaping the ; with a
++ * backslash.  Specifically, consider how we treat the sequence of characters
++ * '\\;x' (two backslash characters followed by a semicolon and then some other
++ * character x).  In the name portion of the entry, this would be a backslash
++ * followed by an escaped semicolon, so that we would treat this as '\;' and
++ * include x and subsequent characters in this entry.  In the value portion (if
++ * present), we would have to treat it as a pair of backslashes followed by the
++ * terminating ; and the next entry would begin with 'x'...  except that we
++ * might be inside [] where the backslash is not special, and so on.
++ *
++ * Let's not do that.  Instead, we allow the user to 'escape' the ; by repeating
++ * it, and we interpret that before any regex interpretation is done.  Therefore
++ * *every* pair of consecutive semicolons, regardless of where it appears, is
++ * replaced by a literal semicolon.  This allows the semicolon to appear any
++ * number of times in either the name or, if present, the value, including as
++ * part of a regex (see regexp(7)), simply by doubling it.  A non-doubled
++ * semicolon always terminates the entry.  This now creates one more problem:
++ * whether to treat ';;;' as a literal semicolon followed by the entry
++ * terminator, or the entry terminator followed by a literal semicolon to start
++ * the next entry.  Here we have to cheat a little: it's clear from the FMD PRM
++ * (especially chapter 10 as well as the schema for module properties, buffers,
++ * statistics, and other entities) that the event member namespace is intended
++ * to exclude both the semicolon and whitespace.  A value, or a regex intended
++ * to match values, might well include anything.  Therefore, a semicolon at the
++ * beginning of an entry is unlikely to be useful, while one at the end of an
++ * entry may well be intentional.  We'll allow either or both when unambiguous,
++ * but a sequence containing an odd number of consecutive ';' characters will be
++ * interpreted as half that number of literal semicolons (rounded down) followed
++ * by the terminator.  If the user wishes to begin an event property name with a
++ * semicolon, it needs to be the first property in the chain.  Chains with
++ * multiple properties whose names begin with a literal semicolon are not
++ * supported.  Again, this almost certainly can never matter as no event should
++ * ever have a property whose name contains a semicolon.
++ *
++ * We choose the semicolon because the comma is very likely to be present in
++ * some property values on which the user may want to filter, especially the
++ * name of device paths.  The semicolon may itself appear in values, especially
++ * if the property is a URI, though it is likely much less common.  We have to
++ * pick something.  If this proves unwieldy or insufficiently expressive, it
++ * will need to be replaced by a full-on logical expression parser with
++ * first-class support for internal quoting, escaping, and regexes.  One might
++ * be better off dumping JSON and importing it into a SQL database if that level
++ * of complexity is required.
++ */
++
++static fmd_log_filter_nvarg_t *
++setupnamevalue_multi(char *chainstr)
++{
++	fmd_log_filter_nvarg_t *argchain = NULL;
++	size_t rem = strlen(chainstr) + 1;
++	fmd_log_filter_nvarg_t *argt;
++
++	/*
++	 * Here, rem holds the number of characters remaining that we are
++	 * permitted to examine, including the terminating NUL.  If the first
++	 * entry begins with a single semicolon, it is considered empty and
++	 * ignored.  Similarly, a trailing semicolon is optional and ignored if
++	 * present.  We won't create empty filter entries for any input.
++	 */
++	for (char *nv = chainstr; rem > 0; ++chainstr, --rem) {
++		switch (*chainstr) {
++		case ';':
++			ASSERT(rem > 1);
++
++			/*
++			 * Check for double-semicolon.  If found,
++			 * de-duplicate it and advance past, then continue the
++			 * loop: we can't be done yet.
++			 */
++			if (chainstr[1] == ';') {
++				ASSERT(rem > 2);
++				--rem;
++				(void) memmove(chainstr, chainstr + 1, rem);
++				break;
++			}
++
++			*chainstr = '\0';
++
++			/*FALLTHROUGH*/
++		case '\0':
++			if (chainstr != nv) {
++				argt = setupnamevalue(nv);
++				argt->nvarg_next = argchain;
++				argchain = argt;
++			}
++			nv = chainstr + 1;
++
++			/*FALLTHROUGH*/
++		default:
++			ASSERT(rem > 0);
++		}
++	}
++
++	return (argchain);
++}
++
+ /*
+  * If the -a option is not present, filter out fault records that correspond
+  * to events that the producer requested not be messaged for administrators.
+@@ -1189,8 +1298,8 @@ main(int argc, char *argv[])
+ 	allfv = alloca(sizeof (fmd_log_filter_t) * argc);
+ 
+ 	while (optind < argc) {
+-		while ((c =
+-		    getopt(argc, argv, "Aac:efHiIjmn:O:pR:t:T:u:vV")) != EOF) {
++		while ((c = getopt(argc, argv,
++		    "Aac:efHiIjmN:n:O:pR:t:T:u:vV")) != EOF) {
+ 			switch (c) {
+ 			case 'A':
+ 				opt_A++;
+@@ -1232,10 +1341,32 @@ main(int argc, char *argv[])
+ 			case 'm':
+ 				opt_m++;
+ 				break;
+-			case 'O':
+-				off = strtoull(optarg, NULL, 16);
++			case 'N':
++				fltfv[fltfc].filt_func =
++				    fmd_log_filter_nv_multi;
++				fltfv[fltfc].filt_arg =
++				    setupnamevalue_multi(optarg);
++				allfv[allfc++] = fltfv[fltfc++];
++				break;
++			case 'n':
++				fltfv[fltfc].filt_func = fmd_log_filter_nv;
++				fltfv[fltfc].filt_arg = setupnamevalue(optarg);
++				allfv[allfc++] = fltfv[fltfc++];
++				break;
++			case 'O': {
++				char *p;
++
++				errno = 0;
++				off = strtoull(optarg, &p, 16);
++
++				if (errno != 0 || p == optarg || *p != '\0') {
++					fmdump_usage(
++					    "illegal offset format -- %s\n",
++					    optarg);
++				}
+ 				iflags |= FMD_LOG_XITER_OFFS;
+ 				break;
++			}
+ 			case 'p':
+ 				if (opt_j)
+ 					return (usage(stderr));
+@@ -1261,12 +1392,6 @@ main(int argc, char *argv[])
+ 				opt_u++;
+ 				opt_a++; /* -u implies -a */
+ 				break;
+-			case 'n': {
+-				fltfv[fltfc].filt_func = fmd_log_filter_nv;
+-				fltfv[fltfc].filt_arg = setupnamevalue(optarg);
+-				allfv[allfc++] = fltfv[fltfc++];
+-				break;
+-			}
+ 			case 'v':
+ 				opt_v++;
+ 				break;
+@@ -1300,6 +1425,8 @@ main(int argc, char *argv[])
+ 				fmdump_usage("illegal argument -- %s\n",
+ 				    argv[optind]);
+ 
++			ASSERT(ifileidx < n_ifiles);
++
+ 			if ((dest = malloc(PATH_MAX)) == NULL)
+ 				fmdump_fatal("failed to allocate memory");
+ 
+@@ -1308,6 +1435,14 @@ main(int argc, char *argv[])
+ 		}
+ 	}
+ 
++	/*
++	 * It's possible that file arguments were interleaved with options and
++	 * option arguments, in which case we allocated space for more file
++	 * arguments that we actually got.  Adjust as required so that we don't
++	 * reference invalid entries.
++	 */
++	n_ifiles = ifileidx;
++
+ 	if (opt_A) {
+ 		int rc;
+ 
+diff --git a/usr/src/lib/fm/libfmd_log/Makefile.com b/usr/src/lib/fm/libfmd_log/Makefile.com
+index 0b37647952..9d8257711c 100644
+--- a/usr/src/lib/fm/libfmd_log/Makefile.com
++++ b/usr/src/lib/fm/libfmd_log/Makefile.com
+@@ -22,6 +22,8 @@
+ # Copyright 2008 Sun Microsystems, Inc.  All rights reserved.
+ # Use is subject to license terms.
+ #
++# Copyright 2024 Oxide Computer Co.
++#
+ 
+ LIBRARY = libfmd_log.a
+ VERS = .1
+@@ -43,6 +45,7 @@ CFLAGS64 += $(CCVERBOSE) $(C_BIGPICFLAGS)
+ CERRWARN += $(CNOWARN_UNINIT)
+ LDLIBS += -lexacct -lnvpair -lgen -lc
+ 
++CSTD =	$(CSTD_GNU99)
+ 
+ .KEEP_STATE:
+ 
+diff --git a/usr/src/lib/fm/libfmd_log/common/fmd_filter.c b/usr/src/lib/fm/libfmd_log/common/fmd_filter.c
+index 06ef6f60c8..7004df58bb 100644
+--- a/usr/src/lib/fm/libfmd_log/common/fmd_filter.c
++++ b/usr/src/lib/fm/libfmd_log/common/fmd_filter.c
+@@ -21,6 +21,8 @@
+ /*
+  * Copyright 2008 Sun Microsystems, Inc.  All rights reserved.
+  * Use is subject to license terms.
++ *
++ * Copyright 2024 Oxide Computer Co.
+  */
+ 
+ #include <sys/fm/protocol.h>
+@@ -99,22 +101,65 @@ fmd_log_filter_after(fmd_log_t *lp, const fmd_log_record_t *rp, void *arg)
+ int
+ fmd_log_filter_nv(fmd_log_t *lp, const fmd_log_record_t *rp, void *arg)
+ {
+-	fmd_log_filter_nvarg_t *argt = (fmd_log_filter_nvarg_t *)arg;
+-	char		*name = argt->nvarg_name;
+-	char		*value = argt->nvarg_value;
+-	regex_t		*value_regex = argt->nvarg_value_regex;
+-	nvpair_t	*nvp;
+-	int		ai;
+-
+-	/* see if nvlist has named member */
+-	if (nvlist_lookup_nvpair_embedded_index(rp->rec_nvl, name,
+-	    &nvp, &ai, NULL) != 0)
+-		return (0);		/* name filter failure */
+-
+-	/* check value match for matching nvpair */
+-	if ((value == NULL) ||
+-	    (nvpair_value_match_regex(nvp, ai, value, value_regex, NULL) == 1))
+-		return (1);		/* name/value filter pass */
+-
+-	return (0);			/* value filter failure */
++	/*
++	 * The nvarg_next member was added compatibly with the introduction of
++	 * ABI version 3.  Older consumers pass a smaller structure that does
++	 * not contain this member, so we treat it as if it were always NULL.
++	 */
++	for (fmd_log_filter_nvarg_t *argt = (fmd_log_filter_nvarg_t *)arg;
++	    argt != NULL; argt = (lp->log_abi < 3) ? NULL : argt->nvarg_next) {
++		char		*name = argt->nvarg_name;
++		char		*value = argt->nvarg_value;
++		regex_t		*value_regex = argt->nvarg_value_regex;
++		nvpair_t	*nvp;
++		int		ai;
++
++		/* see if nvlist has named member */
++		if (nvlist_lookup_nvpair_embedded_index(rp->rec_nvl, name,
++		    &nvp, &ai, NULL) != 0) {
++			return (0);		/* name filter failure */
++		}
++
++		/* check value match for matching nvpair */
++		if ((value != NULL) &&
++		    (nvpair_value_match_regex(nvp, ai,
++		    value, value_regex, NULL) != 1)) {
++			return (0);		/* value filter failure */
++		}
++	}
++
++	return (1);		/* name/value filter pass */
++}
++
++/*
++ * This exists because filters are sorted and grouped based on the pointer to
++ * the filtering function, and we need fmdump to be able to maintain backward
++ * compatibility.  fmdump distinguishes filter classes by the command-line
++ * option used to describe the filter.  As for all library consumers, filters
++ * with the same evaluation function are considered to have the same class, and
++ * groups of filters of the SAME class are ORed together (i.e., match-any) while
++ * distinct classes are ANDed together, so that at least one of every class of
++ * filter must match in order for the record to pass through.  The command-line
++ * syntax fmdump accepts for multiple name-value filter chains cannot be made
++ * compatible with the syntax it accepted for single name-value filters,
++ * requiring that a new command-line option be introduced for multi-name-value
++ * filter chains.  Using a separate function thus allows fmdump to treat
++ * single-name-value and multi-name-value filters as belonging to different
++ * classes, maintaining backward compatibility with its existing command-line
++ * option syntax AND consistency with its documented treatment of filters of
++ * distinct classes.  At the same time, because a single-name-value filter is
++ * merely a special case of a multi-name-value filter (each entry in the
++ * argument list is required to match the record in order for the record to pass
++ * the filter), the actual implementation of the two filter classes is
++ * identical.  A consumer that, unlike fmdump, wants to treat these types of
++ * filters as belonging to a single class can therefore do so simply by using
++ * fmd_log_filter_nv() regardless of the number of name-value parameters in the
++ * argument chain, while those that want the fmdump behaviour should use that
++ * function only for filters with a single such parameter and this function for
++ * those with multiple.  See fmdump(8).
++ */
++int
++fmd_log_filter_nv_multi(fmd_log_t *lp, const fmd_log_record_t *rp, void *arg)
++{
++	return (fmd_log_filter_nv(lp, rp, arg));
+ }
+diff --git a/usr/src/lib/fm/libfmd_log/common/fmd_log.h b/usr/src/lib/fm/libfmd_log/common/fmd_log.h
+index 9e9c0c2eae..e63266bb89 100644
+--- a/usr/src/lib/fm/libfmd_log/common/fmd_log.h
++++ b/usr/src/lib/fm/libfmd_log/common/fmd_log.h
+@@ -21,6 +21,8 @@
+ /*
+  * Copyright 2008 Sun Microsystems, Inc.  All rights reserved.
+  * Use is subject to license terms.
++ *
++ * Copyright 2024 Oxide Computer Co.
+  */
+ 
+ #ifndef	_FMD_LOG_H
+@@ -44,7 +46,7 @@ extern "C" {
+  * purpose until they are publicly documented for use outside of Sun.
+  */
+ 
+-#define	FMD_LOG_VERSION	2		/* library ABI interface version */
++#define	FMD_LOG_VERSION	3		/* library ABI interface version */
+ 
+ typedef struct fmd_log fmd_log_t;
+ 
+@@ -100,6 +102,7 @@ extern fmd_log_rec_f fmd_log_filter_uuid;	/* char *uuid of list.suspect */
+ extern fmd_log_rec_f fmd_log_filter_before;	/* struct timeval * latest */
+ extern fmd_log_rec_f fmd_log_filter_after;	/* struct timeval * earliest */
+ extern fmd_log_rec_f fmd_log_filter_nv;		/* char *namevalue in event */
++extern fmd_log_rec_f fmd_log_filter_nv_multi;	/* multiple name-value pairs */
+ 
+ extern int fmd_log_filter(fmd_log_t *,
+     uint_t, fmd_log_filter_t *, const fmd_log_record_t *);
+@@ -108,6 +111,7 @@ typedef struct fmd_log_filter_nvarg {
+ 	char	*nvarg_name;
+ 	char	*nvarg_value;
+ 	regex_t	*nvarg_value_regex;
++	struct fmd_log_filter_nvarg *nvarg_next;
+ } fmd_log_filter_nvarg_t;
+ 
+ /*
+diff --git a/usr/src/lib/fm/libfmd_log/common/mapfile-vers b/usr/src/lib/fm/libfmd_log/common/mapfile-vers
+index 387e41b992..1a794c87a9 100644
+--- a/usr/src/lib/fm/libfmd_log/common/mapfile-vers
++++ b/usr/src/lib/fm/libfmd_log/common/mapfile-vers
+@@ -20,6 +20,7 @@
+ #
+ #
+ # Copyright (c) 2006, 2010, Oracle and/or its affiliates. All rights reserved.
++# Copyright 2024 Oxide Computer Co.
+ #
+ 
+ #
+@@ -48,6 +49,7 @@ SYMBOL_VERSION SUNWprivate {
+ 	fmd_log_filter_before;
+ 	fmd_log_filter_class;
+ 	fmd_log_filter_nv;
++	fmd_log_filter_nv_multi;
+ 	fmd_log_filter_uuid;
+ 	fmd_log_header;
+ 	fmd_log_iter;
+diff --git a/usr/src/man/man8/fmdump.8 b/usr/src/man/man8/fmdump.8
+index 4b48391ddf..c254c6f650 100644
+--- a/usr/src/man/man8/fmdump.8
++++ b/usr/src/man/man8/fmdump.8
+@@ -1,16 +1,18 @@
+ '\" te
+ .\" Copyright (c) 2009, Sun Microsystems, Inc. All Rights Reserved.
+ .\" Copyright 2012 Joshua M. Clulow <josh@sysmgr.org>
++.\" Copyright 2024 Oxide Computer Co.
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License"). You may not use this file except in compliance with the License. You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.
+ .\" See the License for the specific language governing permissions and limitations under the License. When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE. If applicable, add the following below this CDDL HEADER, with the
+ .\" fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH FMDUMP 8 "Jan 14, 2020"
++.TH FMDUMP 8 "April 1, 2024"
+ .SH NAME
+ fmdump \- fault management log viewer
+ .SH SYNOPSIS
+ .nf
+-\fBfmdump\fR [\fB-efmvV\fR] [\fB-c\fR \fIclass\fR] [\fB-R\fR \fIdir\fR] [\fB-t\fR \fItime\fR] [\fB-T\fR \fItime\fR]
+-     [\fB-u\fR \fIuuid\fR] [\fB-n\fR \fIname\fR[.\fIname\fR]*[=\fIvalue\fR]] [\fIfile\fR]
++\fBfmdump\fR [\fB-aAefHiIjmpvV\fR] [\fB-c\fR \fIclass\fR] [\fB-R\fR \fIdir\fR] [\fB-t\fR \fItime\fR] [\fB-T\fR \fItime\fR]
++     [\fB-u\fR \fIuuid\fR] [\fB-n\fR \fIname\fR[.\fIname\fR]*[=\fIvalue\fR]]
++     [\fB-N\fR \fIname\fR[.\fIname\fR]*[=\fIvalue\fR][;\fIname\fR[.\fIname\fR]*[=\fIvalue\fR]]*] [\fIfile\fR]
+ .fi
+ 
+ .SH DESCRIPTION
+@@ -44,6 +46,19 @@ A log which records fault diagnosis information, the problems believed to
+ explain these symptoms.
+ .RE
+ 
++.sp
++.ne 2
++.na
++\fBinformational logs\fR
++.ad
++.RS 13n
++A pair of logs that record informational events that may not lead directly to
++a fault diagnosis but can assist in interpreting system state should one
++occur.  These events are separated into a log containing informational events
++("ireports") with high priority and sysevents ("high-value" informational
++events), and another containing other ireports.
++.RE
++
+ .sp
+ .LP
+ By default, \fBfmdump\fR displays the contents of the fault log, which records
+@@ -122,6 +137,38 @@ selects events whose attributes are \fB(uuid1 OR uuid2\fR) \fBAND\fR (time on
+ or after 02Dec03).
+ .SH OPTIONS
+ The following options are supported:
++
++.sp
++.ne 2
++\fB\fB-a\fR\fR
++.ad
++.sp .6
++.RS 4n
++Include all events from the requested file(s), including events that are
++ordinarily silent.
++.sp
++Silent events may contain Private telemetry information, and their existence
++may be Private also.  The presence of silent events and the data they contain
++should not be parsed or relied upon in the development of scripts or other
++tools, and their presence or absence should not be relied upon to indicate
++whether an error or fault condition exists.
++.RE
++
++.sp
++.ne 2
++\fB\fB-A\fR\fR
++.ad
++.sp .6
++.RS 4n
++Aggregate the data from the file(s) specified or, if no file(s) are specified,
++all known logs.  Output may include events from fault, error, and
++informational logs, including older logs that have previously been rotated
++out.  The order in which events are displayed is unspecified.  As this option
++displays data from log files that would be selected by the \fB-e\fR, \fB-i\fR,
++and \fB-I\fR options, the same caveats listed with respect to those options
++also apply to \fB-A\fR.
++.RE
++
+ .sp
+ .ne 2
+ .na
+@@ -163,6 +210,61 @@ format new data from the log file, and then go back to sleep. This loop can be
+ terminated at any time by sending an interrupt (\fBControl-C\fR).
+ .RE
+ 
++.sp
++.ne 2
++.na
++\fB\fB-H\fR\fR
++.ad
++.sp 6
++.RS 4n
++Instead of displaying the events contained in the selected log file, display
++its header attributes.  The names and values of these attributes are Private
++and should not be parsed or relied upon for the development of scripts or
++other tools.  This option is provided primarily for debugging the fault
++management system, but it may also be used to determine the type and origin of
++a log file that has been renamed or moved from the system on which it was
++originally produced.
++.RE
++
++.sp
++.ne 2
++\fB\fB-i\fR\fR
++.ad
++.sp .6
++.RS 4n
++Display events from the ordinary information log instead of the fault log.
++This option is shorthand for specifying the pathname of the ordinary
++information log file.
++.sp
++The ordinary information log file, like the error log file, contains Private
++telemetry information and the same caveats apply with respect to
++interpretation or parsing of this data.
++.RE
++
++.sp
++.ne 2
++\fB\fB-I\fR\fR
++.ad
++.sp .6
++.RS 4n
++Display events from the high-value information log instead of the fault log.
++This option is shorthand for specifying the pathname of the high-value
++information log file.
++.sp
++The high-value information log file, like the error and ordinary information
++log files, contains Private telemetry information and the same caveats apply
++with respect to interpretation or parsing of this data.
++.RE
++
++.sp
++.ne 2
++\fB\fB-j\fR\fR
++.ad
++.sp .6
++.RS 4n
++Output events in JSON format, when used with the \fB-V\fR option.
++.RE
++
+ .sp
+ .ne 2
+ .na
+@@ -181,11 +283,11 @@ log.
+ .ad
+ .sp .6
+ .RS 4n
+-Select fault log or error log events, depending on the \fB-e\fR option, that
+-have properties with a matching name (and optionally a matching value). For
+-string properties the value can be a regular expression match. Regular
+-expression syntax is described in the EXTENDED REGULAR EXPRESSIONS section of
+-the \fBregex\fR(7) manual page. Be careful when using the characters:
++Select log events that have properties with a matching name (and optionally a
++matching value). For string properties the value can be a regular expression
++match. Regular expression syntax is described in the EXTENDED REGULAR
++EXPRESSIONS section of the \fBregex\fR(7) manual page. Be careful when using
++the characters:
+ .sp
+ .in +2
+ .nf
+@@ -199,6 +301,36 @@ safest to enclose any of these in single quotes. For numeric properties, the
+ value can be octal, hex, or decimal.
+ .RE
+ 
++.sp
++.ne 2
++.na
++\fB\fB-N\fR
++\fIname\fR[.\fIname\fR]*[=\fIvalue\fR][;\fIname\fR[.\fIname\fR]*[=\fIvalue\fR]]*\fR
++.ad
++.sp .6
++.RS 4n
++Select log events that have multiple properties with a matching name (and
++optionally a matching value), all of which must match the event.  Multiple
++properties are separated by the \fB;\fR character and any number may be
++specified; each is interpreted as if supplied with the \fB-n\fR option.  If
++the \fB;\fR character must appear in a value to be matched, it must be
++doubled as \fB;;\fR.  If the \fB-N\fR option appears on the command line
++multiple times, each supplied list of properties is treated as a separate
++selector like any other selector option, so that every event matching all
++properties of any one of several property lists will be selected.
++.RE
++
++.sp
++.ne 2
++.na
++\fB\fB-p\fR\fR
++.ad
++.sp 6
++.RS 4n
++Prettifies output when used with \fB-V\fR, including displaying FMRIs as
++strings instead of embedded name-value lists.
++.RE
++
+ .sp
+ .ne 2
+ .na
+@@ -607,6 +739,24 @@ Fault management error log
+ Fault management fault log
+ .RE
+ 
++.sp
++.ne 2
++.na
++\fB\fB/var/fm/fmd/infolog\fR\fR
++.ad
++.RS 22n
++Fault management informational report log
++.RE
++
++.sp
++.ne 2
++.na
++\fB\fB/var/fm/fmd/infolog_hival\fR\fR
++.ad
++.RS 22n
++Fault management high-value informational report log
++.RE
++
+ .SH ATTRIBUTES
+ See \fBattributes\fR(7) for descriptions of the following attributes:
+ .sp
+-- 
+2.46.0
+

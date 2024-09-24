@@ -1,0 +1,31 @@
+From aed162cfceb2959d973ec638d3d3cf5a730e3a03 Mon Sep 17 00:00:00 2001
+From: Robert Mustacchi <rm@fingolfin.org>
+Date: Sat, 13 Jul 2024 13:36:12 +0000
+Subject: [PATCH] 16659 Clean up minor issues in prototype.man3x Reviewed by:
+ Toomas Soome <tsoome@me.com> Reviewed by: Dan McDonald <danmcd@mnx.io>
+ Reviewed by: Bill Sommerfeld <sommerfeld@hamachi.org> Approved by: Patrick
+ Mooney <pmooney@pfmooney.com>
+
+---
+ usr/src/prototypes/prototype.man3x | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/usr/src/prototypes/prototype.man3x b/usr/src/prototypes/prototype.man3x
+index f59c41cf25..ab2e31b52c 100644
+--- a/usr/src/prototypes/prototype.man3x
++++ b/usr/src/prototypes/prototype.man3x
+@@ -50,9 +50,9 @@ and <if errno is set describe it below>.
+ .Sh EXAMPLES
+ .Sh ERRORS
+ The
+-.fn funcname
++.Fn funcname
+ functions will fail if:
+-.Bl  -tag -width Er
++.Bl -tag -width Er
+ .It Er ERRNO1
+ A Reason why ERRNO1 could occur.
+ .It Er ERRNO2
+-- 
+2.46.0
+

@@ -1,0 +1,116 @@
+From 3b363e384673bd88fc57814d909651859c7c41a3 Mon Sep 17 00:00:00 2001
+From: Richard Lowe <richlowe@richlowe.net>
+Date: Sun, 5 May 2024 20:29:48 +0000
+Subject: [PATCH] 16530 cmd/audio should deal in big-endian and little-endian,
+ not sparc and i386 Reviewed by: Jason King
+ <jason.brian.king+illumos@gmail.com> Reviewed by: Bill Sommerfeld
+ <sommerfeld@hamachi.org> Reviewed by: Toomas Soome <tsoome@me.com> Reviewed
+ by: Peter Tribble <peter.tribble@gmail.com> Approved by: Robert Mustacchi
+ <rm@fingolfin.org>
+
+---
+ usr/src/cmd/audio/include/aiff.h    |  5 ++---
+ usr/src/cmd/audio/include/archdep.h | 23 +++++------------------
+ usr/src/cmd/audio/include/wav.h     |  4 ++--
+ 3 files changed, 9 insertions(+), 23 deletions(-)
+
+diff --git a/usr/src/cmd/audio/include/aiff.h b/usr/src/cmd/audio/include/aiff.h
+index f3f7c0f44f..cb5c1a48f4 100644
+--- a/usr/src/cmd/audio/include/aiff.h
++++ b/usr/src/cmd/audio/include/aiff.h
+@@ -137,9 +137,8 @@ typedef struct aiff_ssnd_chunk aiff_ssnd_chunk_t;
+ /* define for aiff_ssnd_chunk.aiff_ssnd_ID */
+ #define	AUDIO_AIFF_SSND_ID		((uint32_t)0x53534e44)	/* 'SSND' */
+ 
+-
+ /* byte swapping macros */
+-#if defined(__sparc)				/* big endian */
++#if defined(__BIG_ENDIAN)
+ #define	AUDIO_AIFF_FILE2HOST_INT(from, to)				\
+ 		*((int *)(to)) = *((int *)(from))
+ #define	AUDIO_AIFF_FILE2HOST_SHORT(from, to)				\
+@@ -148,7 +147,7 @@ typedef struct aiff_ssnd_chunk aiff_ssnd_chunk_t;
+ 		*((int *)(to)) = *((int *)(from))
+ #define	AUDIO_AIFF_HOST2FILE_SHORT(from, to)				\
+ 		*((short *)(to)) = *((short *)(from))
+-#elif defined(__i386) || defined(__amd64)	/* little endian */
++#elif defined(_LITTLE_ENDIAN)
+ #define	AUDIO_AIFF_FILE2HOST_INT(from, to)				\
+ 		(*to) = ((((*from) >> 24) & 0xff) | (((*from) & 0xff) << 24) | \
+ 		(((*from) >> 8) & 0xff00) | (((*from) & 0xff00) << 8))
+diff --git a/usr/src/cmd/audio/include/archdep.h b/usr/src/cmd/audio/include/archdep.h
+index 2a7af920df..e554c72bff 100644
+--- a/usr/src/cmd/audio/include/archdep.h
++++ b/usr/src/cmd/audio/include/archdep.h
+@@ -44,14 +44,12 @@ extern "C" {
+  * Note that these macros *do not* work for in-place transformations.
+  */
+ 
+-#if defined(mc68000) || defined(sparc)
++#if defined(_BIG_ENDIAN)
+ #define	DECODE_SHORT(from, to)	*((short *)(to)) = *((short *)(from))
+ #define	DECODE_LONG(from, to)	*((long *)(to)) = *((long *)(from))
+ #define	DECODE_FLOAT(from, to)	*((float *)(to)) = *((float *)(from))
+ #define	DECODE_DOUBLE(from, to)	*((double *)(to)) = *((double *)(from))
+-#endif /* big-endian */
+-
+-#if defined(i386) || defined(__ppc)
++#elif defined(_LITTLE_ENDIAN)
+ #define	DECODE_SHORT(from, to)						\
+ 			    ((char *)(to))[0] = ((char *)(from))[1];	\
+ 			    ((char *)(to))[1] = ((char *)(from))[0];
+@@ -72,26 +70,15 @@ extern "C" {
+ 			    ((char *)(to))[5] = ((char *)(from))[2];	\
+ 			    ((char *)(to))[6] = ((char *)(from))[1];	\
+ 			    ((char *)(to))[7] = ((char *)(from))[0];
+-#endif /* little-endian */
+-
++#else /* little-endian */
++#error Unknown machine endianness
++#endif
+ 
+-/* Most architectures are symmetrical with respect to conversions. */
+-#if defined(mc68000) || defined(sparc) || defined(i386) || defined(__ppc)
+ #define	ENCODE_SHORT(from, to)		DECODE_SHORT((from), (to))
+ #define	ENCODE_LONG(from, to)		DECODE_LONG((from), (to))
+ #define	ENCODE_FLOAT(from, to)		DECODE_FLOAT((from), (to))
+ #define	ENCODE_DOUBLE(from, to)		DECODE_DOUBLE((from), (to))
+ 
+-/* Define types of specific length */
+-typedef char		i_8;
+-typedef short		i_16;
+-typedef int		i_32;
+-typedef unsigned char	u_8;
+-typedef unsigned short 	u_16;
+-typedef unsigned	u_32;
+-
+-#endif /* Sun machines */
+-
+ #ifdef __cplusplus
+ }
+ #endif
+diff --git a/usr/src/cmd/audio/include/wav.h b/usr/src/cmd/audio/include/wav.h
+index 8fd466ee78..571f0c2285 100644
+--- a/usr/src/cmd/audio/include/wav.h
++++ b/usr/src/cmd/audio/include/wav.h
+@@ -117,7 +117,7 @@ typedef struct wav_filehdr wav_filehdr_t;
+ 
+ 
+ /* byte swapping macros */
+-#if defined(__sparc)				/* big endian */
++#if defined(_BIG_ENDIAN)				/* big endian */
+ #define	AUDIO_WAV_FILE2HOST_INT(from, to)				\
+ 		(*to) = ((((*from) >> 24) & 0xff) | (((*from) & 0xff) << 24) | \
+ 		(((*from) >> 8) & 0xff00) | (((*from) & 0xff00) << 8))
+@@ -128,7 +128,7 @@ typedef struct wav_filehdr wav_filehdr_t;
+ #define	AUDIO_WAV_HOST2FILE_SHORT(from, to)				\
+ 		AUDIO_WAV_FILE2HOST_SHORT((from), (to))
+ 
+-#elif defined(__i386) || defined(__amd64)	/* little endian */
++#elif defined(_LITTLE_ENDIAN)				/* little endian */
+ #define	AUDIO_WAV_FILE2HOST_INT(from, to)				\
+ 		*((int *)(to)) = *((int *)(from))
+ #define	AUDIO_WAV_FILE2HOST_SHORT(from, to)				\
+-- 
+2.46.0
+

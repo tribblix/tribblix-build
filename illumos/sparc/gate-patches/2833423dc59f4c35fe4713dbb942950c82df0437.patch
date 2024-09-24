@@ -1,0 +1,160 @@
+From 2833423dc59f4c35fe4713dbb942950c82df0437 Mon Sep 17 00:00:00 2001
+From: Andy Fiddaman <illumos@fiddaman.net>
+Date: Thu, 19 Sep 2024 09:55:34 +0000
+Subject: [PATCH] 16798 /bin/false should not exit with 255 Reviewed by: Marcel
+ Telka <marcel@telka.sk> Reviewed by: Gordon Ross <Gordon.W.Ross@gmail.com>
+ Reviewed by: Toomas Soome <tsoome@me.com> Approved by: Dan McDonald
+ <danmcd@mnx.io>
+
+---
+ usr/src/cmd/false/false.c |   9 +++-
+ usr/src/man/man1/true.1   | 103 ++++++++++++++++----------------------
+ 2 files changed, 51 insertions(+), 61 deletions(-)
+
+diff --git a/usr/src/cmd/false/false.c b/usr/src/cmd/false/false.c
+index 538350a33e..2f4cbf7350 100644
+--- a/usr/src/cmd/false/false.c
++++ b/usr/src/cmd/false/false.c
+@@ -22,18 +22,25 @@
+ /*
+  * Copyright 2004 Sun Microsystems, Inc.  All rights reserved.
+  * Use is subject to license terms.
++ *
++ * Copyright 2024 Oxide Computer Company
+  */
+ 
+ #include <unistd.h>
+ 
+ /*
+  * Exit with a non-zero value as quickly as possible.
++ *
++ * POSIX.1-2024 specifies an exit value between 1 and 125, inclusive, but a
++ * survey of various shell builtin versions and other operating systems shows
++ * that 1 is universally used, and some software erroneously expects exactly
++ * that. For best compatibility and least surprise, we elect to do the same.
+  */
+ 
+ int
+ main(void)
+ {
+-	_exit(255);
++	_exit(1);
+ 	/*NOTREACHED*/
+ 	return (0);
+ }
+diff --git a/usr/src/man/man1/true.1 b/usr/src/man/man1/true.1
+index c6e3bd5103..e9c963a1f8 100644
+--- a/usr/src/man/man1/true.1
++++ b/usr/src/man/man1/true.1
+@@ -43,65 +43,48 @@
+ .\" Copyright 1989 AT&T
+ .\" Portions Copyright (c) 1992, X/Open Company Limited  All Rights Reserved
+ .\" Copyright (c) 1995, Sun Microsystems, Inc.  All Rights Reserved.
++.\" Copyright 2024 Oxide Computer Company
+ .\"
+-.TH TRUE 1 "Feb 1, 1995"
+-.SH NAME
+-true, false \- provide truth values
+-.SH SYNOPSIS
+-.LP
+-.nf
+-\fBtrue\fR
+-.fi
+-
+-.LP
+-.nf
+-\fBfalse\fR
+-.fi
+-
+-.SH DESCRIPTION
+-.sp
+-.LP
+-The \fBtrue\fR utility does nothing, successfully. The \fBfalse\fR utility does
+-nothing, unsuccessfully. They are typically used in a shell script \fBsh\fR as:
+-.sp
+-.in +2
+-.nf
+-while true
+-do
+-            \fIcommand\fR
++.Dd September 19, 2024
++.Dt TRUE 1
++.Os
++.Sh NAME
++.Nm true ,
++.Nm false
++.Nd provide truth values
++.Sh SYNOPSIS
++.Nm true
++.Nm false
++.Sh DESCRIPTION
++The
++.Nm true
++utility does nothing, successfully.
++The
++.Nm false
++utility does nothing, unsuccessfully.
++They are typically used in a shell script as:
++.Bd -literal -offset indent
++while true; do
++	command
+ done
+-.fi
+-.in -2
+-
+-.sp
+-.LP
+-which executes \fIcommand\fR forever.
+-.SH EXIT STATUS
+-.sp
+-.LP
+-\fBtrue\fR has exit status  \fB0\fR.
+-.sp
+-.LP
+-\fBfalse\fR always will exit with a non-zero value.
+-.SH ATTRIBUTES
+-.sp
+-.LP
+-See \fBattributes\fR(7) for descriptions of the following attributes:
+-.sp
+-
+-.sp
+-.TS
+-box;
+-c | c
+-l | l .
+-ATTRIBUTE TYPE	ATTRIBUTE VALUE
+-_
+-Interface Stability	Standard
+-.TE
+-
+-.SH SEE ALSO
+-.sp
+-.LP
+-.BR sh (1),
+-.BR attributes (7),
+-.BR standards (7)
++.Ed
++.Pp
++which executes
++.Sq command
++forever.
++.Sh EXIT STATUS
++.Nm true
++has exit status
++.Sy 0 .
++.Pp
++.Nm false
++will always exit with a non-zero value between 1 and 125, inclusive.
++.Sh INTERFACE STABILITY
++.Nm true
++and
++.Nm false
++are
++.Sy Committed .
++.Sh SEE ALSO
++.Xr sh 1 ,
++.Xr attributes 7
+-- 
+2.46.0
+

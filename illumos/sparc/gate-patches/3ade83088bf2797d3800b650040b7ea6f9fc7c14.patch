@@ -1,0 +1,34 @@
+From 3ade83088bf2797d3800b650040b7ea6f9fc7c14 Mon Sep 17 00:00:00 2001
+From: Bill Sommerfeld <sommerfeld@hamachi.org>
+Date: Sun, 5 May 2024 20:45:15 -0700
+Subject: [PATCH] 16529 TIOCGWINSZ returns EINVAL on a freshly-created pty
+ Reviewed by: Andy Fiddaman <illumos@fiddaman.net> Reviewed by: Toomas Soome
+ <tsoome@me.com> Approved by: Dan McDonald <danmcd@mnx.io>
+
+---
+ usr/src/uts/common/io/ptem.c | 9 ---------
+ 1 file changed, 9 deletions(-)
+
+diff --git a/usr/src/uts/common/io/ptem.c b/usr/src/uts/common/io/ptem.c
+index 137f2916b5..1699ce4de3 100644
+--- a/usr/src/uts/common/io/ptem.c
++++ b/usr/src/uts/common/io/ptem.c
+@@ -933,15 +933,6 @@ ptioc(queue_t *q, mblk_t *mp, int qside)
+ 		return;
+ 
+ 	case TIOCGWINSZ:
+-		/*
+-		 * If all zeros NAK the message for dumb terminals.
+-		 */
+-		if ((tp->wsz.ws_row == 0) && (tp->wsz.ws_col == 0) &&
+-		    (tp->wsz.ws_xpixel == 0) && (tp->wsz.ws_ypixel == 0)) {
+-			miocnak(q, mp, 0, EINVAL);
+-			return;
+-		}
+-
+ 		tmp = allocb(sizeof (struct winsize), BPRI_MED);
+ 		if (tmp == NULL) {
+ 			miocnak(q, mp, 0, EAGAIN);
+-- 
+2.46.0
+

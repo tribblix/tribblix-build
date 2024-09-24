@@ -1,0 +1,44 @@
+From ee073065c7200b026f498d9cad2beb87ba3b57a7 Mon Sep 17 00:00:00 2001
+From: Richard Lowe <richlowe@richlowe.net>
+Date: Tue, 7 May 2024 19:03:23 +0000
+Subject: [PATCH] 16528 clean up low-hanging warnings in svccfg(8) (duplicate
+ definition) Approved by: Dan McDonald <danmcd@mnx.io>
+
+---
+ usr/src/cmd/svc/svccfg/svccfg.h | 7 ++-----
+ 1 file changed, 2 insertions(+), 5 deletions(-)
+
+diff --git a/usr/src/cmd/svc/svccfg/svccfg.h b/usr/src/cmd/svc/svccfg/svccfg.h
+index 70e23e181b..484d78e566 100644
+--- a/usr/src/cmd/svc/svccfg/svccfg.h
++++ b/usr/src/cmd/svc/svccfg/svccfg.h
+@@ -496,7 +496,6 @@ extern void lscf_set_repository(const char *, int);
+ extern int lscf_setprop(const char *, const char *, const char *,
+     const uu_list_t *);
+ 
+-
+ extern void engine_init(void);
+ extern int engine_exec_cmd(void);
+ extern int engine_exec(char *);
+@@ -506,16 +505,14 @@ extern int engine_source(const char *, boolean_t);
+ extern int engine_import(uu_list_t *);
+ extern int engine_cleanup(int);
+ extern int engine_set(uu_list_t *);
+-
+-extern void help(int);
+-
+ extern int engine_cmd_getc(engine_state_t *);
+ extern int engine_cmd_ungetc(engine_state_t *, char);
+ extern void engine_cmd_nputs(engine_state_t *, char *, size_t);
+ extern int engine_restore(const char *);
+-extern int engine_restore(const char *);
+ extern int engine_apply(const char *, int);
+ 
++extern void help(int);
++
+ extern void tmpl_errors_destroy(tmpl_errors_t *);
+ extern void tmpl_errors_print(FILE *, tmpl_errors_t *, const char *);
+ extern void tmpl_init(void);
+-- 
+2.46.0
+

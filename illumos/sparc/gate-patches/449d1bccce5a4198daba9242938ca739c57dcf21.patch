@@ -1,0 +1,27 @@
+From 449d1bccce5a4198daba9242938ca739c57dcf21 Mon Sep 17 00:00:00 2001
+From: Jason King <jason.brian.king@gmail.com>
+Date: Wed, 1 Nov 2023 12:43:41 -0500
+Subject: [PATCH] 16019 sa_lookup() disregards size of caller's buffer Reviewed
+ by: Toomas Soome <tsoome@me.com> Reviewed by: Igor Kozhukhov <igor@dilos.org>
+ Approved by: Patrick Mooney <pmooney@pfmooney.com>
+
+---
+ usr/src/uts/common/fs/zfs/sa.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/usr/src/uts/common/fs/zfs/sa.c b/usr/src/uts/common/fs/zfs/sa.c
+index eaa0e4e36c..f1e1607326 100644
+--- a/usr/src/uts/common/fs/zfs/sa.c
++++ b/usr/src/uts/common/fs/zfs/sa.c
+@@ -371,7 +371,7 @@ sa_attr_op(sa_handle_t *hdl, sa_bulk_attr_t *bulk, int count,
+ 			if (bulk[i].sa_data) {
+ 				SA_COPY_DATA(bulk[i].sa_data_func,
+ 				    bulk[i].sa_addr, bulk[i].sa_data,
+-				    bulk[i].sa_size);
++				    MIN(bulk[i].sa_size, bulk[i].sa_length));
+ 			}
+ 			continue;
+ 
+-- 
+2.46.0
+

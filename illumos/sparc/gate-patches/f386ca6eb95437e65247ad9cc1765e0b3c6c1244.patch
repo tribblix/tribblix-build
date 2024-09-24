@@ -1,0 +1,37 @@
+From f386ca6eb95437e65247ad9cc1765e0b3c6c1244 Mon Sep 17 00:00:00 2001
+From: Robert Mustacchi <rm@fingolfin.org>
+Date: Sat, 27 Apr 2024 16:11:11 +0000
+Subject: [PATCH] 16508 snoop incorrectly prints the IPv6 Traffic Class
+ Reviewed by: Toomas Soome <tsoome@me.com> Reviewed by: Andy Fiddaman
+ <illumos@fiddaman.net> Reviewed by: Vitaliy Gusev <gusev.vitaliy@gmail.com>
+ Reviewed by: Bill Sommerfeld <sommerfeld@hamachi.org> Approved by: Gordon
+ Ross <gordon.w.ross@gmail.com>
+
+---
+ usr/src/cmd/cmd-inet/usr.sbin/snoop/snoop_ip.c | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/usr/src/cmd/cmd-inet/usr.sbin/snoop/snoop_ip.c b/usr/src/cmd/cmd-inet/usr.sbin/snoop/snoop_ip.c
+index af37d85d67..4bb72b8940 100644
+--- a/usr/src/cmd/cmd-inet/usr.sbin/snoop/snoop_ip.c
++++ b/usr/src/cmd/cmd-inet/usr.sbin/snoop/snoop_ip.c
+@@ -340,11 +340,12 @@ interpret_ipv6(int flags, const ip6_t *ip6h, int fraglen)
+ 	dst_name = addrtoname(AF_INET6, &ip6h->ip6_dst);
+ 
+ 	/*
+-	 * Use endian-aware masks to extract traffic class and
+-	 * flowinfo.  Also, flowinfo is now 20 bits and class 8
+-	 * rather than 24 and 4.
++	 * The IPV6_FLOWINFO_* masks are endian-aware. However we still need to
++	 * convert this to the native endian values so we can print them
++	 * usefully. The shift for the class must occur after that as it is not
++	 * endian aware.
+ 	 */
+-	class = ntohl((ip6h->ip6_vcf & IPV6_FLOWINFO_TCLASS) >> 20);
++	class = ntohl((ip6h->ip6_vcf & IPV6_FLOWINFO_TCLASS)) >> 20;
+ 	flow = ntohl(ip6h->ip6_vcf & IPV6_FLOWINFO_FLOWLABEL);
+ 
+ 	/*
+-- 
+2.46.0
+

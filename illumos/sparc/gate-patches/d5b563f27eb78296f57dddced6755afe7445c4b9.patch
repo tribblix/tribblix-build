@@ -1,0 +1,26 @@
+From d5b563f27eb78296f57dddced6755afe7445c4b9 Mon Sep 17 00:00:00 2001
+From: Toomas Soome <tsoome@me.com>
+Date: Wed, 24 Apr 2024 11:20:08 +0300
+Subject: [PATCH] 16492 ipkg brand should include smbsrv1 device Reviewed by:
+ Gordon Ross <Gordon.W.Ross@gmail.com> Reviewed by: Bill Sommerfeld
+ <sommerfeld@hamachi.org> Approved by: Dan McDonald <danmcd@mnx.io>
+
+---
+ usr/src/lib/brand/ipkg/zone/platform.xml | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/usr/src/lib/brand/ipkg/zone/platform.xml b/usr/src/lib/brand/ipkg/zone/platform.xml
+index c15588bea3..409131d1a1 100644
+--- a/usr/src/lib/brand/ipkg/zone/platform.xml
++++ b/usr/src/lib/brand/ipkg/zone/platform.xml
+@@ -79,6 +79,7 @@
+ 	<device match="sad/user" />
+ 	<device match="signalfd" />
+ 	<device match="smbsrv" />
++	<device match="smbsrv1" />
+ 	<device match="svvslo0" />
+ 	<device match="svvslo1" />
+ 	<device match="svvslo2" />
+-- 
+2.46.0
+

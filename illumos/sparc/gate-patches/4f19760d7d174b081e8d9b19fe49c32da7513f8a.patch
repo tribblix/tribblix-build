@@ -1,0 +1,46 @@
+From 4f19760d7d174b081e8d9b19fe49c32da7513f8a Mon Sep 17 00:00:00 2001
+From: Richard Lowe <richlowe@richlowe.net>
+Date: Fri, 21 Jul 2023 14:39:25 -0500
+Subject: [PATCH] 16451 bofi(4D) has weird and meaningless file permissions
+ Reviewed by: Toomas Soome <tsoome@me.com> Reviewed by: Dan Cross
+ <cross@oxidecomputer.com> Reviewed by: Bill Sommerfeld
+ <sommerfeld@hamachi.org> Reviewed by: Andrew Stormont
+ <andyjstormont@gmail.com> Approved by: Gordon Ross <gordon.w.ross@gmail.com>
+
+---
+ usr/src/pkg/manifests/developer-driver-ftsafe.p5m | 2 +-
+ usr/src/uts/intel/bofi/Makefile                   | 5 -----
+ 2 files changed, 1 insertion(+), 6 deletions(-)
+
+diff --git a/usr/src/pkg/manifests/developer-driver-ftsafe.p5m b/usr/src/pkg/manifests/developer-driver-ftsafe.p5m
+index 59cd09eb62..f5bc09e234 100644
+--- a/usr/src/pkg/manifests/developer-driver-ftsafe.p5m
++++ b/usr/src/pkg/manifests/developer-driver-ftsafe.p5m
+@@ -32,7 +32,7 @@ set name=variant.arch value=$(ARCH)
+ dir  path=kernel group=sys
+ dir  path=kernel/drv group=sys
+ dir  path=kernel/drv/$(ARCH64) group=sys
+-file path=kernel/drv/$(ARCH64)/bofi group=sys mode=0644
++file path=kernel/drv/$(ARCH64)/bofi group=sys
+ file path=kernel/drv/bofi.conf group=sys
+ dir  path=usr group=sys
+ dir  path=usr/lib
+diff --git a/usr/src/uts/intel/bofi/Makefile b/usr/src/uts/intel/bofi/Makefile
+index d9186492e7..33257b3cef 100644
+--- a/usr/src/uts/intel/bofi/Makefile
++++ b/usr/src/uts/intel/bofi/Makefile
+@@ -47,11 +47,6 @@ CONF_SRCDIR	= $(UTSBASE)/common/io
+ #
+ include $(UTSBASE)/intel/Makefile.intel
+ 
+-#
+-#	Override defaults.
+-#
+-FILEMODE	= 644
+-
+ #
+ #	Define targets
+ #
+-- 
+2.46.0
+

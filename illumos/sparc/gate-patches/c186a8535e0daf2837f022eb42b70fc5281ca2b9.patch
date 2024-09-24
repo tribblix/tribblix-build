@@ -1,0 +1,33 @@
+From c186a8535e0daf2837f022eb42b70fc5281ca2b9 Mon Sep 17 00:00:00 2001
+From: Toomas Soome <tsoome@me.com>
+Date: Sat, 23 Sep 2023 10:09:45 +0300
+Subject: [PATCH] 16458 genunix: memory leak in ip_helper_stream.c Reviewed by:
+ Randy Fishel <randyf@sibernet.com> Reviewed by: Jason King
+ <jason.brian.king+illumos@gmail.com> Reviewed by: Andy Fiddaman
+ <illumos@fiddaman.net> Reviewed by: Vitaliy Gusev <gusev.vitaliy@gmail.com>
+ Approved by: Dan McDonald <danmcd@mnx.io>
+
+---
+ usr/src/uts/common/inet/ip/ip_helper_stream.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/usr/src/uts/common/inet/ip/ip_helper_stream.c b/usr/src/uts/common/inet/ip/ip_helper_stream.c
+index 06d61d116e..285d59cfa9 100644
+--- a/usr/src/uts/common/inet/ip/ip_helper_stream.c
++++ b/usr/src/uts/common/inet/ip/ip_helper_stream.c
+@@ -127,11 +127,10 @@ ip_helper_stream_setup(queue_t *q, dev_t *devp, int flag, int sflag,
+ 		/*
+ 		 * numbers in the large arena are exhausted
+ 		 * Try small arena.
+-		 * Or this is a 32 bit system, 32 bit systems do not have
+-		 * ip_minor_arena_la
+ 		 */
+ 		ip_minfop->ip_minfo_dev = inet_minor_alloc(ip_minor_arena_sa);
+ 		if (ip_minfop->ip_minfo_dev == 0) {
++			kmem_free(ip_minfop, sizeof (ip_helper_minfo_t));
+ 			return (EBUSY);
+ 		}
+ 		ip_minfop->ip_minfo_arena = ip_minor_arena_sa;
+-- 
+2.46.0
+

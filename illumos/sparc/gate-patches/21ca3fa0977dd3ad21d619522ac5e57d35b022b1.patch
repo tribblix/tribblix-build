@@ -1,0 +1,53 @@
+From 21ca3fa0977dd3ad21d619522ac5e57d35b022b1 Mon Sep 17 00:00:00 2001
+From: Bill Sommerfeld <sommerfeld@hamachi.org>
+Date: Tue, 23 Apr 2024 09:38:22 -0700
+Subject: [PATCH] 16495 ptree -g should be more willing to use UTF-8 box
+ characters Reviewed by: Rich Lowe <richlowe@richlowe.net> Reviewed by: Peter
+ Tribble <peter.tribble@gmail.com> Reviewed by: Jason King
+ <jason.brian.king+illumos@gmail.com> Reviewed by: Toomas Soome
+ <tsoome@me.com> Approved by: Gordon Ross <gordon.w.ross@gmail.com>
+
+---
+ usr/src/cmd/ptools/ptree/ptree.c | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/usr/src/cmd/ptools/ptree/ptree.c b/usr/src/cmd/ptools/ptree/ptree.c
+index ad8f47d191..8837130cf6 100644
+--- a/usr/src/cmd/ptools/ptree/ptree.c
++++ b/usr/src/cmd/ptools/ptree/ptree.c
+@@ -46,6 +46,7 @@
+ #include <limits.h>
+ #include <libcontract.h>
+ #include <locale.h>
++#include <langinfo.h>
+ #include <sys/contract.h>
+ #include <sys/ctfs.h>
+ #include <libcontract_priv.h>
+@@ -728,18 +729,17 @@ get_termwidth(void)
+ static const char **
+ get_boxchars(void)
+ {
+-	char *loc = setlocale(LC_ALL, "");
++	char *codeset;
+ 
+-	if (loc == NULL)
+-		return (box_ascii);
++	(void) setlocale(LC_CTYPE, "");
+ 
+-	const char *p = strstr(loc, "UTF-8");
++	codeset = nl_langinfo(CODESET);
+ 
+ 	/*
+-	 * Only use the UTF-8 box drawing characters if the locale ends
+-	 * with "UTF-8".
++	 * Only use the UTF-8 box drawing characters if the locale uses
++	 * the UTF-8 codeset.
+ 	 */
+-	if (p != NULL && p[5] == '\0')
++	if (codeset != NULL && strcmp(codeset, "UTF-8") == 0)
+ 		return (box_utf8);
+ 
+ 	return (box_ascii);
+-- 
+2.46.0
+

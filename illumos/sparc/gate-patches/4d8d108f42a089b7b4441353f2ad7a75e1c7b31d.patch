@@ -1,0 +1,54 @@
+From 4d8d108f42a089b7b4441353f2ad7a75e1c7b31d Mon Sep 17 00:00:00 2001
+From: Bill Sommerfeld <sommerfeld@hamachi.org>
+Date: Wed, 8 May 2024 10:57:14 -0700
+Subject: [PATCH] 16542 Document ACL_NORESOLVE flag for acl_totext Reviewed by:
+ Peter Tribble <peter.tribble@gmail.com> Reviewed by: Gordon Ross
+ <Gordon.W.Ross@gmail.com> Approved by: Dan McDonald <danmcd@mnx.io>
+
+---
+ usr/src/man/man3sec/acl_totext.3sec | 15 +++++++++++++--
+ 1 file changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/usr/src/man/man3sec/acl_totext.3sec b/usr/src/man/man3sec/acl_totext.3sec
+index ae9cf04bc9..f43f4cafd8 100644
+--- a/usr/src/man/man3sec/acl_totext.3sec
++++ b/usr/src/man/man3sec/acl_totext.3sec
+@@ -3,7 +3,7 @@
+ .\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+ .\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+ .\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH ACL_TOTEXT 3SEC "Jun 16, 2008"
++.TH ACL_TOTEXT 3SEC "May 8, 2024"
+ .SH NAME
+ acl_totext, acl_fromtext \- convert internal representation  to or from
+ external representation
+@@ -55,6 +55,16 @@ the user or group name does not exist on the host system. The appended id will
+ be ignored when the user or group name does exist on the system.
+ .RE
+ 
++.sp
++.ne 2
++.na
++\fB\fBACL_NORESOLVE\fR\fR
++.ad
++.RS 19n
++Do not translate the numeric identifier (\fBuid\fR, \fBgid\fR, or \fBsid\fR)
++found in ACL entries into a name.
++.RE
++
+ .sp
+ .ne 2
+ .na
+@@ -64,7 +74,8 @@ be ignored when the user or group name does exist on the system.
+ For NFSv4 ACLs, the ACL entries for user or group entries will use the
+ \fBusersid\fR or \fBgroupsid\fR format when the "id" field in the ACL entry is
+ an ephemeral \fBuid\fR or \fBgid\fR.  The raw \fBsid\fR format will only be
+-used when the "id" cannot be resolved to a windows name.
++used if \fBACL_NORESOLVE\fR is also present in \fIflags\fR or if the "id"
++cannot be resolved to a windows name.
+ .RE
+ 
+ .sp
+-- 
+2.46.0
+
