@@ -1,5 +1,7 @@
 #!/bin/sh
 #
+# SPDX-License-Identifier: CDDL-1.0
+#
 # {{{ CDDL HEADER
 #
 # This file and its contents are supplied under the terms of the
@@ -44,7 +46,7 @@ esac
 #
 # allow override
 #
-if [ -f ../${ILLSH} ]; then
+if [ -f "../${ILLSH}" ]; then
     ILLSH="../${ILLSH}"
 else
     ILLSH="${THOME}/tribblix-build/illumos/${ILLSH}"
@@ -76,17 +78,17 @@ if [ ! -f usr/src/tools/scripts/nightly ]; then
     exit 1
 fi
 
-if [ ! -f ../on-closed-bins.${ARCH}.tar.bz2 ]; then
+if [ ! -f ../on-closed-bins."${ARCH}".tar.bz2 ]; then
     echo "Cannot find closed-bins"
     exit 1
 fi
 
-if [ ! -f ../on-closed-bins-nd.${ARCH}.tar.bz2 ]; then
+if [ ! -f ../on-closed-bins-nd."${ARCH}".tar.bz2 ]; then
     echo "Cannot find closed-bins-nd"
     exit 1
 fi
 
-if [ ! -f ${ILLSH} ]; then
+if [ ! -f "${ILLSH}" ]; then
     echo "Cannot find ${ILLSH}"
     exit 1
 fi
@@ -99,7 +101,7 @@ if [ ! -f README.OmniOS ]; then
     exit 1
 fi
 
-if [ ! -f ${THOME}/tribblix-build/illumos/Makefile.auditrecord ]; then
+if [ ! -f "${THOME}/tribblix-build/illumos/Makefile.auditrecord" ]; then
     echo "Cannot find auditrecord Makefile"
     exit 1
 fi
@@ -107,17 +109,17 @@ fi
 #
 # environment sanity check
 #
-if [ ! -f ${THOME}/tribblix-build/illumos/check-environment.sh ]; then
+if [ ! -f "${THOME}/tribblix-build/illumos/check-environment.sh" ]; then
     echo "ERROR: cannot check environment"
     echo "Looking for ${THOME}/tribblix-build/illumos/check-environment.sh"
     exit 1
 fi
-if [ ! -x ${THOME}/tribblix-build/illumos/check-environment.sh ]; then
+if [ ! -x "${THOME}/tribblix-build/illumos/check-environment.sh" ]; then
     echo "ERROR: cannot check environment"
     echo "${THOME}/tribblix-build/illumos/check-environment.sh is not executable"
     exit 1
 fi
-${THOME}/tribblix-build/illumos/check-environment.sh
+"${THOME}"/tribblix-build/illumos/check-environment.sh
 if [ $? -ne 0 ]; then
     echo "Environment check failed, aborting"
     exit 1
@@ -128,9 +130,9 @@ fi
 # conventionally, this would be the same as us but without
 # the lx in the name
 #
-VANILLAGATE=`echo $1 | sed s:lx::`
+VANILLAGATE=${1/lx/}
 VANILLAGATE="${VANILLAGATE}-gate"
-if [ ! -f ../${VANILLAGATE}/usr/src/tools/scripts/nightly ]; then
+if [ ! -f ../"${VANILLAGATE}"/usr/src/tools/scripts/nightly ]; then
     echo "Unable to find a sibling illumos gate (expecting ${VANILLAGATE})"
     exit 1
 fi
@@ -139,27 +141,27 @@ fi
 # everything appears to be in place
 #
 echo "Unpacking closed-bins"
-bzcat ../on-closed-bins.${ARCH}.tar.bz2 | tar xf -
+bzcat ../on-closed-bins."${ARCH}".tar.bz2 | tar xf -
 echo "Unpacking closed-bins-nd"
-bzcat ../on-closed-bins-nd.${ARCH}.tar.bz2 | tar xf -
+bzcat ../on-closed-bins-nd."${ARCH}".tar.bz2 | tar xf -
 echo "Copying files"
-cp ${ILLSH} illumos.sh
+cp "${ILLSH}" illumos.sh
 
 #
 # changes to the gate
 #
 rm -f usr/src/cmd/auditrecord/Makefile
-cp ${THOME}/tribblix-build/illumos/Makefile.auditrecord usr/src/cmd/auditrecord/Makefile
+cp "${THOME}"/tribblix-build/illumos/Makefile.auditrecord usr/src/cmd/auditrecord/Makefile
 if [ ! -f usr/src/cmd/auditrecord/Makefile ]; then
     echo "Oops, copying auditrecord Makefile failed"
     exit 2
 fi
-for file in ${THOME}/tribblix-build/illumos/${ARCH}/*.patch
+for file in "${THOME}"/tribblix-build/illumos/"${ARCH}"/*.patch
 do
-    if [ -f ${file}.lx ]; then
-	gpatch -p1 < ${file}.lx
+    if [ -f "${file}.lx" ]; then
+	gpatch -p1 < "${file}.lx"
     else
-	gpatch -p1 < $file
+	gpatch -p1 < "$file"
     fi
 done
 
@@ -178,16 +180,16 @@ sed -i '/$(PYTHON3_DIRS)/d' usr/src/Targetdirs
 # need to fix up libfmd_snmp because our snmp is different
 # need to reset perl to match our install
 #
-cp ../${VANILLAGATE}/usr/src/cmd/Adm/sun/Makefile usr/src/cmd/Adm/sun/Makefile
-cp ../${VANILLAGATE}/usr/src/lib/fm/libfmd_snmp/Makefile.com usr/src/lib/fm/libfmd_snmp/Makefile.com
-HEREDIR=`pwd`
-cd ../${VANILLAGATE}
-rm ../mperl.tar
-tar cf ../mperl.tar `find usr/src/cmd/perl | grep Makefile`
-cd $HEREDIR
+cp ../"${VANILLAGATE}"/usr/src/cmd/Adm/sun/Makefile usr/src/cmd/Adm/sun/Makefile
+cp ../"${VANILLAGATE}"/usr/src/lib/fm/libfmd_snmp/Makefile.com usr/src/lib/fm/libfmd_snmp/Makefile.com
+HEREDIR=$(pwd)
+cd ../"${VANILLAGATE}" || exit 1
+rm -f ../mperl.tar
+tar cf ../mperl.tar $(find usr/src/cmd/perl -name 'Makefile*')
+cd "$HEREDIR" || exit 1
 tar xf ../mperl.tar
-cp ../${VANILLAGATE}/usr/src/pkg/manifests/runtime-perl-module-sun-solaris.p5m usr/src/pkg/manifests/runtime-perl-module-sun-solaris.p5m
-cp ../${VANILLAGATE}/usr/src/man/man3perl/Makefile usr/src/man/man3perl/Makefile
+cp ../"${VANILLAGATE}"/usr/src/pkg/manifests/runtime-perl-module-sun-solaris.p5m usr/src/pkg/manifests/runtime-perl-module-sun-solaris.p5m
+cp ../"${VANILLAGATE}"/usr/src/man/man3perl/Makefile usr/src/man/man3perl/Makefile
 # omnios hardcodes the perl bitness in the Makefiles
 sed -i '/BUILDPERL32/d' usr/src/Makefile.master
 # fails ld guidance with gcc4
@@ -196,7 +198,7 @@ sed -i 's:-lc ::' usr/src/lib/libidspace/Makefile.com
 # illumos-omnios uses dma by default, but we use sendmail
 # https://github.com/tribblix/build/issues/8
 #
-cp ../${VANILLAGATE}/usr/src/cmd/mailwrapper/mailer.conf usr/src/cmd/mailwrapper/mailer.conf
+cp ../"${VANILLAGATE}"/usr/src/cmd/mailwrapper/mailer.conf usr/src/cmd/mailwrapper/mailer.conf
 
 #
 # and kaboom
