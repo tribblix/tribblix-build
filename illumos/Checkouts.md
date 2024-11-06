@@ -2,7 +2,7 @@ These are the commit ids for illumos-gate or illumos-omnios
 for a given release.
 
 In the case of SPARC, if there was a SPARC release before m26 and it's not
-listed  separately here then it would have been built form the same commit
+listed  separately here then it would have been built from the same commit
 as x86. The SPARC m26 release was built from a slightly different commit to
 the x86 version, later SPARC releases diverge as described in sparc/README.md
 
