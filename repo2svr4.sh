@@ -665,6 +665,74 @@ esac
 }
 
 #
+# parse a license line in the manifest
+#
+# all license files get placed under /var/sadm/license in a directory
+# named after the package, in parallel with the /var/sadm/pkg hierarchy
+#
+handle_license() {
+dirmode="0755"
+mode="0644"
+owner="root"
+group="sys"
+echo $* | read fhash line
+fh=`echo $fhash| cut -c1-2`
+# file in the repo is ${REPODIR}/file/${fh}/${fhash}
+for frag in $line
+do
+    key=${frag%%=*}
+    nval=${frag#*=}
+    value=${nval%%=*}
+case $key in
+license)
+    licpath=$value
+    ;;
+*)
+    :
+    ;;
+esac
+done
+if [ -n "$licpath" ]; then
+    dirpath="var/sadm/license/${PKG}"
+    if [ ! -d ${BDIR}/${dirpath} ]; then
+	mkdir -p ${BDIR}/${dirpath}
+    fi
+    echo "d none ${dirpath} ${dirmode} ${owner} ${group}" >> ${BDIR}/prototype
+    case $licpath in
+	*/*)
+	    licfname=${licpath##*/}
+	    ;;
+	cr_*)
+	    licfname=${licpath/cr_/COPYRIGHT.}
+	    ;;
+	lic_*)
+	    :
+	    licfname=${licpath/lic_/LICENSE.}
+	    ;;
+	license_in_headers)
+	    licfname="SEE_HEADERS.txt"
+	    ;;
+    esac
+    #
+    # if the candidate name already exists, try adding a suffix
+    #
+    if [ -f "${BDIR}/${dirpath}/${licfname}" ]; then
+	NLIC=1
+	while [ -f "${BDIR}/${dirpath}/${licfname}.${NLIC}" ]
+	do
+	    NLIC=$((NLIC+1))
+	done
+	licfname="${licfname}.${NLIC}"
+    fi
+    filepath="${dirpath}/${licfname}"
+/usr/bin/cp -p ${REPODIR}/file/${fh}/${fhash} ${BDIR}/${filepath}.gz
+/usr/bin/gunzip ${BDIR}/${filepath}.gz
+/usr/bin/chmod $mode ${BDIR}/${filepath}
+    echo "f none ${filepath}=${filepath} ${mode} ${owner} ${group}" >> ${BDIR}/prototype
+fi
+}
+
+#
 # parse a legacy line in the manifest
 #
 # This doesn't always work, as the legacy action maps to the SVR4 emulation
@@ -1262,6 +1330,9 @@ depend)
     ;;
 file)
     handle_file $line
+    ;;
+license)
+    handle_license $line
     ;;
 link)
     handle_link $line
