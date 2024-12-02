@@ -25,7 +25,7 @@
 # Copyright 2016 RackTop Systems.
 # Copyright 2019 OmniOS Community Edition (OmniOSce) Association.
 # Copyright 2020 Joyent, Inc.
-# Copyright 2023 Bill Sommerfeld
+# Copyright 2024 Bill Sommerfeld <sommerfeld@hamachi.org>
 #
 # - This file is sourced by "bldenv" and "nightly" and should not
 #   be executed directly.
@@ -66,7 +66,7 @@ export GNU_ROOT=/usr/sfw
 #export MAILTO=
 
 # CODEMGR_WS - where is your workspace at
-export CODEMGR_WS="`git rev-parse --show-toplevel`"
+export CODEMGR_WS="${CODEMGR_WS:-`git rev-parse --show-toplevel`}"
 
 # Compilers may be specified using the following variables:
 # PRIMARY_CC	- primary C compiler
@@ -174,6 +174,31 @@ export BLD_JAVA_11=
 #POST_NIGHTLY=
 
 # -----------------------------------------------------------------------------
+# When the 'n' option is not present in NIGHTLY_OPTIONS, nightly updates
+# the build workspace from the sources identified by the following
+# variables.  Defaults are set in nightly if the environment file
+# leaves them unset.
+# -----------------------------------------------------------------------------
+
+# SCM in use.  Defaults to "git"; others are undertested.
+#export BRINGOVER_SCM="git"
+
+# URL or pathname to source workspace.
+#export BRINGOVER_WS="${CLONE_WS}"
+
+# Branch within BRINGOVER_WS; must be specified if BRINGOVER_WS is a URL
+#export BRINGOVER_BRANCH=""
+
+# Short name to use within CODEMGR_WS for BRINGOVER_WS.
+# This is git-specific.
+#export BRINGOVER_REMOTE=nightly_bringover_ws
+
+# Command-line options to add to the clone operation that creates a new
+# workspace.   If git is in use, adding "--reference /path/to/local/illumos-gate"
+# can speed up clones and make them use less disk space.
+#export CLONE_OPTIONS=""
+
+# -----------------------------------------------------------------------------
 # You are less likely to need to modify parameters below.
 # -----------------------------------------------------------------------------
 
@@ -221,11 +246,11 @@ ONBLD_BIN='/opt/onbld/bin'
 # PARENT_WS is used to determine the parent of this workspace. This is
 # for the options that deal with the parent workspace (such as where the
 # proto area will go).
-export PARENT_WS=''
+export PARENT_WS="${PARENT_WS:-}"
 
 # CLONE_WS is the workspace nightly should do a bringover from.
 # The bringover, if any, is done as STAFFER.
-export CLONE_WS='ssh://anonhg@hg.illumos.org/illumos-gate'
+export CLONE_WS="${CLONE_WS:-}"
 
 # Set STAFFER to your own login as gatekeeper or developer
 # The point is to use group "staff" and avoid referencing the parent
