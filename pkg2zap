@@ -1,5 +1,7 @@
 #!/bin/ksh
 #
+# SPDX-License-Identifier: CDDL-1.0
+#
 # {{{ CDDL HEADER
 #
 # This file and its contents are supplied under the terms of the
@@ -39,7 +41,7 @@ BUILD="${THOME}/build"
 #
 # sanity check
 #
-if [ ! -d $BUILD ]; then
+if [ ! -d "$BUILD" ]; then
    echo "ERROR: unable to find build directory $BUILD"
    exit 1
 fi
@@ -56,24 +58,26 @@ fi
 
 # FIXME: uncompress compressed packages
 
-TDIR=/tmp/pkg2zap.`date '+%F-%T'`.$$
-rm -fr $TDIR
-mkdir -p $TDIR
-pkgtrans $FPKG $TDIR all
-cd $TDIR
 BPKG=${FPKG##*/}
+TDIR=/tmp/pkg2zap.$(date '+%F-%T').$$
+rm -fr "$TDIR"
+mkdir -p "$TDIR"
+pkgtrans "$FPKG" "$TDIR" all
+cd "$TDIR" || exit 1
+
+PNAME=${BPKG%.pkg}
 # 7z gives us an extra 2-3% reduction in file size
 #zip -9 -q -r ${BROOT}/${BPKG%.pkg}.zap *
-7za a -tzip -mx=9 -mfb=256 ${BROOT}/${BPKG%.pkg}.zap *
-chmod a+r ${BROOT}/${BPKG%.pkg}.zap
+7za a -tzip -mx=9 -mfb=256 "${BROOT}/${PNAME}.zap" *
+chmod a+r "${BROOT}/${PNAME}.zap"
 cd /
 # pregenerate the md5 checksum ready for catalog creation
-openssl md5 ${BROOT}/${BPKG%.pkg}.zap | /usr/bin/awk '{print $NF}' > ${BROOT}/${BPKG%.pkg}.zap.md5
+openssl md5 "${BROOT}/${PNAME}.zap" | /usr/bin/awk '{print $NF}' > "${BROOT}/${PNAME}.zap.md5"
 # sign the zap file
-${BUILD}/sign-file ${BROOT}/${BPKG%.pkg}.zap
+"${BUILD}"/sign-file "${BROOT}/${PNAME}.zap"
 
 #
 # clean up
 #
-rm -fr $TDIR
-ls -lh ${BROOT}/${BPKG%.pkg}.zap
+rm -fr "$TDIR"
+ls -lh "${BROOT}/${PNAME}.zap"
