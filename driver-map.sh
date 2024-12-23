@@ -29,6 +29,11 @@ GATEDIR=/export/home/ptribble/Illumos/illumos-gate
 MYREPO="redist"
 PNAME=${THOME}/tribblix-build/pkg_name.sh
 
+usage() {
+    echo "Usage: $0 [-T THOME] [-G date_directory] [-R repo_name] input_pkg [svr4_name]"
+    exit 2
+}
+
 #
 # locations and variables should be passed as arguments
 #
@@ -43,15 +48,12 @@ while getopts "T:G:R:" opt; do
         R)
 	    MYREPO="$OPTARG"
 	    ;;
+	*)
+	    usage
+	    ;;
     esac
 done
 shift $((OPTIND-1))
-
-usage() {
-    echo "Usage: $0 input_pkg [svr4_name]"
-    exit 1
-}
-
 
 #
 # parse a driver line in the manifest
@@ -71,14 +73,14 @@ name)
     DNAME="$value"
     ;;
 alias)
-    if [ "x${ALIASES}" = "x" ]; then
+    if [ "${ALIASES}" = "" ]; then
 	ALIASES="$value"
     else
 	ALIASES="${ALIASES} $value"
     fi
     ;;
 class)
-    if [ "x${CLASS}" = "x" ]; then
+    if [ "${CLASS}" = "" ]; then
 	CLASS="$value"
     else
 	EXTRA_CLASSES="${EXTRA_CLASSES} $value"
@@ -92,16 +94,16 @@ done
 #
 # ddi_pseudo confuses the parser, override where it breaks
 #
-if [ "x${INPKG}" = "xdriver%2Fx11%2Fxsvc" ]; then
+if [ "${INPKG}" = "driver%2Fx11%2Fxsvc" ]; then
     DNAME="xsvc"
 fi
-if [ "x${INPKG}" = "xdriver%2Fstorage%2Fcpqary3" ]; then
+if [ "${INPKG}" = "driver%2Fstorage%2Fcpqary3" ]; then
     DNAME="cpqary3"
 fi
-if [ "x${INPKG}" = "xdriver%2Fcrypto%2Ftpm" ]; then
+if [ "${INPKG}" = "driver%2Fcrypto%2Ftpm" ]; then
     DNAME="tpm"
 fi
-if [ "x${DNAME}" != "x" ]; then
+if [ "${DNAME}" != "" ]; then
     for ALIAS in $ALIASES
     do
 	echo "${ALIAS}|${DNAME}|${CLASS}|${OUTPKG}"
@@ -116,7 +118,7 @@ case $# in
     ;;
 1)
     INPKG=$1
-    OUTPKG=`$PNAME $INPKG`
+    OUTPKG=$($PNAME "$INPKG")
     ;;
 *)
     usage
@@ -153,9 +155,9 @@ if [ -f "${TRANSDIR}/deleted/${OUTPKG}.${ARCH}" ]; then
     exit 0
 fi
 
-MANIFEST=$(echo ${PDIR}/*)
+MANIFEST=$(echo "${PDIR}"/*)
 if [ ! -f "$MANIFEST" ]; then
-    exit 0
+    exit 1
 fi
 
 #

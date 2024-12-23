@@ -27,6 +27,11 @@ THOME=${THOME:-/packages/localsrc/Tribblix}
 GATEDIR=/export/home/ptribble/Illumos/illumos-gate
 MYREPO="redist"
 
+usage() {
+    echo "Usage: $0 [-T THOME] [-G date_directory] [-R repo_name]"
+    exit 2
+}
+
 #
 # locations and variables should be passed as arguments
 #
@@ -40,6 +45,9 @@ while getopts "T:G:R:" opt; do
 	    ;;
         R)
 	    MYREPO="$OPTARG"
+	    ;;
+	*)
+	    usage
 	    ;;
     esac
 done
@@ -62,5 +70,6 @@ PNAME=${THOME}/tribblix-build/pkg_name.sh
 
 for file in *
 do
-    $CMD -T "$THOME" -G "$GATEDIR" -R "$MYREPO" "$file" $($PNAME "$file")
+    IPKG=$($PNAME "$file")
+    $CMD -T "$THOME" -G "$GATEDIR" -R "$MYREPO" "$file" "${IPKG}"
 done
