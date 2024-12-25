@@ -29,6 +29,7 @@ DSTDIR=/var/tmp/illumos-pkgs
 SIGNCERT=""
 MYREPO="redist"
 QUICKMODE=""
+ARCH32=$(uname -p)
 
 #
 # find_elf can't find the right elfedit
@@ -90,7 +91,7 @@ if [ -n "$SIGNCERT" ]; then
 	FINDELF="/opt/onbld/bin/find_elf"
     fi
     if [ ! -x "${FINDELF}" ]; then
-	FINDELF="/opt/onbld/bin/`uname -p`/find_elf"
+	FINDELF="/opt/onbld/bin/${ARCH32}/find_elf"
     fi
     if [ ! -x "${FINDELF}" ]; then
 	echo "Cannot sign, find_elf missing"
@@ -144,7 +145,7 @@ TRANSDIR=${THOME}/tribblix-transforms
 #
 # used for noisaexec
 #
-case `uname -p` in
+case $ARCH32 in
 sparc)
   ARCH64="sparcv9"
   ;;
@@ -169,7 +170,7 @@ usage() {
 }
 
 bail_out() {
-    rm -fr $BDIR $DSTDIR/tmp/${OUTPKG}
+    rm -fr "$BDIR" "$DSTDIR/tmp/${OUTPKG}"
     exit 0
 }
 
@@ -185,10 +186,10 @@ bail_out() {
 add_driver_class() {
 NDRIVER=$1
 NCLASS=$2
-cat >>${BDIR}/install/postinstall <<EOF
+cat >>"${BDIR}/install/postinstall" <<EOF
 echo "$NDRIVER\t$NCLASS" >> \${BASEDIR}/etc/driver_classes
 EOF
-cat >>${BDIR}/install/postremove <<EOF
+cat >>"${BDIR}/install/postremove" <<EOF
 cat \${BASEDIR}/etc/driver_classes | /bin/sed '/^${NDRIVER}.*${NCLASS}/d' > /tmp/adc.\$\$
 cp /tmp/adc.\$\$ \${BASEDIR}/etc/driver_classes
 rm /tmp/adc.\$\$
@@ -200,9 +201,9 @@ EOF
 # scripts
 #
 init_driver() {
-mkdir -p ${BDIR}/install
-if [ ! -f ${BDIR}/install/postinstall ]; then
-cat > ${BDIR}/install/postinstall <<EOF
+mkdir -p "${BDIR}/install"
+if [ ! -f "${BDIR}/install/postinstall" ]; then
+cat > "${BDIR}/install/postinstall" <<EOF
 #!/sbin/sh
 #
 # SPDX-License-Identifier: CDDL-1.0
@@ -216,7 +217,7 @@ else
     BFLAGS="-b \${BASEDIR}"
 fi
 EOF
-cat > ${BDIR}/install/postremove <<EOF
+cat > "${BDIR}/install/postremove" <<EOF
 #!/sbin/sh
 #
 # SPDX-License-Identifier: CDDL-1.0
@@ -230,8 +231,8 @@ else
     BFLAGS="-b \${BASEDIR}"
 fi
 EOF
-echo "i postinstall=./install/postinstall" >> ${BDIR}/prototype
-echo "i postremove=./install/postremove" >> ${BDIR}/prototype
+echo "i postinstall=./install/postinstall" >> "${BDIR}/prototype"
+echo "i postremove=./install/postremove" >> "${BDIR}/prototype"
 fi
 }
 
@@ -239,9 +240,9 @@ fi
 # class action scripts
 #
 init_preserve() {
-mkdir -p ${BDIR}/install
-if [ ! -f ${BDIR}/install/i.preserve ]; then
-cat > ${BDIR}/install/i.preserve <<EOF
+mkdir -p "${BDIR}/install"
+if [ ! -f "${BDIR}/install/i.preserve" ]; then
+cat > "${BDIR}/install/i.preserve" <<EOF
 #!/bin/sh
 #
 # SPDX-License-Identifier: CDDL-1.0
@@ -257,11 +258,11 @@ do
 done
 exit 0
 EOF
-chmod 555 ${BDIR}/install/i.preserve
-echo "i i.preserve=./install/i.preserve" >> ${BDIR}/prototype
+chmod 555 "${BDIR}/install/i.preserve"
+echo "i i.preserve=./install/i.preserve" >> "${BDIR}/prototype"
 fi
-if [ ! -f ${BDIR}/install/r.preserve ]; then
-cat > ${BDIR}/install/r.preserve <<EOF
+if [ ! -f "${BDIR}/install/r.preserve" ]; then
+cat > "${BDIR}/install/r.preserve" <<EOF
 #!/bin/sh
 #
 # SPDX-License-Identifier: CDDL-1.0
@@ -284,8 +285,8 @@ do
 done
 exit 0
 EOF
-chmod 555 ${BDIR}/install/r.preserve
-echo "i r.preserve=./install/r.preserve" >> ${BDIR}/prototype
+chmod 555 "${BDIR}/install/r.preserve"
+echo "i r.preserve=./install/r.preserve" >> "${BDIR}/prototype"
 fi
 }
 
@@ -293,9 +294,9 @@ fi
 # initialise dependency handling
 #
 init_depend() {
-mkdir -p ${BDIR}/install
-if [ ! -f ${BDIR}/install/depend ]; then
-cat > ${BDIR}/install/depend <<EOF
+mkdir -p "${BDIR}/install"
+if [ ! -f "${BDIR}/install/depend" ]; then
+cat > "${BDIR}/install/depend" <<EOF
 # The following dependencies are automatically generated
 # from the IPS manifest for this package, with automatic
 # generation of SVR4 package names.
@@ -303,7 +304,7 @@ cat > ${BDIR}/install/depend <<EOF
 # No version information is preserved
 #
 EOF
-echo "i depend=./install/depend" >> ${BDIR}/prototype
+echo "i depend=./install/depend" >> "${BDIR}/prototype"
 fi
 }
 
@@ -312,10 +313,10 @@ fi
 # script
 #
 handle_restarts() {
-if [ -f ${BDIR}/restart_fmri_list ]; then
-mkdir -p ${BDIR}/install
-if [ ! -f ${BDIR}/install/postinstall ]; then
-cat > ${BDIR}/install/postinstall <<EOF
+if [ -f "${BDIR}/restart_fmri_list" ]; then
+mkdir -p "${BDIR}/install"
+if [ ! -f "${BDIR}/install/postinstall" ]; then
+cat > "${BDIR}/install/postinstall" <<EOF
 #!/sbin/sh
 #
 # SPDX-License-Identifier: CDDL-1.0
@@ -323,7 +324,7 @@ cat > ${BDIR}/install/postinstall <<EOF
 # Automatically generated service restart script
 #
 EOF
-cat > ${BDIR}/install/postremove <<EOF
+cat > "${BDIR}/install/postremove" <<EOF
 #!/sbin/sh
 #
 # SPDX-License-Identifier: CDDL-1.0
@@ -331,8 +332,8 @@ cat > ${BDIR}/install/postremove <<EOF
 # Automatically generated service restart script
 #
 EOF
-echo "i postinstall=./install/postinstall" >> ${BDIR}/prototype
-echo "i postremove=./install/postremove" >> ${BDIR}/prototype
+echo "i postinstall=./install/postinstall" >> "${BDIR}/prototype"
+echo "i postremove=./install/postremove" >> "${BDIR}/prototype"
 fi
 #
 # this check is so we only actually restart if the install is to the
@@ -341,17 +342,17 @@ fi
 #
 # FIXME should the restart be -s
 #
-cat >> ${BDIR}/install/postinstall <<EOF
+cat >> "${BDIR}/install/postinstall" <<EOF
 if [ "\${BASEDIR}" = "/" ]; then
 EOF
-cat >> ${BDIR}/install/postremove <<EOF
+cat >> "${BDIR}/install/postremove" <<EOF
 if [ "\${BASEDIR}" = "/" ]; then
 EOF
-sort -u ${BDIR}/restart_fmri_list | /usr/bin/awk '{print "/usr/sbin/svcadm restart "$1}' >> ${BDIR}/install/postinstall
-sort -u ${BDIR}/restart_fmri_list | /usr/bin/awk '{print "/usr/sbin/svcadm restart "$1}' >> ${BDIR}/install/postremove
-echo "fi" >> ${BDIR}/install/postinstall
-echo "fi" >> ${BDIR}/install/postremove
-/usr/bin/rm ${BDIR}/restart_fmri_list
+sort -u "${BDIR}/restart_fmri_list" | /usr/bin/awk '{print "/usr/sbin/svcadm restart "$1}' >> "${BDIR}/install/postinstall"
+sort -u "${BDIR}/restart_fmri_list" | /usr/bin/awk '{print "/usr/sbin/svcadm restart "$1}' >> "${BDIR}/install/postremove"
+echo "fi" >> "${BDIR}/install/postinstall"
+echo "fi" >> "${BDIR}/install/postremove"
+/usr/bin/rm "${BDIR}/restart_fmri_list"
 fi
 }
 
@@ -416,7 +417,7 @@ clone_perms)
     CLONEPERMS="'$value'"
     ;;
 *)
-    echo unhandled driver action $frag
+    echo "unhandled driver action $frag"
     ;;
 esac
 done
@@ -444,11 +445,11 @@ if [ "x${ALIASES}" != "x" ]; then
     ALIASES="${ALIASES}'"
 fi
 if [ "x${DNAME}" != "x" ]; then
-    echo "${CMD_FRAG} ${PERMS} ${POLICY} ${ALIASES} ${CLASS} $DNAME" >> ${BDIR}/install/postinstall
-    echo "${CMD_FRAG} $DNAME" >> ${BDIR}/install/postremove
+    echo "${CMD_FRAG} ${PERMS} ${POLICY} ${ALIASES} ${CLASS} $DNAME" >> "${BDIR}/install/postinstall"
+    echo "${CMD_FRAG} $DNAME" >> "${BDIR}/install/postremove"
 fi
 if [ "x${CLONEPERMS}" != "x" ]; then
-    echo "${UCMD_FRAG} -a -m ${CLONEPERMS} clone" >> ${BDIR}/install/postinstall
+    echo "${UCMD_FRAG} -a -m ${CLONEPERMS} clone" >> "${BDIR}/install/postinstall"
 fi
 }
 
@@ -488,8 +489,8 @@ facet*)
     ;;
 esac
 done
-mkdir -p -m $mode ${BDIR}/${dirpath}
-echo "d none ${dirpath} ${mode} ${owner} ${group}" >> ${BDIR}/prototype
+mkdir -p -m "$mode" "${BDIR}/${dirpath}"
+echo "d none ${dirpath} ${mode} ${owner} ${group}" >> "${BDIR}/prototype"
 }
 
 #
@@ -526,14 +527,14 @@ restart_fmri)
     ;;
 esac
 done
-echo "s none ${dirpath}=${target}" >> ${BDIR}/prototype
+echo "s none ${dirpath}=${target}" >> "${BDIR}/prototype"
 # create the symlink so that rrmdir works
 # the directory containing the symlink must exist
 tdir=${dirpath%/*}
-if [ ! -d ${BDIR}/${tdir} ]; then
-    mkdir -p ${BDIR}/${tdir}
+if [ ! -d "${BDIR}/${tdir}" ]; then
+    mkdir -p "${BDIR}/${tdir}"
 fi
-ln -s ${target} ${BDIR}/${dirpath}
+ln -s "${target}" "${BDIR}/${dirpath}"
 }
 
 #
@@ -568,7 +569,7 @@ case ${target} in
     echo "WARNING: skipping link to $target"
     ;;
 *)
-    echo "l none ${dirpath}=${target}" >> ${BDIR}/prototype
+    echo "l none ${dirpath}=${target}" >> "${BDIR}/prototype"
     ;;
 esac
 }
@@ -627,8 +628,8 @@ pkg.content-hash)
     :
     ;;
 restart_fmri)
-    touch ${BDIR}/restart_fmri_list
-    echo $value >>${BDIR}/restart_fmri_list
+    touch "${BDIR}/restart_fmri_list"
+    echo $value >>"${BDIR}/restart_fmri_list"
     ;;
 preserve)
     FTYPE="e"
@@ -641,25 +642,25 @@ preserve)
 esac
 done
 dpath=`dirname $filepath`
-if [ ! -d ${BDIR}/${dpath} ]; then
-    mkdir -p ${BDIR}/${dpath}
+if [ ! -d "${BDIR}/${dpath}" ]; then
+    mkdir -p "${BDIR}/${dpath}"
 fi
-if [ -f ${BDIR}/${filepath} ]; then
+if [ -f "${BDIR}/${filepath}" ]; then
     echo "DBG: parsing $hash $line"
     echo "WARN: path $filepath already exists in $dpath"
 fi
-/usr/bin/cp -p ${REPODIR}/file/${fh}/${fhash} ${BDIR}/${filepath}.gz
-/usr/bin/gunzip ${BDIR}/${filepath}.gz
-/usr/bin/chmod $mode ${BDIR}/${filepath}
+/usr/bin/cp -p "${REPODIR}/file/${fh}/${fhash}" "${BDIR}/${filepath}.gz"
+/usr/bin/gunzip "${BDIR}/${filepath}.gz"
+/usr/bin/chmod "$mode" "${BDIR}/${filepath}"
 if [ "xx${TSTAMP}" != "xx" ]; then
-    /bin/touch -t ${TSTAMP} ${BDIR}/${filepath}
+    /bin/touch -t "${TSTAMP}" "${BDIR}/${filepath}"
 fi
 case ${filepath} in
 *~*)
     echo "WARNING: skipping file path $filepath"
     ;;
 *)
-    echo "${FTYPE} ${FCLASS} ${filepath}=${filepath} ${mode} ${owner} ${group}" >> ${BDIR}/prototype
+    echo "${FTYPE} ${FCLASS} ${filepath}=${filepath} ${mode} ${owner} ${group}" >> "${BDIR}/prototype"
     ;;
 esac
 }
@@ -694,10 +695,10 @@ esac
 done
 if [ -n "$licpath" ]; then
     dirpath="var/sadm/license/${PKG}"
-    if [ ! -d ${BDIR}/${dirpath} ]; then
-	mkdir -p ${BDIR}/${dirpath}
+    if [ ! -d "${BDIR}/${dirpath}" ]; then
+	mkdir -p "${BDIR}/${dirpath}"
     fi
-    echo "d none ${dirpath} ${dirmode} ${owner} ${group}" >> ${BDIR}/prototype
+    echo "d none ${dirpath} ${dirmode} ${owner} ${group}" >> "${BDIR}/prototype"
     case $licpath in
 	*/*)
 	    licfname=${licpath##*/}
@@ -725,10 +726,10 @@ if [ -n "$licpath" ]; then
 	licfname="${licfname}.${NLIC}"
     fi
     filepath="${dirpath}/${licfname}"
-/usr/bin/cp -p ${REPODIR}/file/${fh}/${fhash} ${BDIR}/${filepath}.gz
-/usr/bin/gunzip ${BDIR}/${filepath}.gz
-/usr/bin/chmod $mode ${BDIR}/${filepath}
-    echo "f none ${filepath}=${filepath} ${mode} ${owner} ${group}" >> ${BDIR}/prototype
+/usr/bin/cp -p "${REPODIR}/file/${fh}/${fhash}" "${BDIR}/${filepath}.gz"
+/usr/bin/gunzip "${BDIR}/${filepath}.gz"
+/usr/bin/chmod "$mode" "${BDIR}/${filepath}"
+    echo "f none ${filepath}=${filepath} ${mode} ${owner} ${group}" >> "${BDIR}/prototype"
 fi
 }
 
@@ -763,22 +764,22 @@ if [ "x$IPS_VERSION" = "x" ]; then
   IPS_VERSION="1.0"
 fi
 # CLASSES automatically set by pkgmk
-echo "PKG=\"${PKG}\"" >> ${BDIR}/pkginfo
-echo "NAME=\"${NAME}\"" >> ${BDIR}/pkginfo
-echo "ARCH=\"${ARCH}\"" >> ${BDIR}/pkginfo
-echo "VERSION=\"${VERSION}\"" >> ${BDIR}/pkginfo
-echo "IPS_VERSION=\"${IPS_VERSION}\"" >> ${BDIR}/pkginfo
-echo "CATEGORY=\"${CATEGORY}\"" >> ${BDIR}/pkginfo
-echo "VENDOR=\"${VENDOR}\"" >> ${BDIR}/pkginfo
-echo "BASEDIR=\"${BASEDIR}\"" >> ${BDIR}/pkginfo
-echo "PSTAMP=\"tribblix\"" >> ${BDIR}/pkginfo
+echo "PKG=\"${PKG}\"" >> "${BDIR}/pkginfo"
+echo "NAME=\"${NAME}\"" >> "${BDIR}/pkginfo"
+echo "ARCH=\"${ARCH}\"" >> "${BDIR}/pkginfo"
+echo "VERSION=\"${VERSION}\"" >> "${BDIR}/pkginfo"
+echo "IPS_VERSION=\"${IPS_VERSION}\"" >> "${BDIR}/pkginfo"
+echo "CATEGORY=\"${CATEGORY}\"" >> "${BDIR}/pkginfo"
+echo "VENDOR=\"${VENDOR}\"" >> "${BDIR}/pkginfo"
+echo "BASEDIR=\"${BASEDIR}\"" >> "${BDIR}/pkginfo"
+echo "PSTAMP=\"tribblix\"" >> "${BDIR}/pkginfo"
 }
 
 emulate_legacy() {
 HAS_LEGACY=true
 NAME="$OUTPKG"
 VERSION="$PKG_VERSION"
-ARCH=`uname -p`
+ARCH="$ARCH32"
 CATEGORY="application"
 VENDOR="Tribblix"
 BASEDIR="/"
@@ -786,14 +787,14 @@ PKG="$OUTPKG"
 # FIXME should be pkg.summary
 DESC="$OUTPKG"
 # CLASSES automatically set by pkgmk
-echo "PKG=\"${PKG}\"" >> ${BDIR}/pkginfo
-echo "NAME=\"${NAME}\"" >> ${BDIR}/pkginfo
-echo "ARCH=\"${ARCH}\"" >> ${BDIR}/pkginfo
-echo "VERSION=\"${VERSION}\"" >> ${BDIR}/pkginfo
-echo "CATEGORY=\"${CATEGORY}\"" >> ${BDIR}/pkginfo
-echo "VENDOR=\"${VENDOR}\"" >> ${BDIR}/pkginfo
-echo "BASEDIR=\"${BASEDIR}\"" >> ${BDIR}/pkginfo
-echo "PSTAMP=\"tribblix\"" >> ${BDIR}/pkginfo
+echo "PKG=\"${PKG}\"" >> "${BDIR}/pkginfo"
+echo "NAME=\"${NAME}\"" >> "${BDIR}/pkginfo"
+echo "ARCH=\"${ARCH}\"" >> "${BDIR}/pkginfo"
+echo "VERSION=\"${VERSION}\"" >> "${BDIR}/pkginfo"
+echo "CATEGORY=\"${CATEGORY}\"" >> "${BDIR}/pkginfo"
+echo "VENDOR=\"${VENDOR}\"" >> "${BDIR}/pkginfo"
+echo "BASEDIR=\"${BASEDIR}\"" >> "${BDIR}/pkginfo"
+echo "PSTAMP=\"tribblix\"" >> "${BDIR}/pkginfo"
 }
 
 #
@@ -812,19 +813,19 @@ case $name in
   IS_GARBAGE=true
   ;;
 'pkg.description')
-  echo "IPS_DESCRIPTION=$value" >> ${BDIR}/pkginfo
+  echo "IPS_DESCRIPTION=$value" >> "${BDIR}/pkginfo"
   ;;
 'pkg.summary')
-  echo "IPS_SUMMARY=$value" >> ${BDIR}/pkginfo
+  echo "IPS_SUMMARY=$value" >> "${BDIR}/pkginfo"
   ;;
 'pkg.fmri')
-  echo "IPS_FMRI=$value" >> ${BDIR}/pkginfo
+  echo "IPS_FMRI=$value" >> "${BDIR}/pkginfo"
   ;;
 'info.classification')
-  echo "IPS_CLASSIFICATION=$value" >> ${BDIR}/pkginfo
+  echo "IPS_CLASSIFICATION=$value" >> "${BDIR}/pkginfo"
   ;;
 'org.opensolaris.consolidation')
-  echo "IPS_CONSOLIDATION=$value" >> ${BDIR}/pkginfo
+  echo "IPS_CONSOLIDATION=$value" >> "${BDIR}/pkginfo"
   ;;
 'variant.arch'|'variant.opensolaris.zone'|'opensolaris.smf.fmri'|'org.opensolaris.smf.fmri'|'opensolaris.arc_url')
   :
@@ -869,7 +870,7 @@ case $pkg_name in
 *)
     svr4_name=`$PNAME $pkg_name`
     init_depend
-    echo "P $svr4_name" >> ${BDIR}/install/depend
+    echo "P $svr4_name" >> "${BDIR}/install/depend"
     ;;
 esac
     ;;
@@ -879,7 +880,7 @@ esac
 *)
     svr4_name=`$PNAME $fmri`
     init_depend
-    echo "P $svr4_name" >> ${BDIR}/install/depend
+    echo "P $svr4_name" >> "${BDIR}/install/depend"
     ;;
 esac
     ;;
@@ -897,11 +898,11 @@ esac
 #
 transform_replace() {
 filepath=$1
-if [ -f ${BDIR}/${filepath} ]; then
-  if [ -f ${TRANSDIR}/$filepath.`uname -p` ]; then
-    cp ${TRANSDIR}/$filepath.`uname -p` ${BDIR}/${filepath}
-  elif [ -f ${TRANSDIR}/$filepath ]; then
-    cp ${TRANSDIR}/$filepath ${BDIR}/${filepath}
+if [ -f "${BDIR}/${filepath}" ]; then
+  if [ -f "${TRANSDIR}/$filepath.${ARCH32}" ]; then
+    cp "${TRANSDIR}/$filepath.${ARCH32}" "${BDIR}/${filepath}"
+  elif [ -f "${TRANSDIR}/$filepath" ]; then
+    cp "${TRANSDIR}/$filepath" "${BDIR}/${filepath}"
   else
     echo "WARN: transform_replace cannot find replacement for ${filepath}"
   fi
@@ -916,7 +917,7 @@ fi
 transform_depend() {
 pkgdep=$1
 init_depend
-echo "P ${pkgdep}" >> ${BDIR}/install/depend
+echo "P ${pkgdep}" >> "${BDIR}/install/depend"
 }
 
 #
@@ -924,10 +925,10 @@ echo "P ${pkgdep}" >> ${BDIR}/install/depend
 #
 transform_undepend() {
 pkgdep=$1
-if [ -f ${BDIR}/install/depend ]; then
-    mv ${BDIR}/install/depend ${BDIR}/install/depend.transform
-    cat ${BDIR}/install/depend.transform | egrep -v "P ${pkgdep}\$" > ${BDIR}/install/depend
-    rm ${BDIR}/install/depend.transform
+if [ -f "${BDIR}/install/depend" ]; then
+    mv "${BDIR}/install/depend" "${BDIR}/install/depend.transform"
+    cat "${BDIR}/install/depend.transform" | egrep -v "P ${pkgdep}\$" > "${BDIR}/install/depend"
+    rm "${BDIR}/install/depend.transform"
 fi
 }
 
@@ -939,14 +940,14 @@ fi
 #
 transform_delete() {
 filepath=$1
-if [ -f ${BDIR}/${filepath} ]; then
-  /usr/bin/rm -f ${BDIR}/${filepath}
+if [ -f "${BDIR}/${filepath}" ]; then
+  /usr/bin/rm -f "${BDIR}/${filepath}"
 else
   echo "WARN: transform_delete cannot find path ${filepath}"
 fi
-/usr/bin/mv ${BDIR}/prototype ${BDIR}/prototype.transform
-cat ${BDIR}/prototype.transform | grep -v " ${filepath}=${filepath} " > ${BDIR}/prototype
-/usr/bin/rm ${BDIR}/prototype.transform
+/usr/bin/mv "${BDIR}/prototype" "${BDIR}/prototype.transform"
+cat "${BDIR}/prototype.transform" | grep -v " ${filepath}=${filepath} " > "${BDIR}/prototype"
+/usr/bin/rm "${BDIR}/prototype.transform"
 }
 
 #
@@ -956,10 +957,10 @@ cat ${BDIR}/prototype.transform | grep -v " ${filepath}=${filepath} " > ${BDIR}/
 transform_type() {
 filepath=$1
 newtype=$2
-if [ -f ${BDIR}/${filepath} ]; then
-  /usr/bin/mv ${BDIR}/prototype ${BDIR}/prototype.transform
-  cat ${BDIR}/prototype.transform | grep " ${filepath}=${filepath} " | read otype oclass opath operm ouser ogroup
-  cat ${BDIR}/prototype.transform | grep -v " ${filepath}=${filepath} " > ${BDIR}/prototype
+if [ -f "${BDIR}/${filepath}" ]; then
+  /usr/bin/mv "${BDIR}/prototype" "${BDIR}/prototype.transform"
+  cat "${BDIR}/prototype.transform" | grep " ${filepath}=${filepath} " | read otype oclass opath operm ouser ogroup
+  cat "${BDIR}/prototype.transform" | grep -v " ${filepath}=${filepath} " > "${BDIR}/prototype"
   case $newtype in
       e)
 	  oclass="preserve"
@@ -968,8 +969,8 @@ if [ -f ${BDIR}/${filepath} ]; then
 	  oclass="none"
 	  ;;
   esac
-  echo "${newtype} ${oclass} ${opath} ${operm} ${ouser} ${ogroup}" >> ${BDIR}/prototype
-  /usr/bin/rm ${BDIR}/prototype.transform
+  echo "${newtype} ${oclass} ${opath} ${operm} ${ouser} ${ogroup}" >> "${BDIR}/prototype"
+  /usr/bin/rm "${BDIR}/prototype.transform"
 else
   echo "WARN: transform_type cannot find $filepath"
 fi
@@ -983,14 +984,14 @@ filepath=$1
 newpath=$2
 newdir=`dirname $newpath`
 echo "DBG: rename $filepath to $newpath in $newdir"
-if [ -f ${BDIR}/${filepath} ]; then
-  /usr/bin/mkdir -p ${BDIR}/${newdir}
-  /usr/bin/mv ${BDIR}/${filepath} ${BDIR}/${newpath}
-  /usr/bin/mv ${BDIR}/prototype ${BDIR}/prototype.transform
-  cat ${BDIR}/prototype.transform | grep " ${filepath}=${filepath} " | read otype oclass opath operm ouser ogroup
-  cat ${BDIR}/prototype.transform | grep -v " ${filepath}=${filepath} " > ${BDIR}/prototype
+if [ -f "${BDIR}/${filepath}" ]; then
+  /usr/bin/mkdir -p "${BDIR}/${newdir}"
+  /usr/bin/mv "${BDIR}/${filepath}" "${BDIR}/${newpath}"
+  /usr/bin/mv "${BDIR}/prototype" "${BDIR}/prototype.transform"
+  cat "${BDIR}/prototype.transform" | grep " ${filepath}=${filepath} " | read otype oclass opath operm ouser ogroup
+  cat "${BDIR}/prototype.transform" | grep -v " ${filepath}=${filepath} " > ${BDIR}/prototype
   echo "${otype} ${oclass} ${newpath}=${newpath} ${operm} ${ouser} ${ogroup}" >> ${BDIR}/prototype
-  /usr/bin/rm ${BDIR}/prototype.transform
+  /usr/bin/rm "${BDIR}/prototype.transform"
 else
   echo "WARN: transform_rename cannot find $filepath"
 fi
@@ -1003,12 +1004,12 @@ fi
 #
 transform_linkdel() {
 filepath=$1
-/usr/bin/mv ${BDIR}/prototype ${BDIR}/prototype.transform
-cat ${BDIR}/prototype.transform | grep -v " ${filepath}=" > ${BDIR}/prototype
-/usr/bin/rm ${BDIR}/prototype.transform
+/usr/bin/mv "${BDIR}/prototype" "${BDIR}/prototype.transform"
+cat "${BDIR}/prototype.transform" | grep -v " ${filepath}=" > "${BDIR}/prototype"
+/usr/bin/rm "${BDIR}/prototype.transform"
 # delete the symlink so that the directory is empty for rmdir and rrmdir
-if [ -h ${BDIR}/${filepath} ]; then
-    /usr/bin/rm -f ${BDIR}/${filepath}
+if [ -h "${BDIR}/${filepath}" ]; then
+    /usr/bin/rm -f "${BDIR}/${filepath}"
 fi
 }
 
@@ -1020,17 +1021,17 @@ fi
 #
 transform_rmdir() {
 filepath=$1
-if [ -d ${BDIR}/${filepath} ]; then
-  /usr/bin/rmdir ${BDIR}/${filepath}
+if [ -d "${BDIR}/${filepath}" ]; then
+  /usr/bin/rmdir "${BDIR}/${filepath}"
 else
   echo "WARN: transform_rmdir cannot find directory ${filepath}"
 fi
-if [ -d ${BDIR}/${filepath} ]; then
+if [ -d "${BDIR}/${filepath}" ]; then
   echo "WARN: transform_rmdir cannot remove directory ${filepath}"
 fi
-/usr/bin/mv ${BDIR}/prototype ${BDIR}/prototype.transform
-cat ${BDIR}/prototype.transform | egrep -v " none ${filepath} " > ${BDIR}/prototype
-/usr/bin/rm ${BDIR}/prototype.transform
+/usr/bin/mv "${BDIR}/prototype" "${BDIR}/prototype.transform"
+cat "${BDIR}/prototype.transform" | egrep -v " none ${filepath} " > "${BDIR}/prototype"
+/usr/bin/rm "${BDIR}/prototype.transform"
 }
 
 #
@@ -1044,7 +1045,7 @@ cat ${BDIR}/prototype.transform | egrep -v " none ${filepath} " > ${BDIR}/protot
 #
 transform_rrmdir() {
 rfilepath=$1
-if [ -d ${BDIR}/${rfilepath} ]; then
+if [ -d "${BDIR}/${rfilepath}" ]; then
   for npath in `cd $BDIR ; find ${rfilepath} -xdev -type f`
   do
     transform_delete $npath
@@ -1060,7 +1061,7 @@ if [ -d ${BDIR}/${rfilepath} ]; then
 else
   echo "WARN: transform_rrmdir cannot find directory ${rfilepath}"
 fi
-if [ -d ${BDIR}/${rfilepath} ]; then
+if [ -d "${BDIR}/${rfilepath}" ]; then
   echo "WARN: transform_rrmdir cannot remove directory ${rfilepath}"
 fi
 }
@@ -1094,24 +1095,24 @@ group)
 esac
 done
 dpath=`dirname $filepath`
-if [ ! -d ${BDIR}/${dpath} ]; then
-    mkdir -p ${BDIR}/${dpath}
+if [ ! -d "${BDIR}/${dpath}" ]; then
+    mkdir -p "${BDIR}/${dpath}"
 fi
-if [ -f ${BDIR}/${filepath} ]; then
+if [ -f "${BDIR}/${filepath}" ]; then
     echo "DBG: parsing $hash $line"
     echo "WARN: path $filepath already exists in $dpath"
 fi
-if [ -f ${PROTODIR}/${filepath} ]; then
-  /usr/bin/cp -p ${PROTODIR}/${filepath} ${BDIR}/${filepath}
-elif [ -f ${TRANSDIR}/${filepath}.`uname -p` ]; then
-  /usr/bin/cp -p ${TRANSDIR}/${filepath}.`uname -p` ${BDIR}/${filepath}
-elif [ -f ${TRANSDIR}/${filepath} ]; then
-  /usr/bin/cp -p ${TRANSDIR}/${filepath} ${BDIR}/${filepath}
+if [ -f "${PROTODIR}/${filepath}" ]; then
+  /usr/bin/cp -p "${PROTODIR}/${filepath}" "${BDIR}/${filepath}"
+elif [ -f "${TRANSDIR}/${filepath}.${ARCH32}" ]; then
+  /usr/bin/cp -p "${TRANSDIR}/${filepath}.${ARCH32}" "${BDIR}/${filepath}"
+elif [ -f "${TRANSDIR}/${filepath}" ]; then
+  /usr/bin/cp -p "${TRANSDIR}/${filepath}" "${BDIR}/${filepath}"
 else
   echo "WARN: transform_add cannot find source for ${filepath}"
 fi
-if [ -f ${BDIR}/${filepath} ]; then
-  echo "${FTYPE} ${FCLASS} ${filepath}=${filepath} ${mode} ${owner} ${group}" >> ${BDIR}/prototype
+if [ -f "${BDIR}/${filepath}" ]; then
+  echo "${FTYPE} ${FCLASS} ${filepath}=${filepath} ${mode} ${owner} ${group}" >> "${BDIR}/prototype"
 fi
 }
 
@@ -1134,14 +1135,14 @@ target)
 esac
 done
 dpath=`dirname $filepath`
-if [ ! -d ${BDIR}/${dpath} ]; then
-    mkdir -p ${BDIR}/${dpath}
+if [ ! -d "${BDIR}/${dpath}" ]; then
+    mkdir -p "${BDIR}/${dpath}"
 fi
-if [ -f ${BDIR}/${filepath} ]; then
+if [ -f "${BDIR}/${filepath}" ]; then
     echo "DBG: parsing $hash $line"
     echo "WARN: path $filepath already exists in $dpath"
 fi
-echo "s none ${filepath}=${target}" >> ${BDIR}/prototype
+echo "s none ${filepath}=${target}" >> "${BDIR}/prototype"
 }
 
 #
@@ -1168,10 +1169,10 @@ group)
     ;;
 esac
 done
-if [ ! -d ${BDIR}/${filepath} ]; then
-    mkdir -p -m $mode ${BDIR}/${filepath}
+if [ ! -d "${BDIR}/${filepath}" ]; then
+    mkdir -p -m "$mode" "${BDIR}/${filepath}"
 fi
-echo "d none ${filepath} ${mode} ${owner} ${group}" >> ${BDIR}/prototype
+echo "d none ${filepath} ${mode} ${owner} ${group}" >> "${BDIR}/prototype"
 }
 
 #
@@ -1243,7 +1244,7 @@ transform_noisaexeclink() {
 #
 transform_name() {
     newname="$1"
-    sed -i "s#^NAME=.*#NAME=${newname}#" ${BDIR}/pkginfo
+    sed -i "s#^NAME=.*#NAME=${newname}#" "${BDIR}/pkginfo"
 }
 
 case $# in
@@ -1263,18 +1264,18 @@ esac
 #
 # these ought to be args
 #
-REPODIR=${GATEDIR}/packages/`uname -p`/nightly-nd/repo.${MYREPO}
-PROTODIR=${GATEDIR}/proto/root_`uname -p`
+REPODIR=${GATEDIR}/packages/${ARCH32}/nightly-nd/repo.${MYREPO}
+PROTODIR=${GATEDIR}/proto/root_${ARCH32}
 
 if [ ! -d ${REPODIR} ]; then
-    REPODIR=${GATEDIR}/packages/`uname -p`/nightly/repo.${MYREPO}
+    REPODIR=${GATEDIR}/packages/${ARCH32}/nightly/repo.${MYREPO}
 fi
 if [ ! -d "${REPODIR}" ]; then
     echo "ERROR: Missing repo"
     exit 1
 fi
 
-mkdir -p $DSTDIR/build $DSTDIR/pkgs $DSTDIR/tmp
+mkdir -p "$DSTDIR/build" "$DSTDIR/pkgs" "$DSTDIR/tmp"
 
 #
 # find the input manifest
@@ -1288,11 +1289,11 @@ fi
 #
 # skip packages marked as deleted
 #
-if [ -f ${TRANSDIR}/deleted/${OUTPKG} ]; then
+if [ -f "${TRANSDIR}/deleted/${OUTPKG}" ]; then
     echo "WARN: skipping ${OUTPKG}, marked as deleted"
     exit 0
 fi
-if [ -f ${TRANSDIR}/deleted/${OUTPKG}.`uname -p` ]; then
+if [ -f "${TRANSDIR}/deleted/${OUTPKG}.${ARCH32}" ]; then
     echo "WARN: skipping ${OUTPKG}, marked as deleted"
     exit 0
 fi
@@ -1307,9 +1308,9 @@ MANIFEST=`/bin/ls -1tr ${PDIR}/* | tail -1`
 # this is the temporary build area
 #
 BDIR=$DSTDIR/build/${OUTPKG}
-mkdir -p $BDIR
-touch ${BDIR}/pkginfo ${BDIR}/prototype
-echo "i pkginfo=./pkginfo" >> ${BDIR}/prototype
+mkdir -p "$BDIR"
+touch "${BDIR}/pkginfo" "${BDIR}/prototype"
+echo "i pkginfo=./pkginfo" >> "${BDIR}/prototype"
 
 #
 # read the manifest, line by line
@@ -1348,7 +1349,7 @@ driver)
     eval handle_driver $line
     ;;
 *)
-    echo ...directive $directive not yet supported...
+    echo "...directive $directive not yet supported..."
     ;;
 esac
 
@@ -1388,7 +1389,7 @@ fi
 #
 # also remove history of the current live system
 #
-cd $BDIR
+cd $BDIR || exit 1
 if [ -f etc/logadm.conf ]; then
     touch -r /etc/passwd etc/logadm.conf
 fi
@@ -1421,8 +1422,8 @@ fi
 #
 # package transforms
 #
-if [ -f ${TRANSDIR}/${OUTPKG} ]; then
-cat ${TRANSDIR}/${OUTPKG} |
+if [ -f "${TRANSDIR}/${OUTPKG}" ]; then
+cat "${TRANSDIR}/${OUTPKG}" |
 {
 while read -r action pathname line ;
 do
@@ -1474,10 +1475,10 @@ noisaexeclink)
     ;;
 modify)
     echo "DBG: gsed -i '$line' ${BDIR}/${pathname}"
-    gsed -i "$line" ${BDIR}/${pathname}
+    gsed -i "$line" "${BDIR}/${pathname}"
     ;;
 *)
-    echo ...transform action $action not yet supported...
+    echo "...transform action $action not yet supported..."
     ;;
 esac
 
@@ -1487,8 +1488,8 @@ fi
 #
 # architecture-specific package transforms
 #
-if [ -f ${TRANSDIR}/${OUTPKG}.`uname -p` ]; then
-cat ${TRANSDIR}/${OUTPKG}.`uname -p` |
+if [ -f "${TRANSDIR}/${OUTPKG}.${ARCH32}" ]; then
+cat "${TRANSDIR}/${OUTPKG}.${ARCH32}" |
 {
 while read -r action pathname line ;
 do
@@ -1537,10 +1538,10 @@ noisaexeclink)
     ;;
 modify)
     echo "DBG: gsed -i '$line' ${BDIR}/${pathname}"
-    gsed -i "$line" ${BDIR}/${pathname}
+    gsed -i "$line" "${BDIR}/${pathname}"
     ;;
 *)
-    echo ...transform action $action not yet supported...
+    echo "...transform action $action not yet supported..."
     ;;
 esac
 
@@ -1562,13 +1563,13 @@ handle_restarts
 # in any case, the policy is that packaging should succeed so that we
 # can sort out errors later
 #
-if [ -f ${BDIR}/install/postinstall ]; then
-    echo "exit 0" >> ${BDIR}/install/postinstall
-    chmod 0555 ${BDIR}/install/postinstall
+if [ -f "${BDIR}/install/postinstall" ]; then
+    echo "exit 0" >> "${BDIR}/install/postinstall"
+    chmod 0555 "${BDIR}/install/postinstall"
 fi
-if [ -f ${BDIR}/install/postremove ]; then
-    echo "exit 0" >> ${BDIR}/install/postremove
-    chmod 0555 ${BDIR}/install/postremove
+if [ -f "${BDIR}/install/postremove" ]; then
+    echo "exit 0" >> "${BDIR}/install/postremove"
+    chmod 0555 "${BDIR}/install/postremove"
 fi
 
 #
@@ -1578,31 +1579,31 @@ fi
 # elfsign requires the file to be writable
 #
 if [ -n "$SIGNCERT" ]; then
-    cd $BDIR
-    for exe in `${FINDELF} . | grep '^OBJECT' | /usr/bin/awk '{if ($3 == "EXEC" || $3 == "DYN") print $NF}'`
+    cd "$BDIR" || exit 1
+    for exe in $(${FINDELF} . | grep '^OBJECT' | /usr/bin/awk '{if ($3 == "EXEC" || $3 == "DYN") print $NF}')
     do
-	chmod u+w $exe
-	/usr/bin/elfsign sign -k ${SIGNCERT}.key -c ${SIGNCERT}.crt -e $exe
+	chmod u+w "$exe"
+	/usr/bin/elfsign sign -k "${SIGNCERT}.key" -c "${SIGNCERT}.crt" -e "$exe"
     done
     if [ -d platform ]; then
-	for exe in `find platform -type f | grep -v '\.conf$'`	
+	for exe in $(find platform -type f | grep -v '\.conf$')
 	do
-	    chmod u+w $exe
-	    /usr/bin/elfsign sign -k ${SIGNCERT}.key -c ${SIGNCERT}.crt -e $exe
+	    chmod u+w "$exe"
+	    /usr/bin/elfsign sign -k "${SIGNCERT}.key" -c "${SIGNCERT}.crt" -e "$exe"
 	done
     fi
     if [ -d kernel ]; then
-	for exe in `find kernel -type f | grep -v '\.conf$'`	
+	for exe in $(find kernel -type f | grep -v '\.conf$')
 	do
-	    chmod u+w $exe
-	    /usr/bin/elfsign sign -k ${SIGNCERT}.key -c ${SIGNCERT}.crt -e $exe
+	    chmod u+w "$exe"
+	    /usr/bin/elfsign sign -k "${SIGNCERT}.key" -c "${SIGNCERT}.crt" -e "$exe"
 	done
     fi
     if [ -d usr/kernel ]; then
-	for exe in `find usr/kernel -type f | grep -v '\.conf$'`	
+	for exe in $(find usr/kernel -type f | grep -v '\.conf$')
 	do
-	    chmod u+w $exe
-	    /usr/bin/elfsign sign -k ${SIGNCERT}.key -c ${SIGNCERT}.crt -e $exe
+	    chmod u+w "$exe"
+	    /usr/bin/elfsign sign -k "${SIGNCERT}.key" -c "${SIGNCERT}.crt" -e "$exe"
 	done
     fi
 fi
@@ -1610,17 +1611,17 @@ fi
 #
 # build a package
 #
-cd $BDIR
-${PKGMK} -d $DSTDIR/tmp -f prototype -r `pwd` ${OUTPKG} > /dev/null
-if [ "x${QUICKMODE}" = "xY" ]; then
-    mkdir -p $DSTDIR/quick
-    mv ${DSTDIR}/tmp/${OUTPKG} $DSTDIR/quick
+cd "$BDIR" || exit 1
+${PKGMK} -d "$DSTDIR/tmp" -f prototype -r $(pwd) "${OUTPKG}" > /dev/null
+if [ -n "${QUICKMODE}" ]; then
+    mkdir -p "$DSTDIR/quick"
+    mv "${DSTDIR}/tmp/${OUTPKG}" "$DSTDIR/quick"
     cd /
-    rm -fr $BDIR
+    rm -fr "$BDIR"
     exit 0
 fi
-${PKGTRANS} -s $DSTDIR/tmp ${DSTDIR}/pkgs/${OUTPKG}.${PKG_VERSION}.pkg ${OUTPKG} > /dev/null
-if [ -f ${DSTDIR}/pkgs/${OUTPKG}.${PKG_VERSION}.pkg ]; then
+${PKGTRANS} -s "$DSTDIR/tmp" "${DSTDIR}/pkgs/${OUTPKG}.${PKG_VERSION}.pkg ${OUTPKG}" > /dev/null
+if [ -f "${DSTDIR}/pkgs/${OUTPKG}.${PKG_VERSION}.pkg" ]; then
     cd /
     bail_out
 fi
