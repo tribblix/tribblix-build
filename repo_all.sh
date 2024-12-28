@@ -31,6 +31,11 @@ DSTDIR=/var/tmp/illumos-pkgs
 MYREPO="redist"
 QFLAG=""
 
+bail() {
+    echo "ERROR: $1"
+    exit 1
+}
+
 #
 # locations and variables should be passed as arguments
 #
@@ -61,6 +66,7 @@ while getopts "QV:T:G:D:M:R:S:" opt; do
 done
 shift $((OPTIND-1))
 
+ARCH32=$(uname -p)
 #
 # verify signing - the cert and key must exist
 # if they don't, exit early
@@ -70,8 +76,7 @@ if [ -n "$SIGNCERT" ]; then
     if [ -r "${SIGNCERT}.key" -a -r "${SIGNCERT}.crt" ]; then
 	:
     else
-	echo "Error: invalid cert specified"
-	exit 1
+	bail "invalid cert specified"
     fi
     if [ ! -x "${FINDELF}" ]; then
 	FINDELF="${GATEDIR}/usr/src/tools/find_elf/find_elf"
@@ -80,56 +85,52 @@ if [ -n "$SIGNCERT" ]; then
 	FINDELF="/opt/onbld/bin/find_elf"
     fi
     if [ ! -x "${FINDELF}" ]; then
-	FINDELF="/opt/onbld/bin/`uname -p`/find_elf"
+	FINDELF="/opt/onbld/bin/${ARCH32}/find_elf"
     fi
     if [ ! -x "${FINDELF}" ]; then
-	echo "Cannot sign, find_elf missing"
-	exit 1
+	bail "Cannot sign, find_elf missing"
     fi
     if [ ! -x /usr/bin/elfsign ]; then
-	echo "Cannot sign, elfsign missing"
-	echo "  (is TRIBdev-linker installed?)"
-	exit 1
+	bail "Cannot sign, elfsign missing (is TRIBdev-linker installed?)"
     fi
 else
-    echo "Error: a signing certificate is required"
-    exit 1
+    bail "a signing certificate is required"
 fi
 
-REPODIR=${GATEDIR}/packages/`uname -p`/nightly-nd/repo.${MYREPO}
-if [ ! -d ${REPODIR} ]; then
-    REPODIR=${GATEDIR}/packages/`uname -p`/nightly/repo.${MYREPO}
+REPODIR=${GATEDIR}/packages/${ARCH32}/nightly-nd/repo.${MYREPO}
+if [ ! -d "${REPODIR}" ]; then
+    REPODIR=${GATEDIR}/packages/${ARCH32}/nightly/repo.${MYREPO}
 fi
-if [ ! -d ${REPODIR} ]; then
-    echo "Error: cannot find package repo in ${GATEDIR}"
-    exit 1
+if [ ! -d "${REPODIR}" ]; then
+    bail "cannot find package repo in ${GATEDIR}"
 fi
 
 CMD=${THOME}/tribblix-build/repo2svr4.sh
 PNAME=${THOME}/tribblix-build/pkg_name.sh
 PKG2ZAP=${THOME}/tribblix-build/pkg2zap
 
-mkdir -p ${DSTDIR}
-cd $REPODIR/pkg
+mkdir -p "${DSTDIR}"
+cd "$REPODIR/pkg" || bail "cannot cd"
 
 for file in *
 do
-    echo Packaging $file as `$PNAME $file`
+    npkgname=$($PNAME "$file")
+    echo "Packaging $file as $npkgname"
     if [ -n "$SIGNCERT" ]; then
-	$CMD ${QFLAG} -T $THOME -V $PKG_VERSION -G $GATEDIR -D $DSTDIR -R $MYREPO -S $SIGNCERT $file `$PNAME $file`
+	$CMD ${QFLAG} -T "$THOME" -V "$PKG_VERSION" -G "$GATEDIR" -D "$DSTDIR" -R "$MYREPO" -S "$SIGNCERT" "$file" "$npkgname"
     else
-	$CMD ${QFLAG} -T $THOME -V $PKG_VERSION -G $GATEDIR -D $DSTDIR -R $MYREPO $file `$PNAME $file`
+	$CMD ${QFLAG} -T "$THOME" -V "$PKG_VERSION" -G "$GATEDIR" -D "$DSTDIR" -R "$MYREPO" "$file" "$npkgname"
     fi
 done
 
-if [ "x${QFLAG}" = "x-Q" ]; then
+if [ "${QFLAG}" = "-Q" ]; then
     exit 0
 fi
 
 #
 # convert the SVR4 pkg to zap format
 #
-for file in ${DSTDIR}/pkgs/*.pkg
+for file in "${DSTDIR}"/pkgs/*.pkg
 do
-    $PKG2ZAP $file ${DSTDIR}/pkgs
+    $PKG2ZAP "$file" "${DSTDIR}/pkgs"
 done
