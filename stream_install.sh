@@ -218,7 +218,7 @@ esac
 #
 # verify we can actually find the image
 #
-if [ -f ${PKGLOC}/${IMAGEFILE} ]; then
+if [ -f "${PKGLOC}/${IMAGEFILE}" ]; then
     IMAGEFILE=${PKGLOC}/${IMAGEFILE}
 else
     echo "Cannot find image"
@@ -385,35 +385,35 @@ echo "Laying down image"
 MYDSET="${ROOTPOOL}/ROOT/${NEWBE}"
 case $IMAGEFILE in
     *.zfs)
-	cat $IMAGEFILE | /usr/sbin/zfs recv -F $MYDSET
+	cat "$IMAGEFILE" | /usr/sbin/zfs recv -F "$MYDSET"
 	;;
     *.zfs.gz)
-	${GZCAT} $IMAGEFILE | /usr/sbin/zfs recv -F $MYDSET
+	${GZCAT} "$IMAGEFILE" | /usr/sbin/zfs recv -F "$MYDSET"
 	;;
     *.zfs.bz2)
-	${BZCAT} $IMAGEFILE | /usr/sbin/zfs recv -F $MYDSET
+	${BZCAT} "$IMAGEFILE" | /usr/sbin/zfs recv -F "$MYDSET"
 	;;
     *.zfs.xz)
-	${XZCAT} -d -c $IMAGEFILE | /usr/sbin/zfs recv -F $MYDSET
+	${XZCAT} -d -c "$IMAGEFILE" | /usr/sbin/zfs recv -F "$MYDSET"
 	;;
     *.tar)
 	cd $ALTROOT
-	cat $IMAGEFILE | /usr/sbin/tar xf -
+	cat "$IMAGEFILE" | /usr/sbin/tar xf -
 	cd
 	;;
     *.tar.gz)
 	cd $ALTROOT
-	${GZCAT} $IMAGEFILE | /usr/sbin/tar xf -
+	${GZCAT} "$IMAGEFILE" | /usr/sbin/tar xf -
 	cd
 	;;
     *.tar.bz2)
 	cd $ALTROOT
-	${BZCAT} $IMAGEFILE | /usr/sbin/tar xf -
+	${BZCAT} "$IMAGEFILE" | /usr/sbin/tar xf -
 	cd
 	;;
     *.tar.xz)
 	cd $ALTROOT
-	${XZCAT} -d -c $IMAGEFILE | /usr/sbin/tar xf -
+	${XZCAT} -d -c "$IMAGEFILE" | /usr/sbin/tar xf -
 	cd
 	;;
     *)
@@ -594,9 +594,9 @@ echo "Updating boot archive"
 # remount zfs filesystem in the right place for next boot
 #
 echo "The mount error below is expected"
-/usr/sbin/zfs set mountpoint=/export ${ROOTPOOL}/export
-/usr/sbin/zfs set canmount=noauto ${ROOTPOOL}/ROOT/${NEWBE}
-/usr/sbin/zfs set mountpoint=/ ${ROOTPOOL}/ROOT/${NEWBE}
+/usr/sbin/zfs set mountpoint=/export "${ROOTPOOL}/export"
+/usr/sbin/zfs set canmount=noauto "${ROOTPOOL}/ROOT/${NEWBE}"
+/usr/sbin/zfs set mountpoint=/ "${ROOTPOOL}/ROOT/${NEWBE}"
 
 #
 # if specified, reboot
