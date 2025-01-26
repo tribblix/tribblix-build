@@ -1,5 +1,7 @@
 #!/bin/ksh
 #
+# SPDX-License-Identifier: CDDL-1.0
+#
 # {{{ CDDL HEADER
 #
 # This file and its contents are supplied under the terms of the
@@ -13,7 +15,7 @@
 #
 # }}}
 #
-# Copyright 2023 Peter Tribble
+# Copyright 2025 Peter Tribble
 #
 
 #
@@ -32,7 +34,7 @@ case $# in
 	;;
     *)
 	echo "Usage: $0 iso_file dist_area"
-	exit 1
+	exit 2
 	;;
 esac
 if [ ! -f "$DST_ISO" ]; then
@@ -52,14 +54,23 @@ if [ ! -f "${DIST_AREA}/boot/isoboot" ]; then
     exit 1
 fi
 
-LOFI_ISO=`lofiadm -la $DST_ISO`
+LOFI_ISO=$(lofiadm -la "$DST_ISO")
 [ -n "$LOFI_ISO" ] || exit 1
 
 RLOFI_ISO=${LOFI_ISO/dsk/rdsk}
 P2LOFI_ISO=${RLOFI_ISO/p0/p2}
 
+#
 # Look for the ESP in the ISO image
-for entry in `etdump --format shell $DST_ISO`; do
+#
+# the etdump output looks like
+#
+# et_platform=default;et_system=i386;et_lba=167;et_sectors=4
+# et_platform=efi;et_system=i386;et_lba=168;et_sectors=8192
+#
+# the eval then causes the et_ variables to be set
+#
+for entry in $(etdump --format shell "$DST_ISO"); do
     echo "--> $entry"
     eval $entry
     [ "$et_platform" = "efi" ] || continue
@@ -70,12 +81,12 @@ done
 
 if [ -n "$espparam" ]; then
     # The system area will start at sector 64
-    fdisk -A 190:0:0:0:0:0:0:0:3:60 $RLOFI_ISO
-    fdisk -A $espparam $RLOFI_ISO
-    installboot -fm ${DIST_AREA}/boot/pmbr ${DIST_AREA}/boot/isoboot $P2LOFI_ISO
+    /usr/sbin/fdisk -A 190:0:0:0:0:0:0:0:3:60 "$RLOFI_ISO"
+    /usr/sbin/fdisk -A "$espparam" "$RLOFI_ISO"
+    /usr/sbin/installboot -fm "${DIST_AREA}/boot/pmbr" "${DIST_AREA}/boot/isoboot" "$P2LOFI_ISO"
 
     echo
     echo "Partition table after"
-    fdisk -W - $RLOFI_ISO | tail -5 | head -3
+    /usr/sbin/fdisk -W - "$RLOFI_ISO" | tail -5 | head -3
 fi
-lofiadm -d $LOFI_ISO
+lofiadm -d "$LOFI_ISO"
