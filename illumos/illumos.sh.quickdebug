@@ -165,8 +165,7 @@ export BUILDPY3b='#'
 #
 # Tribblix: replace the default which is to look for java under /usr/java
 #
-export JAVA_ROOT=/usr/jdk/instances/jdk11
-export BLD_JAVA_8='#'
+export JAVA_ROOT=/usr/jdk/instances/jdk17
 export BLD_JAVA_11=
 
 # POST_NIGHTLY can be any command to be run at the end of nightly.  See
@@ -295,9 +294,9 @@ export MULTI_PROTO="no"
 # when the release slips (nah) or you move an environment file to a new
 # release
 #
-export VERSION="tribblix-m35"
+export VERSION="tribblix-m36"
 export BOOTBANNER1='Welcome to Tribblix, the retro ^o distribution'
-export BOOTBANNER2='^v | August 2024 | http://www.tribblix.org/'
+export BOOTBANNER2='^v | February 2025 | http://www.tribblix.org/'
 
 #
 # the RELEASE and RELEASE_DATE variables are set in Makefile.master;
