@@ -2,7 +2,7 @@ diff --git a/usr/src/pkg/manifests/developer-debug-mdb.p5m b/usr/src/pkg/manifes
 index 5614b7c27f..d398997fb3 100644
 --- a/usr/src/pkg/manifests/developer-debug-mdb.p5m
 +++ b/usr/src/pkg/manifests/developer-debug-mdb.p5m
-@@ -161,8 +161,6 @@ file path=usr/lib/mdb/proc/$(ARCH64)/libavl.so group=sys mode=0555
+@@ -163,8 +163,6 @@ file path=usr/lib/mdb/proc/$(ARCH64)/libavl.so group=sys mode=0555
  file path=usr/lib/mdb/proc/$(ARCH64)/libc.so group=sys mode=0555
  file path=usr/lib/mdb/proc/$(ARCH64)/libnvpair.so group=sys mode=0555
  file path=usr/lib/mdb/proc/$(ARCH64)/libproc.so group=sys mode=0555

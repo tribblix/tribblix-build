@@ -1,0 +1,480 @@
+From 4b49243af822eb54a2c184b6b6b16749493b68bc Mon Sep 17 00:00:00 2001
+From: Dominik Hassler <hadfl@omnios.org>
+Date: Thu, 14 Mar 2024 22:32:32 +0000
+Subject: [PATCH] switch build to jdk 17
+
+---
+ exception_lists/packaging.deps                |  1 +
+ usr/src/Makefile.master                       |  4 ++--
+ .../cmd/dtrace/test/cmd/jdtrace/JDTrace.java  |  6 +++---
+ .../tst/common/java_api/src/TestBean.java     | 11 +++++-----
+ .../java_api/src/TestMultiAggPrinta.java      |  8 ++++----
+ .../sun/solaris/domain/pools/Objective.java   | 10 +++++-----
+ .../solaris/domain/pools/ResourceMonitor.java |  2 +-
+ .../sun/solaris/domain/pools/Statistic.java   | 20 +++++++++----------
+ .../solaris/domain/pools/StatisticList.java   |  2 +-
+ .../solaris/domain/pools/SystemMonitor.java   |  2 +-
+ .../solaris/domain/pools/SystemSolver.java    |  4 ++--
+ .../service/locality/LocalityDomain.java      |  6 +++---
+ .../service/logging/SysloglikeFormatter.java  |  9 ++-------
+ .../os/dtrace/AbstractAggregationValue.java   |  4 ++--
+ .../os/dtrace/LinearDistribution.java         |  2 +-
+ .../opensolaris/os/dtrace/LocalConsumer.java  |  8 ++++----
+ .../os/dtrace/LogDistribution.java            |  2 +-
+ .../os/dtrace/LogLinearDistribution.java      |  2 +-
+ .../opensolaris/os/dtrace/ProcessState.java   |  2 +-
+ 19 files changed, 51 insertions(+), 54 deletions(-)
+
+diff --git a/exception_lists/packaging.deps b/exception_lists/packaging.deps
+index db9fd14e1c..207c02e952 100644
+--- a/exception_lists/packaging.deps
++++ b/exception_lists/packaging.deps
+@@ -25,6 +25,7 @@ pkg:/package/pkg
+ pkg:/release/name
+ pkg:/runtime/java
+ pkg:/runtime/java/openjdk11
++pkg:/runtime/java/openjdk17
+ pkg:/runtime/java/openjdk8
+ pkg:/runtime/java/runtime64
+ pkg:/runtime/perl
+diff --git a/usr/src/cmd/dtrace/test/cmd/jdtrace/JDTrace.java b/usr/src/cmd/dtrace/test/cmd/jdtrace/JDTrace.java
+index b39535afb5..a336ae3e87 100644
+--- a/usr/src/cmd/dtrace/test/cmd/jdtrace/JDTrace.java
++++ b/usr/src/cmd/dtrace/test/cmd/jdtrace/JDTrace.java
+@@ -240,10 +240,10 @@ public class JDTrace {
+ 			buf.toString());
+ 	    }
+ 	}
+-	Record record = null;
++	org.opensolaris.os.dtrace.Record record = null;
+ 	Object value;
+-	List <Record> records = data.getRecords();
+-	Iterator <Record> itr = records.iterator();
++	List <org.opensolaris.os.dtrace.Record> records = data.getRecords();
++	Iterator <org.opensolaris.os.dtrace.Record> itr = records.iterator();
+ 	while (itr.hasNext()) {
+ 	    record = itr.next();
+ 
+diff --git a/usr/src/cmd/dtrace/test/tst/common/java_api/src/TestBean.java b/usr/src/cmd/dtrace/test/tst/common/java_api/src/TestBean.java
+index 41a04a1394..765ef9bbd8 100644
+--- a/usr/src/cmd/dtrace/test/tst/common/java_api/src/TestBean.java
++++ b/usr/src/cmd/dtrace/test/tst/common/java_api/src/TestBean.java
+@@ -164,7 +164,7 @@ public class TestBean {
+     getTuple()
+     {
+ 	ValueRecord r1 = new ScalarRecord("cat", 256);
+-	ValueRecord r2 = new ScalarRecord(new Integer(9), 2);
++	ValueRecord r2 = new ScalarRecord(Integer.valueOf(9), 2);
+ 	ValueRecord r3 = new KernelStackRecord(
+ 		new StackFrame[] {
+ 		    new StackFrame("has"),
+@@ -359,7 +359,7 @@ public class TestBean {
+     {
+ 	List < ValueRecord > list = new ArrayList < ValueRecord > ();
+ 	ValueRecord v1 = getScalarRecord();
+-	ValueRecord v2 = new ScalarRecord(new Integer(7), 4);
++	ValueRecord v2 = new ScalarRecord(Integer.valueOf(7), 4);
+ 	list.add(v1);
+ 	list.add(v2);
+ 	PrintfRecord r = new PrintfRecord(list,
+@@ -370,7 +370,8 @@ public class TestBean {
+     public static ProbeData
+     getProbeData()
+     {
+-	List < Record > list = new ArrayList < Record > ();
++	List < org.opensolaris.os.dtrace.Record > list =
++	    new ArrayList < org.opensolaris.os.dtrace.Record > ();
+ 	list.add(getPrintaRecord());
+ 	list.add(getPrintfRecord());
+ 	list.add(getScalarRecord());
+@@ -395,8 +396,8 @@ public class TestBean {
+ 	ValueRecord v2 = new ScalarRecord("dog", 256);
+ 	ValueRecord v3 = new ScalarRecord("mouse", 256);
+ 	ValueRecord v4 = new ScalarRecord("mouse", 256);
+-	ValueRecord v5 = new ScalarRecord(new Byte((byte) 'C'), 1);
+-	ValueRecord v6 = new ScalarRecord(new Short((short) 7), 2);
++	ValueRecord v5 = new ScalarRecord(Byte.valueOf((byte) 'C'), 1);
++	ValueRecord v6 = new ScalarRecord(Short.valueOf((short) 7), 2);
+ 	Tuple tuple = new Tuple(v1, v2, v3, v4, v5, v6);
+ 	AggregationValue value = getCountValue();
+ 	r = new AggregationRecord(tuple, value);
+diff --git a/usr/src/cmd/dtrace/test/tst/common/java_api/src/TestMultiAggPrinta.java b/usr/src/cmd/dtrace/test/tst/common/java_api/src/TestMultiAggPrinta.java
+index facdf7fad3..d528228277 100644
+--- a/usr/src/cmd/dtrace/test/tst/common/java_api/src/TestMultiAggPrinta.java
++++ b/usr/src/cmd/dtrace/test/tst/common/java_api/src/TestMultiAggPrinta.java
+@@ -71,8 +71,8 @@ public class TestMultiAggPrinta {
+ 	buf.append(data.getFlow());
+ 	buf.append(", records = ");
+ 
+-	List <Record> records = data.getRecords();
+-	Record record;
++	List <org.opensolaris.os.dtrace.Record> records = data.getRecords();
++	org.opensolaris.os.dtrace.Record record;
+ 	Object value;
+ 	buf.append('[');
+ 	for (int i = 0; i < records.size(); ++i) {
+@@ -112,8 +112,8 @@ public class TestMultiAggPrinta {
+ 	consumer.addConsumerListener(new ConsumerAdapter() {
+ 	    public void dataReceived(DataEvent e) {
+ 		ProbeData data = e.getProbeData();
+-		List <Record> records = data.getRecords();
+-		for (Record r : records) {
++		List <org.opensolaris.os.dtrace.Record> records = data.getRecords();
++		for (org.opensolaris.os.dtrace.Record r : records) {
+ 		    if (r instanceof ExitRecord) {
+ 			ExitRecord exitRecord = (ExitRecord)r;
+ 			exitStatus = exitRecord.getStatus();
+diff --git a/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/Objective.java b/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/Objective.java
+index f787eeb383..6413bb0325 100644
+--- a/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/Objective.java
++++ b/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/Objective.java
+@@ -697,9 +697,9 @@ final class WeightedLoadObjective extends AbstractObjective
+                 while (cpuIt.hasNext()) {
+                     Component currentCPU = (Component) cpuIt.next();
+                     int cpuid = (int) currentCPU.getLongProperty("cpu.sys_id");
+-                    if (allCPUData.containsKey(new Integer(cpuid))) {
++                    if (allCPUData.containsKey(Integer.valueOf(cpuid))) {
+                         LocalityGroup lg =
+-                            (LocalityGroup) allCPUData.get(new Integer(cpuid));
++                            (LocalityGroup) allCPUData.get(Integer.valueOf(cpuid));
+                         if (lgroupdata.containsKey(lg)) {
+                             LGroupData cpulgp = (LGroupData) lgroupdata.get(lg);
+                             cpulgp.incNumcpu();
+@@ -892,7 +892,7 @@ final class LocalityObjective extends AbstractObjective
+                 LocalityGroup lg = (LocalityGroup) LGroupIt.next();
+                 int cpu_ids[] = lg.getCPUIDs();
+                 for (int i = 0; i < cpu_ids.length; i++) {
+-                    allCPUData.put(new Integer(cpu_ids[i]), lg);
++                    allCPUData.put(Integer.valueOf(cpu_ids[i]), lg);
+                 }
+             }
+ 
+@@ -1014,7 +1014,7 @@ final class LocalityObjective extends AbstractObjective
+                 Component cpu = (Component) cpulist.get(0);
+ 		int cpuid = (int) cpu.getLongProperty("cpu.sys_id");
+                 LocalityGroup lgroup =
+-                        (LocalityGroup) allCPUData.get(new Integer(cpuid));
++                        (LocalityGroup) allCPUData.get(Integer.valueOf(cpuid));
+                 HashMap allresults = (HashMap) psetlg.getResults();
+                 ResultTuple result = (ResultTuple) allresults.get(lgroup);
+ 
+@@ -1126,7 +1126,7 @@ final class UtilizationObjective extends AbstractObjective
+ 		if (zoneList.size() == 9) {
+ 			zoneList.remove(0);
+ 		}
+-		zoneList.add(new Integer(sl.getZoneMean(val)));
++		zoneList.add(Integer.valueOf(sl.getZoneMean(val)));
+ 
+ 		/*
+ 		 * Evaluate whether or not this objective is under
+diff --git a/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/ResourceMonitor.java b/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/ResourceMonitor.java
+index c370eccc38..edf5e1a117 100644
+--- a/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/ResourceMonitor.java
++++ b/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/ResourceMonitor.java
+@@ -240,7 +240,7 @@ class ResourceMonitor extends HashMap
+ 			}
+ 			utilV = 100 * ((total.doubleValue() - idleV) /
+ 			    total.doubleValue());
+-			return (new DoubleStatistic(new Double(utilV),
++			return (new DoubleStatistic(Double.valueOf(utilV),
+ 				((AggregateStatistic)first.get(first.size() -
+ 				2)).getStart(), ((AggregateStatistic)first.
+ 				getLast()).getEnd()));
+diff --git a/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/Statistic.java b/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/Statistic.java
+index cbd708aab4..cd8acb1104 100644
+--- a/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/Statistic.java
++++ b/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/Statistic.java
+@@ -253,7 +253,7 @@ final class DoubleStatistic extends AbstractStatistic
+ 
+ 	public Long getLongValue()
+ 	{
+-		return (new Long(((Double) getValue()).longValue()));
++		return (Long.valueOf(((Double) getValue()).longValue()));
+ 	}
+ 
+ 	public UnsignedInt64 getUnsignedInt64Value()
+@@ -267,7 +267,7 @@ final class DoubleStatistic extends AbstractStatistic
+ 		Double v1 = getDoubleValue();
+ 		Double v2 = o.getDoubleValue();
+ 
+-		return (new DoubleStatistic(new Double(v1.doubleValue() +
++		return (new DoubleStatistic(Double.valueOf(v1.doubleValue() +
+ 					    v2.doubleValue()),
+ 			getStart(), getEnd()));
+ 	}
+@@ -277,7 +277,7 @@ final class DoubleStatistic extends AbstractStatistic
+ 		Double v1 = getDoubleValue();
+ 		Double v2 = o.getDoubleValue();
+ 
+-		return (new DoubleStatistic(new Double(v1.doubleValue() -
++		return (new DoubleStatistic(Double.valueOf(v1.doubleValue() -
+ 					    v2.doubleValue()),
+ 			getStart(), getEnd()));
+ 	}
+@@ -308,7 +308,7 @@ final class DoubleStatistic extends AbstractStatistic
+ 		if (count == 0)
+ 			throw new IllegalArgumentException("Cannot derive a " +
+ 			    "snapshot from an empty iterator");
+-		return (new DoubleStatistic(new Double(total / count), first,
++		return (new DoubleStatistic(Double.valueOf(total / count), first,
+ 			last));
+ 	}
+ }
+@@ -336,7 +336,7 @@ final class LongStatistic extends AbstractStatistic
+ 
+ 	public Double getDoubleValue()
+ 	{
+-		return (new Double(((Long) getValue()).longValue()));
++		return (Double.valueOf(((Long) getValue()).longValue()));
+ 	}
+ 
+ 	public Long getLongValue()
+@@ -355,7 +355,7 @@ final class LongStatistic extends AbstractStatistic
+ 		Long v1 = getLongValue();
+ 		Long v2 = o.getLongValue();
+ 
+-		return (new LongStatistic(new Long(v1.longValue() +
++		return (new LongStatistic(Long.valueOf(v1.longValue() +
+ 					    v2.longValue()),
+ 			getStart(), getEnd()));
+ 	}
+@@ -365,7 +365,7 @@ final class LongStatistic extends AbstractStatistic
+ 		Long v1 = getLongValue();
+ 		Long v2 = o.getLongValue();
+ 
+-		return (new LongStatistic(new Long(v1.longValue() -
++		return (new LongStatistic(Long.valueOf(v1.longValue() -
+ 					    v2.longValue()),
+ 			getStart(), getEnd()));
+ 	}
+@@ -395,7 +395,7 @@ final class LongStatistic extends AbstractStatistic
+ 		if (count == 0)
+ 			throw new IllegalArgumentException("Cannot derive a " +
+ 			    "snapshot from an empty iterator");
+-		return (new LongStatistic(new Long(total / count), first,
++		return (new LongStatistic(Long.valueOf(total / count), first,
+ 			last));
+ 	}
+ }
+@@ -424,12 +424,12 @@ final class UnsignedInt64Statistic extends AbstractStatistic
+ 
+ 	public Double getDoubleValue()
+ 	{
+-		return (new Double(((UnsignedInt64) getValue()).longValue()));
++		return (Double.valueOf(((UnsignedInt64) getValue()).longValue()));
+ 	}
+ 
+ 	public Long getLongValue()
+ 	{
+-		return (new Long(((UnsignedInt64) getValue()).longValue()));
++		return (Long.valueOf(((UnsignedInt64) getValue()).longValue()));
+ 	}
+ 
+ 	public UnsignedInt64 getUnsignedInt64Value()
+diff --git a/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/StatisticList.java b/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/StatisticList.java
+index e6105bf77d..18da8aa39f 100644
+--- a/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/StatisticList.java
++++ b/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/StatisticList.java
+@@ -514,7 +514,7 @@ class StatisticOperations implements StatisticListener
+ 	public StatisticOperations(StatisticList statistics)
+ 	{
+ 		this.statistics = statistics;
+-		total = new DoubleStatistic(new Double(0.0));
++		total = new DoubleStatistic(Double.valueOf(0.0));
+ 	}
+ 
+ 	/**
+diff --git a/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/SystemMonitor.java b/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/SystemMonitor.java
+index 5688f91680..1172a620e9 100644
+--- a/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/SystemMonitor.java
++++ b/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/SystemMonitor.java
+@@ -320,7 +320,7 @@ class SystemMonitor implements Monitor
+ 			util = (DoubleStatistic)mon.getDerivedStatistic(
+ 			    "utilization");
+ 		} catch (NoSuchElementException nsee) {
+-			util = new DoubleStatistic(new Double(0));
++			util = new DoubleStatistic(Double.valueOf(0));
+ 		}
+ 		Poold.MON_LOG.log(Severity.DEBUG,
+ 		    res + " utilization " + util.toString());
+diff --git a/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/SystemSolver.java b/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/SystemSolver.java
+index 0968488151..4dd5c79815 100644
+--- a/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/SystemSolver.java
++++ b/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/SystemSolver.java
+@@ -488,10 +488,10 @@ class SystemSolver implements Solver {
+ 						    get(res);
+ 						if (newImp > imp.longValue())
+ 							resImp.put(res,
+-							    new Long(newImp));
++							    Long.valueOf(newImp));
+ 					} else
+ 						resImp.put(res,
+-						    new Long(newImp));
++						    Long.valueOf(newImp));
+ 				}
+ 			}
+ 			/*
+diff --git a/usr/src/cmd/pools/poold/com/sun/solaris/service/locality/LocalityDomain.java b/usr/src/cmd/pools/poold/com/sun/solaris/service/locality/LocalityDomain.java
+index 380bb550aa..ad52ff1356 100644
+--- a/usr/src/cmd/pools/poold/com/sun/solaris/service/locality/LocalityDomain.java
++++ b/usr/src/cmd/pools/poold/com/sun/solaris/service/locality/LocalityDomain.java
+@@ -201,14 +201,14 @@ public class LocalityDomain
+ 			Integer score = (Integer) grps.get(group);
+ 			if (score != null) {
+ 				int iscore = score.intValue() + 1;
+-				grps.put(group, new Integer(iscore));
++				grps.put(group, Integer.valueOf(iscore));
+ 			} else {
+-				grps.put(group, new Integer(1));
++				grps.put(group, Integer.valueOf(1));
+ 			}
+ 		}
+ 		Iterator groupIt = grps.keySet().iterator();
+ 		LocalityGroup centre = null;
+-		Integer highest = new Integer(0);
++		Integer highest = Integer.valueOf(0);
+ 		while (groupIt.hasNext()) {
+ 			LocalityGroup cand = (LocalityGroup) groupIt.next();
+ 			Integer value = (Integer) grps.get(cand);
+diff --git a/usr/src/cmd/pools/poold/com/sun/solaris/service/logging/SysloglikeFormatter.java b/usr/src/cmd/pools/poold/com/sun/solaris/service/logging/SysloglikeFormatter.java
+index 5e39888b05..0b5f5f08c8 100644
+--- a/usr/src/cmd/pools/poold/com/sun/solaris/service/logging/SysloglikeFormatter.java
++++ b/usr/src/cmd/pools/poold/com/sun/solaris/service/logging/SysloglikeFormatter.java
+@@ -33,7 +33,6 @@ import java.text.*;
+ import java.util.*;
+ import java.util.logging.Formatter;
+ import java.util.logging.LogRecord;
+-import java.security.PrivilegedAction;
+ 
+ import com.sun.solaris.service.exception.SuccinctStackTraceFormatter;
+ 
+@@ -70,12 +69,8 @@ public class SysloglikeFormatter extends Formatter {
+ 	/**
+ 	 * Line separator string.
+ 	 */
+-	private String lineSeparator = (String)java.security.AccessController
+-	    .doPrivileged(new PrivilegedAction() {
+-		public Object run() {
+-			return System.getProperty("line.separator");
+-		}
+-	});
++	private String lineSeparator =
++		System.getProperty("line.separator");
+ 
+ 	/**
+ 	 * Flag to set whether log records should indicate the name of
+diff --git a/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/AbstractAggregationValue.java b/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/AbstractAggregationValue.java
+index a136c287a5..a1b02afd05 100644
+--- a/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/AbstractAggregationValue.java
++++ b/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/AbstractAggregationValue.java
+@@ -49,13 +49,13 @@ abstract class AbstractAggregationValue
+     public
+     AbstractAggregationValue(long v)
+     {
+-	value = new Long(v);
++	value = Long.valueOf(v);
+     }
+ 
+     public
+     AbstractAggregationValue(double v)
+     {
+-	value = new Double(v);
++	value = Double.valueOf(v);
+     }
+ 
+     public Number
+diff --git a/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LinearDistribution.java b/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LinearDistribution.java
+index 267012abb3..12cc883f0f 100644
+--- a/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LinearDistribution.java
++++ b/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LinearDistribution.java
+@@ -207,7 +207,7 @@ public final class LinearDistribution extends Distribution
+ 	    total += (double)bucket.getFrequency() *
+ 		    (double)(bucket.getMin() + 1);
+ 	}
+-	return (new Double(total));
++	return (Double.valueOf(total));
+     }
+ 
+     private long
+diff --git a/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LocalConsumer.java b/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LocalConsumer.java
+index d1506e3408..8dfd974e30 100644
+--- a/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LocalConsumer.java
++++ b/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LocalConsumer.java
+@@ -1111,7 +1111,7 @@ public class LocalConsumer implements Consumer {
+     {
+ 	checkGoCalled();
+ 	synchronized (LocalConsumer.class) {
+-	    return _lookupKernelFunction(new Integer(address));
++	    return _lookupKernelFunction(Integer.valueOf(address));
+ 	}
+     }
+ 
+@@ -1120,7 +1120,7 @@ public class LocalConsumer implements Consumer {
+     {
+ 	checkGoCalled();
+ 	synchronized (LocalConsumer.class) {
+-	    return _lookupKernelFunction(new Long(address));
++	    return _lookupKernelFunction(Long.valueOf(address));
+ 	}
+     }
+ 
+@@ -1129,7 +1129,7 @@ public class LocalConsumer implements Consumer {
+     {
+ 	checkGoCalled();
+ 	synchronized (LocalConsumer.class) {
+-	    return _lookupUserFunction(pid, new Integer(address));
++	    return _lookupUserFunction(pid, Integer.valueOf(address));
+ 	}
+     }
+ 
+@@ -1138,7 +1138,7 @@ public class LocalConsumer implements Consumer {
+     {
+ 	checkGoCalled();
+ 	synchronized (LocalConsumer.class) {
+-	    return _lookupUserFunction(pid, new Long(address));
++	    return _lookupUserFunction(pid, Long.valueOf(address));
+ 	}
+     }
+ 
+diff --git a/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LogDistribution.java b/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LogDistribution.java
+index 0913938c24..0d77212906 100644
+--- a/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LogDistribution.java
++++ b/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LogDistribution.java
+@@ -133,7 +133,7 @@ public final class LogDistribution extends Distribution
+ 	for (Distribution.Bucket bucket : buckets) {
+ 	    total += ((double)bucket.getFrequency() * (double)bucket.getMin());
+ 	}
+-	return (new Double(total));
++	return (Double.valueOf(total));
+     }
+ 
+     private long
+diff --git a/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LogLinearDistribution.java b/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LogLinearDistribution.java
+index 8dead05e19..41bd8e9e4a 100644
+--- a/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LogLinearDistribution.java
++++ b/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LogLinearDistribution.java
+@@ -186,7 +186,7 @@ public final class LogLinearDistribution extends Distribution
+         for (Distribution.Bucket bucket : buckets)
+             total += ((double)bucket.getFrequency() * (double)bucket.getMin());
+ 
+-        return (new Double(total));
++        return (Double.valueOf(total));
+     }
+ 
+     private long getZeroBucketValue() {
+diff --git a/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/ProcessState.java b/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/ProcessState.java
+index 14a068ca0e..667820922c 100644
+--- a/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/ProcessState.java
++++ b/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/ProcessState.java
+@@ -251,7 +251,7 @@ public final class ProcessState implements Serializable {
+     private void
+     setExitStatus(int status)
+     {
+-	exitStatus = new Integer(status);
++	exitStatus = Integer.valueOf(status);
+     }
+ 
+     /**
+-- 
+2.48.1
+

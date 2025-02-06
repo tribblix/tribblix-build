@@ -1,0 +1,16 @@
+JDK17 gives warnings about synchronization and deprecation (for removal).
+While here, push the source/target to 8 which is what JDK21 will need.
+
+diff --git a/usr/src/lib/libslp/javalib/Makefile.conf b/usr/src/lib/libslp/javalib/Makefile.conf
+index a34afab69c..3f2dd15675 100644
+--- a/usr/src/lib/libslp/javalib/Makefile.conf
++++ b/usr/src/lib/libslp/javalib/Makefile.conf
+@@ -56,7 +56,7 @@ SLPCLASSPATH=$(CLASSES):$(SLPJAVASRC)
+ 
+ # javac flags
+ JFLAGS= -O -d $(CLASSES) -sourcepath $(SLPCLASSPATH)
+-JFLAGS += -source 7 -target 7 -Xlint:-options
++JFLAGS += -source 8 -target 8 -Xlint:-options,-removal,-deprecation,-synchronization
+ 
+ # The default make rule for Java files
+ COMPILE.java=$(JAVAC) $(JFLAGS)
