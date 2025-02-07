@@ -10,7 +10,7 @@ and *.zap.md5) into the same place as your illumos packages.
 
 Typical usage of the script is:
 
-${THOME}/tribblix-build/gfx-drm/gfx-drm.sh -D /tmp/gg -V 0.35
+${THOME}/tribblix-build/gfx-drm/gfx-drm.sh -D /tmp/gg -V 0.36
 
 where the argument to -D is where you want the zap packages to be placed,
 and the argument to -V is the package version you want.

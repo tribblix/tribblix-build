@@ -15,14 +15,14 @@
 #
 # }}}
 #
-# Copyright 2024 Peter Tribble
+# Copyright 2025 Peter Tribble
 #
 
 #
 # convert an ips package to svr4, from an on-disk repo
 #
 
-PKG_VERSION="0.35"
+PKG_VERSION="0.36"
 THOME=${THOME:-/packages/localsrc/Tribblix}
 GATEDIR=/export/home/ptribble/Illumos/illumos-gate
 DSTDIR=/var/tmp/illumos-pkgs

@@ -15,13 +15,13 @@
 #
 # }}}
 #
-# Copyright 2024 Peter Tribble
+# Copyright 2025 Peter Tribble
 #
 
 THOME=${THOME:-/packages/localsrc/Tribblix}
 DESTTOP=/export/tribblix
 DESTDIR=${DESTTOP}/dist
-RELEASE=35lx
+RELEASE=36lx
 NFLAG=""
 QFLAG=""
 OVFLAG="-O base-iso"
