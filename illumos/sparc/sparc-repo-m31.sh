@@ -1,8 +1,10 @@
 #!/bin/sh
 #
-# this script reproduces the m31 sparc repo
+# SPDX-License-Identifier: CDDL-1.0
 #
-# WORK IN PROGRESS
+# Copyright 2025 Peter Tribble
+#
+# this script reproduces the m31 sparc repo
 #
 # assumes my gatepatch script is in the path
 #
