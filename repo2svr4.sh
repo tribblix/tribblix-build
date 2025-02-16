@@ -1620,7 +1620,7 @@ if [ -n "${QUICKMODE}" ]; then
     rm -fr "$BDIR"
     exit 0
 fi
-${PKGTRANS} -s "$DSTDIR/tmp" "${DSTDIR}/pkgs/${OUTPKG}.${PKG_VERSION}.pkg ${OUTPKG}" > /dev/null
+${PKGTRANS} -s "$DSTDIR/tmp" "${DSTDIR}/pkgs/${OUTPKG}.${PKG_VERSION}.pkg" "${OUTPKG}" > /dev/null
 if [ -f "${DSTDIR}/pkgs/${OUTPKG}.${PKG_VERSION}.pkg" ]; then
     cd /
     bail_out
