@@ -23,24 +23,34 @@
 #
 
 PKG_VERSION="0.36"
+UVERSION=""
 THOME=${THOME:-/packages/localsrc/Tribblix}
 GATE="${HOME}/Illumos/gfx-drm"
 DESTTOP="/var/tmp"
 SIGNCERT=${HOME}/f/elfcert
 
+#
+# for micro releases add the -U, for example
+# ... -V 0.36 -U 1
+# means the m36.1 release
+#
+
 usage() {
-    echo "$0 [-G build_directory] [-V pkg_version] [-T tribblix_home]"
-    echo "   [-D destination_dir] [-S signing_cert]"
+    echo "$0 [-G build_directory] [-V pkg_version] [-U micro_version]"
+    echo "   [-T tribblix_home] [-D destination_dir] [-S signing_cert]"
     exit 1
 }
 
-while getopts "G:V:T:D:S:" opt; do
+while getopts "G:V:U:T:D:S:" opt; do
     case $opt in
         G)
 	    GATE="$OPTARG"
 	    ;;
         V)
 	    PKG_VERSION="$OPTARG"
+	    ;;
+        U)
+	    UVERSION=".$OPTARG"
 	    ;;
         T)
 	    THOME="$OPTARG"
@@ -82,7 +92,7 @@ fi
 "${THOME}/tribblix-build/repo_all.sh" \
   -G "${GATE}" \
   -D "${DESTTOP}/gfx-pkgs" \
-  -V "${PKG_VERSION}" \
+  -V "${PKG_VERSION}${UVERSION}" \
   -R drm \
   -S "${SIGNCERT}" > /var/tmp/gfx.log 2>&1
 #
@@ -93,7 +103,7 @@ i386)
   "${THOME}/tribblix-build/repo_all.sh" \
   -G "${GATE}" \
   -D "${DESTTOP}/omni-gfx-pkgs" \
-  -V "${PKG_VERSION}lx" \
+  -V "${PKG_VERSION}lx${UVERSION}" \
   -R drm \
   -S "${SIGNCERT}" > /var/tmp/omni-gfx.log 2>&1
   ;;
