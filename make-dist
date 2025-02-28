@@ -21,7 +21,7 @@
 THOME=${THOME:-/packages/localsrc/Tribblix}
 DESTTOP=/export/tribblix
 DESTDIR=${DESTTOP}/dist
-RELEASE=36
+RELEASE=36.1
 NFLAG=""
 QFLAG=""
 OVFLAG="-O base-iso"
