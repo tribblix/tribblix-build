@@ -177,23 +177,29 @@ NEWBE="tribblix-${RELEASE}"
 IMGTMP="/var/tmp/${NEWBE}.archive"
 IMGSRC="${DLHOST}/${RELEASE}/platform/i86pc/boot_archive"
 case $RELEASE in
-    m32)
-	IMGSUM="a194e5003e948b8ef9c8ea8153f65ad42c6d57d8"
-	;;
-    m32lx)
-	IMGSUM="faabb1af50a21a599a986f81e214957f2cbd15de"
-	;;
-    m33)
-	IMGSUM="32c6a1795a1256f43a6c9cd75ea5ec7599029f1d"
-	;;
-    m33lx)
-	IMGSUM="a03c8ce7762b0236d9636bfafcbae3c9839cd4b3"
-	;;
     m34)
 	IMGSUM="09c643f95957d9a61ec957f6fa10566ef8fa07ad"
 	;;
     m34lx)
 	IMGSUM="a093c62941db9fb347ec02d1644bc948b5ef9eb3"
+	;;
+    m35)
+	IMGSUM="75248c7be915bcca5e08c31030e5c1474f5dbc13"
+	;;
+    m35lx)
+	IMGSUM="c2c1763adc2046b07b0653d45f4f2f3d447aaab3"
+	;;
+    m36)
+	IMGSUM="22afdba0bbb35175509b27145a559aedd3d41adf"
+	;;
+    m36lx)
+	IMGSUM="297392ead67f64e722de287e0cc35b1fa1509474"
+	;;
+    m36.1)
+	IMGSUM="464fee4a318643625c271327dceae5b5b1b9d40c"
+	;;
+    m36lx.1)
+	IMGSUM="feae950a0f20ca3934e1bd4c71b194a80ba2d030"
 	;;
     *)
 	bail "Unrecognised release"
