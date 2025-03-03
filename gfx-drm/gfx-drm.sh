@@ -86,7 +86,9 @@ case $(uname -p) in
 	gpatch -p1 < "${THOME}/tribblix-build/gfx-drm/sparc-packaging.patch"
 	;;
     *)
-	echo "export GNUC_ROOT=/opt/gcc/7.5.0" >> myenv.sh
+	echo "export GNUC_ROOT=/opt/gcc/10.4.0" >> myenv.sh
+	sed -i s:gcc7:gcc10: usr/src/Makefile.master
+	gpatch -p1 < "${THOME}/tribblix-build/gfx-drm/dip_infoframe-align.patch"
 	;;
 esac
 #
