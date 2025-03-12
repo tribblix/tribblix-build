@@ -92,7 +92,7 @@ export CODEMGR_WS="${CODEMGR_WS:-`git rev-parse --show-toplevel`}"
 #
 # To disable shadow compilation, unset SHADOW_* or set them to the empty string.
 #
-# Tribblix debug/rti build is gcc10 primary, gcc7 secondary, smatch
+# Tribblix debug/rti build is gcc10 primary, gcc14 secondary, smatch
 # Tribblix production build on x86 is gcc10
 #
 export GNUC_ROOT=/opt/gcc/10.4.0
