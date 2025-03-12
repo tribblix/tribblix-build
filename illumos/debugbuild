@@ -15,12 +15,13 @@
 #
 # }}}
 #
-# Copyright 2024 Peter Tribble
+# Copyright 2025 Peter Tribble
 #
 
 #
 # perform an illumos debug build
 # with -q, do a quick build (no shadows)
+# with -f, do a full build (debug and non-debug)
 #
 # assumes we're doing development of illumos-gate
 # won't work for illumos-omnios
@@ -35,6 +36,9 @@ ARCH=$(uname -p)
 case $1 in
     -q)
 	ILLSH=illumos.sh.quickdebug
+	;;
+    -f)
+	ILLSH=illumos.sh.fulldebug
 	;;
 esac
 
