@@ -37,7 +37,7 @@
 # Parameters you are likely to want to change
 # -----------------------------------------------------------------------------
 
-#       DEBUG build only (-D, -F)
+#       DEBUG and NON_DEBUG builds (-D)
 #       do not bringover from the parent (-n)
 #       runs 'make check' (-C)
 #       checks for new interfaces in libraries (-A)
@@ -46,7 +46,7 @@
 #       checks for changes in ELF runpaths (-r)
 #       build and use this workspace's tools in $SRC/tools (-t)
 #	Tribblix enables findunref
-export NIGHTLY_OPTIONS='-fFnCDAprt'
+export NIGHTLY_OPTIONS='-fnCDAprt'
 
 #
 # Tribblix settings that aren't defined here at all
