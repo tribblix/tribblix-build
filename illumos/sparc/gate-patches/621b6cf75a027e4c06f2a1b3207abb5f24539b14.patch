@@ -1,0 +1,1461 @@
+From 621b6cf75a027e4c06f2a1b3207abb5f24539b14 Mon Sep 17 00:00:00 2001
+From: Andy Fiddaman <illumos@fiddaman.net>
+Date: Tue, 15 Nov 2022 07:55:28 +0000
+Subject: [PATCH] 15181 Add errc, verrc, warnc, vwarnc to libc Reviewed by:
+ Robert Mustacchi <rm+illumos@fingolfin.org> Reviewed by: Gordon Ross
+ <Gordon.W.Ross@gmail.com> Approved by: Patrick Mooney <pmooney@pfmooney.com>
+
+---
+ exception_lists/copyright                     |   1 +
+ exception_lists/manlint                       |   2 +
+ usr/src/head/err.h                            |   8 +
+ usr/src/lib/libc/port/gen/err.c               | 126 ++++--
+ usr/src/lib/libc/port/mapfile-vers            |  10 +-
+ usr/src/man/man3c/Makefile                    |  10 +-
+ usr/src/man/man3c/err.3c                      | 387 +++++++++++-------
+ .../pkg/manifests/system-library.man3c.inc    |   6 +-
+ .../pkg/manifests/system-test-libctest.p5m    |  18 +-
+ usr/src/test/libc-tests/runfiles/default.run  |   3 +-
+ usr/src/test/libc-tests/tests/Makefile        |   3 +-
+ usr/src/test/libc-tests/tests/err/Makefile    |  59 +++
+ .../test/libc-tests/tests/err/data/E.0.3.4    |   6 +
+ .../test/libc-tests/tests/err/data/E.1.5.6    |   6 +
+ .../test/libc-tests/tests/err/data/E.2.7.8    |   6 +
+ .../test/libc-tests/tests/err/data/E.3.9.10   |   6 +
+ .../test/libc-tests/tests/err/data/E.4.11.12  |   6 +
+ .../test/libc-tests/tests/err/data/E.5.13.14  |   6 +
+ .../test/libc-tests/tests/err/data/W.0.3.4    |   6 +
+ .../test/libc-tests/tests/err/data/W.1.5.6    |   6 +
+ .../test/libc-tests/tests/err/data/W.2.7.8    |   6 +
+ .../test/libc-tests/tests/err/data/W.3.9.10   |   6 +
+ .../test/libc-tests/tests/err/data/W.4.11.12  |   6 +
+ .../test/libc-tests/tests/err/data/W.5.13.14  |   6 +
+ usr/src/test/libc-tests/tests/err/err.c       | 190 +++++++++
+ usr/src/test/libc-tests/tests/err/err.ksh     |  90 ++++
+ 26 files changed, 797 insertions(+), 188 deletions(-)
+ create mode 100644 usr/src/test/libc-tests/tests/err/Makefile
+ create mode 100644 usr/src/test/libc-tests/tests/err/data/E.0.3.4
+ create mode 100644 usr/src/test/libc-tests/tests/err/data/E.1.5.6
+ create mode 100644 usr/src/test/libc-tests/tests/err/data/E.2.7.8
+ create mode 100644 usr/src/test/libc-tests/tests/err/data/E.3.9.10
+ create mode 100644 usr/src/test/libc-tests/tests/err/data/E.4.11.12
+ create mode 100644 usr/src/test/libc-tests/tests/err/data/E.5.13.14
+ create mode 100644 usr/src/test/libc-tests/tests/err/data/W.0.3.4
+ create mode 100644 usr/src/test/libc-tests/tests/err/data/W.1.5.6
+ create mode 100644 usr/src/test/libc-tests/tests/err/data/W.2.7.8
+ create mode 100644 usr/src/test/libc-tests/tests/err/data/W.3.9.10
+ create mode 100644 usr/src/test/libc-tests/tests/err/data/W.4.11.12
+ create mode 100644 usr/src/test/libc-tests/tests/err/data/W.5.13.14
+ create mode 100644 usr/src/test/libc-tests/tests/err/err.c
+ create mode 100755 usr/src/test/libc-tests/tests/err/err.ksh
+
+diff --git a/exception_lists/copyright b/exception_lists/copyright
+index 4ed780dda1..2688984285 100644
+--- a/exception_lists/copyright
++++ b/exception_lists/copyright
+@@ -388,6 +388,7 @@ usr/src/lib/libsmbfs/smb/spnego.c
+ usr/src/lib/libsmbfs/smb/spnegoparse.[ch]
+ usr/src/test/crypto-tests/tests/digest/data/*.rsp
+ usr/src/test/crypto-tests/tests/digest/data/README
++usr/src/test/libc-tests/tests/err/data/*
+ usr/src/test/libmlrpc-tests/tests/netrlogon/krb5_pac_tests/krb5_pac.bin
+ usr/src/test/util-tests/tests/dis/*/*.out
+ usr/src/test/util-tests/tests/grep_xpg4/files/gout*
+diff --git a/exception_lists/manlint b/exception_lists/manlint
+index 89be350691..d707b1417b 100644
+--- a/exception_lists/manlint
++++ b/exception_lists/manlint
+@@ -11,6 +11,7 @@
+ #
+ # Copyright 2016 Toomas Soome <tsoome@me.com>
+ # Copyright 2020 Joyent, Inc.
++# Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
+ #
+ usr/src/boot/*
+ # Not actually a manual page
+@@ -25,6 +26,7 @@ usr/src/lib/libbsm/adt_record.dtd.1
+ usr/src/lib/libbsm/adt_record.xsl.1
+ usr/src/lib/libpool/dtd/rm_pool.dtd.1
+ usr/src/lib/libzonecfg/dtd/zonecfg.dtd.1
++usr/src/test/libc-tests/tests/err/data/*
+ usr/src/test/util-tests/tests/grep_xpg4/files/*
+ usr/src/tools/smatch/src/*
+ usr/src/contrib/ast/*
+diff --git a/usr/src/head/err.h b/usr/src/head/err.h
+index b463836cb8..abc49100ca 100644
+--- a/usr/src/head/err.h
++++ b/usr/src/head/err.h
+@@ -23,6 +23,10 @@
+  * Use is subject to license terms.
+  */
+ 
++/*
++ * Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
++ */
++
+ #ifndef	_ERR_H
+ #define	_ERR_H
+ 
+@@ -37,10 +41,14 @@ extern "C" {
+ /* Program exit and warning calls */
+ void err(int, const char *, ...) __NORETURN;
+ void verr(int, const char *, va_list) __NORETURN;
++void errc(int, int, const char *, ...) __NORETURN;
++void verrc(int, int, const char *, va_list) __NORETURN;
+ void errx(int, const char *, ...) __NORETURN;
+ void verrx(int, const char *, va_list) __NORETURN;
+ void warn(const char *, ...);
+ void vwarn(const char *, va_list);
++void warnc(int, const char *, ...);
++void vwarnc(int, const char *, va_list);
+ void warnx(const char *, ...);
+ void vwarnx(const char *, va_list);
+ 
+diff --git a/usr/src/lib/libc/port/gen/err.c b/usr/src/lib/libc/port/gen/err.c
+index 31c5a7e559..7cf6ef8105 100644
+--- a/usr/src/lib/libc/port/gen/err.c
++++ b/usr/src/lib/libc/port/gen/err.c
+@@ -23,6 +23,10 @@
+  * Copyright (c) 2003, 2010, Oracle and/or its affiliates. All rights reserved.
+  */
+ 
++/*
++ * Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
++ */
++
+ #include "lint.h"
+ #include "file64.h"
+ #include "mtlib.h"
+@@ -111,85 +115,71 @@ warnfinish(FILE *fp, rmutex_t *lk)
+ 	FUNLOCKFILE(lk);
+ }
+ 
+-void
+-_vwarnxfp(FILE *fp, const char *fmt, va_list args)
++static void
++vwarnfp(FILE *fp, int code, const char *fmt, va_list args)
+ {
+ 	rmutex_t *lk;
+ 
+ 	lk = warncore(fp, fmt, args);
++	if (fmt != NULL) {
++		(void) fputc(':', fp);
++		(void) fputc(' ', fp);
++	}
++	(void) fputs(strerror(code), fp);
+ 	warnfinish(fp, lk);
+ }
+ 
+ void
+ vwarnx(const char *fmt, va_list args)
+ {
+-	_vwarnxfp(stderr, fmt, args);
+-}
+-
+-void
+-_vwarnfp(FILE *fp, const char *fmt, va_list args)
+-{
+-	int tmperr = errno;	/* Capture errno now. */
+ 	rmutex_t *lk;
+ 
+-	lk = warncore(fp, fmt, args);
+-	if (fmt != NULL) {
+-		(void) fputc(':', fp);
+-		(void) fputc(' ', fp);
+-	}
+-	(void) fputs(strerror(tmperr), fp);
+-	warnfinish(fp, lk);
++	lk = warncore(stderr, fmt, args);
++	warnfinish(stderr, lk);
+ }
+ 
+ void
+ vwarn(const char *fmt, va_list args)
+ {
+-	_vwarnfp(stderr, fmt, args);
++	vwarnfp(stderr, errno, fmt, args);
+ }
+ 
+-/* PRINTFLIKE1 */
+ void
+-warnx(const char *fmt, ...)
++vwarnc(int code, const char *fmt, va_list args)
+ {
+-	va_list args;
+-
+-	va_start(args, fmt);
+-	vwarnx(fmt, args);
+-	va_end(args);
++	vwarnfp(stderr, code, fmt, args);
+ }
+ 
+ void
+-_warnfp(FILE *fp, const char *fmt, ...)
++warnx(const char *fmt, ...)
+ {
+ 	va_list args;
+ 
+ 	va_start(args, fmt);
+-	_vwarnfp(fp, fmt, args);
++	vwarnx(fmt, args);
+ 	va_end(args);
+ }
+ 
+ void
+-_warnxfp(FILE *fp, const char *fmt, ...)
++warn(const char *fmt, ...)
+ {
+ 	va_list args;
+ 
+ 	va_start(args, fmt);
+-	_vwarnxfp(fp, fmt, args);
++	vwarn(fmt, args);
+ 	va_end(args);
+ }
+ 
+-/* PRINTFLIKE1 */
+ void
+-warn(const char *fmt, ...)
++warnc(int code, const char *fmt, ...)
+ {
+ 	va_list args;
+ 
+ 	va_start(args, fmt);
+-	vwarn(fmt, args);
++	vwarnc(code, fmt, args);
+ 	va_end(args);
+ }
+ 
+-/* PRINTFLIKE2 */
+ void
+ err(int status, const char *fmt, ...)
+ {
+@@ -202,12 +192,12 @@ err(int status, const char *fmt, ...)
+ }
+ 
+ void
+-_errfp(FILE *fp, int status, const char *fmt, ...)
++errc(int status, int code, const char *fmt, ...)
+ {
+ 	va_list args;
+ 
+ 	va_start(args, fmt);
+-	_vwarnfp(fp, fmt, args);
++	vwarnc(code, fmt, args);
+ 	va_end(args);
+ 	exit(status);
+ }
+@@ -220,13 +210,12 @@ verr(int status, const char *fmt, va_list args)
+ }
+ 
+ void
+-_verrfp(FILE *fp, int status, const char *fmt, va_list args)
++verrc(int status, int code, const char *fmt, va_list args)
+ {
+-	_vwarnfp(fp, fmt, args);
++	vwarnc(code, fmt, args);
+ 	exit(status);
+ }
+ 
+-/* PRINTFLIKE2 */
+ void
+ errx(int status, const char *fmt, ...)
+ {
+@@ -239,20 +228,77 @@ errx(int status, const char *fmt, ...)
+ }
+ 
+ void
+-_errxfp(FILE *fp, int status, const char *fmt, ...)
++verrx(int status, const char *fmt, va_list args)
++{
++	vwarnx(fmt, args);
++	exit(status);
++}
++
++/*
++ * The following functions are here as the targets of filters in libipsecutil.
++ */
++
++void
++_vwarnxfp(FILE *fp, const char *fmt, va_list args)
++{
++	rmutex_t *lk;
++
++	lk = warncore(fp, fmt, args);
++	warnfinish(fp, lk);
++}
++
++void
++_vwarnfp(FILE *fp, const char *fmt, va_list args)
++{
++	vwarnfp(fp, errno, fmt, args);
++}
++
++void
++_warnfp(FILE *fp, const char *fmt, ...)
++{
++	va_list args;
++
++	va_start(args, fmt);
++	_vwarnfp(fp, fmt, args);
++	va_end(args);
++}
++
++void
++_warnxfp(FILE *fp, const char *fmt, ...)
+ {
+ 	va_list args;
+ 
+ 	va_start(args, fmt);
+ 	_vwarnxfp(fp, fmt, args);
+ 	va_end(args);
++}
++
++void
++_errfp(FILE *fp, int status, const char *fmt, ...)
++{
++	va_list args;
++
++	va_start(args, fmt);
++	_vwarnfp(fp, fmt, args);
++	va_end(args);
+ 	exit(status);
+ }
+ 
+ void
+-verrx(int status, const char *fmt, va_list args)
++_verrfp(FILE *fp, int status, const char *fmt, va_list args)
+ {
+-	vwarnx(fmt, args);
++	_vwarnfp(fp, fmt, args);
++	exit(status);
++}
++
++void
++_errxfp(FILE *fp, int status, const char *fmt, ...)
++{
++	va_list args;
++
++	va_start(args, fmt);
++	_vwarnxfp(fp, fmt, args);
++	va_end(args);
+ 	exit(status);
+ }
+ 
+diff --git a/usr/src/lib/libc/port/mapfile-vers b/usr/src/lib/libc/port/mapfile-vers
+index 4bf82c55ff..0e1cafc04e 100644
+--- a/usr/src/lib/libc/port/mapfile-vers
++++ b/usr/src/lib/libc/port/mapfile-vers
+@@ -27,7 +27,7 @@
+ # Copyright (c) 2013, OmniTI Computer Consulting, Inc. All rights reserved.
+ # Copyright (c) 2013 Gary Mills
+ # Copyright 2014 Garrett D'Amore <garrett@damore.org>
+-# Copyright 2020 OmniOS Community Edition (OmniOSce) Association.
++# Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
+ #
+ 
+ #
+@@ -78,6 +78,14 @@ $if _x86 && _ELF64
+ $add amd64
+ $endif
+ 
++SYMBOL_VERSION ILLUMOS_0.40 {
++    protected:
++	errc;
++	verrc;
++	vwarnc;
++	warnc;
++} ILLUMOS_0.39;
++
+ SYMBOL_VERSION ILLUMOS_0.39 {
+     protected:
+ 	memrchr;
+diff --git a/usr/src/man/man3c/Makefile b/usr/src/man/man3c/Makefile
+index 1c76564c56..59ceb21817 100644
+--- a/usr/src/man/man3c/Makefile
++++ b/usr/src/man/man3c/Makefile
+@@ -16,7 +16,7 @@
+ # Copyright 2014 Garrett D'Amore <garrett@damore.org>
+ # Copyright 2020 Joyent, Inc.
+ # Copyright 2018 Jason King
+-# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
++# Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
+ #
+ 
+ include		$(SRC)/Makefile.master
+@@ -790,6 +790,7 @@ MANLINKS=	FD_CLR.3c				\
+ 		epoll_create1.3c			\
+ 		epoll_pwait.3c				\
+ 		erand48.3c				\
++		errc.3c					\
+ 		errno.3c				\
+ 		errx.3c					\
+ 		etext.3c				\
+@@ -1369,6 +1370,7 @@ MANLINKS=	FD_CLR.3c				\
+ 		valloc.3c				\
+ 		vasprintf.3c				\
+ 		verr.3c					\
++		verrc.3c				\
+ 		verrx.3c				\
+ 		vfprintf.3c				\
+ 		vfscanf.3c				\
+@@ -1380,11 +1382,13 @@ MANLINKS=	FD_CLR.3c				\
+ 		vswprintf.3c				\
+ 		vswscanf.3c				\
+ 		vwarn.3c				\
++		vwarnc.3c				\
+ 		vwarnx.3c				\
+ 		vwprintf.3c				\
+ 		vwscanf.3c				\
+ 		wait4.3c				\
+ 		warn.3c					\
++		warnc.3c				\
+ 		warnx.3c				\
+ 		watof.3c				\
+ 		watoi.3c				\
+@@ -1746,12 +1750,16 @@ letoh64.3c				:= LINKSRC = endian.3c
+ epoll_create1.3c			:= LINKSRC = epoll_create.3c
+ epoll_pwait.3c				:= LINKSRC = epoll_wait.3c
+ 
++errc.3c					:= LINKSRC = err.3c
+ errx.3c					:= LINKSRC = err.3c
+ verr.3c					:= LINKSRC = err.3c
++verrc.3c				:= LINKSRC = err.3c
+ verrx.3c				:= LINKSRC = err.3c
+ vwarn.3c				:= LINKSRC = err.3c
++vwarnc.3c				:= LINKSRC = err.3c
+ vwarnx.3c				:= LINKSRC = err.3c
+ warn.3c					:= LINKSRC = err.3c
++warnc.3c				:= LINKSRC = err.3c
+ warnx.3c				:= LINKSRC = err.3c
+ 
+ euccol.3c				:= LINKSRC = euclen.3c
+diff --git a/usr/src/man/man3c/err.3c b/usr/src/man/man3c/err.3c
+index c81427c3dd..4f8851c74a 100644
+--- a/usr/src/man/man3c/err.3c
++++ b/usr/src/man/man3c/err.3c
+@@ -1,155 +1,258 @@
+-'\" te
+-.\" Copyright 2014 Nexenta Systems, Inc.  All Rights Reserved.
++.\" The contents of this file are subject to the terms of the Common
++.\" Development and Distribution License (the "License").  You may not use
++.\" this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or
++.\" http://www.opensolaris.org/os/licensing.  See the License for the
++.\" specific language governing permissions and limitations under the
++.\" License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each file
++.\" and include the License file at usr/src/OPENSOLARIS.LICENSE.  If
++.\" applicable, add the following below this CDDL HEADER, with the fields
++.\" enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
++.\"
+ .\" Copyright (c) 1996-2001 Wolfram Schneider. Berlin.
+ .\" Copyright (c) 1993-1995 Berkeley Software Design, Inc.
+ .\" Portions Copyright (c) 2007, Sun Microsystems, Inc.  All Rights Reserved.
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+-.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+-.\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH ERR 3C "Nov 24, 2014"
+-.SH NAME
+-err, verr, errx, verrx, warn, vwarn, warnx, vwarnx \- formatted error messages
+-.SH SYNOPSIS
+-.LP
+-.nf
++.\" Copyright 2014 Nexenta Systems, Inc.  All Rights Reserved.
++.\" Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
++.\"
++.Dd November 15, 2022
++.Dt ERR 3C
++.Os
++.Sh NAME
++.Nm err ,
++.Nm errc ,
++.Nm errx ,
++.Nm warn ,
++.Nm warnc ,
++.Nm warnx ,
++.Nm verr ,
++.Nm verrc ,
++.Nm verrx ,
++.Nm vwarn ,
++.Nm vwarnc ,
++.Nm vwarnx
++.Nd formatted error messages
++.Sh SYNOPSIS
++.In err.h
++.Ft void
++.Fo err
++.Fa "int eval"
++.Fa "const char *fmt"
++.Fa "..."
++.Fc
++.Ft void
++.Fo errc
++.Fa "int eval"
++.Fa "int code"
++.Fa "const char *fmt"
++.Fa "..."
++.Fc
++.Ft void
++.Fo errx
++.Fa "int eval"
++.Fa "const char *fmt"
++.Fa "..."
++.Fc
++.Ft void
++.Fo warn
++.Fa "const char *fmt"
++.Fa "..."
++.Fc
++.Ft void
++.Fo warnc
++.Fa "int code"
++.Fa "const char *fmt"
++.Fa "..."
++.Fc
++.Ft void
++.Fo warnx
++.Fa "const char *fmt"
++.Fa "..."
++.Fc
++.Ft void
++.Fo verr
++.Fa "int eval"
++.Fa "const char *fmt"
++.Fa "va_list args"
++.Fc
++.Ft void
++.Fo verrc
++.Fa "int eval"
++.Fa "int code"
++.Fa "const char *fmt"
++.Fa "va_list args"
++.Fc
++.Ft void
++.Fo verrx
++.Fa "int eval"
++.Fa "const char *fmt"
++.Fa "va_list args"
++.Fc
++.Ft void
++.Fo vwarn
++.Fa "const char *fmt"
++.Fa "va_list args"
++.Fc
++.Ft void
++.Fo vwarnc
++.Fa "int code"
++.Fa "const char *fmt"
++.Fa "va_list args"
++.Fc
++.Ft void
++.Fo vwarnx
++.Fa "const char *fmt"
++.Fa "va_list args"
++.Fc
++.Sh DESCRIPTION
++The
++.Fn err
++and
++.Fn warn
++family of functions display a formatted error message to standard error.
++In all cases, the last component of the program name, followed by a colon
++character and a space, are output.
++If the
++.Ar fmt
++argument is not
++.Dv NULL ,
++the formatted error message is output.
++.Pp
++In the case of the
++.Fn err ,
++.Fn errc ,
++.Fn warn ,
++.Fn warnc ,
++.Fn verr ,
++.Fn verrc ,
++.Fn vwarn
++and
++.Fn vwarnc
++functions, an error message obtained from
++.Xr strerror 3C
++is output next, preceded by a colon character and a space if
++.Ar fmt
++is not
++.Dv NULL .
++The
++.Fn err ,
++.Fn warn ,
++.Fn verr
++and
++.Fn vwarn
++functions produce the error string affiliated with the current value of the
++global variable
++.Va errno .
++The
++.Fn errc ,
++.Fn warnc ,
++.Fn verrc
++and
++.Fn vwarnc
++functions use the provided
++.Ar code
++value to look up the error message.
++.Pp
++The
++.Fn errx ,
++.Fn verrx ,
++.Fn warnx
++and
++.Fn vwarnx
++functions will not output this error message string.
++.Pp
++In all cases, the output is followed by a newline character.
++.Pp
++The
++.Fn err ,
++.Fn errc ,
++.Fn errx ,
++.Fn verr ,
++.Fn verrc
++and
++.Fn verrx
++functions do not return, but instead cause the program to terminate with the
++status value given by the
++.Ar eval
++argument.
++.Sh EXAMPLES
++.Sy Example 1
++Display the current
++.Va errno
++information string and terminate with status indicating failure.
++.Bd -literal -offset indent
+ #include <err.h>
+-
+-\fBvoid\fR \fBerr\fR(\fBint\fR \fIeval\fR, \fBconst char *\fR\fIfmt\fR, ...);
+-.fi
+-
+-.LP
+-.nf
+-\fBvoid\fR \fBverr\fR(\fBint\fR \fIeval\fR, \fBconst char *\fR\fIfmt\fR, \fBva_list\fR \fIargs\fR);
+-.fi
+-
+-.LP
+-.nf
+-\fBvoid\fR \fBerrx\fR(\fBint\fR \fIeval\fR, \fBconst char *\fR\fIfmt\fR, ...);
+-.fi
+-
+-.LP
+-.nf
+-\fBvoid\fR \fBverrx\fR\fB(int\fR \fIeval\fR, \fBconst char *\fR\fIfmt\fR, \fBva_list\fR \fIargs\fR);
+-.fi
+-
+-.LP
+-.nf
+-\fBvoid\fR \fBwarn\fR(\fBconst char *\fR\fIfmt\fR, ...);
+-.fi
+-
+-.LP
+-.nf
+-\fBvoid\fR \fBvwarn\fR(\fBconst char *\fR\fIfmt\fR, \fBva_list\fR \fIargs\fR);
+-.fi
+-
+-.LP
+-.nf
+-\fBvoid\fR \fBwarnx\fR(\fBconst char *\fR\fIfmt\fR, ...);
+-.fi
+-
+-.LP
+-.nf
+-\fBvoid\fR \fBvwarnx\fR(\fBconst char *\fR\fIfmt\fR, \fBva_list\fR \fIargs\fR);
+-.fi
+-
+-.SH DESCRIPTION
+-.LP
+-The \fBerr()\fR and \fBwarn()\fR family of functions display a formatted error
+-message on the standard error output. In all cases, the last component of the
+-program name, followed by a colon character and a space, are output. If the
+-\fIfmt\fR argument is not \fINULL\fR, the formatted error message is output. In
+-the case of the \fBerr()\fR, \fBverr()\fR, \fBwarn()\fR, and \fBvwarn()\fR
+-functions, the error message string affiliated with the current value of the
+-global variable \fBerrno\fR is output next, preceded by a colon character and a
+-space if \fIfmt\fR is not \fINULL\fR. In all cases, the output is followed by a
+-newline character.  The \fBerrx()\fR, \fBverrx()\fR, \fBwarnx()\fR, and
+-\fBvwarnx()\fR functions will not output this error message string.
+-.sp
+-.LP
+-The \fBerr()\fR, \fBverr()\fR, \fBerrx()\fR, and \fBverrx()\fR functions do not
+-return, but instead cause the program to terminate with the status value given
+-by the argument \fIeval\fR.
+-.SH EXAMPLES
+-.LP
+-\fBExample 1 \fRDisplay the current \fBerrno\fR information string and
+-terminate with status indicating failure.
+-.sp
+-.in +2
+-.nf
++\&...
+ if ((p = malloc(size)) == NULL)
+-    err(EXIT_FAILURE, NULL);
++	err(EXIT_FAILURE, NULL);
+ if ((fd = open(file_name, O_RDONLY, 0)) == -1)
+-    err(EXIT_FAILURE, "%s", file_name);
+-.fi
+-.in -2
+-
+-.LP
+-\fBExample 2 \fRDisplay an error message and terminate with status indicating
+-failure.
+-.sp
+-.in +2
+-.nf
++	err(EXIT_FAILURE, "%s", file_name);
++.Ed
++.Pp
++.Sy Example 2
++Display an error message and terminate with status indicating failure.
++.Bd -literal -offset indent
+ if (tm.tm_hour < START_TIME)
+-    errx(EXIT_FAILURE, "too early, wait until %s", start_time_string);
+-.fi
+-.in -2
+-
+-.LP
+-\fBExample 3 \fRWarn of an error.
+-.sp
+-.in +2
+-.nf
+-if ((fd = open(raw_device, O_RDONLY, 0)) == -1)
+-    warnx("%s: %s: trying the block device",
+-        raw_device, strerror(errno));
++	errx(EXIT_FAILURE, "wait until %s", start_time_string);
++.Ed
++.Pp
++.Sy Example 3
++Warn of an error.
++.Bd -literal -offset indent
++if ((fd = open(raw_device, O_RDONLY, 0)) == -1) {
++     warnx("%s: %s: trying the block device",
++	 raw_device, strerror(errno));
++}
+ if ((fd = open(block_device, O_RDONLY, 0)) == -1)
+-    warn("%s", block_device);
+-.fi
+-.in -2
+-
+-.SH WARNINGS
+-.LP
++	warn("%s", block_device);
++.Ed
++.Pp
++.Sy Example 4
++Warn of an error using a custom error code
++.Bd -literal -offset indent
++int error = function_returning_error_code();
++if (error != 0)
++	warnc(error, "%s", "function did not succeed");
++.Ed
++.Sh WARNINGS
+ It is important never to pass a string with user-supplied data as a format
+-without using `%s'. An attacker can put format specifiers in the string to
+-mangle the stack, leading to a possible security hole. This holds true even if
+-the string has been built ``by hand'' using a function like \fBsnprintf\fR(3C),
++without using
++.Sq %s .
++An attacker can put format specifiers in the string to mangle the stack,
++leading to a possible security hole.
++This holds true even if the string has been built by hand using a function
++like
++.Xr snprintf 3C ,
+ as the resulting string can still contain user-supplied conversion specifiers
+-for later interpolation by the \fBerr()\fR and \fBwarn()\fR functions.
+-.sp
+-.LP
++for later interpolation by the
++.Fn err
++and
++.Fn warn
++functions.
++.Pp
+ Always be sure to use the proper secure idiom:
+-.sp
+-.in +2
+-.nf
++.Bd -literal -offset indent
+ err(1, "%s", string);
+-.fi
+-.in -2
+-
+-.SH ATTRIBUTES
+-.LP
+-See \fBattributes\fR(7) for descriptions of the following attributes:
+-.sp
+-
+-.sp
+-.TS
+-box;
+-c | c
+-l | l .
+-ATTRIBUTE TYPE	ATTRIBUTE VALUE
+-_
+-Interface Stability	Committed
+-_
+-MT-Level	Safe with Exceptions
+-.TE
+-
+-.sp
+-.LP
++.Ed
++.Sh INTERFACE STABILITY
++.Sy Committed
++.Sh MT-LEVEL
++.Sy MT-Safe with Exceptions
++.Pp
+ These functions are safe to use in multithreaded applications as long as
+-\fBsetlocale\fR(3C) is not being called to change the locale.
+-.SH SEE ALSO
+-.LP
+-.BR exit (3C),
+-.BR getexecname (3C),
+-.BR setlocale (3C),
+-.BR strerror (3C),
+-.BR attributes (7)
++.Xr setlocale 3C
++is not being called to change the locale.
++.Sh SEE ALSO
++.Xr exit 3C ,
++.Xr getexecname 3C ,
++.Xr setlocale 3C ,
++.Xr strerror 3C ,
++.Xr attributes 7
++.Sh STANDARDS
++The functions described in this man page are
++.Bx
++extensions and should not be used in portable code.
+diff --git a/usr/src/pkg/manifests/system-library.man3c.inc b/usr/src/pkg/manifests/system-library.man3c.inc
+index fa460dc6c9..7a27605a64 100644
+--- a/usr/src/pkg/manifests/system-library.man3c.inc
++++ b/usr/src/pkg/manifests/system-library.man3c.inc
+@@ -16,7 +16,7 @@
+ # Copyright 2014 Garrett D'Amore <garrett@damore.org>
+ # Copyright 2018 Jason King
+ # Copyright 2020 Joyent, Inc.
+-# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
++# Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
+ #
+ 
+ link path=usr/share/man/man3c/FD_CLR.3c target=select.3c
+@@ -339,6 +339,7 @@ link path=usr/share/man/man3c/epoll_pwait.3c target=epoll_wait.3c
+ file path=usr/share/man/man3c/epoll_wait.3c
+ link path=usr/share/man/man3c/erand48.3c target=drand48.3c
+ file path=usr/share/man/man3c/err.3c
++link path=usr/share/man/man3c/errc.3c target=err.3c
+ link path=usr/share/man/man3c/errno.3c target=perror.3c
+ link path=usr/share/man/man3c/errx.3c target=err.3c
+ link path=usr/share/man/man3c/etext.3c target=end.3c
+@@ -1399,6 +1400,7 @@ link path=usr/share/man/man3c/utmpxname.3c target=getutxent.3c
+ link path=usr/share/man/man3c/valloc.3c target=malloc.3c
+ link path=usr/share/man/man3c/vasprintf.3c target=vprintf.3c
+ link path=usr/share/man/man3c/verr.3c target=err.3c
++link path=usr/share/man/man3c/verrc.3c target=err.3c
+ link path=usr/share/man/man3c/verrx.3c target=err.3c
+ link path=usr/share/man/man3c/vfprintf.3c target=vprintf.3c
+ link path=usr/share/man/man3c/vfscanf.3c target=scanf.3c
+@@ -1415,6 +1417,7 @@ link path=usr/share/man/man3c/vswprintf.3c target=vfwprintf.3c
+ link path=usr/share/man/man3c/vswscanf.3c target=fwscanf.3c
+ file path=usr/share/man/man3c/vsyslog.3c
+ link path=usr/share/man/man3c/vwarn.3c target=err.3c
++link path=usr/share/man/man3c/vwarnc.3c target=err.3c
+ link path=usr/share/man/man3c/vwarnx.3c target=err.3c
+ link path=usr/share/man/man3c/vwprintf.3c target=vfwprintf.3c
+ link path=usr/share/man/man3c/vwscanf.3c target=fwscanf.3c
+@@ -1424,6 +1427,7 @@ link path=usr/share/man/man3c/wait4.3c target=wait3.3c
+ file path=usr/share/man/man3c/waitpid.3c
+ file path=usr/share/man/man3c/walkcontext.3c
+ link path=usr/share/man/man3c/warn.3c target=err.3c
++link path=usr/share/man/man3c/warnc.3c target=err.3c
+ link path=usr/share/man/man3c/warnx.3c target=err.3c
+ link path=usr/share/man/man3c/watof.3c target=wcstod.3c
+ link path=usr/share/man/man3c/watoi.3c target=wcstol.3c
+diff --git a/usr/src/pkg/manifests/system-test-libctest.p5m b/usr/src/pkg/manifests/system-test-libctest.p5m
+index 92514e39fc..10f847a18b 100644
+--- a/usr/src/pkg/manifests/system-test-libctest.p5m
++++ b/usr/src/pkg/manifests/system-test-libctest.p5m
+@@ -14,7 +14,7 @@
+ # Copyright 2014, OmniTI Computer Consulting, Inc. All rights reserved.
+ # Copyright 2015 Garrett D'Amore <garrett@damore.org>
+ # Copyright 2018 Joyent, Inc.
+-# Copyright 2020 OmniOS Community Edition (OmniOSce) Association.
++# Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
+ #
+ 
+ set name=pkg.fmri value=pkg:/system/test/libctest@$(PKGVERS)
+@@ -77,6 +77,22 @@ file path=opt/libc-tests/tests/endian.32 mode=0555
+ file path=opt/libc-tests/tests/endian.64 mode=0555
+ file path=opt/libc-tests/tests/env-7076.32 mode=0555
+ file path=opt/libc-tests/tests/env-7076.64 mode=0555
++dir  path=opt/libc-tests/tests/err
++dir  path=opt/libc-tests/tests/err/data
++file path=opt/libc-tests/tests/err/data/E.0.3.4 mode=0444
++file path=opt/libc-tests/tests/err/data/E.1.5.6 mode=0444
++file path=opt/libc-tests/tests/err/data/E.2.7.8 mode=0444
++file path=opt/libc-tests/tests/err/data/E.3.9.10 mode=0444
++file path=opt/libc-tests/tests/err/data/E.4.11.12 mode=0444
++file path=opt/libc-tests/tests/err/data/E.5.13.14 mode=0444
++file path=opt/libc-tests/tests/err/data/W.0.3.4 mode=0444
++file path=opt/libc-tests/tests/err/data/W.1.5.6 mode=0444
++file path=opt/libc-tests/tests/err/data/W.2.7.8 mode=0444
++file path=opt/libc-tests/tests/err/data/W.3.9.10 mode=0444
++file path=opt/libc-tests/tests/err/data/W.4.11.12 mode=0444
++file path=opt/libc-tests/tests/err/data/W.5.13.14 mode=0444
++file path=opt/libc-tests/tests/err/err mode=0555
++file path=opt/libc-tests/tests/err/err.ksh mode=0555
+ file path=opt/libc-tests/tests/fnmatch.32 mode=0555
+ file path=opt/libc-tests/tests/fnmatch.64 mode=0555
+ file path=opt/libc-tests/tests/fpround_test mode=0555
+diff --git a/usr/src/test/libc-tests/runfiles/default.run b/usr/src/test/libc-tests/runfiles/default.run
+index d2057a2152..9f6269ec71 100644
+--- a/usr/src/test/libc-tests/runfiles/default.run
++++ b/usr/src/test/libc-tests/runfiles/default.run
+@@ -13,7 +13,7 @@
+ # Copyright (c) 2012 by Delphix. All rights reserved.
+ # Copyright 2014 Garrett D'Amore <garrett@damore.org>
+ # Copyright 2019 Joyent, Inc.
+-# Copyright 2020 OmniOS Community Edition (OmniOSce) Association.
++# Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
+ #
+ 
+ [DEFAULT]
+@@ -108,6 +108,7 @@ timeout = 600
+ [/opt/libc-tests/tests/endian.64]
+ [/opt/libc-tests/tests/env-7076.32]
+ [/opt/libc-tests/tests/env-7076.64]
++[/opt/libc-tests/tests/err/err.ksh]
+ [/opt/libc-tests/tests/fnmatch.32]
+ [/opt/libc-tests/tests/fnmatch.64]
+ [/opt/libc-tests/tests/memchr.32]
+diff --git a/usr/src/test/libc-tests/tests/Makefile b/usr/src/test/libc-tests/tests/Makefile
+index 16e4236a9f..16c002e0ef 100644
+--- a/usr/src/test/libc-tests/tests/Makefile
++++ b/usr/src/test/libc-tests/tests/Makefile
+@@ -13,11 +13,12 @@
+ # Copyright (c) 2012 by Delphix. All rights reserved.
+ # Copyright 2015 Garrett D'Amore <garrett@damore.org>
+ # Copyright 2019 Joyent, Inc.
+-# Copyright 2020 OmniOS Community Edition (OmniOSce) Association.
++# Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
+ #
+ 
+ SUBDIRS = \
+ 	catopen \
++	err \
+ 	fpround \
+ 	i18n \
+ 	newlocale \
+diff --git a/usr/src/test/libc-tests/tests/err/Makefile b/usr/src/test/libc-tests/tests/err/Makefile
+new file mode 100644
+index 0000000000..0ead20c66c
+--- /dev/null
++++ b/usr/src/test/libc-tests/tests/err/Makefile
+@@ -0,0 +1,59 @@
++#
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
++#
++# A full copy of the text of the CDDL should have accompanied this
++# source.  A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
++#
++
++#
++# Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
++#
++
++include $(SRC)/Makefile.master
++
++ROOTOPTPKG =	$(ROOT)/opt/libc-tests
++TESTDIR =	$(ROOTOPTPKG)/tests/err
++DATADIR=	$(TESTDIR)/data
++
++PROGS = err
++SCRIPTS = err.ksh
++DATA :sh= (cd data; print *)
++
++include $(SRC)/cmd/Makefile.cmd
++include $(SRC)/test/Makefile.com
++
++CMDS =		$(PROGS:%=$(TESTDIR)/%) $(SCRIPTS:%=$(TESTDIR)/%)
++TESTDATA=	$(DATA:%=$(DATADIR)/%)
++
++$(CMDS) := FILEMODE = 0555
++$(TESTDATA) := FILEMODE = 0444
++
++CSTD = $(CSTD_GNU99)
++
++all: $(PROGS)
++
++install: all $(CMDS) $(TESTDATA)
++
++clobber: clean
++	-$(RM) $(PROGS)
++
++clean:
++	-$(RM) *.o
++
++$(CMDS): $(TESTDIR) $(PROGS)
++
++$(TESTDATA): $(DATADIR)
++
++$(TESTDIR) $(DATADIR):
++	$(INS.dir)
++
++$(TESTDIR)/%: %
++	$(INS.file)
++
++$(DATADIR)/%:	data/%
++	$(INS.file)
++
+diff --git a/usr/src/test/libc-tests/tests/err/data/E.0.3.4 b/usr/src/test/libc-tests/tests/err/data/E.0.3.4
+new file mode 100644
+index 0000000000..007e296a31
+--- /dev/null
++++ b/usr/src/test/libc-tests/tests/err/data/E.0.3.4
+@@ -0,0 +1,6 @@
++::STDOUT::
++
++::STDERR::
++err: E/0/4: No such process
++::EXIT::
++4
+diff --git a/usr/src/test/libc-tests/tests/err/data/E.1.5.6 b/usr/src/test/libc-tests/tests/err/data/E.1.5.6
+new file mode 100644
+index 0000000000..a6bd4581ce
+--- /dev/null
++++ b/usr/src/test/libc-tests/tests/err/data/E.1.5.6
+@@ -0,0 +1,6 @@
++::STDOUT::
++
++::STDERR::
++err: E/1/6: I/O error
++::EXIT::
++6
+diff --git a/usr/src/test/libc-tests/tests/err/data/E.2.7.8 b/usr/src/test/libc-tests/tests/err/data/E.2.7.8
+new file mode 100644
+index 0000000000..292a5da1da
+--- /dev/null
++++ b/usr/src/test/libc-tests/tests/err/data/E.2.7.8
+@@ -0,0 +1,6 @@
++::STDOUT::
++
++::STDERR::
++err: E/2/8
++::EXIT::
++8
+diff --git a/usr/src/test/libc-tests/tests/err/data/E.3.9.10 b/usr/src/test/libc-tests/tests/err/data/E.3.9.10
+new file mode 100644
+index 0000000000..2e3dc109b6
+--- /dev/null
++++ b/usr/src/test/libc-tests/tests/err/data/E.3.9.10
+@@ -0,0 +1,6 @@
++::STDOUT::
++
++::STDERR::
++err: E/3/10: Bad file number
++::EXIT::
++10
+diff --git a/usr/src/test/libc-tests/tests/err/data/E.4.11.12 b/usr/src/test/libc-tests/tests/err/data/E.4.11.12
+new file mode 100644
+index 0000000000..67541715f1
+--- /dev/null
++++ b/usr/src/test/libc-tests/tests/err/data/E.4.11.12
+@@ -0,0 +1,6 @@
++::STDOUT::
++
++::STDERR::
++err: E/4/12: Resource temporarily unavailable
++::EXIT::
++12
+diff --git a/usr/src/test/libc-tests/tests/err/data/E.5.13.14 b/usr/src/test/libc-tests/tests/err/data/E.5.13.14
+new file mode 100644
+index 0000000000..9432ba855d
+--- /dev/null
++++ b/usr/src/test/libc-tests/tests/err/data/E.5.13.14
+@@ -0,0 +1,6 @@
++::STDOUT::
++
++::STDERR::
++err: E/5/14
++::EXIT::
++14
+diff --git a/usr/src/test/libc-tests/tests/err/data/W.0.3.4 b/usr/src/test/libc-tests/tests/err/data/W.0.3.4
+new file mode 100644
+index 0000000000..d3c1b1cd9d
+--- /dev/null
++++ b/usr/src/test/libc-tests/tests/err/data/W.0.3.4
+@@ -0,0 +1,6 @@
++::STDOUT::
++
++::STDERR::
++err: W/0: No such process
++::EXIT::
++0
+diff --git a/usr/src/test/libc-tests/tests/err/data/W.1.5.6 b/usr/src/test/libc-tests/tests/err/data/W.1.5.6
+new file mode 100644
+index 0000000000..45eb11ed5e
+--- /dev/null
++++ b/usr/src/test/libc-tests/tests/err/data/W.1.5.6
+@@ -0,0 +1,6 @@
++::STDOUT::
++
++::STDERR::
++err: W/1: I/O error
++::EXIT::
++0
+diff --git a/usr/src/test/libc-tests/tests/err/data/W.2.7.8 b/usr/src/test/libc-tests/tests/err/data/W.2.7.8
+new file mode 100644
+index 0000000000..0ef50e0f59
+--- /dev/null
++++ b/usr/src/test/libc-tests/tests/err/data/W.2.7.8
+@@ -0,0 +1,6 @@
++::STDOUT::
++
++::STDERR::
++err: W/2
++::EXIT::
++0
+diff --git a/usr/src/test/libc-tests/tests/err/data/W.3.9.10 b/usr/src/test/libc-tests/tests/err/data/W.3.9.10
+new file mode 100644
+index 0000000000..0c062b6c02
+--- /dev/null
++++ b/usr/src/test/libc-tests/tests/err/data/W.3.9.10
+@@ -0,0 +1,6 @@
++::STDOUT::
++
++::STDERR::
++err: W/3: Bad file number
++::EXIT::
++0
+diff --git a/usr/src/test/libc-tests/tests/err/data/W.4.11.12 b/usr/src/test/libc-tests/tests/err/data/W.4.11.12
+new file mode 100644
+index 0000000000..6bb8f74490
+--- /dev/null
++++ b/usr/src/test/libc-tests/tests/err/data/W.4.11.12
+@@ -0,0 +1,6 @@
++::STDOUT::
++
++::STDERR::
++err: W/4: Resource temporarily unavailable
++::EXIT::
++0
+diff --git a/usr/src/test/libc-tests/tests/err/data/W.5.13.14 b/usr/src/test/libc-tests/tests/err/data/W.5.13.14
+new file mode 100644
+index 0000000000..265b173a97
+--- /dev/null
++++ b/usr/src/test/libc-tests/tests/err/data/W.5.13.14
+@@ -0,0 +1,6 @@
++::STDOUT::
++
++::STDERR::
++err: W/5
++::EXIT::
++0
+diff --git a/usr/src/test/libc-tests/tests/err/err.c b/usr/src/test/libc-tests/tests/err/err.c
+new file mode 100644
+index 0000000000..b39e209a68
+--- /dev/null
++++ b/usr/src/test/libc-tests/tests/err/err.c
+@@ -0,0 +1,190 @@
++/*
++ * This file and its contents are supplied under the terms of the
++ * Common Development and Distribution License ("CDDL"), version 1.0.
++ * You may only use this file in accordance with the terms of version
++ * 1.0 of the CDDL.
++ *
++ * A full copy of the text of the CDDL should have accompanied this
++ * source.  A copy of the CDDL is also available via the Internet at
++ * http://www.illumos.org/license/CDDL.
++ */
++
++/*
++ * Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
++ */
++
++/*
++ * This file exercises the various err(3C)/warn(3C) functions and produces
++ * output that is checked by the corresponding err.ksh script.
++ */
++
++#include <stdio.h>
++#include <stdlib.h>
++#include <stdbool.h>
++#include <errno.h>
++#include <err.h>
++#include <sys/debug.h>
++
++static FILE *stream = stderr;
++
++typedef enum variant {
++	VARIANT_ = 0,	/* warn(), err() */
++	VARIANT_C,	/* warnc(), errc() */
++	VARIANT_X,	/* warnx(), errx() */
++	VARIANT_V,	/* vwarn(), verr() */
++	VARIANT_VC,	/* vwarnc(), verrc() */
++	VARIANT_VX,	/* vwarnx(), verrx() */
++} variant_t;
++
++void
++usage(void)
++{
++	(void) fprintf(stderr,
++	    "usage: err [-e errno] [-x code] [-v variant]\n");
++	exit(EXIT_FAILURE);
++}
++
++void
++callback_func(int code)
++{
++	(void) fprintf(stream, "CALLBACK %d\n", code);
++}
++
++void
++xtest(variant_t variant, int errcode, int exitcode, const char *fmt, ...)
++{
++	va_list va;
++
++	va_start(va, fmt);
++
++	switch (variant) {
++	case VARIANT_V:
++		errno = errcode;
++		if (exitcode != 0)
++			verr(exitcode, fmt, va);
++		else
++			vwarn(fmt, va);
++		break;
++	case VARIANT_VC:
++		errno = 0;
++		if (exitcode != 0)
++			verrc(exitcode, errcode, fmt, va);
++		else
++			vwarnc(errcode, fmt, va);
++		break;
++	case VARIANT_VX:
++		if (exitcode != 0)
++			verrx(exitcode, fmt, va);
++		else
++			vwarnx(fmt, va);
++		break;
++	default:
++		errx(EXIT_FAILURE, "Unhandled variant in %s", __func__);
++	}
++
++	va_end(va);
++}
++
++int
++main(int argc, char **argv)
++{
++	int errcode = 0;
++	int exitcode = 0;
++	variant_t variant = VARIANT_;
++	const char *errstr;
++	long long num;
++	int ch;
++
++	/*
++	 * -e	specify errno for the test
++	 * -v	select variant to test
++	 * -x	specify exit code for the test
++	 */
++	while ((ch = getopt(argc, argv, "e:v:x:")) != -1) {
++		switch (ch) {
++		case 'e':
++			num = strtonum(optarg, 0, 127, &errstr);
++			if (errstr != NULL)
++				errx(EXIT_FAILURE, "-x: %s", errstr);
++			errcode = (int)num;
++			break;
++		case 'v':
++			num = strtonum(optarg, 0, VARIANT_VX, &errstr);
++			if (errstr != NULL)
++				errx(EXIT_FAILURE, "-v: %s", errstr);
++			switch (num) {
++			case VARIANT_:
++				variant = VARIANT_;
++				break;
++			case VARIANT_C:
++				variant = VARIANT_C;
++				break;
++			case VARIANT_X:
++				variant = VARIANT_X;
++				break;
++			case VARIANT_V:
++				variant = VARIANT_V;
++				break;
++			case VARIANT_VC:
++				variant = VARIANT_VC;
++				break;
++			case VARIANT_VX:
++				variant = VARIANT_VX;
++				break;
++			default:
++				errx(EXIT_FAILURE, "Unknown variant %ld", num);
++			}
++			break;
++		case 'x':
++			num = strtonum(optarg, 0, 127, &errstr);
++			if (errstr != NULL)
++				errx(EXIT_FAILURE, "-x: %s", errstr);
++			exitcode = (int)num;
++			break;
++		default:
++			usage();
++			break;
++		}
++	}
++
++	argc -= optind;
++	argv += optind;
++
++	if (argc > 0)
++		errx(EXIT_FAILURE, "Unexpected argument '%s'.", argv[1]);
++
++	switch (variant) {
++	case VARIANT_:
++		errno = errcode;
++		if (exitcode != 0)
++			err(exitcode, "E/%d/%d", variant, exitcode);
++		else
++			warn("W/%d", variant);
++		break;
++	case VARIANT_C:
++		errno = 0;
++		if (exitcode != 0)
++			errc(exitcode, errcode, "E/%d/%d", variant, exitcode);
++		else
++			warnc(errcode, "W/%d", variant);
++		break;
++	case VARIANT_X:
++		if (exitcode != 0)
++			errx(exitcode, "E/%d/%d", variant, exitcode);
++		else
++			warnx("W/%d", variant);
++		break;
++	case VARIANT_V:
++	case VARIANT_VC:
++	case VARIANT_VX:
++		if (exitcode != 0) {
++			xtest(variant, errcode, exitcode, "E/%d/%d", variant,
++			    exitcode);
++		} else {
++			xtest(variant, errcode, exitcode, "W/%d", variant);
++		}
++		break;
++	}
++
++	return (0);
++}
+diff --git a/usr/src/test/libc-tests/tests/err/err.ksh b/usr/src/test/libc-tests/tests/err/err.ksh
+new file mode 100755
+index 0000000000..fcb713633c
+--- /dev/null
++++ b/usr/src/test/libc-tests/tests/err/err.ksh
+@@ -0,0 +1,90 @@
++#!/bin/ksh
++
++#
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
++#
++# A full copy of the text of the CDDL should have accompanied this
++# source. A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
++#
++
++# Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
++
++set -o errexit
++set -o pipefail
++
++builtin print
++
++typeset -r ROOT=$(dirname $0)
++typeset -ri MAX_VARIANT=5
++
++typeset -i failures=0
++
++function fatal
++{
++	echo "Test Failed: $@" >&2
++	exit 1
++}
++
++function fail
++{
++	((failures++))
++	echo "FAIL: $*" >&2
++}
++
++function pass
++{
++	echo "PASS:  $*"
++}
++
++function run
++{
++	typeset key="$1"
++	typeset keyf="$ROOT/data/$key"
++	shift;
++
++	stderr=${ { stdout=$("$@"); } 2>&1; }
++	exit=$?
++	output=${
++		cat <<- EOM
++			::STDOUT::
++			$stdout
++			::STDERR::
++			$stderr
++			::EXIT::
++			$exit
++		EOM
++	}
++	if [[ -r "$keyf" ]]; then
++		expect=$(<$keyf)
++	else
++		fatal "Data file $keyf is not readable"
++	fi
++
++	if [[ "$expect" != "$output" ]]; then
++		fail "$key"
++		diff -u <(print "$output") <(print "$expect") || true
++	else
++		pass "$key"
++	fi
++}
++
++for v in {0..$MAX_VARIANT}; do
++	((errcode = 3 + v * 2))
++	((exitcode = 4 + v * 2))
++	key="${v}.${errcode}.${exitcode}"
++
++	# err(3C) family
++	cmd="$ROOT/err -v $v -e $errcode -x $exitcode"
++	run "E.$key" $cmd
++
++	# warn(3C) family
++	cmd="$ROOT/err -v $v -e $errcode"
++	run "W.$key" $cmd
++done
++
++exit $failures
++
+-- 
+2.48.1
+

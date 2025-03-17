@@ -1,0 +1,2378 @@
+From be672c8e21cc446e1091014ae0ad206f6b8c1d55 Mon Sep 17 00:00:00 2001
+From: Andy Fiddaman <illumos@fiddaman.net>
+Date: Thu, 4 Aug 2022 13:44:22 +0000
+Subject: [PATCH] 14848 Update AMD microcode to 202204 Reviewed by: Robert
+ Mustacchi <rm+illumos@fingolfin.org> Reviewed by: Toomas Soome
+ <tsoome@me.com> Approved by: Garrett D'Amore <garrett@damore.org>
+
+---
+ exception_lists/copyright                     |   1 +
+ exception_lists/wscheck                       |   1 +
+ usr/src/cmd/ucodeadm/Makefile                 |   5 +-
+ usr/src/cmd/ucodeadm/ucodeadm.c               | 208 +++++++++--
+ usr/src/data/ucode/Makefile                   |   3 +-
+ usr/src/data/ucode/README.ucode               |  25 +-
+ usr/src/data/ucode/amd/2031-00                | Bin 0 -> 512 bytes
+ usr/src/data/ucode/amd/5010-00                | Bin 1824 -> 1568 bytes
+ usr/src/data/ucode/amd/5020-00                | Bin 1568 -> 1568 bytes
+ usr/src/data/ucode/amd/6012-00                | Bin 2592 -> 2592 bytes
+ usr/src/data/ucode/amd/6020-00                | Bin 0 -> 2592 bytes
+ usr/src/data/ucode/amd/6101-00                | Bin 0 -> 2592 bytes
+ usr/src/data/ucode/amd/7001-00                | Bin 0 -> 3458 bytes
+ usr/src/data/ucode/amd/8012-00                | Bin 0 -> 3200 bytes
+ usr/src/data/ucode/amd/8082-00                | Bin 0 -> 3200 bytes
+ usr/src/data/ucode/amd/8310-00                | Bin 0 -> 3200 bytes
+ usr/src/data/ucode/amd/A010-00                | Bin 0 -> 5568 bytes
+ usr/src/data/ucode/amd/A011-00                | Bin 0 -> 5568 bytes
+ usr/src/data/ucode/amd/A012-00                | Bin 0 -> 5568 bytes
+ usr/src/data/ucode/amd/THIRDPARTYLICENSE      |  64 ++++
+ .../data/ucode/amd/THIRDPARTYLICENSE.descrip  |   1 +
+ usr/src/data/ucode/amd/container              | Bin 15020 -> 12684 bytes
+ usr/src/data/ucode/amd/equivalence-table      | Bin 288 -> 448 bytes
+ usr/src/data/ucode/update.amd                 | 151 ++++++++
+ usr/src/man/man8/ucodeadm.8                   | 327 +++++++++---------
+ .../pkg/manifests/system-microcode-amd.p5m    |  26 +-
+ usr/src/uts/common/sys/ucode.h                |   1 +
+ 27 files changed, 604 insertions(+), 209 deletions(-)
+ create mode 100644 usr/src/data/ucode/amd/2031-00
+ create mode 100644 usr/src/data/ucode/amd/6020-00
+ create mode 100644 usr/src/data/ucode/amd/6101-00
+ create mode 100644 usr/src/data/ucode/amd/7001-00
+ create mode 100644 usr/src/data/ucode/amd/8012-00
+ create mode 100644 usr/src/data/ucode/amd/8082-00
+ create mode 100644 usr/src/data/ucode/amd/8310-00
+ create mode 100644 usr/src/data/ucode/amd/A010-00
+ create mode 100644 usr/src/data/ucode/amd/A011-00
+ create mode 100644 usr/src/data/ucode/amd/A012-00
+ create mode 100644 usr/src/data/ucode/amd/THIRDPARTYLICENSE
+ create mode 100644 usr/src/data/ucode/amd/THIRDPARTYLICENSE.descrip
+ create mode 100755 usr/src/data/ucode/update.amd
+
+diff --git a/exception_lists/copyright b/exception_lists/copyright
+index 2656359cea..4ed780dda1 100644
+--- a/exception_lists/copyright
++++ b/exception_lists/copyright
+@@ -106,6 +106,7 @@ usr/src/data/hwdata/pci.ids
+ usr/src/data/hwdata/usb.ids
+ usr/src/data/perfmon/*
+ usr/src/data/ucode/Makefile.links
++usr/src/data/ucode/amd/*
+ usr/src/data/ucode/intel/*
+ usr/src/grub/grub-0.97/stage2/Makefile.am
+ usr/src/grub/grub-0.97/stage2/builtins.c
+diff --git a/exception_lists/wscheck b/exception_lists/wscheck
+index 889bea8a9f..f12472376e 100644
+--- a/exception_lists/wscheck
++++ b/exception_lists/wscheck
+@@ -19,6 +19,7 @@ usr/src/cmd/smbsrv/testoplock/case*.ref
+ usr/src/data/hwdata/pci.ids
+ usr/src/data/hwdata/usb.ids
+ usr/src/data/perfmon/readme.txt
++usr/src/data/ucode/amd/*
+ usr/src/data/ucode/intel/*
+ usr/src/test/crypto-tests/tests/digest/data/*.rsp
+ usr/src/test/os-tests/tests/definit/init.data
+diff --git a/usr/src/cmd/ucodeadm/Makefile b/usr/src/cmd/ucodeadm/Makefile
+index 352aefadfb..b6a4da71b6 100644
+--- a/usr/src/cmd/ucodeadm/Makefile
++++ b/usr/src/cmd/ucodeadm/Makefile
+@@ -23,7 +23,7 @@
+ # Use is subject to license terms.
+ #
+ # Copyright 2017 RackTop Systems.
+-# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
++# Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
+ #
+ 
+ PROG = ucodeadm
+@@ -41,10 +41,9 @@ include	../Makefile.ctf
+ POFILE = ucodeadm_all.po
+ POFILES = $(PROG_OBJS:%.o=%.po)
+ 
++CSTD = $(GNU_C99)
+ CPPFLAGS = -I../../common -I../../uts/common
+ CFLAGS	+= $(CCVERBOSE)
+-CERRWARN += $(CNOWARN_UNINIT)
+-CERRWARN += -_gcc=-Wno-type-limits
+ LDLIBS += -lgen
+ 
+ DIRMODE = 0755
+diff --git a/usr/src/cmd/ucodeadm/ucodeadm.c b/usr/src/cmd/ucodeadm/ucodeadm.c
+index 65f61facea..216b3dc9fb 100644
+--- a/usr/src/cmd/ucodeadm/ucodeadm.c
++++ b/usr/src/cmd/ucodeadm/ucodeadm.c
+@@ -25,7 +25,7 @@
+ 
+ /*
+  * Copyright (c) 2018, Joyent, Inc.
+- * Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
++ * Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
+  */
+ 
+ #include <sys/types.h>
+@@ -53,6 +53,7 @@
+ #define	UCODE_OPT_INSTALL	0x0001
+ #define	UCODE_OPT_UPDATE	0x0002
+ #define	UCODE_OPT_VERSION	0x0004
++#define	UCODE_OPT_LIST		0x0008
+ 
+ static const char ucode_dev[] = "/dev/" UCODE_DRIVER_NAME;
+ 
+@@ -69,9 +70,22 @@ static int ucode_convert_intel(const char *, uint8_t *, size_t);
+ static ucode_errno_t ucode_gen_files_amd(uint8_t *, int, char *);
+ static ucode_errno_t ucode_gen_files_intel(uint8_t *, int, char *);
+ 
++static void ucode_list_amd(uint8_t *, int);
++static void ucode_list_intel(uint8_t *, int);
++
+ static const struct ucode_ops ucode_ops[] = {
+-	{ ucode_convert_intel, ucode_gen_files_intel, ucode_validate_intel },
+-	{ ucode_convert_amd, ucode_gen_files_amd, ucode_validate_amd },
++	{
++		.convert	= ucode_convert_intel,
++		.gen_files	= ucode_gen_files_intel,
++		.validate	= ucode_validate_intel,
++		.list		= ucode_list_intel,
++	},
++	{
++		.convert	= ucode_convert_amd,
++		.gen_files	= ucode_gen_files_amd,
++		.validate	= ucode_validate_amd,
++		.list		= ucode_list_amd,
++	},
+ };
+ 
+ const struct ucode_ops *ucode;
+@@ -104,6 +118,12 @@ usage(int verbose)
+ 		    "\t\t microcode-file.\n\n"));
+ 	}
+ 
++	(void) fprintf(stderr, "\t%s -l microcode-file\n", cmdname);
++	if (verbose) {
++		(void) fprintf(stderr, gettext("\t\t Displays details of the "
++		    "microcode file's contents.\n\n"));
++	}
++
+ 	(void) fprintf(stderr, "\t%s -i [-R path] microcode-file\n", cmdname);
+ 	if (verbose) {
+ 		(void) fprintf(stderr, gettext("\t\t Installs microcode to be "
+@@ -126,6 +146,8 @@ ucode_perror(const char *str, ucode_errno_t rc)
+ /*
+  * Convert text format microcode release into binary format.
+  * Return the number of characters read.
++ *
++ * AMD microcode is already in binary format.
+  */
+ static int
+ ucode_convert_amd(const char *infile, uint8_t *buf, size_t size)
+@@ -151,7 +173,7 @@ ucode_convert_intel(const char *infile, uint8_t *buf, size_t size)
+ 	char	linebuf[LINESIZE];
+ 	FILE	*infd = NULL;
+ 	int	count = 0, firstline = 1;
+-	uint32_t *intbuf = (uint32_t *)(intptr_t)buf;
++	uint32_t *intbuf = (uint32_t *)(uintptr_t)buf;
+ 
+ 	if (infile == NULL || buf == NULL || size == 0)
+ 		return (0);
+@@ -242,11 +264,10 @@ ucode_gen_files_amd(uint8_t *buf, int size, char *path)
+ {
+ 	uint32_t *ptr = (uint32_t *)buf;
+ 	char common_path[PATH_MAX];
+-	int fd, count, counter;
++	int fd, count, counter = 0;
+ 	ucode_header_amd_t *uh;
+ 	int last_cpu_rev = 0;
+ 
+-
+ 	/* write container file */
+ 	(void) snprintf(common_path, PATH_MAX, "%s/%s", path, "container");
+ 
+@@ -339,7 +360,7 @@ ucode_gen_files_intel(uint8_t *buf, int size, char *path)
+ 		ucode_header_intel_t	*uhp;
+ 		ucode_ext_table_intel_t *extp;
+ 
+-		uhp = (ucode_header_intel_t *)(intptr_t)curbuf;
++		uhp = (ucode_header_intel_t *)(uintptr_t)curbuf;
+ 
+ 		total_size = UCODE_TOTAL_SIZE_INTEL(uhp->uh_total_size);
+ 		body_size = UCODE_BODY_SIZE_INTEL(uhp->uh_body_size);
+@@ -408,7 +429,7 @@ ucode_gen_files_intel(uint8_t *buf, int size, char *path)
+ 			continue;
+ 
+ 		/* There is extended signature table.  More processing. */
+-		extp = (ucode_ext_table_intel_t *)(uintptr_t)&curbuf[offset];
++		extp = (ucode_ext_table_intel_t *)&curbuf[offset];
+ 
+ 		for (i = 0; i < extp->uet_count; i++) {
+ 			ucode_ext_sig_intel_t *uesp = &extp->uet_ext_sig[i];
+@@ -474,6 +495,118 @@ ucode_gen_files_intel(uint8_t *buf, int size, char *path)
+ 	return (EM_OK);
+ }
+ 
++static void
++ucode_fms(uint32_t sig, uint8_t *family, uint8_t *model, uint8_t *stepping)
++{
++	*family = ((sig >> 8) & 0xf) + ((sig >> 20) & 0xff);
++	*model = ((sig >> 4) & 0xf) | ((sig >> 12) & 0xf0);
++	*stepping = sig & 0xf;
++}
++
++static void
++ucode_list_intel(uint8_t *buf, int size)
++{
++	int	remaining;
++
++	printf("Microcode patches:\n");
++	for (remaining = size; remaining > 0; ) {
++		uint8_t *curbuf = &buf[size - remaining];
++		uint8_t family, model, stepping;
++		uint32_t total_size, body_size, offset;
++		ucode_header_intel_t *uhp;
++		ucode_ext_table_intel_t *extp;
++
++		uhp = (ucode_header_intel_t *)(uintptr_t)curbuf;
++
++		total_size = UCODE_TOTAL_SIZE_INTEL(uhp->uh_total_size);
++		body_size = UCODE_BODY_SIZE_INTEL(uhp->uh_body_size);
++
++		remaining -= total_size;
++
++		ucode_fms(uhp->uh_signature, &family, &model, &stepping);
++
++		printf(
++		    "    %08lX-%02lX -> Family=%02x Model=%02x Stepping=%02x\n",
++		    uhp->uh_signature, uhp->uh_proc_flags,
++		    family, model, stepping);
++		printf(
++		    "    %14s Date=%08lX Bytes=%lu\n", "",
++		    uhp->uh_date, uhp->uh_body_size);
++
++		offset = UCODE_HEADER_SIZE_INTEL + body_size;
++
++		/* Check to see if there is extended signature table */
++		if (total_size == offset)
++			continue;
++
++		printf("Extended Signature Table:\n");
++
++		extp = (ucode_ext_table_intel_t *)&curbuf[offset];
++
++		for (uint32_t i = 0; i < extp->uet_count; i++) {
++			ucode_ext_sig_intel_t *uesp = &extp->uet_ext_sig[i];
++
++			ucode_fms(uesp->ues_signature,
++			    &family, &model, &stepping);
++
++			printf(
++			    "    %08lX-%02lX -> Family=%02x Model=%02x "
++			    "Stepping=%02x\n",
++			    uesp->ues_signature, uesp->ues_proc_flags,
++			    family, model, stepping);
++		}
++	}
++}
++
++static void
++ucode_list_amd(uint8_t *buf, int size)
++{
++	ucode_eqtbl_amd_t *eq;
++	ucode_header_amd_t *uh;
++	uint32_t tsz;
++
++	/*
++	 * The file has already been validated so we can skip straight to
++	 * the equivalence table.
++	 */
++	tsz = *(uint32_t *)(buf + 8);
++	eq = (ucode_eqtbl_amd_t *)(buf + 12);
++	size -= 12;
++
++	printf("Equivalence table:\n");
++	while (size >= sizeof (ucode_eqtbl_amd_t) && eq->ue_inst_cpu != 0) {
++		uint8_t family, model, stepping;
++
++		ucode_fms(eq->ue_inst_cpu, &family, &model, &stepping);
++
++		printf(
++		    "    %08lX Family=%02x Model=%02x Stepping=%02x -> %04X\n",
++		    eq->ue_inst_cpu, family, model, stepping, eq->ue_equiv_cpu);
++		eq++;
++		size -= sizeof (*eq);
++	}
++
++	/* Move past the equivalence table terminating record */
++	eq++;
++	size -= sizeof (*eq);
++	buf = (uint8_t *)eq;
++
++	printf("Microcode patches:\n");
++	while (size > sizeof (ucode_header_amd_t) + 8) {
++		tsz = *(uint32_t *)(buf + 4);
++		uh = (ucode_header_amd_t *)(buf + 8);
++
++		if (uh->uh_cpu_rev == 0)
++			break;
++
++		printf("    %4X -> Patch=%08lX Date=%08lX Bytes=%lu\n",
++		    uh->uh_cpu_rev, uh->uh_patch_id, uh->uh_date, tsz);
++
++		buf += (tsz + 8);
++		size -= (tsz + 8);
++	}
++}
++
+ /*
+  * Returns 0 on success, 2 on usage error, and 3 on operation error.
+  */
+@@ -493,7 +626,7 @@ main(int argc, char *argv[])
+ 	ucode_errno_t	rc = EM_OK;
+ 	processorid_t	cpuid_max;
+ 	struct stat filestat;
+-	uint32_t ucode_size;
++	int ucode_size = 0;
+ 
+ 	(void) setlocale(LC_ALL, "");
+ 
+@@ -504,7 +637,7 @@ main(int argc, char *argv[])
+ 
+ 	cmdname = basename(argv[0]);
+ 
+-	while ((c = getopt(argc, argv, "idhuvVR:")) != EOF) {
++	while ((c = getopt(argc, argv, "idhluvVR:")) != EOF) {
+ 		switch (c) {
+ 
+ 		case 'i':
+@@ -512,6 +645,11 @@ main(int argc, char *argv[])
+ 			actcount++;
+ 			break;
+ 
++		case 'l':
++			action |= UCODE_OPT_LIST;
++			actcount++;
++			break;
++
+ 		case 'u':
+ 			action |= UCODE_OPT_UPDATE;
+ 			actcount++;
+@@ -527,9 +665,9 @@ main(int argc, char *argv[])
+ 			break;
+ 
+ 		case 'R':
+-			if (optarg[0] == '-')
++			if (optarg[0] == '-') {
+ 				errflg++;
+-			else if (strlen(optarg) > UCODE_MAX_PATH_LEN) {
++			} else if (strlen(optarg) > UCODE_MAX_PATH_LEN) {
+ 				(void) fprintf(stderr,
+ 				    gettext("Alternate path too long\n"));
+ 				errflg++;
+@@ -553,8 +691,15 @@ main(int argc, char *argv[])
+ 		}
+ 	}
+ 
++	if (actcount == 0) {
++		(void) fprintf(stderr, gettext("%s: One of -i, -l, -u or -v "
++		    "must be provided.\n"), cmdname);
++		usage(verbose);
++		return (2);
++	}
++
+ 	if (actcount != 1) {
+-		(void) fprintf(stderr, gettext("%s: options -v, -i and -u "
++		(void) fprintf(stderr, gettext("%s: options -i, -l, -u and -v "
+ 		    "are mutually exclusive.\n"), cmdname);
+ 		usage(verbose);
+ 		return (2);
+@@ -562,7 +707,7 @@ main(int argc, char *argv[])
+ 
+ 	if (optind <= argc - 1)
+ 		filename = argv[optind];
+-	else if (!(action & UCODE_OPT_VERSION))
++	else if (action != UCODE_OPT_VERSION)
+ 		errflg++;
+ 
+ 	if (errflg || action == 0) {
+@@ -571,9 +716,11 @@ main(int argc, char *argv[])
+ 	}
+ 
+ 	/*
+-	 * Convert from text format to binary format
++	 * Convert from the vendor-shipped format (text for Intel, binary
++	 * container for AMD) to individual microcode files.
+ 	 */
+-	if ((action & UCODE_OPT_INSTALL) || (action & UCODE_OPT_UPDATE)) {
++	if ((action &
++	    (UCODE_OPT_INSTALL | UCODE_OPT_UPDATE | UCODE_OPT_LIST))) {
+ 		int i;
+ 		UCODE_VENDORS;
+ 
+@@ -594,26 +741,26 @@ main(int argc, char *argv[])
+ 		if (ucode_vendors[i].filestr == NULL) {
+ 			rc = EM_NOVENDOR;
+ 			ucode_perror(basename(filename), rc);
+-			goto err_out;
++			goto out;
+ 		}
+ 
+ 		if ((stat(filename, &filestat)) < 0) {
+ 			rc = EM_SYS;
+ 			ucode_perror(filename, rc);
+-			goto err_out;
++			goto out;
+ 		}
+ 
+ 		if ((filestat.st_mode & S_IFMT) != S_IFREG &&
+ 		    (filestat.st_mode & S_IFMT) != S_IFLNK) {
+ 			rc = EM_FILEFORMAT;
+ 			ucode_perror(filename, rc);
+-			goto err_out;
++			goto out;
+ 		}
+ 
+ 		if ((buf = malloc(filestat.st_size)) == NULL) {
+ 			rc = EM_SYS;
+ 			ucode_perror(filename, rc);
+-			goto err_out;
++			goto out;
+ 		}
+ 
+ 		ucode_size = ucode->convert(filename, buf, filestat.st_size);
+@@ -623,15 +770,20 @@ main(int argc, char *argv[])
+ 		if (ucode_size == 0) {
+ 			rc = EM_FILEFORMAT;
+ 			ucode_perror(filename, rc);
+-			goto err_out;
++			goto out;
+ 		}
+ 
+ 		if ((rc = ucode->validate(buf, ucode_size)) != EM_OK) {
+ 			ucode_perror(filename, rc);
+-			goto err_out;
++			goto out;
+ 		}
+ 	}
+ 
++	if (action & UCODE_OPT_LIST) {
++		ucode->list(buf, ucode_size);
++		goto out;
++	}
++
+ 	/*
+ 	 * For the install option, the microcode file must start with
+ 	 * "intel" for Intel microcode, and "amd" for AMD microcode.
+@@ -645,7 +797,7 @@ main(int argc, char *argv[])
+ 			if ((path = malloc(PATH_MAX)) == NULL) {
+ 				rc = EM_SYS;
+ 				ucode_perror("malloc", rc);
+-				goto err_out;
++				goto out;
+ 			}
+ 
+ 			(void) snprintf(path, PATH_MAX, "/%s/%s",
+@@ -655,18 +807,18 @@ main(int argc, char *argv[])
+ 		if (mkdirp(path, 0755) == -1 && errno != EEXIST) {
+ 			rc = EM_SYS;
+ 			ucode_perror(path, rc);
+-			goto err_out;
++			goto out;
+ 		}
+ 
+ 		rc = ucode->gen_files(buf, ucode_size, path);
+ 
+-		goto err_out;
++		goto out;
+ 	}
+ 
+ 	if ((dev_fd = open(ucode_dev, O_RDONLY)) == -1) {
+ 		rc = EM_SYS;
+ 		ucode_perror(ucode_dev, rc);
+-		goto err_out;
++		goto out;
+ 	}
+ 
+ 	if (action & UCODE_OPT_VERSION) {
+@@ -685,7 +837,7 @@ main(int argc, char *argv[])
+ 		    malloc(cpuid_max * sizeof (uint32_t))) == NULL) {
+ 			rc = EM_SYS;
+ 			ucode_perror("malloc", rc);
+-			goto err_out;
++			goto out;
+ 		}
+ 
+ 		for (i = 0; i < cpuid_max; i++)
+@@ -759,7 +911,7 @@ main(int argc, char *argv[])
+ 		}
+ 	}
+ 
+-err_out:
++out:
+ 	if (dev_fd != -1)
+ 		(void) close(dev_fd);
+ 
+diff --git a/usr/src/data/ucode/Makefile b/usr/src/data/ucode/Makefile
+index 59d62813b3..c4d40f1fbf 100644
+--- a/usr/src/data/ucode/Makefile
++++ b/usr/src/data/ucode/Makefile
+@@ -11,6 +11,7 @@
+ 
+ #
+ # Copyright 2019 Joyent, Inc.
++# Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
+ #
+ 
+ include	$(SRC)/data/Makefile.data
+@@ -19,7 +20,7 @@ ROOTUCODEPATH = $(ROOT)/platform/i86pc/ucode
+ ROOTAMDDIR = $(ROOTUCODEPATH)/AuthenticAMD
+ ROOTINTELDIR = $(ROOTUCODEPATH)/GenuineIntel
+ 
+-AMD_FILES :sh= (cd amd; print *)
++AMD_FILES :sh= (cd amd; print *-* container)
+ INTEL_FILES :sh= (cd intel; print *-*)
+ include $(SRC)/data/ucode/Makefile.links
+ 
+diff --git a/usr/src/data/ucode/README.ucode b/usr/src/data/ucode/README.ucode
+index 287a2ce50d..30851457e5 100644
+--- a/usr/src/data/ucode/README.ucode
++++ b/usr/src/data/ucode/README.ucode
+@@ -11,6 +11,7 @@
+ 
+ #
+ # Copyright 2019 Joyent, Inc.
++# Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
+ #
+ 
+ Microcode Management
+@@ -27,17 +28,31 @@ Intead of using this method, we will update the microcode and manage
+ them in here as individual files. When updating files, please indicate
+ the release that the microcode was obtained from here.
+ 
++>>> Intel
++
+ The upstream microcode for Intel can currently be found at:
+ 
+-https://github.com/intel/Intel-Linux-Processor-Microcode-Data-Files
++    https://github.com/intel/Intel-Linux-Processor-Microcode-Data-Files
+ 
+ The script "update.intel" in this directory can be used to help automate
+ the update by providing a tarball of the above microcode, and takes care
+ of updating the manifest as necessary. Be careful about new files.
+ 
+-AMD: Updated in March 2012 as part of illumos#2546. Exact revision
+-unknown.
+-
+-Intel: Linux YYYYMMDD release, see
++Intel - see:
+     usr/src/pkg/manifests/system-microcode-intel.p5m
+ for exact current version
++
++>>> AMD
++
++The upstream microcode for AMD can currently be found at:
++
++    git://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
++
++The script "update.amd" in this directory can be used to help automate
++the update by automatically checking out the latest upstream firmware and
++inserting it into the tree and package manifest. Be careful about new files.
++
++AMD - see:
++    usr/src/pkg/manifests/system-microcode-amd.p5m
++for exact current version
++
+diff --git a/usr/src/data/ucode/amd/2031-00 b/usr/src/data/ucode/amd/2031-00
+new file mode 100644
+index 0000000000000000000000000000000000000000..26e4731b3c3a19b72ec220701c9f236b31520df8
+GIT binary patch
+literal 512
+zcmXYtKWGzS9EN|_vpEZAzW4`3t+@;i+ND@5LM`5jV4(<AL?Rg)mw;QXC16SLyBcT~
+z#lbFJjJT-rPZ5h!q2wUqpn@G*6o+~dBx1!LO)y`><$JwQ-{pO`hv(fM3#olX9b`x7
+zSF?79{^w{c7{y|-tP>qmi4a5&Z}kKtdeXVI)fRfort=BfcZIEv)+35LGT`?uS>4Mt
+zGbDJmVz?w#V49OEnC~Bu3c1MOg9WeVvFi?|_O^1bvEUDp$<R*`4FwCS`)MKgo<YN{
+zR$h(MJ#N`5q9kxj^TdhFLH}jgS(^J%Th-;Za&PY0*_%2|0&zn=e$xpgv*KaGhGUj0
+zhC{nfg?3*dF&{4J%mp?FvlE8HUH6;ERLaC~{<muv@*IsXIps!F?$<6aH2w~Fj}-e1
+zaAY&kD{E5mL2`#7G|yMXaWu%mA9E(qt4b5eJhuyA%b95NMb?^4(R<Vj@J3d8)`3RZ
+zT%nKgwUexsAnNKjuI`i%xR}OWE(1No?}}0=kx#buZmZtB+R-h*hb0RR@^JWCn?I$~
+z+vo3;Oa9_w_z+5I@wqv9Iyk7!uUjE{8ebzOzm9H5%$fd$i^CG7fS;!EbE>idH1lIU
+TeBVz5dP;$2o#5V-Vq^Uu;BgDD
+
+literal 0
+HcmV?d00001
+
+diff --git a/usr/src/data/ucode/amd/5010-00 b/usr/src/data/ucode/amd/5010-00
+index 49eb4aa83c6a3644061565d8ef1f50b8e9c3c262..ab96d547e134112e7c2851c5ff196097b219a99e 100644
+GIT binary patch
+literal 1568
+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
+SnnhrKdF^nFv7({CV>ey9MhM;j
+
+literal 1824
+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
+O0?3ROUJfDn#rf`ZaDyiR
+
+diff --git a/usr/src/data/ucode/amd/5020-00 b/usr/src/data/ucode/amd/5020-00
+index 23576ab88d7de7945e03e450252427dd49483bce..1d5cfbc7353742c35d98144ae227b197c02d7ca8 100644
+GIT binary patch
+literal 1568
+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
+SlKZ)jco7)0G(LFp{7ED*OZ>$E
+
+literal 1568
+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
+SGWYyNg@kTRo+jQ|g*uW0YytWJ
+
+diff --git a/usr/src/data/ucode/amd/6012-00 b/usr/src/data/ucode/amd/6012-00
+index 38a88d14a29656361008646cc1fe71b9c6366b69..0206e282149841f50e1f607af8ca3ddff2914954 100644
+GIT binary patch
+literal 2592
+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
+Chw456
+
+literal 2592
+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
+C8|7^P
+
+diff --git a/usr/src/data/ucode/amd/6020-00 b/usr/src/data/ucode/amd/6020-00
+new file mode 100644
+index 0000000000000000000000000000000000000000..97b06ca8746ffcc3a7020116d616df515f26ff17
+GIT binary patch
+literal 2592
+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
+CJQYL$
+
+literal 0
+HcmV?d00001
+
+diff --git a/usr/src/data/ucode/amd/6101-00 b/usr/src/data/ucode/amd/6101-00
+new file mode 100644
+index 0000000000000000000000000000000000000000..fef3101c49f257b2753d14420292c48cadca0b4b
+GIT binary patch
+literal 2592
+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
+CX9ceS
+
+literal 0
+HcmV?d00001
+
+diff --git a/usr/src/data/ucode/amd/7001-00 b/usr/src/data/ucode/amd/7001-00
+new file mode 100644
+index 0000000000000000000000000000000000000000..39c169c6e02c379a9fb69adca5967927b3cc0fde
+GIT binary patch
+literal 3458
+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
+XJT#D~RfW~=yL<DaflcDO-#>o=!KLq}
+
+literal 0
+HcmV?d00001
+
+diff --git a/usr/src/data/ucode/amd/8012-00 b/usr/src/data/ucode/amd/8012-00
+new file mode 100644
+index 0000000000000000000000000000000000000000..5f5d1fbe301f7df38686aa4e3f27b6d975f9a1a4
+GIT binary patch
+literal 3200
+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
+UHspeBXOdm{WS{<G4?dRp4-nCK<^TWy
+
+literal 0
+HcmV?d00001
+
+diff --git a/usr/src/data/ucode/amd/8082-00 b/usr/src/data/ucode/amd/8082-00
+new file mode 100644
+index 0000000000000000000000000000000000000000..f692c74d3c26d339ace7c5cb3148a676e2e1be78
+GIT binary patch
+literal 3200
+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
+
+literal 0
+HcmV?d00001
+
+diff --git a/usr/src/data/ucode/amd/8310-00 b/usr/src/data/ucode/amd/8310-00
+new file mode 100644
+index 0000000000000000000000000000000000000000..4b448354f073847126395de2ca45d9ece2874afc
+GIT binary patch
+literal 3200
+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
+
+literal 0
+HcmV?d00001
+
+diff --git a/usr/src/data/ucode/amd/A010-00 b/usr/src/data/ucode/amd/A010-00
+new file mode 100644
+index 0000000000000000000000000000000000000000..48149467dedfae820d6a55821c7a4df49f9574e5
+GIT binary patch
+literal 5568
+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
+OIQ<n#aM3F1EfD9#;NeyP
+
+literal 0
+HcmV?d00001
+
+diff --git a/usr/src/data/ucode/amd/A011-00 b/usr/src/data/ucode/amd/A011-00
+new file mode 100644
+index 0000000000000000000000000000000000000000..2bcf1d5a655b4a97a524294395056512f47fcc28
+GIT binary patch
+literal 5568
+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
+OcPZ2!;wt=TN}>ySS<V&!
+
+literal 0
+HcmV?d00001
+
+diff --git a/usr/src/data/ucode/amd/A012-00 b/usr/src/data/ucode/amd/A012-00
+new file mode 100644
+index 0000000000000000000000000000000000000000..4536829bb5059829a5af15da14f658162374570c
+GIT binary patch
+literal 5568
+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
+OcPZ2!;wt=TN}>xBvd4A+
+
+literal 0
+HcmV?d00001
+
+diff --git a/usr/src/data/ucode/amd/THIRDPARTYLICENSE b/usr/src/data/ucode/amd/THIRDPARTYLICENSE
+new file mode 100644
+index 0000000000..de5b29c4e4
+--- /dev/null
++++ b/usr/src/data/ucode/amd/THIRDPARTYLICENSE
+@@ -0,0 +1,64 @@
++Copyright (C) 2010-2018 Advanced Micro Devices, Inc., All rights reserved.
++
++Permission is hereby granted by Advanced Micro Devices, Inc. ("AMD"),
++free of any license fees, to any person obtaining a copy of this
++microcode in binary form (the "Software") ("You"), to install,
++reproduce, copy and distribute copies of the Software and to permit
++persons to whom the Software is provided to do the same, subject to
++the following terms and conditions.  Your use of any portion of the
++Software shall constitute Your acceptance of the following terms and
++conditions. If You do not agree to the following terms and conditions,
++do not use, retain or redistribute any portion of the Software.
++
++If You redistribute this Software, You must reproduce the above
++copyright notice and this license with the Software.
++Without specific, prior, written permission from AMD, You may not
++reference AMD or AMD products in the promotion of any product derived
++from or incorporating this Software in any manner that implies that
++AMD endorses or has certified such product derived from or
++incorporating this Software.
++
++You may not reverse engineer, decompile, or disassemble this Software
++or any portion thereof.
++
++THE SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY EXPRESS OR IMPLIED
++WARRANTY OF ANY KIND, INCLUDING BUT NOT LIMITED TO WARRANTIES OF
++MERCHANTABILITY, NONINFRINGEMENT, TITLE, FITNESS FOR ANY PARTICULAR
++PURPOSE, OR WARRANTIES ARISING FROM CONDUCT, COURSE OF DEALING, OR
++USAGE OF TRADE. IN NO EVENT SHALL AMD OR ITS LICENSORS BE LIABLE FOR
++ANY DAMAGES WHATSOEVER (INCLUDING, WITHOUT LIMITATION, DAMAGES FOR
++LOSS OF PROFITS, BUSINESS INTERRUPTION, OR LOSS OF DATA OR
++INFORMATION) ARISING OUT OF AMD'S NEGLIGENCE, GROSS NEGLIGENCE, THE
++USE OF OR INABILITY TO USE THE SOFTWARE, EVEN IF AMD HAS BEEN ADVISED
++OF THE POSSIBILITY OF SUCH DAMAGES. BECAUSE SOME JURISDICTIONS
++PROHIBIT THE EXCLUSION OR LIMITATION OF LIABILITY FOR CONSEQUENTIAL OR
++INCIDENTAL DAMAGES OR THE EXCLUSION OF IMPLIED WARRANTIES, THE ABOVE
++LIMITATION MAY NOT APPLY TO YOU.
++
++Without limiting the foregoing, the Software may implement third party
++technologies for which You must obtain licenses from parties other
++than AMD. You agree that AMD has not obtained or conveyed to You, and
++that You shall be responsible for obtaining the rights to use and/or
++distribute the applicable underlying intellectual property rights
++related to the third party technologies. These third party
++technologies are not licensed hereunder.
++
++If You use the Software (in whole or in part), You shall adhere to all
++applicable U.S., European, and other export laws, including but not
++limited to the U.S. Export Administration Regulations ("EAR"), (15
++C.F.R. Sections 730 through 774), and E.U. Council Regulation (EC) No
++1334/2000 of 22 June 2000. Further, pursuant to Section 740.6  of the
++EAR, You hereby certify that, except pursuant to a license granted by
++the United States Department of Commerce Bureau of Industry and
++Security or as otherwise permitted pursuant to a License Exception
++under the U.S. Export Administration Regulations ("EAR"), You will not
++(1) export, re-export or release to a national of a country in Country
++Groups D:1, E:1 or E:2 any restricted technology, software, or source
++code You receive hereunder, or (2) export to Country Groups D:1, E:1
++or E:2 the direct product of such technology or software, if such
++foreign produced direct product is subject to national security
++controls as identified on the Commerce Control List (currently found
++in Supplement 1 to Part 774 of EAR). For the most current Country
++Group listings, or for additional information about the EAR or Your
++obligations under those regulations, please refer to the U.S. Bureau
++of Industry and Security?s website at ttp://www.bis.doc.gov/.
+diff --git a/usr/src/data/ucode/amd/THIRDPARTYLICENSE.descrip b/usr/src/data/ucode/amd/THIRDPARTYLICENSE.descrip
+new file mode 100644
+index 0000000000..5bfbb45f80
+--- /dev/null
++++ b/usr/src/data/ucode/amd/THIRDPARTYLICENSE.descrip
+@@ -0,0 +1 @@
++AMD Processor Microcode Data Files
+diff --git a/usr/src/data/ucode/amd/container b/usr/src/data/ucode/amd/container
+index 365d279d2b5a00c145a334b56d8b86274e6a9d56..23c9dd3402636dd1780192515583b39b1d3a977c 100644
+GIT binary patch
+delta 3699
+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
+PIeE)vlzi9e>camAUT`Pz
+
+delta 6061
+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
+
+diff --git a/usr/src/data/ucode/amd/equivalence-table b/usr/src/data/ucode/amd/equivalence-table
+index ebb2f9ca321447dd0a2f94bfafe718162d733f17..9c672e6e6a9f478051cbd88801c9e90a1ea45329 100644
+GIT binary patch
+literal 448
+zcmZ9`(G9{d3<S`20=u5TYXA76BS05Gus|sbFhW`;V1taxrBa;}`MRgGBPY@3cnNVO
+zukb=%;DOx36M2Ha<g$MvJNzP-`78MXtDKK>8but%!z1GTZ$6VV_8;W(e@`y=s@&o~
+wMRc<7o}+ifR-WM&(WLga_wU*xZj!<qqLB?&`9!aXD!Cf5BX_Wot&Yad4;ZByxc~qF
+
+delta 62
+scmX@Wynty!z{CUxzKQ$-3^33rFmas{pAdfnOn^ZsVd6O_gaW8I0CqqK*#H0l
+
+diff --git a/usr/src/data/ucode/update.amd b/usr/src/data/ucode/update.amd
+new file mode 100755
+index 0000000000..132832ca22
+--- /dev/null
++++ b/usr/src/data/ucode/update.amd
+@@ -0,0 +1,151 @@
++#!/bin/ksh
++
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
++#
++# A full copy of the text of the CDDL should have accompanied this
++# source. A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
++
++# Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
++
++# A simple update script that checks out the upstream AMD firmware
++# repository, extracts the microcode into separate files within the amd/
++# directory, generates the required combined equivalence table and updates
++# the pkg(7) manifest.
++
++UPSTREAM=git://git.kernel.org
++UPSTREAM_PATH=/pub/scm/linux/kernel/git/firmware/linux-firmware.git
++
++# These are the GPG keys that AMD use to sign their CPU microcode updates
++# The first key is the current one and the second is one they have used for
++# older CPU families.
++GPGSERVER=keys.gnupg.net
++typeset -a GPGKEYS=(
++	0xFC7C6C505DAFCC14718357CAE4BE5339F328AE73
++	0x916A770823A7B27AADE01565A5E8DBC98C0108B4
++)
++
++FW=platform/i86pc/ucode/AuthenticAMD
++
++export LC_ALL=C.UTF-8
++
++set -e
++set -o pipefail
++
++mf=../../pkg/manifests/system-microcode-amd.p5m
++[[ -f $mf ]] || {
++	echo "Run from usr/src/data/ucode" 2>&1
++	exit 1
++}
++
++function find_cmd {
++	typeset cmd="$1"
++	typeset var=$(echo $cmd | tr '[:lower:]' '[:upper:]')
++	typeset -n path="$var"
++	path=$(whence -fp "$cmd")
++	if (($? != 0)) || [ ! -x "$path" ]; then
++		echo "Cannot find executable '$cmd' in PATH"
++		exit 1
++	fi
++}
++
++# This script uses a few commands which are not part of illumos and are
++# expected to be available in the path.
++find_cmd git
++find_cmd gpg
++find_cmd pkgfmt
++find_cmd stat
++# Search for 'ucodeadm'. If you need to use an updated ucodeadm to handle this
++# firmware update, as is occasionally necessary, ensure it occurs earlier in
++# the path than /usr/sbin.
++find_cmd ucodeadm
++
++tmp=$(mktemp -d)
++mkdir -p $tmp/out || {
++	echo "Failed to create temporary directory" 2>&1
++	exit 1
++}
++
++trap 'rm -rf $tmp' EXIT
++
++echo "** Adding AMD GPG signing keys to temporary keyring"
++mkdir -m 0700 $tmp/gnupg
++$GPG --homedir $tmp/gnupg --keyserver $GPGSERVER --receive-keys ${GPGKEYS[@]}
++
++echo "** Cloning $UPSTREAM$UPSTREAM_PATH"
++$GIT clone $UPSTREAM$UPSTREAM_PATH $tmp/ucode
++
++ver=`$GIT -C $tmp/ucode log -n1 --format=%ad --date=format:%Y%m%d amd-ucode`
++echo "** Updating to microcode version $ver"
++
++echo "** Verifying microcode signatures"
++for f in $tmp/ucode/amd-ucode/*.bin; do
++	if [[ ! -f "$f.asc" ]]; then
++		echo "Signature missing for ${f##*/}"
++		exit 1
++	fi
++	$GPG --homedir $tmp/gnupg --trust-model=always --verify $f{.asc,}
++done
++
++# Now that everything is in place and verified, begin modifying the tree.
++
++rm -f amd/*
++
++cp $tmp/ucode/LICENSE.amd-ucode amd/THIRDPARTYLICENSE
++echo AMD Processor Microcode Data Files > amd/THIRDPARTYLICENSE.descrip
++
++for f in $tmp/ucode/amd-ucode/*.bin; do
++	bf=${f##*/}
++	bf=${bf#microcode_}
++	bf=${bf%.bin}
++	[[ $bf = amd* ]] || {
++		echo "$f does not look like a firmware file"
++		exit 1
++	}
++	echo "Converting $bf"
++	mkdir $tmp/out/$bf
++	cp $f $tmp/amd-fw
++	$UCODEADM -i -R $tmp/out/$bf $tmp/amd-fw
++	rm -f $tmp/amd-fw
++done
++
++# Copy the combined container file from the old (pre-family-15h) microcode
++# file to 'container'. This file is only used by xVM.
++cp $tmp/out/amd/container amd/
++
++# Copy the firmware files into place
++cp $tmp/out/*/*-?? amd/
++
++# Combine the equivalence tables from the different updates into one
++# Each equivalence-table file is a sequence of 16-byte records with a
++# 16-byte terminator which is all zeros. To merge, we just concatenate
++# the non-terminator records and then add 16 bytes from /dev/zero.
++{
++	for f in $tmp/out/*/equivalence-table; do
++		size=$($STAT -c %s $f)
++		((size -= 16))
++		dd if=$f bs=1 count=$size status=none
++	done
++	# Add terminator
++	dd if=/dev/zero bs=1 count=16 status=none
++} > amd/equivalence-table
++
++$PKGFMT -u $mf
++mv $mf $mf.tmp
++egrep -v "file path=$FW" $mf.tmp > $mf
++rm -f $mf.tmp
++
++for f in amd/*; do
++	bf=${f##*/}
++	[[ $bf = THIRDPARTYLICENSE* ]] && continue
++	echo "file path=$FW/$bf group=sys mode=0444"\
++	    "reboot-needed=true preserve=true" >> $mf
++done
++
++sed -i "/pkg.fmri.*microcode\/amd@/s/@[0-9]*/@$ver/" $mf
++
++$PKGFMT -fv2 $mf
++
+diff --git a/usr/src/man/man8/ucodeadm.8 b/usr/src/man/man8/ucodeadm.8
+index 19dc40bb12..a391213974 100644
+--- a/usr/src/man/man8/ucodeadm.8
++++ b/usr/src/man/man8/ucodeadm.8
+@@ -1,177 +1,164 @@
+-'\" te
++.\" The contents of this file are subject to the terms of the Common
++.\" Development and Distribution License (the "License").  You may not use
++.\" this file except in compliance with the License.
++.\"
++.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or
++.\" http://www.opensolaris.org/os/licensing.  See the License for the
++.\" specific language governing permissions and limitations under the
++.\" License.
++.\"
++.\" When distributing Covered Code, include this CDDL HEADER in each file
++.\" and include the License file at usr/src/OPENSOLARIS.LICENSE.  If
++.\" applicable, add the following below this CDDL HEADER, with the fields
++.\" enclosed by brackets "[]" replaced with your own identifying
++.\" information: Portions Copyright [yyyy] [name of copyright owner]
++.\"
+ .\" Copyright (c) 2007, Sun Microsystems, Inc. All Rights Reserved
+-.\" The contents of this file are subject to the terms of the Common Development and Distribution License (the "License").  You may not use this file except in compliance with the License.
+-.\" You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE or http://www.opensolaris.org/os/licensing.  See the License for the specific language governing permissions and limitations under the License.
+-.\" When distributing Covered Code, include this CDDL HEADER in each file and include the License file at usr/src/OPENSOLARIS.LICENSE.  If applicable, add the following below this CDDL HEADER, with the fields enclosed by brackets "[]" replaced with your own identifying information: Portions Copyright [yyyy] [name of copyright owner]
+-.TH UCODEADM 8 "Jul 10, 2007"
+-.SH NAME
+-ucodeadm \- update processor microcode
+-.SH SYNOPSIS
+-.LP
+-.nf
+-\fB/usr/sbin/ucodeadm\fR \fB-v\fR
+-.fi
+-
+-.LP
+-.nf
+-\fB/usr/sbin/ucodeadm\fR \fB-u\fR\fImicrocode-text-file\fR
+-.fi
+-
+-.LP
+-.nf
+-\fB/usr/sbin/ucodeadm\fR \fB-i\fR [\fB-R\fR \fIpath\fR] \fImicrocode-text-file\fR
+-.fi
+-
+-.SH DESCRIPTION
+-.sp
+-.LP
+-The \fBucodeadm\fR utility can be used to report running microcode revision on
+-the processors, update microcode, or install microcode on the target system to
+-be used during the boot process.
+-.sp
+-.LP
+-The \fImicrocode-text-file\fR can be obtained from processor vendors.
+-.SH OPTIONS
+-.sp
+-.ne 2
+-.na
+-\fB\fB-v\fR\fR
+-.ad
+-.RS 26n
+-Report microcode revision.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fB-u\fR \fImicrocode-text-file\fR\fR
+-.ad
+-.RS 26n
+-Update microcode on all cross-call interrupt ready processors.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fB-i\fR \fImicrocode-text-file\fR\fR
+-.ad
+-.RS 26n
+-Install microcode files on target system to be used during the next boot
+-cycle. The text file name must have the vendor name prefix, such as
+-"\fBintel\fR" or "\fBamd\fR".
+-.sp
++.\" Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
++.\"
++.Dd July 23, 2022
++.Dt UCODEADM 8
++.Os
++.Sh NAME
++.Nm ucodeadm
++.Nd processor microcode utility
++.Sh SYNOPSIS
++.Nm
++.Fl i
++.Op Fl R Ar path
++.Ar microcode-file
++.Nm
++.Fl l
++.Ar microcode-file
++.Nm
++.Fl u
++.Ar microcode-file
++.Nm
++.Fl v
++.Sh DESCRIPTION
++The
++.Nm
++utility can be used to report the running microcode revision on the processors,
++update microcode, extract microcode to the target system to be used during the
++boot process, or to view details of the microcode patches contained within
++.Ar microcode-file ,
++where
++.Ar microcode-file
++is an update obtained from a processor vendor.
++.Pp
++In general, processor microcode updates are provided as part of the operating
++system and automatically applied during system boot, and there is no need for a
++system administrator to use
++.Nm
++directly.
++The operating system bundled files are not suitable for use with
++.Nm .
++.Sh OPTIONS
++.Bl -tag -width Ds
++.It Fl i Ar microcode-file
++Install microcode files on target system to be used during the next boot cycle.
++The text file name must have the vendor name prefix, such as
++.Dq intel
++or
++.Dq amd .
++.Pp
+ By default the microcode files will be installed at:
+-.sp
+-.in +2
+-.nf
+- /platform/i86pc/ucode/$VENDORSTR/
+-.fi
+-.in -2
+-.sp
+-
+-where \fBVENDORSTR\fR is either "\fBGenuineIntel\fR" or "\fBAuthenticAMD\fR".
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB\fB-R\fR \fIalternate path\fR\fR
+-.ad
+-.RS 26n
+-Install \fImicrocode\fR path in the \fIalternate path\fR.
+-.RE
+-
+-.SH EXAMPLES
+-.LP
+-\fBExample 1 \fRReporting the Microcode Revision
+-.sp
+-.LP
+-The following example displays the microcode revision that is currently
+-running:
+-
+-.sp
+-.in +2
+-.nf
++.Pp
++.D1 Pa /platform/i86pc/ucode/$VENDORSTR/
++.Pp
++where
++.Dv VENDORSTR
++is either
++.Dq GenuineIntel
++or
++.Dq AuthenticAMD .
++.It Fl l Ar microcode-file
++Display details of the microcode patches contained within
++.Ar microcode-file .
++.It Fl u Ar microcode-file
++Update microcode on all cross-call interrupt ready processors.
++.It Fl v
++Report the microcode revision for each CPU on the current system.
++.It Fl R Ar alternate-path
++Install
++.Ar microcode
++files into the provided
++.Ar alternate-path .
++.El
++.Sh EXIT STATUS
++The following exit values are returned:
++.Bl -tag -width Ds
++.It 0
++Successful completion.
++.It >0
++An error occurred.
++.El
++.Sh EXAMPLES
++.Sy Example 1 No Reporting the Microcode Revision
++.Pp
++The following example displays the microcode revision that is currently running:
++.Bd -literal -offset 4n
+ # ucodeadm -v
+-.fi
+-.in -2
+-.sp
+-
+-.LP
+-\fBExample 2 \fRUpdating the Processor Microcode
+-.sp
+-.LP
+-The following example updates the processor microcode to \fBintel-ucode.txt\fR:
+-
+-.sp
+-.in +2
+-.nf
++CPU     Microcode Version
++0       0x2f
++1       0x2f
++.Ed
++.Pp
++.Sy Example 2 No Updating the Processor Microcode
++.Pp
++The following example updates the processor microcode using
++.Pa intel-ucode.txt :
++.Bd -literal -offset 4n
+ # ucodeadm -u intel-ucode.txt
+-.fi
+-.in -2
+-.sp
+-
+-.LP
+-\fBExample 3 \fRInstalling the Microcode on the Target System
+-.sp
+-.LP
+-The following example installs the microcode on the target system,
+-\fB/export/ucode-path\fR:
+-
+-.sp
+-.in +2
+-.nf
++.Ed
++.Pp
++.Sy Example 3 No Installing the Microcode on the Target System
++.Pp
++The following example installs the microcode into
++.Pa /export/ucode-path
++on the target system:
++.Bd -literal -offset 4n
+ # ucodeadm -i -R /export/ucode-path intel-ucode.txt
+-.fi
+-.in -2
+-.sp
+-
+-.sp
+-.LP
++# ls /export/ucode-path
++00001632-00
++.Ed
++.Pp
+ If an alternate path is used when installing the microcode on the target
+ system, the installed microcode file is not used on the next boot cycle.
+-
+-.SH EXIT STATUS
+-.sp
+-.LP
+-The following exit values are returned:
+-.sp
+-.ne 2
+-.na
+-\fB0\fR
+-.ad
+-.RS 6n
+-Successful completion.
+-.RE
+-
+-.sp
+-.ne 2
+-.na
+-\fB>0\fR
+-.ad
+-.RS 6n
+-An error occurred.
+-.RE
+-
+-.SH ATTRIBUTES
+-.sp
+-.LP
+-See \fBattributes\fR(7) for descriptions of the following attributes:
+-.sp
+-
+-.sp
+-.TS
+-box;
+-c | c
+-l | l .
+-ATTRIBUTE TYPE	ATTRIBUTE VALUE
+-_
+-Interface Stability	Stable
+-.TE
+-
+-.SH SEE ALSO
+-.sp
+-.LP
+-.BR attributes (7),
+-.BR psradm (8),
+-.BR psrinfo (8)
++.Pp
++.Sy Example 4 No Listing the contents of a microcode file
++.Bd -literal -offset 4n
++# ucodeadm -l amd_fam17h.bin
++Equivalence table:
++    00800F82 Family=17 Model=08 Stepping=02 -> 8082
++    00800F12 Family=17 Model=01 Stepping=02 -> 8012
++    00830F10 Family=17 Model=31 Stepping=00 -> 8310
++Microcode patches:
++    8082 -> Patch=0800820D Date=04162019 Bytes=3200
++    8012 -> Patch=0800126E Date=11112021 Bytes=3200
++    8310 -> Patch=08301055 Date=02152022 Bytes=3200
++
++# ucodeadm -l intel-ucode.txt
++Microcode patches:
++    00090672-03 -> Family=06 Model=97 Stepping=02
++                   Date=03032022 Bytes=212876
++Extended Signature Table:
++    00090672-03 -> Family=06 Model=97 Stepping=02
++    00090675-03 -> Family=06 Model=97 Stepping=05
++    000B06F2-03 -> Family=06 Model=bf Stepping=02
++    000B06F5-03 -> Family=06 Model=bf Stepping=05
++.Ed
++.Sh INTERFACE STABILITY
++The command line interface of
++.Nm
++is
++.Sy Committed .
++The output of
++.Nm
++is
++.Sy Not-An-Interface
++and may change at any time.
++.Sh SEE ALSO
++.Xr attributes 7 ,
++.Xr psradm 8 ,
++.Xr psrinfo 8
+diff --git a/usr/src/pkg/manifests/system-microcode-amd.p5m b/usr/src/pkg/manifests/system-microcode-amd.p5m
+index 5df04b9d48..a3d8fb95eb 100644
+--- a/usr/src/pkg/manifests/system-microcode-amd.p5m
++++ b/usr/src/pkg/manifests/system-microcode-amd.p5m
+@@ -25,7 +25,7 @@
+ # Copyright 2014 Gary Mills
+ # Copyright 2019 Peter Tribble.
+ # Copyright 2019 Joyent, Inc.
+-# Copyright 2020 OmniOS Community Edition (OmniOSce) Association.
++# Copyright 2022 OmniOS Community Edition (OmniOSce) Association.
+ #
+ 
+ #
+@@ -35,7 +35,7 @@
+ #
+ <include global_zone_only_component>
+ set name=pkg.fmri \
+-    value=pkg:/system/microcode/amd@201203,$(PKGVERS_BUILTON)-$(PKGVERS_BRANCH)
++    value=pkg:/system/microcode/amd@20220408,$(PKGVERS_BUILTON)-$(PKGVERS_BRANCH)
+ set name=pkg.summary value="Microcode for AMD CPUs"
+ set name=pkg.description value="Microcode for AMD CPUs"
+ set name=info.classification value=org.opensolaris.category.2008:System/Core
+@@ -61,6 +61,8 @@ file path=platform/i86pc/ucode/AuthenticAMD/1081-00 group=sys mode=0444 \
+     preserve=true reboot-needed=true
+ file path=platform/i86pc/ucode/AuthenticAMD/10A0-00 group=sys mode=0444 \
+     preserve=true reboot-needed=true
++file path=platform/i86pc/ucode/AuthenticAMD/2031-00 group=sys mode=0444 \
++    preserve=true reboot-needed=true
+ file path=platform/i86pc/ucode/AuthenticAMD/3010-00 group=sys mode=0444 \
+     preserve=true reboot-needed=true
+ file path=platform/i86pc/ucode/AuthenticAMD/5010-00 group=sys mode=0444 \
+@@ -69,8 +71,28 @@ file path=platform/i86pc/ucode/AuthenticAMD/5020-00 group=sys mode=0444 \
+     preserve=true reboot-needed=true
+ file path=platform/i86pc/ucode/AuthenticAMD/6012-00 group=sys mode=0444 \
+     preserve=true reboot-needed=true
++file path=platform/i86pc/ucode/AuthenticAMD/6020-00 group=sys mode=0444 \
++    preserve=true reboot-needed=true
++file path=platform/i86pc/ucode/AuthenticAMD/6101-00 group=sys mode=0444 \
++    preserve=true reboot-needed=true
++file path=platform/i86pc/ucode/AuthenticAMD/7001-00 group=sys mode=0444 \
++    preserve=true reboot-needed=true
++file path=platform/i86pc/ucode/AuthenticAMD/8012-00 group=sys mode=0444 \
++    preserve=true reboot-needed=true
++file path=platform/i86pc/ucode/AuthenticAMD/8082-00 group=sys mode=0444 \
++    preserve=true reboot-needed=true
++file path=platform/i86pc/ucode/AuthenticAMD/8310-00 group=sys mode=0444 \
++    preserve=true reboot-needed=true
++file path=platform/i86pc/ucode/AuthenticAMD/A010-00 group=sys mode=0444 \
++    preserve=true reboot-needed=true
++file path=platform/i86pc/ucode/AuthenticAMD/A011-00 group=sys mode=0444 \
++    preserve=true reboot-needed=true
++file path=platform/i86pc/ucode/AuthenticAMD/A012-00 group=sys mode=0444 \
++    preserve=true reboot-needed=true
+ file path=platform/i86pc/ucode/AuthenticAMD/container group=sys mode=0444 \
+     preserve=true reboot-needed=true
+ file path=platform/i86pc/ucode/AuthenticAMD/equivalence-table group=sys \
+     mode=0444 preserve=true reboot-needed=true
+ license lic_CDDL license=lic_CDDL
++license usr/src/data/ucode/amd/THIRDPARTYLICENSE \
++    license=usr/src/data/ucode/amd/THIRDPARTYLICENSE
+diff --git a/usr/src/uts/common/sys/ucode.h b/usr/src/uts/common/sys/ucode.h
+index c770f14419..7d2af4711a 100644
+--- a/usr/src/uts/common/sys/ucode.h
++++ b/usr/src/uts/common/sys/ucode.h
+@@ -293,6 +293,7 @@ struct ucode_ops {
+ 	int		(*convert)(const char *, uint8_t *, size_t);
+ 	ucode_errno_t	(*gen_files)(uint8_t *, int, char *);
+ 	ucode_errno_t	(*validate)(uint8_t *, int);
++	void		(*list)(uint8_t *, int);
+ };
+ #endif
+ 
+-- 
+2.48.1
+

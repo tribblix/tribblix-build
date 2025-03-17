@@ -1,0 +1,22 @@
+diff --git a/usr/src/uts/sparc/sys/pcb.h b/usr/src/uts/sparc/sys/pcb.h
+index 67653707c1..d80b13c6c3 100644
+--- a/usr/src/uts/sparc/sys/pcb.h
++++ b/usr/src/uts/sparc/sys/pcb.h
+@@ -52,6 +52,8 @@ typedef struct pcb {
+ } pcb_t;
+ #endif /* ! _ASM */
+ 
++#if defined(_KERNEL) || defined(_KMEMUSER)
++
+ /* pcb_flags */
+ #define	PRSTOP_CALLED	0x01	/* prstop() has been called for this lwp */
+ #define	INSTR_VALID	0x02	/* value in pcb_instr is valid (/proc) */
+@@ -72,6 +74,8 @@ typedef struct pcb {
+ #define	STEP_ACTIVE	2	/* actively patching addr, set active flag */
+ #define	STEP_WASACTIVE	3	/* wrap up after taking single-step fault */
+ 
++#endif
++
+ #ifdef	__cplusplus
+ }
+ #endif

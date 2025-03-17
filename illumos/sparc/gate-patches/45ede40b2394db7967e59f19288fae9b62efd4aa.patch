@@ -1,0 +1,903 @@
+From 45ede40b2394db7967e59f19288fae9b62efd4aa Mon Sep 17 00:00:00 2001
+From: Andy Fiddaman <omnios@citrus-it.co.uk>
+Date: Sat, 27 Nov 2021 11:37:45 +0000
+Subject: [PATCH] 14295 Allow shipping an additional libbe_py Reviewed by:
+ Toomas Soome <tsoome@me.com> Approved by: Robert Mustacchi <rm@fingolfin.org>
+
+---
+ exception_lists/packaging.deps                |  4 +
+ usr/src/Makefile.master                       | 10 ++-
+ usr/src/Targetdirs                            | 10 ++-
+ usr/src/lib/pylibbe/Makefile                  |  3 +-
+ usr/src/lib/pylibbe/py3b/Makefile             | 29 +++++++
+ usr/src/lib/pysolaris/Makefile                |  3 +-
+ usr/src/lib/pysolaris/py3b/Makefile           | 37 +++++++++
+ usr/src/lib/pyzfs/Makefile                    |  4 +-
+ usr/src/lib/pyzfs/py3b/Makefile               | 39 ++++++++++
+ usr/src/pkg/Makefile                          |  9 ++-
+ .../system-library-python-libbe-2.p5m         | 39 ++++------
+ .../system-library-python-libbe-3.p5m         | 37 ++++-----
+ .../system-library-python-libbe-3b.p5m        | 30 ++++++++
+ .../system-library-python-solaris-2.p5m       | 44 +++++------
+ .../system-library-python-solaris-3.p5m       | 44 +++++------
+ .../system-library-python-solaris-3b.p5m      | 34 +++++++++
+ .../manifests/system-library-python-zfs-2.p5m | 76 ++++++++-----------
+ .../manifests/system-library-python-zfs-3.p5m | 76 ++++++++-----------
+ .../system-library-python-zfs-3b.p5m          | 50 ++++++++++++
+ 19 files changed, 387 insertions(+), 191 deletions(-)
+ create mode 100644 usr/src/lib/pylibbe/py3b/Makefile
+ create mode 100644 usr/src/lib/pysolaris/py3b/Makefile
+ create mode 100644 usr/src/lib/pyzfs/py3b/Makefile
+ create mode 100644 usr/src/pkg/manifests/system-library-python-libbe-3b.p5m
+ create mode 100644 usr/src/pkg/manifests/system-library-python-solaris-3b.p5m
+ create mode 100644 usr/src/pkg/manifests/system-library-python-zfs-3b.p5m
+
+diff --git a/exception_lists/packaging.deps b/exception_lists/packaging.deps
+index bfac6914b8..4a4f2cebbe 100644
+--- a/exception_lists/packaging.deps
++++ b/exception_lists/packaging.deps
+@@ -32,6 +32,10 @@ pkg:/package/pkg
+ pkg:/print/cups
+ pkg:/print/filter/ghostscript
+ pkg:/release/name
++pkg:/runtime/python-27
++pkg:/runtime/python-35
++pkg:/runtime/python-39
++pkg:/runtime/python-310
+ pkg:/runtime/java
+ pkg:/runtime/java/openjdk11
+ pkg:/runtime/java/openjdk8
+diff --git a/usr/src/Makefile.master b/usr/src/Makefile.master
+index 019c8e213d..5fba5791fa 100644
+--- a/usr/src/Makefile.master
++++ b/usr/src/Makefile.master
+@@ -27,7 +27,7 @@
+ # Copyright 2015 Gary Mills
+ # Copyright 2015 Igor Kozhukhov <ikozhukhov@gmail.com>
+ # Copyright 2016 Toomas Soome <tsoome@me.com>
+-# Copyright 2018 OmniOS Community Edition (OmniOSce) Association.
++# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
+ # Copyright 2021 Joyent, Inc.
+ # Copyright 2019 RackTop Systems.
+ # Copyright 2020 Oxide Computer Company
+@@ -215,7 +215,15 @@ PYTHON=		/usr/bin/python$(PYTHON_VERSION)
+ PYTHON3_VERSION=	3.5
+ PYTHON3_PKGVERS=	-35
+ PYTHON3_SUFFIX=		m
++# BUILDPY3b should be overridden in the .env file in order to build the libbe
++# python module with a secondary python to aid migration between versions.
++BUILDPY3b=		$(POUND_SIGN)
++PYTHON3b_VERSION=	3.9
++PYTHON3b_PKGVERS=	-39
++PYTHON3b_SUFFIX=
++#
+ PYTHON3=		/usr/bin/python$(PYTHON3_VERSION)
++$(BUILDPY3b)PYTHON3b=	/usr/bin/python$(PYTHON3b_VERSION)
+ $(BUILDPY3TOOLS)TOOLS_PYTHON=		$(PYTHON3)
+ $(BUILDPY2TOOLS)TOOLS_PYTHON=		$(PYTHON)
+ SORT=		/usr/bin/sort
+diff --git a/usr/src/Targetdirs b/usr/src/Targetdirs
+index f8c65e8829..b78dc9df7f 100644
+--- a/usr/src/Targetdirs
++++ b/usr/src/Targetdirs
+@@ -28,7 +28,7 @@
+ # Copyright 2016 Hans Rosenfeld <rosenfeld@grumpf.hope-2000.org>
+ # Copyright 2017 Nexenta Systems, Inc.
+ # Copyright 2017 RackTop Systems.
+-# Copyright 2019 OmniOS Community Edition (OmniOSce) Association.
++# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
+ # Copyright 2020 Joyent, Inc.
+ #
+ 
+@@ -87,6 +87,14 @@ $(BUILDPY3)PYTHON3_DIRS += \
+ 	/usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs \
+ 	/usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/__pycache__
+ 
++$(BUILDPY3b)PYTHON3_DIRS += \
++	/usr/lib/python$(PYTHON3b_VERSION) \
++	/usr/lib/python$(PYTHON3b_VERSION)/vendor-packages \
++	/usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/solaris \
++	/usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/solaris/__pycache__ \
++	/usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/zfs \
++	/usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/zfs/__pycache__
++
+ DIRS= \
+ 	/boot \
+ 	/boot/solaris \
+diff --git a/usr/src/lib/pylibbe/Makefile b/usr/src/lib/pylibbe/Makefile
+index a5626cc1b4..f5ac51de2a 100644
+--- a/usr/src/lib/pylibbe/Makefile
++++ b/usr/src/lib/pylibbe/Makefile
+@@ -22,7 +22,7 @@
+ #
+ # Copyright (c) 2008, 2010, Oracle and/or its affiliates. All rights reserved.
+ # Copyright 2012 OmniTI Computer Consulting, Inc.  All rights reserved.
+-# Copyright 2018 OmniOS Community Edition (OmniOSce) Association.
++# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
+ #
+ 
+ include	../Makefile.lib
+@@ -31,6 +31,7 @@ SUBDIRS=
+ $(BUILDPY2)SUBDIRS += $(MACH)
+ $(BUILD64)$(BUILDPY2)SUBDIRS += $(MACH64)
+ $(BUILD64)$(BUILDPY3)SUBDIRS += py3
++$(BUILD64)$(BUILDPY3b)SUBDIRS += py3b
+ XGETTEXT=	$(GNUXGETTEXT)
+ XGETFLAGS=	$(GNUXGETFLAGS)
+ 
+diff --git a/usr/src/lib/pylibbe/py3b/Makefile b/usr/src/lib/pylibbe/py3b/Makefile
+new file mode 100644
+index 0000000000..773c62e90a
+--- /dev/null
++++ b/usr/src/lib/pylibbe/py3b/Makefile
+@@ -0,0 +1,29 @@
++# CDDL HEADER START
++#
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
++#
++# A full copy of the text of the CDDL should have accompanied this
++# source. A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
++# CDDL HEADER END
++
++# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
++
++include ../Makefile.com
++include ../../Makefile.lib.64
++
++PYSHEBANG = $(PYTHON3b)
++PYVER = $(PYTHON3b_VERSION)
++PYSUFFIX = $(PYTHON3b_SUFFIX)
++
++LDLIBS64 += -L$(ADJUNCT_PROTO)/usr/lib/$(MACH64)
++MAPFILES = $(SRCDIR)/mapfile-py3
++$(ROOTLIBDIR)/$(DYNLIB) := FILEMODE= 755
++
++$(ROOTLIBS):
++	$(INS.file) $(DYNLIB)
++
++install: all $(ROOTLIBS)
+diff --git a/usr/src/lib/pysolaris/Makefile b/usr/src/lib/pysolaris/Makefile
+index 4788a3d3e4..f564e4782f 100644
+--- a/usr/src/lib/pysolaris/Makefile
++++ b/usr/src/lib/pysolaris/Makefile
+@@ -21,7 +21,7 @@
+ #
+ # Copyright 2010 Sun Microsystems, Inc.  All rights reserved.
+ # Use is subject to license terms.
+-# Copyright 2018 OmniOS Community Edition (OmniOSce) Association.
++# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
+ #
+ 
+ include	../Makefile.lib
+@@ -30,6 +30,7 @@ SUBDIRS=
+ $(BUILDPY2)SUBDIRS += $(MACH)
+ $(BUILD64)$(BUILDPY2)SUBDIRS += $(MACH64)
+ $(BUILD64)$(BUILDPY3)SUBDIRS += py3
++$(BUILD64)$(BUILDPY3b)SUBDIRS += py3b
+ 
+ all :=		TARGET= all
+ install :=	TARGET= install
+diff --git a/usr/src/lib/pysolaris/py3b/Makefile b/usr/src/lib/pysolaris/py3b/Makefile
+new file mode 100644
+index 0000000000..0fb674b428
+--- /dev/null
++++ b/usr/src/lib/pysolaris/py3b/Makefile
+@@ -0,0 +1,37 @@
++# CDDL HEADER START
++#
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
++#
++# A full copy of the text of the CDDL should have accompanied this
++# source. A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
++#
++# CDDL HEADER END
++
++# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
++
++include ../Makefile.com
++include ../../Makefile.lib.64
++
++PYSHEBANG = $(PYTHON3b)
++PYVER = $(PYTHON3b_VERSION)
++PYSUFFIX = $(PYTHON3b_SUFFIX)
++
++LDLIBS64 += -L$(ADJUNCT_PROTO)/usr/lib/$(MACH64)
++MAPFILES= $(SRCDIR)/mapfile-py3
++ROOTPYSOLFILES=	$(PYSRCS:%=$(ROOTLIBDIR)/%)
++$(ROOTLIBDIR)/$(DYNLIB) := FILEMODE= 755
++
++all: $(LIBS)
++install: all $(ROOTLIBS) $(ROOTPYSOLFILES)
++
++$(ROOTLIBDIR)/%.so: %.so
++	$(INS.file)
++
++$(ROOTLIBDIR)/%: ../common/%
++	$(INS.pyfile)
++	$(PYTHON3b) -mpy_compile $@
++
+diff --git a/usr/src/lib/pyzfs/Makefile b/usr/src/lib/pyzfs/Makefile
+index e3fe65c079..ac33e6d336 100644
+--- a/usr/src/lib/pyzfs/Makefile
++++ b/usr/src/lib/pyzfs/Makefile
+@@ -21,7 +21,7 @@
+ #
+ # Copyright 2009 Sun Microsystems, Inc.  All rights reserved.
+ # Use is subject to license terms.
+-# Copyright 2018 OmniOS Community Edition (OmniOSce) Association.
++# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
+ #
+ 
+ include	../Makefile.lib
+@@ -30,6 +30,8 @@ SUBDIRS=
+ $(BUILDPY2)SUBDIRS += $(MACH)
+ $(BUILD64)$(BUILDPY2)SUBDIRS += $(MACH64)
+ $(BUILD64)$(BUILDPY3)SUBDIRS += py3
++$(BUILD64)$(BUILDPY3b)SUBDIRS += py3b
++
+ XGETTEXT=	$(GNUXGETTEXT)
+ XGETFLAGS=	$(GNUXGETFLAGS)
+ 
+diff --git a/usr/src/lib/pyzfs/py3b/Makefile b/usr/src/lib/pyzfs/py3b/Makefile
+new file mode 100644
+index 0000000000..f9c4d5d6cf
+--- /dev/null
++++ b/usr/src/lib/pyzfs/py3b/Makefile
+@@ -0,0 +1,39 @@
++# CDDL HEADER START
++#
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
++#
++# A full copy of the text of the CDDL should have accompanied this
++# source. A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
++#
++# CDDL HEADER END
++
++#
++# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
++#
++
++include ../Makefile.com
++include ../../Makefile.lib.64
++
++PYSHEBANG = $(PYTHON3b)
++PYVER = $(PYTHON3b_VERSION)
++PYSUFFIX = $(PYTHON3b_SUFFIX)
++
++LDLIBS64 += -L$(ADJUNCT_PROTO)/usr/lib/$(MACH64)
++MAPFILES= $(SRCDIR)/mapfile-py3
++ROOTPYZFSFILES=	$(PYSRCS:%=$(ROOTLIBDIR)/%)
++$(ROOTLIBDIR)/$(DYNLIB) := FILEMODE= 755
++
++all: $(LIBS)
++install: all $(ROOTLIBS) $(ROOTPYZFSFILES)
++
++$(ROOTLIBDIR)/%.so: %.so
++	$(INS.file)
++
++$(ROOTLIBDIR)/%: ../common/%
++	$(INS.pyfile)
++	$(PYTHON3b) -mpy_compile $@
++
+diff --git a/usr/src/pkg/Makefile b/usr/src/pkg/Makefile
+index 2ab875af91..c24fa20b9f 100644
+--- a/usr/src/pkg/Makefile
++++ b/usr/src/pkg/Makefile
+@@ -24,7 +24,7 @@
+ # Copyright 2015, OmniTI Computer Consulting, Inc. All rights reserved.
+ # Copyright 2015 Igor Kozhukhov <ikozhukhov@gmail.com>
+ # Copyright 2016 RackTop Systems.
+-# Copyright 2020 OmniOS Community Edition (OmniOSce) Association.
++# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
+ # Copyright 2020 Peter Tribble
+ #
+ 
+@@ -195,10 +195,13 @@ PKGMOG_DEFINES= \
+ 	BUILDPERL64=$(BUILDPERL64) \
+ 	PYTHON_VERSION=$(PYTHON_VERSION) \
+ 	PYTHON3_VERSION=$(PYTHON3_VERSION) \
++	PYTHON3b_VERSION=$(PYTHON3b_VERSION) \
+ 	PYTHON_PKGVERS=$(PYTHON_PKGVERS) \
+ 	PYTHON3_PKGVERS=$(PYTHON3_PKGVERS) \
++	PYTHON3b_PKGVERS=$(PYTHON3b_PKGVERS) \
+ 	python2_ONLY=$(BUILDPY2) \
+ 	python3_ONLY=$(BUILDPY3) \
++	python3b_ONLY=$(BUILDPY3b) \
+ 	python2tools_ONLY=$(BUILDPY2TOOLS) \
+ 	python3tools_ONLY=$(BUILDPY3TOOLS) \
+ 	JAVA_11_ONLY=$(JAVA_11_ONLY) \
+@@ -262,6 +265,10 @@ $(BUILDPY3) MANIFESTS += \
+ 	system-library-python-libbe-3.p5m \
+ 	system-library-python-solaris-3.p5m \
+ 	system-library-python-zfs-3.p5m
++$(BUILDPY3b) MANIFESTS += \
++	system-library-python-libbe-3b.p5m \
++	system-library-python-solaris-3b.p5m \
++	system-library-python-zfs-3b.p5m
+ 
+ PKGS= $(MANIFESTS:%.p5m=%)
+ DEP_PKGS= $(PKGS:%=$(PDIR)/%.dep)
+diff --git a/usr/src/pkg/manifests/system-library-python-libbe-2.p5m b/usr/src/pkg/manifests/system-library-python-libbe-2.p5m
+index 5080566e9f..94b1fd9a8b 100644
+--- a/usr/src/pkg/manifests/system-library-python-libbe-2.p5m
++++ b/usr/src/pkg/manifests/system-library-python-libbe-2.p5m
+@@ -1,25 +1,16 @@
+ #
+-# CDDL HEADER START
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
+ #
+-# The contents of this file are subject to the terms of the
+-# Common Development and Distribution License (the "License").
+-# You may not use this file except in compliance with the License.
+-#
+-# You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+-# or http://www.opensolaris.org/os/licensing.
+-# See the License for the specific language governing permissions
+-# and limitations under the License.
+-#
+-# When distributing Covered Code, include this CDDL HEADER in each
+-# file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+-# If applicable, add the following below this CDDL HEADER, with the
+-# fields enclosed by brackets "[]" replaced with your own identifying
+-# information: Portions Copyright [yyyy] [name of copyright owner]
+-#
+-# CDDL HEADER END
++# A full copy of the text of the CDDL should have accompanied this
++# source.  A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
+ #
++
+ #
+-# Copyright 2020 OmniOS Community Edition (OmniOSce) Association.
++# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
+ #
+ 
+ set name=pkg.fmri \
+@@ -31,11 +22,11 @@ set name=info.classification \
+ set name=variant.arch value=$(ARCH)
+ dir  path=usr group=sys
+ dir  path=usr/lib
+-$(python2_ONLY)dir path=usr/lib/python$(PYTHON_VERSION)
+-$(python2_ONLY)dir path=usr/lib/python$(PYTHON_VERSION)/vendor-packages
+-$(python2_ONLY)dir path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/64
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/64/libbe_py.so
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/libbe_py.so
++dir  path=usr/lib/python$(PYTHON_VERSION)
++dir  path=usr/lib/python$(PYTHON_VERSION)/vendor-packages
++dir  path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/64
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/64/libbe_py.so
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/libbe_py.so
+ license cr_Sun license=cr_Sun
+ license lic_CDDL license=lic_CDDL
+-$(python2_ONLY)depend type=require fmri=runtime/python$(PYTHON_PKGVERS)
++depend type=require fmri=runtime/python$(PYTHON_PKGVERS)
+diff --git a/usr/src/pkg/manifests/system-library-python-libbe-3.p5m b/usr/src/pkg/manifests/system-library-python-libbe-3.p5m
+index d1382543f7..6452df74cc 100644
+--- a/usr/src/pkg/manifests/system-library-python-libbe-3.p5m
++++ b/usr/src/pkg/manifests/system-library-python-libbe-3.p5m
+@@ -1,39 +1,30 @@
+ #
+-# CDDL HEADER START
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
+ #
+-# The contents of this file are subject to the terms of the
+-# Common Development and Distribution License (the "License").
+-# You may not use this file except in compliance with the License.
+-#
+-# You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+-# or http://www.opensolaris.org/os/licensing.
+-# See the License for the specific language governing permissions
+-# and limitations under the License.
+-#
+-# When distributing Covered Code, include this CDDL HEADER in each
+-# file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+-# If applicable, add the following below this CDDL HEADER, with the
+-# fields enclosed by brackets "[]" replaced with your own identifying
+-# information: Portions Copyright [yyyy] [name of copyright owner]
+-#
+-# CDDL HEADER END
++# A full copy of the text of the CDDL should have accompanied this
++# source.  A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
+ #
++
+ #
+-# Copyright 2020 OmniOS Community Edition (OmniOSce) Association.
++# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
+ #
+ 
+ set name=pkg.fmri \
+     value=pkg:/system/library/python/libbe$(PYTHON3_PKGVERS)@$(PKGVERS)
+-set name=pkg.summary value="py_libbe module, python3"
++set name=pkg.summary value="py_libbe module, python $(PYTHON3_VERSION)"
+ set name=pkg.description value="Boot Environment Management Python3 Module"
+ set name=info.classification \
+     value=org.opensolaris.category.2008:System/Libraries
+ set name=variant.arch value=$(ARCH)
+ dir  path=usr group=sys
+ dir  path=usr/lib
+-$(python3_ONLY)dir path=usr/lib/python$(PYTHON3_VERSION)
+-$(python3_ONLY)dir path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages
+-$(python3_ONLY)file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/libbe_py.so
++dir  path=usr/lib/python$(PYTHON3_VERSION)
++dir  path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages
++file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/libbe_py.so
+ license cr_Sun license=cr_Sun
+ license lic_CDDL license=lic_CDDL
+-$(python3_ONLY)depend type=require fmri=runtime/python$(PYTHON3_PKGVERS)
++depend type=require fmri=runtime/python$(PYTHON3_PKGVERS)
+diff --git a/usr/src/pkg/manifests/system-library-python-libbe-3b.p5m b/usr/src/pkg/manifests/system-library-python-libbe-3b.p5m
+new file mode 100644
+index 0000000000..48d4db637b
+--- /dev/null
++++ b/usr/src/pkg/manifests/system-library-python-libbe-3b.p5m
+@@ -0,0 +1,30 @@
++#
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
++#
++# A full copy of the text of the CDDL should have accompanied this
++# source.  A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
++#
++
++#
++# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
++#
++
++set name=pkg.fmri \
++    value=pkg:/system/library/python/libbe$(PYTHON3b_PKGVERS)@$(PKGVERS)
++set name=pkg.summary value="py_libbe module, python $(PYTHON3b_VERSION)"
++set name=pkg.description value="Boot Environment Management Python3 Module"
++set name=info.classification \
++    value=org.opensolaris.category.2008:System/Libraries
++set name=variant.arch value=$(ARCH)
++dir  path=usr group=sys
++dir  path=usr/lib
++dir  path=usr/lib/python$(PYTHON3b_VERSION)
++dir  path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages
++file path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/libbe_py.so
++license cr_Sun license=cr_Sun
++license lic_CDDL license=lic_CDDL
++depend type=require fmri=runtime/python$(PYTHON3b_PKGVERS)
+diff --git a/usr/src/pkg/manifests/system-library-python-solaris-2.p5m b/usr/src/pkg/manifests/system-library-python-solaris-2.p5m
+index 6a0c991af3..a0965a8603 100644
+--- a/usr/src/pkg/manifests/system-library-python-solaris-2.p5m
++++ b/usr/src/pkg/manifests/system-library-python-solaris-2.p5m
+@@ -1,26 +1,18 @@
+ #
+-# CDDL HEADER START
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
+ #
+-# The contents of this file are subject to the terms of the
+-# Common Development and Distribution License (the "License").
+-# You may not use this file except in compliance with the License.
++# A full copy of the text of the CDDL should have accompanied this
++# source.  A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
+ #
+-# You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+-# or http://www.opensolaris.org/os/licensing.
+-# See the License for the specific language governing permissions
+-# and limitations under the License.
+-#
+-# When distributing Covered Code, include this CDDL HEADER in each
+-# file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+-# If applicable, add the following below this CDDL HEADER, with the
+-# fields enclosed by brackets "[]" replaced with your own identifying
+-# information: Portions Copyright [yyyy] [name of copyright owner]
++
+ #
+-# CDDL HEADER END
++# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
+ #
+ 
+-# Copyright 2020 OmniOS Community Edition (OmniOSce) Association.
+-
+ set name=pkg.fmri \
+     value=pkg:/system/library/python/solaris$(PYTHON_PKGVERS)@$(PKGVERS)
+ set name=pkg.summary value="solaris module, python2"
+@@ -30,14 +22,14 @@ set name=info.classification \
+ set name=variant.arch value=$(ARCH)
+ dir  path=usr group=sys
+ dir  path=usr/lib
+-$(python2_ONLY)dir path=usr/lib/python$(PYTHON_VERSION)
+-$(python2_ONLY)dir path=usr/lib/python$(PYTHON_VERSION)/vendor-packages
+-$(python2_ONLY)dir path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/solaris
+-$(python2_ONLY)dir path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/solaris/64
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/solaris/64/misc.so
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/solaris/__init__.py
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/solaris/__init__.pyc
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/solaris/misc.so
++dir  path=usr/lib/python$(PYTHON_VERSION)
++dir  path=usr/lib/python$(PYTHON_VERSION)/vendor-packages
++dir  path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/solaris
++dir  path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/solaris/64
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/solaris/64/misc.so
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/solaris/__init__.py
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/solaris/__init__.pyc
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/solaris/misc.so
+ license cr_Sun license=cr_Sun
+ license lic_CDDL license=lic_CDDL
+-$(python2_ONLY)depend type=require fmri=runtime/python$(PYTHON_PKGVERS)
++depend type=require fmri=runtime/python$(PYTHON_PKGVERS)
+diff --git a/usr/src/pkg/manifests/system-library-python-solaris-3.p5m b/usr/src/pkg/manifests/system-library-python-solaris-3.p5m
+index c1681c81b7..6d21a5e1d0 100644
+--- a/usr/src/pkg/manifests/system-library-python-solaris-3.p5m
++++ b/usr/src/pkg/manifests/system-library-python-solaris-3.p5m
+@@ -1,42 +1,34 @@
+ #
+-# CDDL HEADER START
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
+ #
+-# The contents of this file are subject to the terms of the
+-# Common Development and Distribution License (the "License").
+-# You may not use this file except in compliance with the License.
++# A full copy of the text of the CDDL should have accompanied this
++# source.  A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
+ #
+-# You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+-# or http://www.opensolaris.org/os/licensing.
+-# See the License for the specific language governing permissions
+-# and limitations under the License.
+-#
+-# When distributing Covered Code, include this CDDL HEADER in each
+-# file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+-# If applicable, add the following below this CDDL HEADER, with the
+-# fields enclosed by brackets "[]" replaced with your own identifying
+-# information: Portions Copyright [yyyy] [name of copyright owner]
++
+ #
+-# CDDL HEADER END
++# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
+ #
+ 
+-# Copyright 2020 OmniOS Community Edition (OmniOSce) Association.
+-
+ set name=pkg.fmri \
+     value=pkg:/system/library/python/solaris$(PYTHON3_PKGVERS)@$(PKGVERS)
+-set name=pkg.summary value="solaris module, python3"
++set name=pkg.summary value="solaris module, python $(PYTHON3_VERSION)"
+ set name=pkg.description value="Solaris Python3 Module"
+ set name=info.classification \
+     value=org.opensolaris.category.2008:System/Libraries
+ set name=variant.arch value=$(ARCH)
+ dir  path=usr group=sys
+ dir  path=usr/lib
+-$(python3_ONLY)dir path=usr/lib/python$(PYTHON3_VERSION)
+-$(python3_ONLY)dir path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages
+-$(python3_ONLY)dir path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/solaris
+-$(python3_ONLY)file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/solaris/__init__.py
+-$(python3_ONLY)dir path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/solaris/__pycache__
+-$(python3_ONLY)file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/solaris/__pycache__/__init__.cpython$(PYTHON3_PKGVERS).pyc
+-$(python3_ONLY)file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/solaris/misc.so
++dir  path=usr/lib/python$(PYTHON3_VERSION)
++dir  path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages
++dir  path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/solaris
++file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/solaris/__init__.py
++dir  path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/solaris/__pycache__
++file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/solaris/__pycache__/__init__.cpython$(PYTHON3_PKGVERS).pyc
++file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/solaris/misc.so
+ license cr_Sun license=cr_Sun
+ license lic_CDDL license=lic_CDDL
+-$(python3_ONLY)depend type=require fmri=runtime/python$(PYTHON3_PKGVERS)
++depend type=require fmri=runtime/python$(PYTHON3_PKGVERS)
+diff --git a/usr/src/pkg/manifests/system-library-python-solaris-3b.p5m b/usr/src/pkg/manifests/system-library-python-solaris-3b.p5m
+new file mode 100644
+index 0000000000..8110519d9c
+--- /dev/null
++++ b/usr/src/pkg/manifests/system-library-python-solaris-3b.p5m
+@@ -0,0 +1,34 @@
++#
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
++#
++# A full copy of the text of the CDDL should have accompanied this
++# source.  A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
++#
++
++#
++# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
++#
++
++set name=pkg.fmri \
++    value=pkg:/system/library/python/solaris$(PYTHON3b_PKGVERS)@$(PKGVERS)
++set name=pkg.summary value="solaris module, python $(PYTHON3b_VERSION)"
++set name=pkg.description value="Solaris Python3 Module"
++set name=info.classification \
++    value=org.opensolaris.category.2008:System/Libraries
++set name=variant.arch value=$(ARCH)
++dir  path=usr group=sys
++dir  path=usr/lib
++dir  path=usr/lib/python$(PYTHON3b_VERSION)
++dir  path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages
++dir  path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/solaris
++file path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/solaris/__init__.py
++dir  path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/solaris/__pycache__
++file path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/solaris/__pycache__/__init__.cpython$(PYTHON3b_PKGVERS).pyc
++file path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/solaris/misc.so
++license cr_Sun license=cr_Sun
++license lic_CDDL license=lic_CDDL
++depend type=require fmri=runtime/python$(PYTHON3b_PKGVERS)
+diff --git a/usr/src/pkg/manifests/system-library-python-zfs-2.p5m b/usr/src/pkg/manifests/system-library-python-zfs-2.p5m
+index 70da834b9b..8f9d1bd7d0 100644
+--- a/usr/src/pkg/manifests/system-library-python-zfs-2.p5m
++++ b/usr/src/pkg/manifests/system-library-python-zfs-2.p5m
+@@ -1,26 +1,16 @@
+ #
+-# CDDL HEADER START
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
+ #
+-# The contents of this file are subject to the terms of the
+-# Common Development and Distribution License (the "License").
+-# You may not use this file except in compliance with the License.
+-#
+-# You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+-# or http://www.opensolaris.org/os/licensing.
+-# See the License for the specific language governing permissions
+-# and limitations under the License.
+-#
+-# When distributing Covered Code, include this CDDL HEADER in each
+-# file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+-# If applicable, add the following below this CDDL HEADER, with the
+-# fields enclosed by brackets "[]" replaced with your own identifying
+-# information: Portions Copyright [yyyy] [name of copyright owner]
+-#
+-# CDDL HEADER END
++# A full copy of the text of the CDDL should have accompanied this
++# source.  A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
+ #
+ 
+ #
+-# Copyright 2020 OmniOS Community Edition (OmniOSce) Association.
++# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
+ #
+ 
+ set name=pkg.fmri \
+@@ -32,30 +22,30 @@ set name=info.classification \
+ set name=variant.arch value=$(ARCH)
+ dir  path=usr group=sys
+ dir  path=usr/lib
+-$(python2_ONLY)dir path=usr/lib/python$(PYTHON_VERSION)
+-$(python2_ONLY)dir path=usr/lib/python$(PYTHON_VERSION)/vendor-packages
+-$(python2_ONLY)dir path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs
+-$(python2_ONLY)dir path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/64
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/64/ioctl.so
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/__init__.py
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/__init__.pyc
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/allow.py
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/allow.pyc
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/dataset.py
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/dataset.pyc
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/groupspace.py
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/groupspace.pyc
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/holds.py
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/holds.pyc
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/ioctl.so
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/table.py
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/table.pyc
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/unallow.py
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/unallow.pyc
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/userspace.py
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/userspace.pyc
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/util.py
+-$(python2_ONLY)file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/util.pyc
++dir  path=usr/lib/python$(PYTHON_VERSION)
++dir  path=usr/lib/python$(PYTHON_VERSION)/vendor-packages
++dir  path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs
++dir  path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/64
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/64/ioctl.so
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/__init__.py
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/__init__.pyc
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/allow.py
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/allow.pyc
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/dataset.py
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/dataset.pyc
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/groupspace.py
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/groupspace.pyc
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/holds.py
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/holds.pyc
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/ioctl.so
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/table.py
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/table.pyc
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/unallow.py
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/unallow.pyc
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/userspace.py
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/userspace.pyc
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/util.py
++file path=usr/lib/python$(PYTHON_VERSION)/vendor-packages/zfs/util.pyc
+ license cr_Sun license=cr_Sun
+ license lic_CDDL license=lic_CDDL
+-$(python2_ONLY)depend type=require fmri=runtime/python$(PYTHON_PKGVERS)
++depend type=require fmri=runtime/python$(PYTHON_PKGVERS)
+diff --git a/usr/src/pkg/manifests/system-library-python-zfs-3.p5m b/usr/src/pkg/manifests/system-library-python-zfs-3.p5m
+index 23f37b01f5..b72837ac7a 100644
+--- a/usr/src/pkg/manifests/system-library-python-zfs-3.p5m
++++ b/usr/src/pkg/manifests/system-library-python-zfs-3.p5m
+@@ -1,60 +1,50 @@
+ #
+-# CDDL HEADER START
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
+ #
+-# The contents of this file are subject to the terms of the
+-# Common Development and Distribution License (the "License").
+-# You may not use this file except in compliance with the License.
+-#
+-# You can obtain a copy of the license at usr/src/OPENSOLARIS.LICENSE
+-# or http://www.opensolaris.org/os/licensing.
+-# See the License for the specific language governing permissions
+-# and limitations under the License.
+-#
+-# When distributing Covered Code, include this CDDL HEADER in each
+-# file and include the License file at usr/src/OPENSOLARIS.LICENSE.
+-# If applicable, add the following below this CDDL HEADER, with the
+-# fields enclosed by brackets "[]" replaced with your own identifying
+-# information: Portions Copyright [yyyy] [name of copyright owner]
+-#
+-# CDDL HEADER END
++# A full copy of the text of the CDDL should have accompanied this
++# source.  A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
+ #
+ 
+ #
+-# Copyright 2020 OmniOS Community Edition (OmniOSce) Association.
++# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
+ #
+ 
+ set name=pkg.fmri \
+     value=pkg:/system/library/python/zfs$(PYTHON3_PKGVERS)@$(PKGVERS)
+-set name=pkg.summary value="zfs module, python3"
++set name=pkg.summary value="zfs module, python $(PYTHON3_VERSION)"
+ set name=pkg.description value="ZFS Python3 Module"
+ set name=info.classification \
+     value=org.opensolaris.category.2008:System/Libraries
+ set name=variant.arch value=$(ARCH)
+ dir  path=usr group=sys
+ dir  path=usr/lib
+-$(python3_ONLY)dir path=usr/lib/python$(PYTHON3_VERSION)
+-$(python3_ONLY)dir path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages
+-$(python3_ONLY)dir path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs
+-$(python3_ONLY)file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/__init__.py
+-$(python3_ONLY)dir path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/__pycache__
+-$(python3_ONLY)file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/__pycache__/__init__.cpython$(PYTHON3_PKGVERS).pyc
+-$(python3_ONLY)file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/__pycache__/allow.cpython$(PYTHON3_PKGVERS).pyc
+-$(python3_ONLY)file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/__pycache__/dataset.cpython$(PYTHON3_PKGVERS).pyc
+-$(python3_ONLY)file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/__pycache__/groupspace.cpython$(PYTHON3_PKGVERS).pyc
+-$(python3_ONLY)file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/__pycache__/holds.cpython$(PYTHON3_PKGVERS).pyc
+-$(python3_ONLY)file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/__pycache__/table.cpython$(PYTHON3_PKGVERS).pyc
+-$(python3_ONLY)file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/__pycache__/unallow.cpython$(PYTHON3_PKGVERS).pyc
+-$(python3_ONLY)file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/__pycache__/userspace.cpython$(PYTHON3_PKGVERS).pyc
+-$(python3_ONLY)file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/__pycache__/util.cpython$(PYTHON3_PKGVERS).pyc
+-$(python3_ONLY)file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/allow.py
+-$(python3_ONLY)file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/dataset.py
+-$(python3_ONLY)file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/groupspace.py
+-$(python3_ONLY)file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/holds.py
+-$(python3_ONLY)file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/ioctl.so
+-$(python3_ONLY)file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/table.py
+-$(python3_ONLY)file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/unallow.py
+-$(python3_ONLY)file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/userspace.py
+-$(python3_ONLY)file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/util.py
++dir  path=usr/lib/python$(PYTHON3_VERSION)
++dir  path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages
++dir  path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs
++file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/__init__.py
++dir  path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/__pycache__
++file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/__pycache__/__init__.cpython$(PYTHON3_PKGVERS).pyc
++file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/__pycache__/allow.cpython$(PYTHON3_PKGVERS).pyc
++file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/__pycache__/dataset.cpython$(PYTHON3_PKGVERS).pyc
++file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/__pycache__/groupspace.cpython$(PYTHON3_PKGVERS).pyc
++file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/__pycache__/holds.cpython$(PYTHON3_PKGVERS).pyc
++file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/__pycache__/table.cpython$(PYTHON3_PKGVERS).pyc
++file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/__pycache__/unallow.cpython$(PYTHON3_PKGVERS).pyc
++file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/__pycache__/userspace.cpython$(PYTHON3_PKGVERS).pyc
++file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/__pycache__/util.cpython$(PYTHON3_PKGVERS).pyc
++file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/allow.py
++file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/dataset.py
++file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/groupspace.py
++file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/holds.py
++file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/ioctl.so
++file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/table.py
++file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/unallow.py
++file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/userspace.py
++file path=usr/lib/python$(PYTHON3_VERSION)/vendor-packages/zfs/util.py
+ license cr_Sun license=cr_Sun
+ license lic_CDDL license=lic_CDDL
+-$(python3_ONLY)depend type=require fmri=runtime/python$(PYTHON3_PKGVERS)
++depend type=require fmri=runtime/python$(PYTHON3_PKGVERS)
+diff --git a/usr/src/pkg/manifests/system-library-python-zfs-3b.p5m b/usr/src/pkg/manifests/system-library-python-zfs-3b.p5m
+new file mode 100644
+index 0000000000..738386e833
+--- /dev/null
++++ b/usr/src/pkg/manifests/system-library-python-zfs-3b.p5m
+@@ -0,0 +1,50 @@
++#
++# This file and its contents are supplied under the terms of the
++# Common Development and Distribution License ("CDDL"), version 1.0.
++# You may only use this file in accordance with the terms of version
++# 1.0 of the CDDL.
++#
++# A full copy of the text of the CDDL should have accompanied this
++# source.  A copy of the CDDL is also available via the Internet at
++# http://www.illumos.org/license/CDDL.
++#
++
++#
++# Copyright 2021 OmniOS Community Edition (OmniOSce) Association.
++#
++
++set name=pkg.fmri \
++    value=pkg:/system/library/python/zfs$(PYTHON3b_PKGVERS)@$(PKGVERS)
++set name=pkg.summary value="zfs module, python $(PYTHON3b_VERSION)"
++set name=pkg.description value="ZFS Python3 Module"
++set name=info.classification \
++    value=org.opensolaris.category.2008:System/Libraries
++set name=variant.arch value=$(ARCH)
++dir  path=usr group=sys
++dir  path=usr/lib
++dir  path=usr/lib/python$(PYTHON3b_VERSION)
++dir  path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages
++dir  path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/zfs
++file path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/zfs/__init__.py
++dir  path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/zfs/__pycache__
++file path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/zfs/__pycache__/__init__.cpython$(PYTHON3b_PKGVERS).pyc
++file path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/zfs/__pycache__/allow.cpython$(PYTHON3b_PKGVERS).pyc
++file path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/zfs/__pycache__/dataset.cpython$(PYTHON3b_PKGVERS).pyc
++file path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/zfs/__pycache__/groupspace.cpython$(PYTHON3b_PKGVERS).pyc
++file path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/zfs/__pycache__/holds.cpython$(PYTHON3b_PKGVERS).pyc
++file path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/zfs/__pycache__/table.cpython$(PYTHON3b_PKGVERS).pyc
++file path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/zfs/__pycache__/unallow.cpython$(PYTHON3b_PKGVERS).pyc
++file path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/zfs/__pycache__/userspace.cpython$(PYTHON3b_PKGVERS).pyc
++file path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/zfs/__pycache__/util.cpython$(PYTHON3b_PKGVERS).pyc
++file path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/zfs/allow.py
++file path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/zfs/dataset.py
++file path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/zfs/groupspace.py
++file path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/zfs/holds.py
++file path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/zfs/ioctl.so
++file path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/zfs/table.py
++file path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/zfs/unallow.py
++file path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/zfs/userspace.py
++file path=usr/lib/python$(PYTHON3b_VERSION)/vendor-packages/zfs/util.py
++license cr_Sun license=cr_Sun
++license lic_CDDL license=lic_CDDL
++depend type=require fmri=runtime/python$(PYTHON3b_PKGVERS)
+-- 
+2.48.1
+
