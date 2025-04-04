@@ -109,6 +109,9 @@ i386)
 esac
 
 if [ -n "${NFLAG}" ]; then
+    if [ ! -x /usr/bin/mkisofs ]; then
+	echo "ERROR: mkisofs missing (install TRIBcdrtools)"
+    fi
     echo "Dry run finished"
     exit 0
 fi
