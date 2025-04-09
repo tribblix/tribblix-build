@@ -15,7 +15,7 @@
 #
 # }}}
 #
-# Copyright 2024 Peter Tribble
+# Copyright 2025 Peter Tribble
 #
 
 #
@@ -54,7 +54,7 @@ DOMAINNAME=""
 BEGIN_SCRIPT=""
 FINISH_SCRIPT=""
 FIRSTBOOT_SCRIPT=""
-RELEASE="m34"
+RELEASE="m36.1"
 DLHOST="https://pkgs.tribblix.org"
 NFLAG=""
 
@@ -177,12 +177,6 @@ NEWBE="tribblix-${RELEASE}"
 IMGTMP="/var/tmp/${NEWBE}.archive"
 IMGSRC="${DLHOST}/${RELEASE}/platform/i86pc/boot_archive"
 case $RELEASE in
-    m34)
-	IMGSUM="09c643f95957d9a61ec957f6fa10566ef8fa07ad"
-	;;
-    m34lx)
-	IMGSUM="a093c62941db9fb347ec02d1644bc948b5ef9eb3"
-	;;
     m35)
 	IMGSUM="75248c7be915bcca5e08c31030e5c1474f5dbc13"
 	;;
