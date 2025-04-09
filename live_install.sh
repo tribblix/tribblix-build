@@ -227,8 +227,8 @@ fi
 if [ -n "$DRIVELIST" ]; then
   for TDRIVE in $DRIVELIST
   do
-    if [ ! -e /dev/dsk/$TDRIVE ]; then
-      if [ ! -e /dev/dsk/${TDRIVE}s0 ]; then
+    if [ ! -e "/dev/dsk/${TDRIVE}" ]; then
+      if [ ! -e "/dev/dsk/${TDRIVE}s0" ]; then
         echo "ERROR: Unable to find supplied device $TDRIVE"
         exit 1
       fi
@@ -241,8 +241,8 @@ fi
 #
 
 if [ -n "$DRIVE1" ]; then
-    if [ ! -e /dev/dsk/$DRIVE1 ]; then
-	if [ -e /dev/dsk/${DRIVE1}s0 ]; then
+    if [ ! -e "/dev/dsk/${DRIVE1}" ]; then
+	if [ -e "/dev/dsk/${DRIVE1}s0" ]; then
 	    DRIVE1="${DRIVE1}s0"
 	else
 	    echo "ERROR: Unable to find device $DRIVE1"
@@ -252,8 +252,8 @@ if [ -n "$DRIVE1" ]; then
     DRIVELIST="$DRIVELIST $DRIVE1"
 fi
 if [ -n "$DRIVE2" ]; then
-    if [ ! -e /dev/dsk/$DRIVE2 ]; then
-	if [ -e /dev/dsk/${DRIVE2}s0 ]; then
+    if [ ! -e "/dev/dsk/${DRIVE2}" ]; then
+	if [ -e "/dev/dsk/${DRIVE2}s0" ]; then
 	    DRIVE2="${DRIVE2}s0"
 	else
 	    echo "ERROR: Unable to find device $DRIVE2"
@@ -283,16 +283,16 @@ do
 # normalize drive name, replace slice by slice2 for fdisk and by s0 for zpool
 case $FDRIVE in
 *s?)
-    NDRIVE=`echo $FDRIVE | /usr/bin/sed 's:s.$:s2:'`
-    FDRIVE=$NDRIVE
-    NDRIVE=`echo $FDRIVE | /usr/bin/sed 's:s.$:s0:'`
+    NDRIVE=$(echo "$FDRIVE" | /usr/bin/sed 's:s.$:s2:')
+    FDRIVE="$NDRIVE"
+    NDRIVE=$(echo "$FDRIVE" | /usr/bin/sed 's:s.$:s0:')
     ;;
 *)
     NDRIVE="${FDRIVE}s0"
     FDRIVE="${FDRIVE}s2"
 esac
     FDRIVELIST="$FDRIVELIST $NDRIVE"
-    /root/format-a-disk.sh -B $FDRIVE
+    /root/format-a-disk.sh -B "$FDRIVE"
 done
 DRIVELIST="$FDRIVELIST"
 ;;
@@ -351,7 +351,7 @@ fi
 # this gives the BE a UUID, necessary for 'beadm list -H'
 # to not show null, and for zone uninstall to work
 #
-/usr/sbin/zfs set org.opensolaris.libbe:uuid=`/usr/lib/zap/generate-uuid` ${ROOTPOOL}/ROOT/${NEWBE}
+/usr/sbin/zfs set org.opensolaris.libbe:uuid=$(/usr/lib/zap/generate-uuid) "${ROOTPOOL}/ROOT/${NEWBE}"
 
 echo "Copying main filesystems"
 cd /
@@ -407,7 +407,7 @@ fi
 # give ourselves some swap to avoid /tmp exhaustion
 # do it after copying the main OS as it changes the dump settings
 #
-swap -a /dev/zvol/dsk/${ROOTPOOL}/swap
+swap -a "/dev/zvol/dsk/${ROOTPOOL}/swap"
 LOGFILE="${ALTROOT}/var/sadm/install/logs/initial.log"
 echo "Installing overlays" | tee $LOGFILE
 /usr/bin/date | tee -a $LOGFILE
@@ -501,7 +501,7 @@ touch ${ALTROOT}/reconfigure
 echo "Setting up boot"
 
 # new loader
-/usr/bin/cat > /${ROOTPOOL}/boot/menu.lst << _EOF
+/usr/bin/cat > "/${ROOTPOOL}/boot/menu.lst" << _EOF
 title Tribblix 0.36.1
 bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 _EOF
@@ -631,9 +631,9 @@ fi
 #
 # copy selected keyboard type to installed system
 #
-KLAYOUT=`/usr/bin/kbd -l | /usr/bin/awk -F'[= ]' '{if ($1 == "layout") print $2}'`
+KLAYOUT=$(/usr/bin/kbd -l | /usr/bin/awk -F'[= ]' '{if ($1 == "layout") print $2}')
 if [ -n "${KLAYOUT}" ]; then
-  NLAYOUT=`/usr/bin/awk -v ntyp=${KLAYOUT} -F= '{if ($2 == ntyp) print $1}' /usr/share/lib/keytables/type_6/kbd_layouts`
+  NLAYOUT=$(/usr/bin/awk -v ntyp="${KLAYOUT}" -F= '{if ($2 == ntyp) print $1}' /usr/share/lib/keytables/type_6/kbd_layouts)
   if [ -n "${NLAYOUT}" ]; then
     /usr/bin/grep -v keyboard-layout ${ALTROOT}/boot/solaris/bootenv.rc > ${ALTROOT}/boot/solaris/bootenv.rc.tmp
     echo "setprop keyboard-layout ${NLAYOUT}" >> ${ALTROOT}/boot/solaris/bootenv.rc.tmp
