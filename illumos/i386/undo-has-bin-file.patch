@@ -1,0 +1,17 @@
+Unfortunately 17141 makes it much harder to replace our old /usr/bin/file
+with a more modern version, so undo some of the damage here. Some of the
+other problems that commit causes are fixed in packaging.
+
+diff --git a/usr/src/cmd/fm/notify/smtp-notify/common/process_msg_template.sh b/usr/src/cmd/fm/notify/smtp-notify/common/process_msg_template.sh
+index bbd89dac0c..5a256227df 100644
+--- a/usr/src/cmd/fm/notify/smtp-notify/common/process_msg_template.sh
++++ b/usr/src/cmd/fm/notify/smtp-notify/common/process_msg_template.sh
+@@ -47,7 +47,7 @@ if [ ! -e $1 ] || [ ! -r $1 ]; then
+ 	exit 1
+ fi
+ 
+-/usr/has/bin/file $1 | grep "ascii text" > /dev/null
++/usr/bin/file $1 | grep -i "ascii text" > /dev/null
+ if [ $? != 0 ]; then
+ 	exit 1
+ fi
