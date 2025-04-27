@@ -23,11 +23,16 @@ DESTDIR=${DESTTOP}/dist
 THOME=${THOME:-/packages/localsrc/Tribblix}
 MKREPO=${THOME}/tribblix-build/mkrepo
 
+bail() {
+    echo "ERROR: $1"
+    exit 1
+}
+
 #
 # This sets the default size of the ramdisk.
 # More inodes on x86 as each disk has more device nodes.
 #
-case `uname -p` in
+case $(uname -p) in
 i386)
 	MRSIZE=256m
 	NBPI=8192
@@ -38,8 +43,7 @@ sparc)
 	NBPI=20480
 	;;
 *)
-	echo "ERROR: unrecognized architecture"
-	exit 1
+	bail "unrecognized architecture"
 	;;
 esac
 
@@ -74,54 +78,54 @@ esac
 # optimize boot archive creation. The installers will remove this file from the
 # installed system (allowing a pkgadd of cdrtools to install it properly)
 #
-cp /usr/bin/mkisofs ${DESTDIR}/usr/bin/mkisofs
+cp /usr/bin/mkisofs "${DESTDIR}/usr/bin/mkisofs"
 
 #
 # customize jack's environment
 #
-if [ ! -d ${DESTDIR}/jack ]; then
-   mkdir ${DESTDIR}/jack
-   chown 123:10 ${DESTDIR}/jack
+if [ ! -d "${DESTDIR}/jack" ]; then
+   mkdir "${DESTDIR}/jack"
+   chown 123:10 "${DESTDIR}/jack"
 fi
-if /usr/bin/grep -q jack ${DESTDIR}/etc/passwd
+if /usr/bin/grep -q jack "${DESTDIR}/etc/passwd"
 then
   printf ""
 else
-  echo 'jack:x:123:10:Tribblix Jack:/jack:/bin/bash' >> ${DESTDIR}/etc/passwd
-  echo 'jack:$5$robNc/Vf$orrY6BIeUzrqk/IyZFuvf.4Pw2XzysreXiTqq//7mu3:15634::::::' >> ${DESTDIR}/etc/shadow
+  echo 'jack:x:123:10:Tribblix Jack:/jack:/bin/bash' >> "${DESTDIR}/etc/passwd"
+  echo 'jack:$5$robNc/Vf$orrY6BIeUzrqk/IyZFuvf.4Pw2XzysreXiTqq//7mu3:15634::::::' >> "${DESTDIR}/etc/shadow"
 fi
-if /usr/bin/grep -q jack ${DESTDIR}/etc/user_attr
+if /usr/bin/grep -q jack "${DESTDIR}/etc/user_attr"
 then
   printf ""
 else
-  echo 'jack::::roles=root' >> ${DESTDIR}/etc/user_attr
+  echo 'jack::::roles=root' >> "${DESTDIR}/etc/user_attr"
 fi
-if [ ! -d ${DESTDIR}/jack/.config ]; then
-  if [ -f ${DESTTOP}/prebuilt/dot-config.tar ]; then
-    cd ${DESTDIR}/jack
-    tar xf ${DESTTOP}/prebuilt/dot-config.tar
+if [ ! -d "${DESTDIR}/jack/.config" ]; then
+  if [ -f "${DESTTOP}/prebuilt/dot-config.tar" ]; then
+    cd "${DESTDIR}/jack" || bail "cannot cd to jack"
+    tar xf "${DESTTOP}/prebuilt/dot-config.tar"
     chown -R 123:10 .config
   fi
 fi
-cp ${DESTDIR}/root/.bashrc ${DESTDIR}/jack/.bashrc
-grep export ${DESTDIR}/root/.profile > ${DESTDIR}/jack/.bash_profile
-chown 123:10 ${DESTDIR}/jack/.bash_profile
-cat ${DESTDIR}/jack/.bashrc >> ${DESTDIR}/jack/.bash_profile
-cat ${DESTDIR}/root/.profile | /bin/sed -e 's:root:jack:' -e 's:}#:}\\\$:' > ${DESTDIR}/jack/.profile
-chown 123:10 ${DESTDIR}/jack/.profile ${DESTDIR}/jack/.bashrc
+cp "${DESTDIR}/root/.bashrc" "${DESTDIR}/jack/.bashrc"
+grep export "${DESTDIR}/root/.profile" > "${DESTDIR}/jack/.bash_profile"
+chown 123:10 "${DESTDIR}/jack/.bash_profile"
+cat "${DESTDIR}/jack/.bashrc" >> "${DESTDIR}/jack/.bash_profile"
+cat "${DESTDIR}/root/.profile" | /bin/sed -e 's:root:jack:' -e 's:}#:}\\\$:' > "${DESTDIR}/jack/.profile"
+chown 123:10 "${DESTDIR}/jack/.profile" "${DESTDIR}/jack/.bashrc"
 
-case `uname -p` in
+case $(uname -p) in
 i386)
 #
 # https://blogs.oracle.com/darren/entry/sending_a_break_to_opensolaris
 #
-cat >> ${DESTDIR}/etc/system << _EOF
+cat >> "${DESTDIR}/etc/system" << _EOF
 set pcplusmp:apic_kmdb_on_nmi=1
 _EOF
 #
 # create the uefi boot block
 #
-${THOME}/tribblix-build/uefi.sh ${DESTDIR}
+"${THOME}/tribblix-build/uefi.sh" "${DESTDIR}"
 ;;
 esac
 
@@ -129,38 +133,38 @@ esac
 # it isn't safe to use the new devfsadm because it's built against
 # a newer system (and libraries) than we currently have installed
 #
-/usr/sbin/devfsadm -r ${DESTDIR}
-if [ -f ${DESTTOP}/prebuilt/repository.db ]; then
-    cp -p ${DESTTOP}/prebuilt/repository.db ${DESTDIR}/etc/svc/repository.db
+/usr/sbin/devfsadm -r "${DESTDIR}"
+if [ -f "${DESTTOP}/prebuilt/repository.db" ]; then
+    cp -p "${DESTTOP}/prebuilt/repository.db" "${DESTDIR}/etc/svc/repository.db"
 else
-    env SVCCFG_CHECKHASH=1 $MKREPO ${DESTDIR} ${DESTDIR}
+    env SVCCFG_CHECKHASH=1 "$MKREPO" "${DESTDIR}" "${DESTDIR}"
 fi
-if [ -d ${DESTTOP}/prebuilt ]; then
-    cd ${DESTTOP}/prebuilt
+if [ -d "${DESTTOP}/prebuilt" ]; then
+    cd "${DESTTOP}/prebuilt" || bail "cannot cd to prebuilt"
     for repofile in repository-*.db
     do
-	cp -p ${repofile} ${DESTDIR}/usr/lib/zap
-	rm -f ${DESTDIR}/usr/lib/zap/${repofile}.gz
-	gzip -9 ${DESTDIR}/usr/lib/zap/${repofile}
+	cp -p "${repofile}" "${DESTDIR}/usr/lib/zap"
+	rm -f "${DESTDIR}/usr/lib/zap/${repofile}.gz"
+	gzip -9 "${DESTDIR}/usr/lib/zap/${repofile}"
     done
 fi
-cd ${DESTDIR}
+cd "${DESTDIR}" || bail "cannot cd to ${DESTDIR}"
 
 #
 # we don't need the splash images
 #
-rm -f ${DESTDIR}/boot/solaris.xpm
-rm -f ${DESTDIR}/boot/splashimage.xpm
+rm -f "${DESTDIR}/boot/solaris.xpm"
+rm -f "${DESTDIR}/boot/splashimage.xpm"
 
 #
 # compress the man pages, to make the root archive smaller
 #
-if [ ! -f ${DESTDIR}/usr/share/liveman.tar.bz2 ]; then
-    cd ${DESTDIR}/usr/share
+if [ ! -f "${DESTDIR}/usr/share/liveman.tar.bz2" ]; then
+    cd "${DESTDIR}/usr/share" || bail "cannot cd to ${DESTDIR}/usr/share"
     tar cf liveman.tar man
     pbzip2 liveman.tar
     rm -fr man
-    cd ${DESTDIR}
+    cd "${DESTDIR}" || bail "cannot cd to ${DESTDIR}"
 fi
 
 #
@@ -172,23 +176,26 @@ fi
 #  and needs both architectures of prtconf, and libpcidb
 #  and add the whole of boot so we don't need to get it from anywhere else
 #
-rm -f ${DESTDIR}/platform/i86pc/amd64/boot_archive
-rm -f ${DESTDIR}/platform/*/boot_archive
-mkfile ${MRSIZE} /tmp/${MRSIZE}
+rm -f "${DESTDIR}/platform/i86pc/amd64/boot_archive"
+rm -f "${DESTDIR}"/platform/*/boot_archive
+mkfile "${MRSIZE}" "/tmp/${MRSIZE}"
 #
 # gzip doesn't like the sticky bit
 #
-chmod o-t /tmp/${MRSIZE}
-LOFIDEV=`lofiadm -a /tmp/${MRSIZE}`
-LOFINUM=`echo $LOFIDEV|awk -F/ '{print $NF}'`
-echo "y" | env NOINUSE_CHECK=1 /usr/sbin/newfs -o space -m 0 -i $NBPI /dev/rlofi/$LOFINUM
+chmod o-t "/tmp/${MRSIZE}"
+LOFIDEV=$(lofiadm -a "/tmp/${MRSIZE}")
+LOFINUM=$(echo "$LOFIDEV" | awk -F/ '{print $NF}')
+echo "y" | env NOINUSE_CHECK=1 /usr/sbin/newfs -o space -m 0 -i $NBPI "/dev/rlofi/$LOFINUM"
 BFS=/tmp/nb.$$
 mkdir $BFS
-mount -Fufs -o nologging $LOFIDEV $BFS
-cd ${DESTDIR}
-case `uname -p` in
+if [ ! -d "$BFS" ]; then
+    bail "failed to create $BFS"
+fi
+mount -Fufs -o nologging "$LOFIDEV" $BFS
+cd "${DESTDIR}" || bail "cannot cd to ${DESTDIR}"
+case $(uname -p) in
 i386)
-	tar cf - `bootadm list-archive` | ( cd $BFS ; tar xf -)
+	tar cf - $(bootadm list-archive) | ( cd $BFS ; tar xf -)
 	;;
 sparc)
 	tar cf - kernel platform | ( cd $BFS ; tar xf -)
@@ -212,13 +219,13 @@ rm -fr ${BFS}/dev/zcons/*
 #
 mkdir .cdrom
 touch .livecd
-cp ${DESTDIR}/.volsetid .
+cp "${DESTDIR}/.volsetid" .
 touch etc/mnttab
 touch reconfigure
 if [ -f ${DESTTOP}/prebuilt/repository.db ]; then
     cp -p ${DESTTOP}/prebuilt/repository.db ${BFS}/etc/svc/repository.db
 else
-    env SVCCFG_CHECKHASH=1 $MKREPO ${BFS} ${BFS}
+    env SVCCFG_CHECKHASH=1 "$MKREPO" ${BFS} ${BFS}
 fi
 cd /
 DF=/usr/bin/df
@@ -232,28 +239,28 @@ $DF -i $BFS
 # boot archive needs a boot block on sparc
 # and /etc/system tweaks
 #
-case `uname -p` in
+case $(uname -p) in
 sparc)
 	echo "set root_is_ramdisk=1" >> ${BFS}/etc/system
 	echo "set ramdisk_size=${BASIZE}" >> ${BFS}/etc/system
 	echo "Installing bootblock to miniroot"
-	/usr/sbin/installboot ${DESTDIR}/usr/platform/sun4u/lib/fs/ufs/bootblk /dev/rlofi/$LOFINUM
+	/usr/sbin/installboot "${DESTDIR}/usr/platform/sun4u/lib/fs/ufs/bootblk" "/dev/rlofi/$LOFINUM"
 	;;
 esac
 
 umount $BFS
-lofiadm -d /dev/lofi/$LOFINUM
-case `uname -p` in
+lofiadm -d "/dev/lofi/$LOFINUM"
+case $(uname -p) in
 i386)
-gzip /tmp/${MRSIZE}
-cp /tmp/${MRSIZE}.gz ${DESTDIR}/platform/i86pc/boot_archive
-rm /tmp/${MRSIZE}.gz
-;;
+    gzip "/tmp/${MRSIZE}"
+    cp "/tmp/${MRSIZE}.gz" "${DESTDIR}/platform/i86pc/boot_archive"
+    rm "/tmp/${MRSIZE}.gz"
+    ;;
 sparc)
-cp /tmp/${MRSIZE} ${DESTDIR}/platform/sun4v/boot_archive
-ln -s ../../platform/sun4v/boot_archive ${DESTDIR}/platform/sun4u/boot_archive
-rm /tmp/${MRSIZE}
-;;
+    cp "/tmp/${MRSIZE}" "${DESTDIR}/platform/sun4v/boot_archive"
+    ln -s ../../platform/sun4v/boot_archive "${DESTDIR}/platform/sun4u/boot_archive"
+    rm "/tmp/${MRSIZE}"
+    ;;
 esac
 
 rmdir $BFS
