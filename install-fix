@@ -15,7 +15,7 @@
 #
 # }}}
 #
-# Copyright 2024 Peter Tribble
+# Copyright 2025 Peter Tribble
 #
 
 DESTTOP=/export/tribblix
@@ -194,7 +194,10 @@ sparc)
 	tar cf - kernel platform | ( cd $BFS ; tar xf -)
 	;;
 esac
-tar cfp - boot lib system tmp proc sbin etc var zonelib root jack usr bin | ( cd $BFS ; tar xf -)
+tar cfp - boot lib system tmp proc sbin etc var root jack usr bin | ( cd $BFS ; tar xf -)
+if [ -d zonelib ]; then
+    tar cfp - zonelib | ( cd $BFS ; tar xf -)
+fi
 cd $BFS
 mkdir -p dev/fd devices/pseudo opt var var/run mnt
 /usr/sbin/devfsadm -r ${BFS}
