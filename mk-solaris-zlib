@@ -15,15 +15,19 @@
 #
 # }}}
 #
-# Copyright 2024 Peter Tribble
+# Copyright 2025 Peter Tribble
 #
 
 #
-# create the solaris.zlib file
+# create the solaris.zlib file, as used in the split iso image
 #
 
 DESTDIR=/export/tribblix/dist
-CLEVEL="gzip"
+
+bail() {
+    echo "ERROR: $1"
+    exit 1
+}
 
 case $# in
 1)
@@ -31,15 +35,14 @@ case $# in
 	;;
 esac
 
-cd ${DESTDIR}
+cd "${DESTDIR}" || bail "cannot cd to ${DESTDIR}"
 
 #
 # ought to investigate sorting
 #
-SORT_OPTION=""
-mkisofs -o solaris.zlib $SORT_OPTION -quiet -N -l -R \
+/usr/bin/mkisofs -o solaris.zlib -quiet -N -l -R \
     -U -allow-multidot -no-iso-translate -cache-inodes \
     -d -D -V "compress" usr
-ls -lh solaris.zlib
-lofiadm -C ${CLEVEL} solaris.zlib
-ls -lh solaris.zlib
+/usr/bin/ls -lh solaris.zlib
+/usr/sbin/lofiadm -C gzip solaris.zlib
+/usr/bin/ls -lh solaris.zlib
