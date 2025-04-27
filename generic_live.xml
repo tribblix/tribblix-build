@@ -22,6 +22,8 @@
 
     Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
 
+    Copyright 2025, Peter Tribble.
+
     Base service profile customized for all live images.
 -->
 <service_bundle type='profile' name='generic_live'>
@@ -59,12 +61,6 @@
   </service>
   <service name='system/keymap' version='1' type='service'>
     <instance name='default' enabled='true'/>
-  </service>
-  <service name='system/metainit' version='1' type='service'>
-    <instance name='default' enabled='false'/>
-  </service>
-  <service name='system/metasync' version='1' type='service'>
-    <instance name='default' enabled='false'/>
   </service>
   <service name='system/picl' version='1' type='service'>
     <instance name='default' enabled='true'/>
