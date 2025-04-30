@@ -31,7 +31,7 @@ TRIBTYPE=""
 ISOROOT="tribblix"
 DESTTOP=/export/tribblix
 OVSUFFIX=""
-MRSIZE="360m"
+MRSIZE="340m"
 
 #
 # flags

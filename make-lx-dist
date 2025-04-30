@@ -25,7 +25,7 @@ RELEASE=36lx.1
 NFLAG=""
 QFLAG=""
 OVFLAG="-O base-iso"
-MRSIZE="360m"
+MRSIZE="340m"
 
 #
 # flags
