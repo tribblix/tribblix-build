@@ -15,7 +15,7 @@
 #
 # }}}
 #
-# Copyright 2023 Peter Tribble
+# Copyright 2025 Peter Tribble
 #
 
 #
@@ -38,7 +38,7 @@ DEBUG="echo"
 
 usage() {
   echo "Usage: $0 -t tftp_dir -h htdocs_dir -u http_url"
-  exit 1
+  exit 2
 }
 
 #
@@ -49,16 +49,19 @@ TFTPDIR=""
 HTDOCS=""
 URL=""
 while getopts "t:h:u:" opt; do
-  case $opt in
-    t)
-      TFTPDIR="$OPTARG"
-      ;;
-    h)
-      HTDOCS="$OPTARG"
-      ;;
-    u)
-      URL="$OPTARG"
-      ;;
+    case $opt in
+	t)
+	    TFTPDIR="$OPTARG"
+	    ;;
+	h)
+	    HTDOCS="$OPTARG"
+	    ;;
+	u)
+	    URL="$OPTARG"
+	    ;;
+	*)
+	    usage
+	    ;;
     esac
 done
 shift $((OPTIND-1))
@@ -91,16 +94,16 @@ fi
 #
 # check the right things exist
 #
-if [ ! -d ${TFTPBOOT} ]; then
+if [ ! -d "${TFTPBOOT}" ]; then
   echo "Unable to find ${TFTPBOOT}"
   usage
 fi
-if [ -f $HTDOCS ]; then
+if [ -f "$HTDOCS" ]; then
   echo "The HTDOCS location must be a directory"
   usage
 fi
-if [ -d $HTDOCS ]; then
-  NF=`/bin/ls -1 $HTDOCS | wc -l | awk '{print $1}'`
+if [ -d "$HTDOCS" ]; then
+  NF=$(/bin/ls -1 "$HTDOCS" | wc -l | awk '{print $1}')
 case $NF in
 0)
   printf ""
@@ -120,8 +123,8 @@ http://*)
   usage
   ;;
 esac
-HTTOP=`dirname $HTDOCS`
-if [ ! -d $HTTOP ]; then
+HTTOP=$(dirname "$HTDOCS")
+if [ ! -d "$HTTOP" ]; then
   echo "Unable to find parent of HTDOCS directory"
   usage
 fi
@@ -129,15 +132,15 @@ fi
 #
 # everything exists, check that tftp is configured
 #
-if [ ! -d ${TFTPBOOT} ]; then
+if [ ! -d "${TFTPBOOT}" ]; then
   echo "Unable to find ${TFTPBOOT} - is tftp configured?"
-  exit 2
+  exit 1
 fi
-if [ -d ${TFTPBOOT}/${TFTPDIR} ]; then
+if [ -d "${TFTPBOOT}/${TFTPDIR}" ]; then
   echo "TFTP location ${TFTPDIR} already exists"
-  exit 2
+  exit 1
 fi
-TSTATE=`/usr/bin/svcs -H tftp/udp6 | awk '{print $1}'`
+TSTATE=$(/usr/bin/svcs -H tftp/udp6 | awk '{print $1}')
 case $TSTATE in
 online)
   printf ""
@@ -148,7 +151,7 @@ disabled)
   ;;
 *)
   echo "Cannot find tftp service"
-  exit 2
+  exit 1
   ;;
 esac
 
@@ -162,19 +165,19 @@ esac
 #
 if [ ! -d pkgs ]; then
   echo "Unable to find pkgs"
-  exit 2
+  exit 1
 fi
 if [ ! -d platform ]; then
   echo "Unable to find the platform directory"
-  exit 2
+  exit 1
 fi
 if [ ! -d boot ]; then
   echo "Unable to find the iso boot directory"
-  exit 2
+  exit 1
 fi
 if [ ! -f boot/pxeboot ]; then
   echo "Unable to find pxeboot"
-  exit 2
+  exit 1
 fi
 #
 # the ISO always has a combined boot archive, so need just the one
@@ -182,65 +185,65 @@ fi
 #
 if [ ! -f platform/i86pc/boot_archive ]; then
   echo "Unable to find the boot archive"
-  exit 2
+  exit 1
 fi
 #
 # we need the kernel
 #
 if [ ! -f platform/i86pc/kernel/amd64/unix ]; then
   echo "Unable to find the kernel"
-  exit 2
+  exit 1
 fi
 
 #
 # all seems to be present
 #
-$DEBUG mkdir -p $HTDOCS
+$DEBUG mkdir -p "$HTDOCS"
 echo "Copying packages"
-$DEBUG cp -r pkgs $HTDOCS
+$DEBUG cp -r pkgs "$HTDOCS"
 #
 # solaris.zlib only exists in the old-style split iso
 # but if it exists, need to copy it
 #
 if [ -f solaris.zlib ]; then
     echo "Copying solaris.zlib"
-    $DEBUG cp solaris.zlib $HTDOCS
+    $DEBUG cp solaris.zlib "$HTDOCS"
 fi
 echo "Copying files to tftp server"
 # kernel and miniroot
-$DEBUG mkdir -p ${TFTPBOOT}/$TFTPDIR/platform/i86pc/kernel/amd64
-$DEBUG cp platform/i86pc/boot_archive ${TFTPBOOT}/$TFTPDIR/platform/i86pc
-chmod a+r ${TFTPBOOT}/$TFTPDIR/platform/i86pc/boot_archive
-$DEBUG cp platform/i86pc/kernel/amd64/unix ${TFTPBOOT}/$TFTPDIR/platform/i86pc/kernel/amd64
-chmod a+rx ${TFTPBOOT}/$TFTPDIR/platform/i86pc/kernel/amd64/unix
+$DEBUG mkdir -p "${TFTPBOOT}/$TFTPDIR/platform/i86pc/kernel/amd64"
+$DEBUG cp platform/i86pc/boot_archive "${TFTPBOOT}/$TFTPDIR/platform/i86pc"
+chmod a+r "${TFTPBOOT}/$TFTPDIR/platform/i86pc/boot_archive"
+$DEBUG cp platform/i86pc/kernel/amd64/unix "${TFTPBOOT}/$TFTPDIR/platform/i86pc/kernel/amd64"
+chmod a+rx "${TFTPBOOT}/$TFTPDIR/platform/i86pc/kernel/amd64/unix"
 # boot loader
-$DEBUG cp boot/pxeboot ${TFTPBOOT}/$TFTPDIR
-$DEBUG cp boot/loader.* ${TFTPBOOT}/$TFTPDIR
-$DEBUG cp -r boot/defaults ${TFTPBOOT}/$TFTPDIR
-$DEBUG cp -r boot/forth ${TFTPBOOT}/$TFTPDIR
+$DEBUG cp boot/pxeboot "${TFTPBOOT}/$TFTPDIR"
+$DEBUG cp boot/loader.* "${TFTPBOOT}/$TFTPDIR"
+$DEBUG cp -r boot/defaults "${TFTPBOOT}/$TFTPDIR"
+$DEBUG cp -r boot/forth "${TFTPBOOT}/$TFTPDIR"
 
 #
 # we copy the add-pxe-client script to the tftp location
 # and create a file containing the locations that are in use
 #
-$DEBUG cp tools/add-pxe-client ${TFTPBOOT}/$TFTPDIR
+$DEBUG cp tools/add-pxe-client "${TFTPBOOT}/$TFTPDIR"
 
 #
 # install_media is used for both the optional solaris.zlib delivery
 # and also the cardigan configuration file
 #
 save_config() {
-echo tftpboot=${TFTPBOOT}
-echo tftpdir=${TFTPBOOT}/$TFTPDIR
-echo install_media=${URL}/
-echo htdocs=$HTDOCS
-echo install_pkgs=${URL}/pkgs/
+echo "tftpboot=${TFTPBOOT}"
+echo "tftpdir=${TFTPBOOT}/$TFTPDIR"
+echo "install_media=${URL}/"
+echo "htdocs=$HTDOCS"
+echo "install_pkgs=${URL}/pkgs/"
 }
 
 if [ -n "$DEBUG" ]; then
   save_config
 else
-  save_config > ${TFTPBOOT}/$TFTPDIR/cardigan.cfg
+  save_config > "${TFTPBOOT}/$TFTPDIR/cardigan.cfg"
 fi
 
 echo "To add pxe clients, cd to ${TFTPBOOT}/$TFTPDIR"
