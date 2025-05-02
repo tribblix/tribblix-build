@@ -178,13 +178,14 @@ esac
 #
 rm -fr "${DESTDIR}/tools"
 mkdir "${DESTDIR}/tools"
-case `uname -p` in
+case $(uname -p) in
 i386)
 	cp "${TBHOME}/setup-pxe-server" "${DESTDIR}/tools"
 	cp "${TBHOME}/add-pxe-client" "${DESTDIR}/tools"
 	;;
 sparc)
-	echo "WARNING: need to create sparc netinstall tools"
+	cp "${TBHOME}/setup-boot-server" "${DESTDIR}/tools"
+	cp "${TBHOME}/add-boot-client" "${DESTDIR}/tools"
 	;;
 esac
 chmod 755 "${DESTDIR}"/tools/*

@@ -1,0 +1,208 @@
+#!/bin/ksh
+#
+# SPDX-License-Identifier: CDDL-1.0
+#
+# {{{ CDDL HEADER
+#
+# This file and its contents are supplied under the terms of the
+# Common Development and Distribution License ("CDDL"), version 1.0.
+# You may only use this file in accordance with the terms of version
+# 1.0 of the CDDL.
+#
+# A full copy of the text of the CDDL should have accompanied this
+# source. A copy of the CDDL is also available via the Internet at
+# http://www.illumos.org/license/CDDL.
+#
+# }}}
+#
+# Copyright 2025 Peter Tribble
+#
+
+#
+# takes an iso image and puts the pieces in the right place for network
+# installation
+#
+
+#
+# needs to be told:
+#  - what the nfs root is
+#
+umask 022
+DEBUG="echo"
+
+usage() {
+  echo "Usage: $0 -t nfs_dir -n nfs_server"
+  exit 2
+}
+#
+# interactive argument handling
+#
+TFTPBOOT="/tftpboot"
+NFSDIR=""
+NFSSERVER=""
+while getopts "n:t:" opt; do
+    case $opt in
+	n)
+	    NFSSERVER="$OPTARG"
+	    ;;
+	t)
+	    NFSDIR="$OPTARG"
+	    ;;
+	*)
+	    usage
+	    ;;
+    esac
+done
+shift $((OPTIND-1))
+
+
+case $# in
+0)
+    printf ""
+    ;;
+*)
+    usage
+    ;;
+esac
+
+#
+# check everything is defined
+#
+if [ -z "$NFSDIR" ]; then
+    echo "NFS directory must be defined"
+    usage
+fi
+
+#
+# check the right things exist
+#
+if [ ! -d "${TFTPBOOT}" ]; then
+    echo "Unable to find ${TFTPBOOT}"
+    usage
+fi
+
+#
+# everything exists, check that tftp is configured
+#
+if [ ! -d "${TFTPBOOT}" ]; then
+    echo "Unable to find ${TFTPBOOT} - is tftp configured?"
+    exit 1
+fi
+if [ -d "${TFTPDIR}" ]; then
+    echo "NFS location ${NFSDIR} already exists"
+    exit 1
+fi
+TSTATE=$(/usr/bin/svcs -H tftp/udp6 | awk '{print $1}')
+case $TSTATE in
+online)
+    printf ""
+    ;;
+disabled)
+    echo "Enabling tftp service"
+    $DEBUG /usr/sbin/svcadm enable tftp/udp6
+    ;;
+*)
+    echo "Cannot find tftp service"
+    echo "Install the TRIBsys-net-tftp package"
+    exit 1
+    ;;
+esac
+TSTATE=$(/usr/bin/svcs -H network/rarp | awk '{print $1}')
+case $TSTATE in
+online)
+    printf ""
+    ;;
+disabled)
+    echo "Enabling rarp service"
+    $DEBUG /usr/sbin/svcadm enable network/rarp
+    ;;
+*)
+    echo "Cannot find rarp service"
+    echo "Install the TRIBsys-boot-net package"
+    exit 1
+    ;;
+esac
+TSTATE=$(/usr/bin/svcs -H network/rpc/bootparams | awk '{print $1}')
+case $TSTATE in
+online)
+    printf ""
+    ;;
+disabled)
+    echo "Enabling bootparams service"
+    $DEBUG /usr/sbin/svcadm enable network/rpc/bootparams
+    ;;
+*)
+    echo "Cannot find bootparams service"
+    echo "Install the TRIBsys-boot-net package"
+    exit 1
+    ;;
+esac
+
+#
+# the boot archive needs to be copied across to the given NFS directory
+#
+mkdir -p "${NFSDIR}"
+if [ ! -d "${NFSDIR}" ]; then
+    echo "ERROR: unable to create NFS directory"
+    exit 1
+fi
+#
+# FIXME need to resolve the path to the script
+#
+# we're in the ISO, so need to check we have
+#  loader
+#  platform
+#  pkgs
+#
+if [ ! -d pkgs ]; then
+    echo "Unable to find pkgs"
+    exit 1
+fi
+if [ ! -d platform ]; then
+    echo "Unable to find the platform directory"
+    exit 1
+fi
+#
+# the ISO always has a single boot archive, so need just the one
+# even if it looks like this is only sun4v
+#
+if [ ! -f platform/sun4v/boot_archive ]; then
+    echo "Unable to find the boot archive"
+    exit 1
+fi
+#
+# all seems to be present, so copy
+#
+echo "Copying packages"
+$DEBUG cp -r pkgs "${NFSDIR}"
+#
+# solaris.zlib only exists in the old-style split iso
+# but if it exists, need to copy it
+#
+if [ -f solaris.zlib ]; then
+    echo "Copying solaris.zlib"
+    $DEBUG cp solaris.zlib "${NFSDIR}"
+fi
+echo "Copying files to nfs server"
+tar cf - platform boot tools | (cd "${NFSDIR}" || exit 1; tar xf -)
+
+#
+# install_media is used for both the optional solaris.zlib delivery
+# and also the cardigan configuration file
+#
+save_config() {
+echo "tftpboot=${TFTPBOOT}"
+echo "nfs_dir=$NFSDIR"
+echo "nfs_server=$NFSSERVER"
+echo "install_media=${NFSSERVER}:${NFSDIR}/"
+echo "install_pkgs=${NFSSERVER}:${NFSDIR}/pkgs/"
+}
+
+if [ -n "$DEBUG" ]; then
+  save_config
+else
+  save_config > "${NFSDIR}/cardigan.cfg"
+fi
+
+echo "To add network clients, cd to $NFSDIR/tools"
+echo "and run the add-boot-client script in that directory"

@@ -1,0 +1,140 @@
+#!/bin/ksh
+#
+# SPDX-License-Identifier: CDDL-1.0
+#
+# {{{ CDDL HEADER
+#
+# This file and its contents are supplied under the terms of the
+# Common Development and Distribution License ("CDDL"), version 1.0.
+# You may only use this file in accordance with the terms of version
+# 1.0 of the CDDL.
+#
+# A full copy of the text of the CDDL should have accompanied this
+# source. A copy of the CDDL is also available via the Internet at
+# http://www.illumos.org/license/CDDL.
+#
+# }}}
+#
+# Copyright 2025 Peter Tribble
+#
+
+#
+# add a network boot client
+#
+# this script is run from the nfs location set up for this build
+#
+usage() {
+  echo "Usage: $0 -n clientname -e ethernet_address -i ip_address [-c config_file]"
+  exit 2
+}
+
+MAC_ADDR=""
+IP_ADDR=""
+CLIENT_NAME=""
+CFG_FILE=""
+while getopts "e:c:i:n:" opt; do
+    case $opt in
+	e)
+	    MAC_ADDR="$OPTARG"
+	    ;;
+	c)
+	    CFG_FILE="$OPTARG"
+	    ;;
+	i)
+	    IP_ADDR="$OPTARG"
+	    ;;
+	n)
+	    CLIENT_NAME="$OPTARG"
+	    ;;
+	*)
+	    usage
+	    ;;
+    esac
+done
+shift $((OPTIND-1))
+
+case $# in
+0)
+  printf ""
+  ;;
+*)
+  usage
+  ;;
+esac
+
+#
+# the addresses are essential
+#
+if [ -z "$MAC_ADDR" ]; then
+  usage
+fi
+if [ -z "IP_ADDR" ]; then
+  usage
+fi
+if [ -z "CLIENT_NAME" ]; then
+  usage
+fi
+#
+# but if we're given a config file, it must exist
+#
+if [ -n "$CFG_FILE" ]; then
+  if [ ! -f "$CFG_FILE" ]; then
+    echo "Unable to find specified configuration file"
+    usage
+  fi
+fi
+
+#
+# get install_media and install_pkgs from the saved setup file
+#
+CARDIGAN_CFG="cardigan.cfg"
+if [ ! -f $CARDIGAN_CFG ]; then
+  echo "Unable to find saved cardigan.cfg file"
+  usage
+fi
+INSTALL_MEDIA=$(grep '^install_media=' $CARDIGAN_CFG | /bin/sed s:install_media=::)
+INSTALL_PKGS=$(grep '^install_pkgs=' $CARDIGAN_CFG | /bin/sed s:install_pkgs=::)
+TFTPBOOT=$(grep '^tftpboot=' $CARDIGAN_CFG | /bin/sed s:tftpboot=::)
+NFSDIR=$(grep '^nfs_dir=' $CARDIGAN_CFG | /bin/sed s:nfs_dir=::)
+if [ -z "$INSTALL_PKGS" ]; then
+  echo "Cardigan configuration does not specify a valid install_pkgs"
+  usage
+fi
+if [ -z "$INSTALL_MEDIA" ]; then
+  echo "Cardigan configuration does not specify a valid install_media"
+  usage
+fi
+if [ -z "$NFSDIR" ]; then
+  echo "Cardigan configuration does not specify a valid nfsdir"
+  usage
+fi
+#
+# INSTALL_MEDIA here also handles the case where we have a split iso
+# and need to deliver solaris.zlib
+#
+BOOT_OPTIONS="root=${INSTALL_MEDIA},install_pkgs=${INSTALL_PKGS}"
+
+#
+# FIXME need to actually get inetboot
+#
+if [ ! -f "${TFTPBOOT}/inetboot" ]; then
+    echo "Unable to find inetboot"
+    exit 1
+fi
+#
+# convert IP address to hex form
+#
+IP_NAME=$(printf '%02X' ${IP_ADDR//./})
+ln -s inetboot "${TFTPBOOT}/${IP_NAME}"
+
+#
+# populate bootparams
+#
+echo "Add the following to /etc/bootparams"
+echo "${CLIENT_NAME} ${BOOT_OPTIONS}"
+echo "Add the following to /etc/ethers"
+echo "${MAC_ADDR} ${CLIENT_NAME}"
+
+echo "Now run"
+echo "boot net:rarp"
+echo "at the ok prompt on the client"
