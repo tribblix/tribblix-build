@@ -37,8 +37,8 @@ umask 022
 DEBUG="echo"
 
 usage() {
-  echo "Usage: $0 -t tftp_dir -h htdocs_dir -u http_url"
-  exit 2
+    echo "Usage: $0 -t tftp_dir -h htdocs_dir -u http_url"
+    exit 2
 }
 
 #
@@ -68,91 +68,92 @@ shift $((OPTIND-1))
 
 case $# in
 0)
-  printf ""
-  ;;
+    printf ""
+    ;;
 *)
-  usage
-  ;;
+    usage
+    ;;
 esac
 
 #
 # check everything is defined
 #
 if [ -z "$TFTPDIR" ]; then
-  echo "TFTP directory must be defined"
-  usage
+    echo "TFTP directory must be defined"
+    usage
 fi
 if [ -z "$HTDOCS" ]; then
-  echo "HTDOCS directory must be defined"
-  usage
+    echo "HTDOCS directory must be defined"
+    usage
 fi
 if [ -z "$URL" ]; then
-  echo "Server URL must be defined"
-  usage
+    echo "Server URL must be defined"
+    usage
 fi
 
 #
 # check the right things exist
 #
 if [ ! -d "${TFTPBOOT}" ]; then
-  echo "Unable to find ${TFTPBOOT}"
-  usage
+    echo "Unable to find ${TFTPBOOT}"
+    usage
 fi
 if [ -f "$HTDOCS" ]; then
-  echo "The HTDOCS location must be a directory"
-  usage
+    echo "The HTDOCS location must be a directory"
+    usage
 fi
 if [ -d "$HTDOCS" ]; then
-  NF=$(/bin/ls -1 "$HTDOCS" | wc -l | awk '{print $1}')
+    NF=$(/bin/ls -1 "$HTDOCS" | wc -l | awk '{print $1}')
 case $NF in
 0)
-  printf ""
-  ;;
+    printf ""
+    ;;
 *)
-  echo "The HTDOCS location must be empty"
-  usage
-  ;;
+    echo "The HTDOCS location must be empty"
+    usage
+    ;;
 esac
 fi
 case $URL in
 http://*)
-  printf ""
-  ;;
+    printf ""
+    ;;
 *)
-  echo "Unable to recognize URL format"
-  usage
-  ;;
+    echo "Unable to recognize URL format"
+    usage
+    ;;
 esac
 HTTOP=$(dirname "$HTDOCS")
 if [ ! -d "$HTTOP" ]; then
-  echo "Unable to find parent of HTDOCS directory"
-  usage
+    echo "Unable to find parent of HTDOCS directory"
+    usage
 fi
 
 #
 # everything exists, check that tftp is configured
 #
 if [ ! -d "${TFTPBOOT}" ]; then
-  echo "Unable to find ${TFTPBOOT} - is tftp configured?"
-  exit 1
+    echo "Unable to find ${TFTPBOOT} - is tftp configured?"
+    exit 1
 fi
 if [ -d "${TFTPBOOT}/${TFTPDIR}" ]; then
-  echo "TFTP location ${TFTPDIR} already exists"
-  exit 1
+    echo "TFTP location ${TFTPDIR} already exists"
+    exit 1
 fi
 TSTATE=$(/usr/bin/svcs -H tftp/udp6 | awk '{print $1}')
 case $TSTATE in
 online)
-  printf ""
-  ;;
+    printf ""
+    ;;
 disabled)
-  echo "Enabling tftp service"
-  $DEBUG /usr/sbin/svcadm enable tftp/udp6
-  ;;
+    echo "Enabling tftp service"
+    $DEBUG /usr/sbin/svcadm enable tftp/udp6
+    ;;
 *)
-  echo "Cannot find tftp service"
-  exit 1
-  ;;
+    echo "Cannot find tftp service"
+    echo "Install the TRIBsys-net-tftp package"
+    exit 1
+    ;;
 esac
 
 #
@@ -164,35 +165,35 @@ esac
 #  pkgs
 #
 if [ ! -d pkgs ]; then
-  echo "Unable to find pkgs"
-  exit 1
+    echo "Unable to find pkgs"
+    exit 1
 fi
 if [ ! -d platform ]; then
-  echo "Unable to find the platform directory"
-  exit 1
+    echo "Unable to find the platform directory"
+    exit 1
 fi
 if [ ! -d boot ]; then
-  echo "Unable to find the iso boot directory"
-  exit 1
+    echo "Unable to find the iso boot directory"
+    exit 1
 fi
 if [ ! -f boot/pxeboot ]; then
-  echo "Unable to find pxeboot"
-  exit 1
+    echo "Unable to find pxeboot"
+    exit 1
 fi
 #
 # the ISO always has a combined boot archive, so need just the one
 # even if it looks like this is only 32-bit
 #
 if [ ! -f platform/i86pc/boot_archive ]; then
-  echo "Unable to find the boot archive"
-  exit 1
+    echo "Unable to find the boot archive"
+    exit 1
 fi
 #
 # we need the kernel
 #
 if [ ! -f platform/i86pc/kernel/amd64/unix ]; then
-  echo "Unable to find the kernel"
-  exit 1
+    echo "Unable to find the kernel"
+    exit 1
 fi
 
 #
@@ -241,9 +242,9 @@ echo "install_pkgs=${URL}/pkgs/"
 }
 
 if [ -n "$DEBUG" ]; then
-  save_config
+    save_config
 else
-  save_config > "${TFTPBOOT}/$TFTPDIR/cardigan.cfg"
+    save_config > "${TFTPBOOT}/$TFTPDIR/cardigan.cfg"
 fi
 
 echo "To add pxe clients, cd to ${TFTPBOOT}/$TFTPDIR"
