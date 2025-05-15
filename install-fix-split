@@ -41,7 +41,7 @@ i386)
 sparc)
 	MRSIZE=160m
 	BASIZE=163840
-	NBPI=18432
+	NBPI=16384
 	XARCH="sparcv7"
 	;;
 *)
