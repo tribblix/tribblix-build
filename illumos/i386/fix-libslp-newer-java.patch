@@ -10,7 +10,7 @@ index a34afab69c..3f2dd15675 100644
  # javac flags
  JFLAGS= -O -d $(CLASSES) -sourcepath $(SLPCLASSPATH)
 -JFLAGS += -source 7 -target 7 -Xlint:-options
-+JFLAGS += -source 8 -target 8 -Xlint:-options,-removal,-deprecation,-synchronization
++JFLAGS += -source 8 -target 8 -Xlint:none
  
  # The default make rule for Java files
  COMPILE.java=$(JAVAC) $(JFLAGS)
