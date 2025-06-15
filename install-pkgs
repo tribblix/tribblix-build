@@ -18,7 +18,7 @@
 # Copyright 2025 Peter Tribble
 #
 
-RELEASE=36.1
+RELEASE=37
 
 THOME=${THOME:-/packages/localsrc/Tribblix}
 DESTDIR=/export/tribblix/dist

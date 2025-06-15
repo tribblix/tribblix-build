@@ -61,8 +61,7 @@ doesn't have to be root.
 ${THOME}/tribblix-build/repo_all.sh \
   -G ${HOME}/Illumos/gfx-drm \
   -D /var/tmp/gfx-pkgs \
-  -V 0.36 \
-  -U 1 \
+  -V 0.37 \
   -R drm \
   -S ${HOME}/f/elfcert >& /var/tmp/gfx.log
 
@@ -72,8 +71,7 @@ we have to duplicate all the packages.
 ${THOME}/tribblix-build/repo_all.sh \
   -G ${HOME}/Illumos/gfx-drm \
   -D /var/tmp/omni-gfx-pkgs \
-  -V 0.36lx \
-  -U 1 \
+  -V 0.37lx \
   -R drm \
   -S ${HOME}/f/elfcert >& /var/tmp/omni-gfx.log
 
