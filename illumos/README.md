@@ -18,7 +18,18 @@ they largely automate all the build tasks for you, and attempt to protect
 you from common mistakes.
 
 
-There are some patches for Tribblix:
+There are some patches for Tribblix. There are slightly different patches
+for sparc and intel builds, in the i386 and sparc subdirectories. They're
+different because not only do the platforms have different needs, they've
+also diverged so sparc is against a different era of the gate.
+
+There are also tribblix-specific patches, in the i386-tribblix and
+sparc-tribblix directories. These are not applied when doing a
+development build of the gate; they contain extra patches used to
+construct an actual tribblix release (and which may not be appropriate
+when doing a build for RTI).
+
+Notes on some of the patches:
 
 0001-add-zone-brand.patch
 is similar to the openindiana patch, but adds my brands not theirs

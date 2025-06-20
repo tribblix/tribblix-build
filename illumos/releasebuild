@@ -15,7 +15,7 @@
 #
 # }}}
 #
-# Copyright 2024 Peter Tribble
+# Copyright 2025 Peter Tribble
 #
 
 #
@@ -137,6 +137,14 @@ if [ ! -f usr/src/cmd/auditrecord/Makefile ]; then
     exit 2
 fi
 for file in "${THOME}"/tribblix-build/illumos/"${ARCH}"/*.patch
+do
+    gpatch -p1 < "$file"
+done
+#
+# the following patches only apply to a tribblix release build, and won't be
+# used for normal gate development
+#
+for file in "${THOME}"/tribblix-build/illumos/"${ARCH}"-tribblix/*.patch
 do
     gpatch -p1 < "$file"
 done
