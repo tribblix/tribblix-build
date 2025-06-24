@@ -165,7 +165,7 @@ export BUILDPY3b='#'
 #
 # Tribblix: replace the default which is to look for java under /usr/java
 #
-export JAVA_ROOT=/usr/jdk/instances/jdk17
+export JAVA_ROOT=/usr/jdk/instances/jdk21
 export BLD_JAVA_11=
 
 # POST_NIGHTLY can be any command to be run at the end of nightly.  See
