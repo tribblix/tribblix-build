@@ -40,7 +40,6 @@ i386)
 	;;
 sparc)
 	MRSIZE=160m
-	BASIZE=163840
 	NBPI=16384
 	XARCH="sparcv7"
 	;;
@@ -65,6 +64,9 @@ case $MRSIZE in
     *m)
 	:
 	;;
+    *[a-z]*|*[A-Z]*)
+	bail "invalid size specification"
+	;;
     *)
 	MRSIZE="${MRSIZE}m"
 	;;
@@ -74,6 +76,11 @@ case $# in
 	DESTDIR=${DESTDIR}.$1
 	;;
 esac
+
+#
+# now recalculate the sparc ramdisk_size value
+#
+BASIZE=$((${MRSIZE/m/}*1024))
 
 #
 # Add an unpackaged copy of mkisofs to the bootable media which we use to
