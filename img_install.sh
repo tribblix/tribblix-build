@@ -54,7 +54,7 @@ DOMAINNAME=""
 BEGIN_SCRIPT=""
 FINISH_SCRIPT=""
 FIRSTBOOT_SCRIPT=""
-RELEASE="m36.1"
+RELEASE="m37"
 DLHOST="https://pkgs.tribblix.org"
 NFLAG=""
 
@@ -194,6 +194,12 @@ case $RELEASE in
 	;;
     m36lx.1)
 	IMGSUM="feae950a0f20ca3934e1bd4c71b194a80ba2d030"
+	;;
+    m37)
+	IMGSUM="22834138619d61a7d1544d17fbc0f391a3da420f"
+	;;
+    m37lx)
+	IMGSUM="c72bd7fcdd29f03f29145df4e1e7833a4075d88f"
 	;;
     *)
 	bail "Unrecognised release"
