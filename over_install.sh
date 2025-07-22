@@ -140,13 +140,16 @@ fi
 #
 # interactive argument handling
 #
-while getopts "BE:Nn:t:" opt; do
+while getopts "BE:GNn:t:" opt; do
     case $opt in
         B)
 	    BFLAG="-M"
 	    ;;
         E)
 	    NEWBE="$OPTARG"
+	    ;;
+        G)
+	    BFLAG="-M"
 	    ;;
         N)
 	    NFLAG="no"
@@ -167,8 +170,8 @@ shift $((OPTIND-1))
 case $# in
 0)
 	echo "ERROR: You must specify an existing pool to install to"
-	echo "Usage: $0 [-B] [-N] old_pool [overlay ... ]"
-	echo "  with -B, replace mbr"
+	echo "Usage: $0 [-B|-G] [-N] old_pool [overlay ... ]"
+	echo "  with -B or -G, replace mbr"
 	echo "  with -N, don't transfer anything from old system"
 	exit 1
 	;;
