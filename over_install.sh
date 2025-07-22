@@ -208,8 +208,8 @@ OVERLAYS="$OVERLAYS $*"
 #
 /usr/bin/mkdir -p ${ALTROOT}
 echo "Importing old root pool"
-/usr/sbin/zpool import ${ROOTPOOL}
-if [ ! -d /${ROOTPOOL}/boot ]; then
+/usr/sbin/zpool import "${ROOTPOOL}"
+if [ ! -d "/${ROOTPOOL}/boot" ]; then
     echo "Import of old pool failed, cannot find boot there"
     exit 0
 fi
@@ -218,7 +218,7 @@ fi
 # this is what the original boot file system was set to
 # we mount it later to recover specific data
 #
-OLDBE=`/usr/sbin/zpool get -Hp -o value bootfs ${ROOTPOOL}`
+OLDBE=$(/usr/sbin/zpool get -Hp -o value bootfs "${ROOTPOOL}")
 if [ -z "$OLDBE" ]; then
     echo "Pool ${ROOTPOOL} has no bootfs property, cannot use."
     exit 1
@@ -232,7 +232,7 @@ echo "Creating filesystems"
 # this gives the BE a UUID, necessary for 'beadm list -H'
 # to not show null, and for zone uninstall to work
 #
-/usr/sbin/zfs set org.opensolaris.libbe:uuid=`/usr/lib/zap/generate-uuid` ${ROOTPOOL}/ROOT/${NEWBE}
+/usr/sbin/zfs set org.opensolaris.libbe:uuid=$(/usr/lib/zap/generate-uuid) "${ROOTPOOL}/ROOT/${NEWBE}"
 
 echo "Copying main filesystems"
 cd /
@@ -242,7 +242,7 @@ if [ -d zonelib ]; then
 fi
 /usr/bin/find boot kernel lib platform root sbin usr etc var opt ${ZONELIB} -print -depth | cpio -pdm ${ALTROOT}
 echo "Copying other filesystems"
-/usr/bin/find boot -print -depth | cpio -pdm /${ROOTPOOL}
+/usr/bin/find boot -print -depth | cpio -pdm "/${ROOTPOOL}"
 
 #
 echo "Adding extra directories"
@@ -288,7 +288,7 @@ fi
 # give ourselves some swap to avoid /tmp exhaustion
 # do it after copying the main OS as it changes the dump settings
 #
-swap -a /dev/zvol/dsk/${ROOTPOOL}/swap
+swap -a "/dev/zvol/dsk/${ROOTPOOL}/swap"
 LOGFILE="${ALTROOT}/var/sadm/install/logs/initial.log"
 echo "Installing overlays" | tee $LOGFILE
 /usr/bin/date | tee -a $LOGFILE
@@ -368,7 +368,7 @@ touch ${ALTROOT}/reconfigure
 echo "Setting up boot"
 
 # new loader
-/usr/bin/cat > /${ROOTPOOL}/boot/menu.lst << _EOF
+/usr/bin/cat > /"${ROOTPOOL}"/boot/menu.lst << _EOF
 title Tribblix 0.37
 bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 _EOF
@@ -553,7 +553,7 @@ echo "The mount error below is expected"
 #
 # we need to install our bootloader to be sure we have one
 # that is compatible
-# we overwrite the MBR if -B was passed
+# we overwrite the MBR if -B or -G was passed
 #
 /sbin/bootadm install-bootloader ${BFLAG} -f -P "${ROOTPOOL}"
 

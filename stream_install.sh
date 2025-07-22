@@ -244,8 +244,8 @@ fi
 if [ -n "$DRIVELIST" ]; then
   for TDRIVE in $DRIVELIST
   do
-    if [ ! -e /dev/dsk/$TDRIVE ]; then
-      if [ ! -e /dev/dsk/${TDRIVE}s0 ]; then
+    if [ ! -e "/dev/dsk/$TDRIVE" ]; then
+      if [ ! -e "/dev/dsk/${TDRIVE}s0" ]; then
         echo "ERROR: Unable to find supplied device $TDRIVE"
         exit 1
       fi
@@ -258,8 +258,8 @@ fi
 #
 
 if [ -n "$DRIVE1" ]; then
-    if [ ! -e /dev/dsk/$DRIVE1 ]; then
-	if [ -e /dev/dsk/${DRIVE1}s0 ]; then
+    if [ ! -e "/dev/dsk/$DRIVE1" ]; then
+	if [ -e "/dev/dsk/${DRIVE1}s0" ]; then
 	    DRIVE1="${DRIVE1}s0"
 	else
 	    echo "ERROR: Unable to find device $DRIVE1"
@@ -269,8 +269,8 @@ if [ -n "$DRIVE1" ]; then
     DRIVELIST="$DRIVELIST $DRIVE1"
 fi
 if [ -n "$DRIVE2" ]; then
-    if [ ! -e /dev/dsk/$DRIVE2 ]; then
-	if [ -e /dev/dsk/${DRIVE2}s0 ]; then
+    if [ ! -e "/dev/dsk/$DRIVE2" ]; then
+	if [ -e "/dev/dsk/${DRIVE2}s0" ]; then
 	    DRIVE2="${DRIVE2}s0"
 	else
 	    echo "ERROR: Unable to find device $DRIVE2"
@@ -309,7 +309,7 @@ case $FDRIVE in
     FDRIVE="${FDRIVE}s2"
 esac
     FDRIVELIST="$FDRIVELIST $NDRIVE"
-    /root/format-a-disk.sh -B $FDRIVE
+    /root/format-a-disk.sh -B "$FDRIVE"
 done
 DRIVELIST="$FDRIVELIST"
 ;;
@@ -339,7 +339,7 @@ esac
 #
 /usr/bin/mkdir -p ${ALTROOT}
 echo "Creating root pool"
-/usr/sbin/zpool create -f ${ZPOOLARGS} -o failmode=continue ${COMPRESSARGS} ${ROOTPOOL} $ZFSARGS $DRIVELIST
+/usr/sbin/zpool create -f ${ZPOOLARGS} -o failmode=continue ${COMPRESSARGS} "${ROOTPOOL}" $ZFSARGS $DRIVELIST
 
 echo "Creating filesystems"
 /usr/sbin/zfs create -o mountpoint=legacy "${ROOTPOOL}/ROOT"
@@ -366,7 +366,7 @@ fi
 # this gives the BE a UUID, necessary for 'beadm list -H'
 # to not show null, and for zone uninstall to work
 #
-/usr/sbin/zfs set org.opensolaris.libbe:uuid=`/usr/lib/zap/generate-uuid` ${ROOTPOOL}/ROOT/${NEWBE}
+/usr/sbin/zfs set org.opensolaris.libbe:uuid=$(/usr/lib/zap/generate-uuid) "${ROOTPOOL}/ROOT/${NEWBE}"
 
 #
 # this is where we send the image
@@ -426,8 +426,8 @@ esac
 # create export later, as mounting it blocks the zfs recv above
 #
 ls ${ALTROOT}
-/usr/sbin/zfs create -o mountpoint=${ALTROOT}/export ${ROOTPOOL}/export
-/usr/sbin/zfs create ${ROOTPOOL}/export/home
+/usr/sbin/zfs create -o mountpoint=${ALTROOT}/export "${ROOTPOOL}/export"
+/usr/sbin/zfs create "${ROOTPOOL}/export/home"
 
 #
 echo "Installing boot loader"
@@ -440,7 +440,7 @@ touch ${ALTROOT}/reconfigure
 echo "Setting up boot"
 
 # new loader
-/usr/bin/cat > /${ROOTPOOL}/boot/menu.lst << _EOF
+/usr/bin/cat > /"${ROOTPOOL}"/boot/menu.lst << _EOF
 title Tribblix 0.37
 bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 _EOF
