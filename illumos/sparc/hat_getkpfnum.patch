@@ -16,7 +16,7 @@ diff --git a/usr/src/uts/common/Makefile.files b/usr/src/uts/common/Makefile.fil
 index 08280f318f..090b6e1fc0 100644
 --- a/usr/src/uts/common/Makefile.files
 +++ b/usr/src/uts/common/Makefile.files
-@@ -205,6 +205,7 @@ GENUNIX_OBJS +=	\
+@@ -206,6 +206,7 @@ GENUNIX_OBJS +=	\
  		gid.o		\
  		groups.o	\
  		grow.o		\
