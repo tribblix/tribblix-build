@@ -28,6 +28,8 @@ DUMPSIZE=""
 ZFSARGS=""
 ZPOOLARGS=""
 COMPRESSARGS="-O compression=lz4"
+COPYARGS=""
+NCOPIES=""
 BFLAG=""
 GFLAG=""
 REBOOT="no"
@@ -127,10 +129,13 @@ fi
 # legacy -B now means the same as -G
 # -b is the old -B escape hatch
 #
-while getopts "bBCd:E:Gm:n:P:s:t:z:Z:" opt; do
+while getopts "bBc:Cd:E:Gm:n:P:s:t:z:Z:" opt; do
     case $opt in
         b)
 	    BFLAG="-B"
+	    ;;
+        c)
+	    NCOPIES="$OPTARG"
 	    ;;
         C)
 	    COMPRESSARGS="-O compression=lz4"
@@ -200,6 +205,21 @@ case $1 in
 	exit 1
 	;;
 esac
+
+#
+# if we've been asked for zfs copies, check it makes sense
+#
+if [ -n "${NCOPIES}" ]; then
+    case $NCOPIES in
+	2|3)
+	    COPYARGS="-O copies=${NCOPIES}"
+	    ;;
+	*)
+	    echo "ERROR: copies with -c can only be 2 or 3"
+	    exit 1
+	    ;;
+    esac
+fi
 
 #
 # we should have 1 argument left, and it should either be an image
@@ -339,7 +359,7 @@ esac
 #
 /usr/bin/mkdir -p ${ALTROOT}
 echo "Creating root pool"
-/usr/sbin/zpool create -f ${ZPOOLARGS} -o failmode=continue ${COMPRESSARGS} "${ROOTPOOL}" $ZFSARGS $DRIVELIST
+/usr/sbin/zpool create -f ${ZPOOLARGS} -o failmode=continue ${COMPRESSARGS} ${COPYARGS} "${ROOTPOOL}" $ZFSARGS $DRIVELIST
 
 echo "Creating filesystems"
 /usr/sbin/zfs create -o mountpoint=legacy "${ROOTPOOL}/ROOT"

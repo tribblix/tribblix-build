@@ -27,6 +27,8 @@ SWAPSIZE="2g"
 DUMPSIZE=""
 ZFSARGS=""
 COMPRESSARGS=""
+COPYARGS=""
+NCOPIES=""
 BFLAG=""
 REBOOT="no"
 OVERLAYS=""
@@ -125,10 +127,13 @@ fi
 #
 # interactive argument handling
 #
-while getopts "BCd:E:Gm:n:P:s:t:z:Z:" opt; do
+while getopts "Bc:Cd:E:Gm:n:P:s:t:z:Z:" opt; do
     case $opt in
         B)
 	    BFLAG="-B"
+	    ;;
+        c)
+	    NCOPIES="$OPTARG"
 	    ;;
         C)
 	    # not yet supported on sparc COMPRESSARGS="-O compression=lz4"
@@ -194,6 +199,21 @@ case $1 in
 	exit 1
 	;;
 esac
+
+#
+# if we've been asked for zfs copies, check it makes sense
+#
+if [ -n "${NCOPIES}" ]; then
+    case $NCOPIES in
+	2|3)
+	    COPYARGS="-O copies=${NCOPIES}"
+	    ;;
+	*)
+	    echo "ERROR: copies with -c can only be 2 or 3"
+	    exit 1
+	    ;;
+    esac
+fi
 
 #
 # everything else is an overlay
@@ -298,7 +318,7 @@ echo "Creating root pool"
 # fixing the version
 # similarly, -C is understood but is a no-op
 #
-/usr/sbin/zpool create -f -o version=28 -o failmode=continue ${COMPRESSARGS} ${ROOTPOOL} $ZFSARGS $DRIVELIST
+/usr/sbin/zpool create -f -o version=28 -o failmode=continue ${COMPRESSARGS} ${COPYARGS} ${ROOTPOOL} $ZFSARGS $DRIVELIST
 
 echo "Creating filesystems"
 /usr/sbin/zfs create -o mountpoint=legacy "${ROOTPOOL}/ROOT"
