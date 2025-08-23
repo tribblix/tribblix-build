@@ -154,11 +154,11 @@ while getopts "BNn:r:t:" opt; do
         B)
 	    BFLAG="-M"
 	    ;;
-        N)
-	    NFLAG="no"
-	    ;;
         n)
 	    NODENAME="$OPTARG"
+	    ;;
+        N)
+	    NFLAG="no"
 	    ;;
         r)
 	    RELEASE="$OPTARG"
@@ -177,18 +177,6 @@ NEWBE="tribblix-${RELEASE}"
 IMGTMP="/var/tmp/${NEWBE}.archive"
 IMGSRC="${DLHOST}/${RELEASE}/platform/i86pc/boot_archive"
 case $RELEASE in
-    m35)
-	IMGSUM="75248c7be915bcca5e08c31030e5c1474f5dbc13"
-	;;
-    m35lx)
-	IMGSUM="c2c1763adc2046b07b0653d45f4f2f3d447aaab3"
-	;;
-    m36)
-	IMGSUM="22afdba0bbb35175509b27145a559aedd3d41adf"
-	;;
-    m36lx)
-	IMGSUM="297392ead67f64e722de287e0cc35b1fa1509474"
-	;;
     m36.1)
 	IMGSUM="464fee4a318643625c271327dceae5b5b1b9d40c"
 	;;
