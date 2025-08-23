@@ -43,6 +43,8 @@
 # these properties are available for customization
 #
 ROOTPOOL="rpool"
+COPYARGS=""
+NCOPIES=""
 BFLAG=""
 REBOOT="no"
 OVERLAYS=""
@@ -140,10 +142,13 @@ fi
 #
 # interactive argument handling
 #
-while getopts "BE:GNn:t:" opt; do
+while getopts "Bc:E:Gn:Nt:" opt; do
     case $opt in
         B)
 	    BFLAG="-M"
+	    ;;
+        c)
+	    NCOPIES="$OPTARG"
 	    ;;
         E)
 	    NEWBE="$OPTARG"
@@ -151,11 +156,11 @@ while getopts "BE:GNn:t:" opt; do
         G)
 	    BFLAG="-M"
 	    ;;
-        N)
-	    NFLAG="no"
-	    ;;
         n)
 	    NODENAME="$OPTARG"
+	    ;;
+        N)
+	    NFLAG="no"
 	    ;;
         t)
 	    TIMEZONE="$OPTARG"
@@ -193,6 +198,21 @@ case $1 in
 esac
 
 #
+# if we've been asked for zfs copies, check it makes sense
+#
+if [ -n "${NCOPIES}" ]; then
+    case $NCOPIES in
+	2|3)
+	    COPYARGS="-o copies=${NCOPIES}"
+	    ;;
+	*)
+	    echo "ERROR: copies with -c can only be 2 or 3"
+	    exit 1
+	    ;;
+    esac
+fi
+
+#
 # everything else is an overlay
 #
 OVERLAYS="$OVERLAYS $*"
@@ -225,7 +245,7 @@ if [ -z "$OLDBE" ]; then
 fi
 
 echo "Creating filesystems"
-/usr/sbin/zfs create -o mountpoint=${ALTROOT} "${ROOTPOOL}/ROOT/${NEWBE}"
+/usr/sbin/zfs create -o mountpoint=${ALTROOT} ${COPYARGS} "${ROOTPOOL}/ROOT/${NEWBE}"
 /usr/sbin/zpool set bootfs="${ROOTPOOL}/ROOT/${NEWBE}" "${ROOTPOOL}"
 
 #
@@ -368,7 +388,7 @@ touch ${ALTROOT}/reconfigure
 echo "Setting up boot"
 
 # new loader
-/usr/bin/cat > /"${ROOTPOOL}"/boot/menu.lst << _EOF
+/usr/bin/cat > "/${ROOTPOOL}/boot/menu.lst" << _EOF
 title Tribblix 0.37
 bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 _EOF
@@ -496,9 +516,9 @@ fi
 #
 # copy selected keyboard type to installed system
 #
-KLAYOUT=`/usr/bin/kbd -l | /usr/bin/awk -F'[= ]' '{if ($1 == "layout") print $2}'`
+KLAYOUT=$(/usr/bin/kbd -l | /usr/bin/awk -F'[= ]' '{if ($1 == "layout") print $2}')
 if [ -n "${KLAYOUT}" ]; then
-  NLAYOUT=`/usr/bin/awk -v ntyp=${KLAYOUT} -F= '{if ($2 == ntyp) print $1}' /usr/share/lib/keytables/type_6/kbd_layouts`
+  NLAYOUT=$(/usr/bin/awk -v ntyp="${KLAYOUT}" -F= '{if ($2 == ntyp) print $1}' /usr/share/lib/keytables/type_6/kbd_layouts)
   if [ -n "${NLAYOUT}" ]; then
     /usr/bin/grep -v keyboard-layout ${ALTROOT}/boot/solaris/bootenv.rc > ${ALTROOT}/boot/solaris/bootenv.rc.tmp
     echo "setprop keyboard-layout ${NLAYOUT}" >> ${ALTROOT}/boot/solaris/bootenv.rc.tmp
