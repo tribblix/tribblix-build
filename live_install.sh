@@ -136,15 +136,15 @@ while getopts "bBc:Cd:E:Gm:n:P:s:t:z:Z:" opt; do
         b)
 	    BFLAG="-B"
 	    ;;
+        B)
+	    GFLAG="-G"
+	    ZPOOLARGS="-B"
+	    ;;
         c)
 	    NCOPIES="$OPTARG"
 	    ;;
         C)
 	    COMPRESSARGS="-O compression=lz4"
-	    ;;
-        B)
-	    GFLAG="-G"
-	    ZPOOLARGS="-B"
 	    ;;
         d)
 	    DUMPSIZE="$OPTARG"
