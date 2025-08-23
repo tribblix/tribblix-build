@@ -151,8 +151,31 @@ case $# in
 	;;
 esac
 
+#
+# the first remaining argument is a drive to install to
+#
 DRIVE1=$1
 shift
+
+#
+# if we get to this point we shouldn't have any arguments
+#
+case $1 in
+-*)
+	echo "ERROR: unexpected argument $*"
+	echo "(expecting overlays)"
+	exit 1
+	;;
+esac
+
+#
+# everything else is an overlay
+#
+OVERLAYS="$OVERLAYS $*"
+
+#
+# end interactive argument handling
+#
 
 if [ ! -e /dev/dsk/$DRIVE1 ]; then
     echo "ERROR: Unable to find device $DRIVE1"
@@ -235,7 +258,7 @@ TMPDIR=/tmp
 export TMPDIR
 echo "${ALTROOT}/var/zap/cache" > /etc/zap/cache_dir
 if [ -d ${PKGLOC} ]; then
-    for overlay in base $*
+    for overlay in base $OVERLAYS
     do
 	echo "Installing $overlay overlay" | tee -a $LOGFILE
 	/usr/lib/zap/install-overlay -R ${ALTROOT} -s ${PKGLOC} "$overlay" | tee -a $LOGFILE
@@ -437,9 +460,9 @@ fi
 #
 # copy selected keyboard type to installed system
 #
-KLAYOUT=`/usr/bin/kbd -l | /usr/bin/awk -F'[= ]' '{if ($1 == "layout") print $2}'`
+KLAYOUT=$(/usr/bin/kbd -l | /usr/bin/awk -F'[= ]' '{if ($1 == "layout") print $2}')
 if [ -n "${KLAYOUT}" ]; then
-  NLAYOUT=`/usr/bin/awk -v ntyp=${KLAYOUT} -F= '{if ($2 == ntyp) print $1}' /usr/share/lib/keytables/type_6/kbd_layouts`
+  NLAYOUT=$(/usr/bin/awk -v ntyp="${KLAYOUT}" -F= '{if ($2 == ntyp) print $1}' /usr/share/lib/keytables/type_6/kbd_layouts)
   if [ -n "${NLAYOUT}" ]; then
     /usr/sbin/eeprom keyboard-layout=${NLAYOUT}
     /usr/bin/rm -f /tmp/keymap-set
