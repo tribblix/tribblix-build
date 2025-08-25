@@ -177,6 +177,9 @@ OVERLAYS="$OVERLAYS $*"
 # end interactive argument handling
 #
 
+#
+# verify drives are valid
+#
 if [ ! -e /dev/dsk/$DRIVE1 ]; then
     echo "ERROR: Unable to find device $DRIVE1"
     exit 1
@@ -191,6 +194,17 @@ case $DRIVE1 in
 	exit 1
 	;;
 esac
+
+#
+# check overlay validity
+#
+for ovl in $OVERLAYS
+do
+    if [ ! -f "/var/sadm/overlays/${ovl}.ovl" ]; then
+	echo "ERROR: invalid overlay ${ovl}"
+	exit 1
+    fi
+done
 
 /usr/bin/mkdir -p ${ALTROOT}
 echo "Creating root file system"

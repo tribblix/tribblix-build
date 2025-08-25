@@ -222,6 +222,17 @@ OVERLAYS="$OVERLAYS $*"
 #
 
 #
+# check overlay validity
+#
+for ovl in $OVERLAYS
+do
+    if [ ! -f "/var/sadm/overlays/${ovl}.ovl" ]; then
+	echo "ERROR: invalid overlay ${ovl}"
+	exit 1
+    fi
+done
+
+#
 # use the existing pool; we assume everything was set up
 # correctly on that pool, but check that something is present
 # as a sanity check

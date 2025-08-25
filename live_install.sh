@@ -259,7 +259,6 @@ fi
 #
 # verify drives are valid
 #
-
 if [ -n "$DRIVE1" ]; then
     if [ ! -e "/dev/dsk/${DRIVE1}" ]; then
 	if [ -e "/dev/dsk/${DRIVE1}s0" ]; then
@@ -291,6 +290,17 @@ if [ -z "$DRIVELIST" ]; then
     echo "Usage: $0 [-G] [-n hostname] [-t timezone] [-m mirror_device] device [overlay ... ]"
     exit 1
 fi
+
+#
+# check overlay validity
+#
+for ovl in $OVERLAYS
+do
+    if [ ! -f "/var/sadm/overlays/${ovl}.ovl" ]; then
+	echo "ERROR: invalid overlay ${ovl}"
+	exit 1
+    fi
+done
 
 #
 # if we were asked to fdisk the drive, do so
