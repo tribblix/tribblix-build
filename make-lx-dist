@@ -23,8 +23,7 @@ DESTTOP=/export/tribblix
 DESTDIR=${DESTTOP}/dist
 RELEASE=37lx
 NFLAG=""
-QFLAG=""
-OVFLAG="-O base-iso"
+OVBASE="base-iso"
 MRSIZE="340m"
 
 #
@@ -32,10 +31,9 @@ MRSIZE="340m"
 # -D desttop -> DESTTOP
 # -M size -> MRSIZE, size of ramdisk
 # -N -> no install, dry run
-# -Q -> quiet, less output
 # -R release string -> RELEASE
 #
-while getopts "D:M:NQR:" opt; do
+while getopts "D:M:NR:" opt; do
     case $opt in
         D)
 	    DESTTOP="$OPTARG"
@@ -47,11 +45,12 @@ while getopts "D:M:NQR:" opt; do
         N)
 	    NFLAG="-N"
 	    ;;
-        Q)
-	    QFLAG="-Q"
-	    ;;
         R)
 	    RELEASE="$OPTARG"
+	    ;;
+        *)
+	    echo "Usage: $0 [-D destination] [-M size] [-N] [-R release]"
+	    exit 2
 	    ;;
     esac
 done
@@ -72,19 +71,19 @@ case $# in
 	DESTDIR="${DESTDIR}.$1"
 	case $1 in
 	    minimal)
-		OVFLAG="-O base-server"
+		OVBASE="base-server"
 		;;
 	    ec2)
-		OVFLAG="-O base-cloud"
+		OVBASE="base-cloud"
 		;;
 	esac
 	;;
 esac
 
 TDIR=${THOME}/tribblix-build
-case `uname -p` in
+case $(uname -p) in
 i386)
-	$TDIR/install-lx-pkgs -D $DESTTOP $NFLAG $OVFLAG $QFLAG -R $RELEASE $*
+	"$TDIR/install-lx-pkgs" -D "${DESTTOP}" $NFLAG -O "${OVBASE}" -R "${RELEASE}" "$@"
 	;;
 *)
 	echo "ERROR: unrecognized architecture for LX"
@@ -93,15 +92,15 @@ i386)
 esac
 
 if [ -z "${NFLAG}" ]; then
-    if [ ! -f ${DESTDIR}/usr/bin/ls ]; then
+    if [ ! -f "${DESTDIR}/usr/bin/ls" ]; then
 	echo "ERROR: Package install failed!"
 	exit 1
     fi
 fi
 
-case `uname -p` in
+case $(uname -p) in
 i386)
-	$TDIR/mk-lx-pkgs-zap -D $DESTTOP $NFLAG $QFLAG -R $RELEASE $*
+	"$TDIR/mk-lx-pkgs-zap" -D "${DESTTOP}" $NFLAG -R "${RELEASE}" "$@"
 	;;
 esac
 
@@ -113,9 +112,9 @@ if [ -n "${NFLAG}" ]; then
     exit 0
 fi
 
-if [ ! -f ${DESTDIR}/pkgs/catalog ]; then
+if [ ! -f "${DESTDIR}/pkgs/catalog" ]; then
     echo "ERROR: Extra packages failed!"
     exit 1
 fi
 
-$TDIR/build_iso -T lx -D $DESTTOP -R ${RELEASE} -M "${MRSIZE}" $*
+"$TDIR/build_iso" -T lx -D "${DESTTOP}" -R "${RELEASE}" -M "${MRSIZE}" "$@"
