@@ -15,11 +15,22 @@
 #
 # }}}
 #
-# Copyright 2023 Peter Tribble
+# Copyright 2025 Peter Tribble
 #
 
 #
-# create a report of illumos packages. They're either
+# Create a report of the usage of illumos packages for a given release.
+# This is based on the ISO image for that release, so is accurate and
+# reproducible for a given point in time. Different ISO variants will
+# differ in whether a given package is installed in the image, present
+# as a package on the ISO, or referenced in an overlay, but will not
+# differ in which packages are marked as unused.
+#
+# As this is based on the ISO image, it will work correctly for the
+# sparc and lx images too, as it uses the metadata laid down in the
+# image which will always match.
+#
+# They're either
 #  - LIVE installed on the live image
 #  - MEDIAPKGS pkgs shipped on the iso
 #  - OVERLAY listed in an overlay
