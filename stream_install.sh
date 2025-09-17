@@ -32,6 +32,7 @@ COPYARGS=""
 NCOPIES=""
 BFLAG=""
 GFLAG=""
+PFLAG=""
 REBOOT="no"
 NODENAME=""
 TIMEZONE=""
@@ -129,7 +130,7 @@ fi
 # legacy -B now means the same as -G
 # -b is the old -B escape hatch
 #
-while getopts "bBc:Cd:E:Gm:n:P:s:t:z:Z:" opt; do
+while getopts "bBc:Cd:E:Gm:n:pP:s:t:z:Z:" opt; do
     case $opt in
         b)
 	    BFLAG="-B"
@@ -160,6 +161,9 @@ while getopts "bBc:Cd:E:Gm:n:P:s:t:z:Z:" opt; do
 	    ;;
         n)
 	    NODENAME="$OPTARG"
+	    ;;
+        p)
+	    PFLAG="yes"
 	    ;;
         P)
 	    ROOTPOOL="$OPTARG"
@@ -205,6 +209,37 @@ case $1 in
 	exit 1
 	;;
 esac
+
+#
+# we need at least one, and only one, of the flags that tells us what
+# kind of device we're installing to
+#
+# note that -p doesn't actually do anything, but we require it so tha
+# the user makes an explicit choice
+#
+if [ -z "${BFLAG}" -a -z "${GFLAG}" -a -z "${PFLAG}" ]; then
+    echo "Need to specify the type of device to install to:"
+    echo " -G installs to whole disk with GPT labelling (recommended)"
+    echo " -b installs to whole disk with MBR labelling"
+    echo " -p installs to a preexisting partition"
+    exit 2
+fi
+if [ -n "${BFLAG}" -a -n "${GFLAG}" -a -n "${PFLAG}" ]; then
+    echo "ERROR: only specify one of -b, -G, and -p"
+    exit 2
+fi
+if [ -n "${BFLAG}" -a -n "${GFLAG}" ]; then
+    echo "ERROR: only specify one of -b and -G"
+    exit 2
+fi
+if [ -n "${BFLAG}" -a -n "${PFLAG}" ]; then
+    echo "ERROR: only specify one of -b and -p"
+    exit 2
+fi
+if [ -n "${GFLAG}" -a -n "${PFLAG}" ]; then
+    echo "ERROR: only specify one of -G and -p"
+    exit 2
+fi
 
 #
 # if we've been asked for zfs copies, check it makes sense
@@ -305,7 +340,10 @@ fi
 #
 if [ -z "$DRIVELIST" ]; then
     echo "ERROR: no installation drives specified or found"
-    echo "Usage: $0 [-G] [-n hostname] [-t timezone] [-m mirror_device] device image_file"
+    echo "Usage: $0 [-G|-b|-p] [-n hostname] [-t timezone] [-m mirror_device] device image_file"
+    echo " -G installs to the whole disk with GPT labelling (recommended)"
+    echo " -b installs to the whole disk with MBR labelling"
+    echo " -p installs to a preexisting partition"
     exit 1
 fi
 
