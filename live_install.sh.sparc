@@ -208,7 +208,7 @@ esac
 # we need at least one, and only one, of the flags that tells us what
 # kind of device we're installing to
 #
-# note that -p doesn't actually do anything, but we require it so tha
+# note that -p doesn't actually do anything, but we require it so that
 # the user makes an explicit choice
 #
 if [ -z "${BFLAG}" -a -z "${PFLAG}" ]; then
