@@ -15,7 +15,7 @@
 #
 # }}}
 #
-# Copyright 2023 Peter Tribble
+# Copyright 2025 Peter Tribble
 #
 
 #
@@ -54,14 +54,35 @@ if [ ! -f ${ODIR}/illumos-build ]; then
     echo "zap install-overlay illumos-build"
     STATUS=1
 fi
-if [ ! -f ${ODIR}/java ]; then
-    if [ ! -f ${ODIR}/java11 ]; then
-	echo "ERROR: the java or java11 overlay must be installed"
-	echo "As root, run the command"
-	echo "zap install-overlay java11"
+#
+# we need the right version of java for the current release
+#
+case $(uname -p) in
+    i386)
+	if [ ! -f ${ODIR}/java ]; then
+	    if [ ! -f ${ODIR}/java21 ]; then
+		echo "ERROR: the java or java21 overlay must be installed"
+		echo "As root, run the command"
+		echo "zap install-overlay java21"
+		STATUS=1
+	    fi
+	fi
+	;;
+    sparc)
+	if [ ! -f ${ODIR}/java ]; then
+	    if [ ! -f ${ODIR}/java17 ]; then
+		echo "ERROR: the java or java17 overlay must be installed"
+		echo "As root, run the command"
+		echo "zap install-overlay java17"
+		STATUS=1
+	    fi
+	fi
+	;;
+    *)
+	echo "ERROR: unrecognized platform"
 	STATUS=1
-    fi
-fi
+	;;
+esac
 
 #
 # /usr/bin/cpp must be deleted
