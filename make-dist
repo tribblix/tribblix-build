@@ -81,9 +81,17 @@ TDIR=${THOME}/tribblix-build
 case $(uname -p) in
 sparc)
 	"$TDIR/install-pkgs.sparc" -D "${DESTTOP}" $NFLAG -O "${OVBASE}" -R "${RELEASE}" "$@"
+	if [ $? -ne 0 ]; then
+	    echo "ERROR: pkg install failed"
+	    exit 1
+	fi
 	;;
 i386)
 	"$TDIR/install-pkgs" -D "${DESTTOP}" $NFLAG -O "${OVBASE}" -R "${RELEASE}" "$@"
+	if [ $? -ne 0 ]; then
+	    echo "ERROR: pkg install failed"
+	    exit 1
+	fi
 	;;
 *)
 	echo "ERROR: unrecognized architecture"

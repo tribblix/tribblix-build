@@ -84,6 +84,10 @@ TDIR=${THOME}/tribblix-build
 case $(uname -p) in
 i386)
 	"$TDIR/install-lx-pkgs" -D "${DESTTOP}" $NFLAG -O "${OVBASE}" -R "${RELEASE}" "$@"
+	if [ $? -ne 0 ]; then
+	    echo "ERROR: pkg install failed"
+	    exit 1
+	fi
 	;;
 *)
 	echo "ERROR: unrecognized architecture for LX"
