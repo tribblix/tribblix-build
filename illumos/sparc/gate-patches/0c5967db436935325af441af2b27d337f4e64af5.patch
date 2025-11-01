@@ -1,0 +1,30 @@
+From 0c5967db436935325af441af2b27d337f4e64af5 Mon Sep 17 00:00:00 2001
+From: Toomas Soome <tsoome@me.com>
+Date: Sun, 12 Mar 2023 14:24:07 +0200
+Subject: [PATCH] 15721 rcm_daemon: the comparison will always evaluate as
+ 'true' Reviewed by: Peter Tribble <peter.tribble@gmail.com> Reviewed by: Igor
+ Kozhukhov <igor@dilos.org> Reviewed by: Marco van Wieringen
+ <marco.van.wieringen@planets.elm.net> Approved by: Dan McDonald
+ <danmcd@mnx.io>
+
+---
+ usr/src/cmd/rcm_daemon/common/ip_rcm.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/usr/src/cmd/rcm_daemon/common/ip_rcm.c b/usr/src/cmd/rcm_daemon/common/ip_rcm.c
+index 7f6785e9a7..d496d24f20 100644
+--- a/usr/src/cmd/rcm_daemon/common/ip_rcm.c
++++ b/usr/src/cmd/rcm_daemon/common/ip_rcm.c
+@@ -1407,8 +1407,7 @@ ip_log_err(ip_cache_t *node, char **errorp, char *errmsg)
+ 	const char *errfmt;
+ 	char *error = NULL;
+ 
+-	if ((node != NULL) && (node->ip_pif != NULL) &&
+-	    (node->ip_pif->pi_ifname != NULL)) {
++	if (node != NULL && node->ip_pif != NULL) {
+ 		ifname = node->ip_pif->pi_ifname;
+ 	}
+ 
+-- 
+2.51.2
+

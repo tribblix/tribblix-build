@@ -4,7 +4,7 @@ Copyright 2018-2019 Andy Fiddaman <omnios@citrus-it.co.uk>
 
 --- a/usr/src/cmd/svc/milestone/fs-local
 +++ b/usr/src/cmd/svc/milestone/fs-local
-@@ -88,6 +88,11 @@ fi
+@@ -87,6 +87,11 @@ fi
  # Mount all ZFS filesystems.
  
  if [ -x /usr/sbin/zfs ]; then
@@ -35,7 +35,7 @@ Copyright 2018-2019 Andy Fiddaman <omnios@citrus-it.co.uk>
 @@ -100,6 +100,36 @@ if [ -x /usr/sbin/zfs ]; then
  		echo $msg
  		echo "$SMF_FMRI:" $msg >/dev/msglog
- 		result=$SMF_EXIT_MON_DEGRADE
+ 		result=$SMF_EXIT_ERR_FATAL
 +	else
 +		# Mount all encrypted datasets for which the key is available
 +		numenc=0
