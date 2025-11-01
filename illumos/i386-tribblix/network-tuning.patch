@@ -1,0 +1,42 @@
+Taken from https://www.illumos.org/issues/15019
+
+I have found that manual tuning along the lines of
+
+pfexec ipadm set-prop -t -p max_buf=8388608 tcp
+pfexec ipadm set-prop -t -p send_buf=8388608 tcp
+pfexec ipadm set-prop -t -p recv_buf=8388608 tcp
+
+is hugely beneficial, and haven't seen any negative impacts.
+
+diff --git a/usr/src/uts/common/inet/tcp_impl.h b/usr/src/uts/common/inet/tcp_impl.h
+index 8930922d7f..f8185edec9 100644
+--- a/usr/src/uts/common/inet/tcp_impl.h
++++ b/usr/src/uts/common/inet/tcp_impl.h
+@@ -62,9 +62,9 @@ extern sock_downcalls_t sock_tcp_downcalls;
+  * by setting it to 0.
+  */
+ #define	TCP_XMIT_LOWATER	4096
+-#define	TCP_XMIT_HIWATER	49152
++#define	TCP_XMIT_HIWATER	8388608
+ #define	TCP_RECV_LOWATER	2048
+-#define	TCP_RECV_HIWATER	128000
++#define	TCP_RECV_HIWATER	8388608
+ 
+ /*
+  * Bind hash list size and has function.  It has to be a power of 2 for
+diff --git a/usr/src/uts/common/inet/udp_impl.h b/usr/src/uts/common/inet/udp_impl.h
+index 571e239ae3..bcb6237b09 100644
+--- a/usr/src/uts/common/inet/udp_impl.h
++++ b/usr/src/uts/common/inet/udp_impl.h
+@@ -119,9 +119,9 @@ typedef struct {
+ #define	UDP_NUM_EPRIV_PORTS	64
+ 
+ /* Default buffer size and flow control wake up threshold. */
+-#define	UDP_RECV_HIWATER	(56 * 1024)
++#define	UDP_RECV_HIWATER	4194304
+ #define	UDP_RECV_LOWATER	128
+-#define	UDP_XMIT_HIWATER	(56 * 1024)
++#define	UDP_XMIT_HIWATER	4194304
+ #define	UDP_XMIT_LOWATER	1024
+ 
+ /*
