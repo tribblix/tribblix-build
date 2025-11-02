@@ -374,30 +374,32 @@ grep -v ramdisk ${ALTROOT}/etc/system > ${ALTROOT}/etc/system.t
 mv ${ALTROOT}/etc/system.t ${ALTROOT}/etc/system
 
 #
-# use a prebuilt repository if available
+# Now ensure we have a working SMF repository. We try and copy in a prebuilt
+# repository to avoid the cost of import at first boot. We have custom ones
+# preconfigured for the kitchen-sink and x11 overlays that force services
+# like slim and hal to be enabled.
 #
 /usr/bin/rm ${ALTROOT}/etc/svc/repository.db
-if [ -f "${SMFREPODIR}/repository-installed.db.gz" ]; then
-    /usr/bin/cp -p "${SMFREPODIR}/repository-installed.db.gz" ${ALTROOT}/etc/svc/repository.db.gz
-    /usr/bin/gunzip ${ALTROOT}/etc/svc/repository.db.gz
-else
-    /usr/bin/cp -p ${ALTROOT}/lib/svc/seed/global.db ${ALTROOT}/etc/svc/repository.db
-fi
-#
-# We have an x11 version because we have to enable hal
-#
-if [ -f ${ALTROOT}/var/sadm/overlays/installed/x11 ]; then
-    if [ -f "${SMFREPODIR}/repository-x11.db.gz" ]; then
-	/usr/bin/rm ${ALTROOT}/etc/svc/repository.db
-	/usr/bin/cp -p "${SMFREPODIR}/repository-x11.db.gz" ${ALTROOT}/etc/svc/repository.db.gz
+if [ -f ${ALTROOT}/var/sadm/overlays/installed/kitchen-sink ]; then
+    if [ -f ${SMFREPODIR}/repository-kitchen-sink.db.gz ]; then
+	/usr/bin/cp -p ${SMFREPODIR}/repository-kitchen-sink.db.gz ${ALTROOT}/etc/svc/repository.db.gz
 	/usr/bin/gunzip ${ALTROOT}/etc/svc/repository.db.gz
     fi
 fi
-if [ -f ${ALTROOT}/var/sadm/overlays/installed/kitchen-sink ]; then
-    if [ -f "${SMFREPODIR}/repository-kitchen-sink.db.gz" ]; then
-	/usr/bin/rm ${ALTROOT}/etc/svc/repository.db
-	/usr/bin/cp -p "${SMFREPODIR}/repository-kitchen-sink.db.gz" ${ALTROOT}/etc/svc/repository.db.gz
+if [ ! -f ${ALTROOT}/etc/svc/repository.db ]; then
+    if [ -f ${ALTROOT}/var/sadm/overlays/installed/x11 ]; then
+	if [ -f ${SMFREPODIR}/repository-x11.db.gz ]; then
+	    /usr/bin/cp -p ${SMFREPODIR}/repository-x11.db.gz ${ALTROOT}/etc/svc/repository.db.gz
+	    /usr/bin/gunzip ${ALTROOT}/etc/svc/repository.db.gz
+	fi
+    fi
+fi
+if [ ! -f ${ALTROOT}/etc/svc/repository.db ]; then
+    if [ -f ${SMFREPODIR}/repository-installed.db.gz ]; then
+	/usr/bin/cp -p ${SMFREPODIR}/repository-installed.db.gz ${ALTROOT}/etc/svc/repository.db.gz
 	/usr/bin/gunzip ${ALTROOT}/etc/svc/repository.db.gz
+    else
+	/usr/bin/cp -p /lib/svc/seed/global.db ${ALTROOT}/etc/svc/repository.db
     fi
 fi
 
