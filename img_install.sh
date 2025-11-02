@@ -391,6 +391,10 @@ echo "Deleting live package" | tee -a $LOGFILE
 #
 /usr/bin/rm ${ALTROOT}/etc/svc/repository.db
 if [ -f ${ALTROOT}/var/sadm/overlays/installed/kitchen-sink ]; then
+    if [ -f ${SMFREPODIR}/repository-kitchen-sink.db.bz2 ]; then
+	/usr/bin/cp -p ${SMFREPODIR}/repository-kitchen-sink.db.bz2 ${ALTROOT}/etc/svc/repository.db.bz2
+	/usr/bin/bunzip2 ${ALTROOT}/etc/svc/repository.db.bz2
+    fi
     if [ -f ${SMFREPODIR}/repository-kitchen-sink.db.gz ]; then
 	/usr/bin/cp -p ${SMFREPODIR}/repository-kitchen-sink.db.gz ${ALTROOT}/etc/svc/repository.db.gz
 	/usr/bin/gunzip ${ALTROOT}/etc/svc/repository.db.gz
@@ -398,6 +402,10 @@ if [ -f ${ALTROOT}/var/sadm/overlays/installed/kitchen-sink ]; then
 fi
 if [ ! -f ${ALTROOT}/etc/svc/repository.db ]; then
     if [ -f ${ALTROOT}/var/sadm/overlays/installed/x11 ]; then
+	if [ -f ${SMFREPODIR}/repository-x11.db.bz2 ]; then
+	    /usr/bin/cp -p ${SMFREPODIR}/repository-x11.db.bz2 ${ALTROOT}/etc/svc/repository.db.bz2
+	    /usr/bin/bunzip2 ${ALTROOT}/etc/svc/repository.db.bz2
+	fi
 	if [ -f ${SMFREPODIR}/repository-x11.db.gz ]; then
 	    /usr/bin/cp -p ${SMFREPODIR}/repository-x11.db.gz ${ALTROOT}/etc/svc/repository.db.gz
 	    /usr/bin/gunzip ${ALTROOT}/etc/svc/repository.db.gz
@@ -405,7 +413,10 @@ if [ ! -f ${ALTROOT}/etc/svc/repository.db ]; then
     fi
 fi
 if [ ! -f ${ALTROOT}/etc/svc/repository.db ]; then
-    if [ -f ${SMFREPODIR}/repository-installed.db.gz ]; then
+    if [ -f ${SMFREPODIR}/repository-installed.db.bz2 ]; then
+	/usr/bin/cp -p ${SMFREPODIR}/repository-installed.db.bz2 ${ALTROOT}/etc/svc/repository.db.bz2
+	/usr/bin/bunzip2 ${ALTROOT}/etc/svc/repository.db.bz2
+    elif [ -f ${SMFREPODIR}/repository-installed.db.gz ]; then
 	/usr/bin/cp -p ${SMFREPODIR}/repository-installed.db.gz ${ALTROOT}/etc/svc/repository.db.gz
 	/usr/bin/gunzip ${ALTROOT}/etc/svc/repository.db.gz
     else
