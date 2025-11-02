@@ -154,7 +154,7 @@ if [ -d "${DESTTOP}/prebuilt" ]; then
     do
 	cp -p "${repofile}" "${DESTDIR}/usr/lib/zap"
 	rm -f "${DESTDIR}/usr/lib/zap/${repofile}.gz"
-	gzip -9 "${DESTDIR}/usr/lib/zap/${repofile}"
+	pbzip2 "${DESTDIR}/usr/lib/zap/${repofile}"
     done
 fi
 cd "${DESTDIR}" || bail "cannot cd to ${DESTDIR}"
