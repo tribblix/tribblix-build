@@ -189,6 +189,12 @@ case $RELEASE in
     m37lx)
 	IMGSUM="c72bd7fcdd29f03f29145df4e1e7833a4075d88f"
 	;;
+    m38)
+	IMGSUM="5d88948dc40a34ad8064f239b946463ce0026396"
+	;;
+    m38lx)
+	IMGSUM="0bc67c265faf98ffb27d04475f831fca7ff915ee"
+	;;
     *)
 	bail "Unrecognised release"
 	;;
