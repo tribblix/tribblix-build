@@ -1,237 +1,303 @@
 These are the commit ids for illumos-gate or illumos-omnios
 for a given release.
 
+The version of libc (strictly, the latest SYMBOL_VERSION as defined in
+usr/src/lib/libc/port/mapfile-vers) is also recorded, which tracks the
+addition of interfaces to libc.
+
 In the case of SPARC, if there was a SPARC release before m26 and it's not
 listed  separately here then it would have been built from the same commit
 as x86. The SPARC m26 release was built from a slightly different commit to
 the x86 version, later SPARC releases diverge as described in sparc/README.md
 
 m19:
+libc @ ILLUMOS_0.22
 d2c5b266b717b923ea0e28b925ddb8e66dd98b42
 
 m20:
+libc @ ILLUMOS_0.22
 afc62b4b94eec9d9cec1ba14fd65fcf304325e7f
 
 m20.1:
+libc @ ILLUMOS_0.23
 04427e3bf236c18cc532680b957267ee70b1037d
 
 m20.2:
+libc @ ILLUMOS_0.24
 d042c5a26452797afc4fe8c2ceddebff94d88745
 
 m20lx.2
+libc @ ILLUMOS_0.24
 a28287ae00d4c7860bb8f95130a7a3fa153c2685
 
 m20.3:
+libc @ ILLUMOS_0.24
 141fdc8db8933e5c2d4fe6a0f5ee25c59f0a0231
 
 m20lx.3:
+libc @ ILLUMOS_0.24
 933062283134a78e7c82f609fa962ac6363a06fc
 
 m20.4:
+libc @ ILLUMOS_0.24
 27df165cb1057f761e8c77051edac6c560d1e4d9
 
 m20lx.4:
+libc @ ILLUMOS_0.24
 17fba88dc2c90761445e8f27cd990ef2219e5a3d
 
 m20.5:
+libc @ ILLUMOS_0.24
 3c4342ab5aea1aeb83d0d4e34d215f0e113daba1
 
 m20lx.5:
+libc @ ILLUMOS_0.24
 01e33e4ef48b9a5b5a3371b290ba20d41c95de8d
 
 m20.6:
+libc @ ILLUMOS_0.29
 a647f7a8445a398295ac6ca738ef7e8311daa466
 
 m21.0
+libc @ ILLUMOS_0.29
 6d6587176200e3e6c76fd5176b2486ea0eca1a8f
 
 m21lx.0
+libc @ ILLUMOS_0.29
 26bf2cee883636376672a0a2f0e7dfa0b4252a6a
 
 m22
+libc @ ILLUMOS_0.31
 f3e1a610966249cf3c18b6f431eef3fac2ed90e4
 
 m22lx
+libc @ ILLUMOS_0.31
 e687aba82ff852b3ffb06f2f1d7e43a81fadcfb5
 
 m23
+libc @ ILLUMOS_0.33
 0d54f452f42b98b9da0e75b9401795c3a0560297
 
 m23lx
+libc @ ILLUMOS_0.33
 e2695a980d3111e73b3225e06a9f97748190621d
 
 m23.1
+libc @ ILLUMOS_0.35
 28de4f3c3209c81f9a96e2019d44a0b9adcb74cb
 
 m23lx.1
+libc @ ILLUMOS_0.35
 69010d29e8c6cae71a21d6829ea62b9bc5ec47c4
 [revert 3cb7d45669f9143c833d58e902f8880804a51791]
 [revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
 
 m23.2
+libc @ ILLUMOS_0.35
 1d276e0b382cf066dae93640746d8b4c54d15452
 
 m23lx.2
+libc @ ILLUMOS_0.35
 8f705038fbe6511762ea337a316ec1e55d6fa681
 [revert 3cb7d45669f9143c833d58e902f8880804a51791]
 [revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
 
 m23.3
+libc @ ILLUMOS_0.35
 de0f04687a2a3fe3692d9ad1254738343bf9c4eb
 
 m23lx.3
+libc @ ILLUMOS_0.35
 e7e966242388bd8c0f1fbb61523daa127eeaebd8
 [revert 3cb7d45669f9143c833d58e902f8880804a51791]
 [revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
 
 m24
+libc @ ILLUMOS_0.38
 f2c438c5058c64b7373448f239156bf60009abcb
 
 m24lx
+libc @ ILLUMOS_0.37 [note incompatible with m24]
 0d048edc02cb9a04f27dfb86d467010401a17e56
 [revert 3cb7d45669f9143c833d58e902f8880804a51791]
 [revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
 
 m24.1
+libc @ ILLUMOS_0.38
 8bf842e01303492318712f55e3f715097c4df992
 
 m24lx.1
+libc @ ILLUMOS_0.38
 32330bcc3f493ecaa48d30566d29405bb6f1fc66
 [revert 3cb7d45669f9143c833d58e902f8880804a51791]
 [revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
 
 m25
+libc @ ILLUMOS_0.38
 99ea293e719ac006d413e4fde6ac0d5cd4dd6c59
 
 m25lx
+libc @ ILLUMOS_0.38
 cc133161daa44e774fe1e2d74e6036b6e3399bae
 [revert 3cb7d45669f9143c833d58e902f8880804a51791]
 [revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
 
 m25.1
+libc @ ILLUMOS_0.39
 db7e2a9042b61851ffaad37cfcf339b3371f4422
 
 m25lx.1
+libc @ ILLUMOS_0.39
 d62fa156293f8555415e41bdf87160478a8f077d
 [revert 3cb7d45669f9143c833d58e902f8880804a51791]
 [revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
 
 m25.2
+libc @ ILLUMOS_0.39
 6f443ebc1fb4fec01d6e8fa8ca4648182ed215bb
 
 [There was no m25lx.2 release.]
 
 m25.3
+libc @ ILLUMOS_0.39
 f859e7171bb5db34321e45585839c6c3200ebb90
 
 m25lx.3
+libc @ ILLUMOS_0.39
 280026e9685b8e7a714f5079bf3c92586e88aef9
 [revert 3cb7d45669f9143c833d58e902f8880804a51791]
 [revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
 
 m26
+libc @ ILLUMOS_0.39
 07a53f3dc8bc5e4d64bde9b92063de65f06dcf19
 
 m26lx
+libc @ ILLUMOS_0.39
 5b105d0fdce04f16669d9c0366ec513c249e98aa
 [revert 3cb7d45669f9143c833d58e902f8880804a51791]
 [revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
 
 m26.sparc
+libc @ ILLUMOS_0.39
 0f2a8434f3b6c1825df77e8037c61c0f6fb6b300
 
 m27
+libc @ ILLUMOS_0.39
 feea3b2dd6c0c3b59dfb1ab0f992b01906567d90
 
 m27lx
+libc @ ILLUMOS_0.39
 5917f97894e2f8b078660c9e9c4008c780353dc1
 [revert 3cb7d45669f9143c833d58e902f8880804a51791]
 [revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
 
 m28
+libc @ ILLUMOS_0.39
 ee6ee36a8ff1701c4e61e6f118446b145220478c
 
 m28lx
+libc @ ILLUMOS_0.39
 4c53b0c14a1544daffdcbee925cf76c8f0d8bbd3
 [revert 3cb7d45669f9143c833d58e902f8880804a51791]
 [revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
 
 m29
+libc @ ILLUMOS_0.40
 b31f5cf7caf42b613fba3556b30879385cb2348d
 
 m29lx
+libc @ ILLUMOS_0.40
 5aa3b4ddad73798e0d3913a88321a88094ab4b6a
 [revert 3cb7d45669f9143c833d58e902f8880804a51791]
 [revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
 
 m30
+libc @ ILLUMOS_0.41
 676abcb77c26296424298b37b96d2bce39ab25e5
 
 m30lx
+libc @ ILLUMOS_0.41
 74687e92b447cd6befd51c24ce473347076ff0bf
 [revert 3cb7d45669f9143c833d58e902f8880804a51791]
 [revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
 
 m31
+libc @ ILLUMOS_0.41
 c9e18197f22f294cba480e7cd9142f9e60674d7b
 
 m31lx
+libc @ ILLUMOS_0.41
 6bc59909601e83fee93db91ea00e793226fbb138
 [revert 3cb7d45669f9143c833d58e902f8880804a51791]
 [revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
 
 m32
+libc @ ILLUMOS_0.42
 bb78539e556f92fce6eb2a077f042db6e89b7272
 
 m32lx
+libc @ ILLUMOS_0.42
 b9f6ce3974189a1fe0835e4b99bcbb493310da3f
 [revert 3cb7d45669f9143c833d58e902f8880804a51791]
 [revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
 
 m34
+libc @ ILLUMOS_0.44
 b45434de9824c9c75b495234de67668cbaabddab
 
 m34lx
+libc @ ILLUMOS_0.44
 a05e8d5ddda3f9d0d769400169309b810321a5cb
 [manually revert 3cb7d45669f9143c833d58e902f8880804a51791]
 [manually revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
 
 m35
+libc @ ILLUMOS_0.47
 852deac253162fc67cf47230429574fc4c2b38ee
 
 m35lx
+libc @ ILLUMOS_0.47
 6cc597a02d5847333af4c13b46e0e82107359abd
 [manually revert 3cb7d45669f9143c833d58e902f8880804a51791]
 [manually revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
 
 m36
+libc @ ILLUMOS_0.53
 f3410f43c39984069df29c41402ad0180d00a535
 
 m36lx
+libc @ ILLUMOS_0.53
 8fd97bd3988bd482f5cfb75287ca1e6c25053e67
 [manually revert 3cb7d45669f9143c833d58e902f8880804a51791]
 [manually revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
 
 m36.1
+libc @ ILLUMOS_0.53
 eee92abbd3df453cf9f5396815287be4ccd54929
 
 m36lx.1
+libc @ ILLUMOS_0.53
 48c6e4b2efbfd67bdac017b8e645633042331e70
 [manually revert 3cb7d45669f9143c833d58e902f8880804a51791]
 [manually revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
 
 m37
+libc @ ILLUMOS_0.57
 85581acb06ec1d88d7dad6adec5a0a48659c5862
 
 m37lx
+libc @ ILLUMOS_0.57
 b6b4ed7476ee0c12442ac05a822247290e60a627
 [manually revert 3cb7d45669f9143c833d58e902f8880804a51791]
 [manually revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
 
 m38
+libc @ ILLUMOS_0.57
 478476fe3be0c0f39128a0b711291b4cfc18cd7b
 
 m38lx
+libc @ ILLUMOS_0.57
 c7d2fe47d8f0a46979b2dfa71b1e6260a15c8ae8
 [manually revert 3cb7d45669f9143c833d58e902f8880804a51791]
 [manually revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
