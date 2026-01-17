@@ -15,7 +15,7 @@
 #
 # }}}
 #
-# Copyright 2025 Peter Tribble
+# Copyright 2026 Peter Tribble
 #
 
 #
@@ -254,6 +254,32 @@ if [ -n "${NCOPIES}" ]; then
 	    exit 1
 	    ;;
     esac
+fi
+
+#
+# check pool name validity
+#
+if [ -d "/${ROOTPOOL}" ]; then
+    echo "ERROR: pool $ROOTPOOL clashes with existing directory"
+    exit 1
+fi
+case "${ROOTPOOL}" in
+    mirror|raidz*|spare*|log*|c[0-9]*)
+	echo ERROR: "invalid pool name $ROOTPOOL (reserved)"
+	exit 1
+	;;
+    [a-zA-Z]*)
+	:
+	;;
+    *)
+	echo ERROR: "invalid pool name $ROOTPOOL (must start with a letter)"
+	exit 1
+	;;
+esac
+NNAME=$(echo "${ROOTPOOL}" | sed -e 's:[a-zA-Z0-9_-]::g' -e 's:\.::g')
+if [ -n "${NNAME}" ]; then
+    echo ERROR: "invalid pool name $ROOTPOOL (contains invalid characters)"
+    exit 1
 fi
 
 #
