@@ -15,7 +15,7 @@
 #
 # }}}
 #
-# Copyright 2025 Peter Tribble
+# Copyright 2026 Peter Tribble
 #
 
 RELEASE=38lx
@@ -186,6 +186,17 @@ fi
 if [ -n "${DRYRUN}" ]; then
     exit 0
 fi
+
+#
+# the target area ought to be empty, but that triggers the checks in
+# zap that expect it to already look like an OS install
+#
+mkdir "$DESTDIR"/var
+mkdir "$DESTDIR"/var/sadm
+mkdir "$DESTDIR"/var/sadm/pkg
+chgrp sys "$DESTDIR"/var "$DESTDIR"/var/sadm "$DESTDIR"/var/sadm/pkg
+chmod 755 "$DESTDIR"/var "$DESTDIR"/var/sadm
+chmod 555 "$DESTDIR"/var/sadm/pkg
 
 #
 # now install, force SUNWcsd first to make sure state files exist
