@@ -1,0 +1,1163 @@
+From 8a32807d32d9c146d77aa8b34f2491f42f547963 Mon Sep 17 00:00:00 2001
+From: Spoorthi M <smuralidhara@tintri.com>
+Date: Tue, 21 Jul 2020 07:40:24 +0000
+Subject: [PATCH] 16388 NLM callback related fixes.
+
+Change-Id: Icce2db498c9a80d02a42a4860089e62e358b99ba
+---
+
+diff --git a/usr/src/uts/common/klm/klmmod.c b/usr/src/uts/common/klm/klmmod.c
+index d464fca..0bbc3e1 100644
+--- a/usr/src/uts/common/klm/klmmod.c
++++ b/usr/src/uts/common/klm/klmmod.c
+@@ -438,7 +438,7 @@
+ 
+ 	g = zone_getspecific(nlm_zone_key, curzone);
+ 
+-	hostp = nlm_host_findcreate(g, name, netid, addr);
++	hostp = nlm_host_findcreate(g, name, netid, addr, NULL);
+ 	if (hostp == NULL)
+ 		return (NULL);
+ 
+diff --git a/usr/src/uts/common/klm/nlm_client.c b/usr/src/uts/common/klm/nlm_client.c
+index 57b924c..cc320ac 100644
+--- a/usr/src/uts/common/klm/nlm_client.c
++++ b/usr/src/uts/common/klm/nlm_client.c
+@@ -277,7 +277,8 @@
+ 	}
+ 
+ 	g = zone_getspecific(nlm_zone_key, curzone);
+-	hostp = nlm_host_findcreate(g, sv->sv_hostname, netid, &sv->sv_addr);
++	hostp = nlm_host_findcreate(g, sv->sv_hostname, netid,
++	    &sv->sv_addr, NULL);
+ 	if (hostp == NULL)
+ 		return (ENOSYS);
+ 
+@@ -633,7 +634,7 @@
+ 		if (netid != NULL) {
+ 			g = zone_getspecific(nlm_zone_key, curzone);
+ 			hostp = nlm_host_findcreate(g, sv->sv_hostname,
+-			    netid, &sv->sv_addr);
++			    netid, &sv->sv_addr, NULL);
+ 		}
+ 	}
+ 
+@@ -1228,7 +1229,8 @@
+ 	}
+ 
+ 	g = zone_getspecific(nlm_zone_key, curzone);
+-	host = nlm_host_findcreate(g, sv->sv_hostname, netid, &sv->sv_addr);
++	host = nlm_host_findcreate(g, sv->sv_hostname, netid,
++	    &sv->sv_addr, NULL);
+ 	if (host == NULL)
+ 		return (ENOSYS);
+ 
+diff --git a/usr/src/uts/common/klm/nlm_impl.c b/usr/src/uts/common/klm/nlm_impl.c
+index bab08ac..08f77d1 100644
+--- a/usr/src/uts/common/klm/nlm_impl.c
++++ b/usr/src/uts/common/klm/nlm_impl.c
+@@ -238,7 +238,7 @@
+ static void nlm_host_dtor(void *, void *);
+ static void nlm_host_destroy(struct nlm_host *);
+ static struct nlm_host *nlm_host_create(char *, const char *,
+-    struct knetconfig *, struct netbuf *);
++    struct knetconfig *, struct netbuf *, struct netbuf *);
+ static struct nlm_host *nlm_host_find_locked(struct nlm_globals *,
+     const char *, struct netbuf *, avl_index_t *);
+ static void nlm_host_unregister(struct nlm_globals *, struct nlm_host *);
+@@ -1382,7 +1382,7 @@
+  */
+ static struct nlm_host *
+ nlm_host_create(char *name, const char *netid,
+-    struct knetconfig *knc, struct netbuf *naddr)
++    struct knetconfig *knc, struct netbuf *naddr, struct netbuf *laddr)
+ {
+ 	struct nlm_host *host;
+ 
+@@ -1398,6 +1398,7 @@
+ 	host->nh_netid = strdup(netid);
+ 	host->nh_knc = *knc;
+ 	nlm_copy_netbuf(&host->nh_addr, naddr);
++	nlm_copy_netbuf(&host->nh_laddr, laddr);
+ 
+ 	host->nh_state = 0;
+ 	host->nh_rpcb_state = NRPCB_NEED_UPDATE;
+@@ -1679,7 +1680,7 @@
+  */
+ struct nlm_host *
+ nlm_host_findcreate(struct nlm_globals *g, char *name,
+-    const char *netid, struct netbuf *addr)
++    const char *netid, struct netbuf *addr, struct netbuf *laddr)
+ {
+ 	int err;
+ 	struct nlm_host *host, *newhost = NULL;
+@@ -1694,8 +1695,27 @@
+ 
+ 	host = nlm_host_find_locked(g, netid, addr, NULL);
+ 	mutex_exit(&g->lock);
+-	if (host != NULL)
++	if (host != NULL) {
++		if ((&host->nh_laddr)->len != 0 &&
++		    (laddr == NULL || laddr->len == 0)) {
++			cmn_err(CE_NOTE, "nlm_host_findcreate: "
++			    "Incoming laddr is absent but "
++			    "host has a recorded nh_laddr.\n");
++		} else if ((&host->nh_laddr)->len == 0 &&
++		    laddr != NULL && laddr->len != 0) {
++			cmn_err(CE_NOTE, "nlm_host_findcreate: "
++			    "Incoming laddr is present but "
++			    "host has no recorded nh_laddr.\n");
++		} else if (laddr != NULL &&
++		    (((&host->nh_laddr)->len != laddr->len) ||
++		    bcmp((&host->nh_laddr)->buf, laddr->buf,
++		    (size_t)laddr->len) != 0)) {
++			cmn_err(CE_NOTE, "nlm_host_findcreate: received "
++			    "laddr different from recorded nh_laddr.\n");
++		}
++
+ 		return (host);
++	}
+ 
+ 	err = nlm_knc_from_netid(netid, &knc);
+ 	if (err != 0)
+@@ -1704,7 +1724,7 @@
+ 	 * Do allocations (etc.) outside of mutex,
+ 	 * and then check again before inserting.
+ 	 */
+-	newhost = nlm_host_create(name, netid, &knc, addr);
++	newhost = nlm_host_create(name, netid, &knc, addr, laddr);
+ 	newhost->nh_sysid = nlm_sysid_alloc();
+ 	if (newhost->nh_sysid == LM_NOSYSID)
+ 		goto out;
+diff --git a/usr/src/uts/common/klm/nlm_impl.h b/usr/src/uts/common/klm/nlm_impl.h
+index e59ea54..f2da1ad 100644
+--- a/usr/src/uts/common/klm/nlm_impl.h
++++ b/usr/src/uts/common/klm/nlm_impl.h
+@@ -346,6 +346,7 @@
+  *   nh_shrlist: a list of all active share resevations on the client side.
+  *   nh_reclaimer: a pointer to reclamation thread (kthread_t)
+  *                 NULL if reclamation thread doesn't exist
++ *   nh_laddr: the server address through which the request came from.
+  */
+ struct nlm_host {
+ 	kmutex_t		nh_lock;		/* (c) */
+@@ -369,6 +370,7 @@
+ 	struct nlm_vhold_list	nh_vholds_list;		/* (l) */
+ 	struct nlm_shres	*nh_shrlist;		/* (l) */
+ 	kthread_t		*nh_reclaimer;		/* (l) */
++	struct netbuf		nh_laddr;
+ };
+ TAILQ_HEAD(nlm_host_list, nlm_host);
+ 
+@@ -570,7 +572,7 @@
+  * NLM host functions (nlm_impl.c)
+  */
+ struct nlm_host *nlm_host_findcreate(struct nlm_globals *, char *,
+-    const char *, struct netbuf *);
++    const char *, struct netbuf *, struct netbuf *);
+ struct nlm_host *nlm_host_find(struct nlm_globals *,
+     const char *, struct netbuf *);
+ struct nlm_host *nlm_host_find_by_sysid(struct nlm_globals *, sysid_t);
+diff --git a/usr/src/uts/common/klm/nlm_rpc_handle.c b/usr/src/uts/common/klm/nlm_rpc_handle.c
+index b022acc..756d335 100644
+--- a/usr/src/uts/common/klm/nlm_rpc_handle.c
++++ b/usr/src/uts/common/klm/nlm_rpc_handle.c
+@@ -111,7 +111,30 @@
+ 	hostp->nh_rpcb_ustat = RPC_SUCCESS;
+ 	mutex_exit(&hostp->nh_lock);
+ 
+-	stat = rpcbind_getaddr(&hostp->nh_knc, NLM_PROG, vers, &hostp->nh_addr);
++	if ((&hostp->nh_laddr)->buf != NULL) {
++		struct netbuf *laddr_copy = (struct netbuf *)
++		    kmem_zalloc(sizeof (struct netbuf), KM_SLEEP);
++		clnt_dup_netbuf(&hostp->nh_laddr, laddr_copy);
++		struct sockaddr *saddr = (struct sockaddr *)
++		    laddr_copy->buf;
++		if (saddr->sa_family == AF_INET) {
++			struct sockaddr_in *in_addr;
++			in_addr = (struct sockaddr_in *)saddr;
++			in_addr->sin_port = 0;
++		} else if (saddr->sa_family == AF_INET6) {
++			struct sockaddr_in6 *in6_addr;
++			in6_addr = (struct sockaddr_in6 *)saddr;
++			in6_addr->sin6_port = 0;
++		}
++		stat = rpcbind_getaddr5(&hostp->nh_knc, NLM_PROG, vers,
++		    &hostp->nh_addr, laddr_copy);
++		clnt_free_netbuf(laddr_copy);
++		kmem_free(laddr_copy, sizeof (struct netbuf));
++	} else {
++		stat = rpcbind_getaddr5(&hostp->nh_knc, NLM_PROG,
++		    vers, &hostp->nh_addr, NULL);
++	}
++
+ 	mutex_enter(&hostp->nh_lock);
+ 
+ 	hostp->nh_rpcb_state = ((stat == RPC_SUCCESS) ?
+@@ -154,6 +177,29 @@
+ 		    (char *)&clset) == FALSE) {
+ 			NLM_ERR("Unable to set CLSET_NODELAYONERR\n");
+ 		}
++		if ((&hostp->nh_laddr)->buf != NULL) {
++			struct netbuf *laddr_copy = (struct netbuf *)
++			    kmem_zalloc(sizeof (struct netbuf), KM_SLEEP);
++			clnt_dup_netbuf(&hostp->nh_laddr, laddr_copy);
++			struct sockaddr *saddr = (struct sockaddr *)
++			    laddr_copy->buf;
++			if (saddr->sa_family == AF_INET) {
++				struct sockaddr_in *in_addr;
++				in_addr = (struct sockaddr_in *)saddr;
++				in_addr->sin_port = 0;
++			} else if (saddr->sa_family == AF_INET6) {
++				struct sockaddr_in6 *in6_addr;
++				in6_addr = (struct sockaddr_in6 *)saddr;
++				in6_addr->sin6_port = 0;
++			}
++			if (!clnt_control(rpcp->nr_handle, CLSET_BINDSRCADDR,
++			    (char *)laddr_copy)) {
++				cmn_err(CE_WARN, "Unable to set "
++				    "CLSET_BINDSRCADDR\n");
++			}
++			clnt_free_netbuf(laddr_copy);
++			kmem_free(laddr_copy, sizeof (struct netbuf));
++		}
+ 	} else {
+ 		ret = clnt_tli_kinit(rpcp->nr_handle, &hostp->nh_knc,
+ 		    &hostp->nh_addr, 0, NLM_RPC_RETRIES, CRED());
+@@ -218,6 +264,13 @@
+ 				mutex_exit(&hostp->nh_lock);
+ 				rc = EINTR;
+ 				goto errout;
++			} else if (hostp->nh_rpcb_state != NRPCB_UPDATED) {
++				/*
++				 * Current waiters don't retry
++				 */
++				mutex_exit(&hostp->nh_lock);
++				rc = ENOENT;
++				goto errout;
+ 			}
+ 		}
+ 
+diff --git a/usr/src/uts/common/klm/nlm_service.c b/usr/src/uts/common/klm/nlm_service.c
+index 23f8ffb..d156250 100644
+--- a/usr/src/uts/common/klm/nlm_service.c
++++ b/usr/src/uts/common/klm/nlm_service.c
+@@ -331,7 +331,7 @@
+ 	struct nlm_owner_handle *oh;
+ 	nlm_rpc_t *rpcp = NULL;
+ 	vnode_t *vp = NULL;
+-	struct netbuf *addr;
++	struct netbuf *addr, *laddr;
+ 	char *netid;
+ 	char *name;
+ 	int error;
+@@ -342,9 +342,10 @@
+ 	name = argp->alock.caller_name;
+ 	netid = svc_getnetid(sr->rq_xprt);
+ 	addr = svc_getrpccaller(sr->rq_xprt);
++	laddr = svc_getrpchost(sr->rq_xprt);
+ 
+ 	g = zone_getspecific(nlm_zone_key, curzone);
+-	host = nlm_host_findcreate(g, name, netid, addr);
++	host = nlm_host_findcreate(g, name, netid, addr, laddr);
+ 	if (host == NULL) {
+ 		resp->stat.stat = nlm4_denied_nolocks;
+ 		return;
+@@ -478,7 +479,7 @@
+ 	struct nlm_globals *g;
+ 	struct flock64 fl;
+ 	struct nlm_host *host = NULL;
+-	struct netbuf *addr;
++	struct netbuf *addr, *laddr;
+ 	struct nlm_vhold *nvp = NULL;
+ 	nlm_rpc_t *rpcp = NULL;
+ 	char *netid;
+@@ -493,9 +494,10 @@
+ 	name = argp->alock.caller_name;
+ 	netid = svc_getnetid(sr->rq_xprt);
+ 	addr = svc_getrpccaller(sr->rq_xprt);
++	laddr = svc_getrpchost(sr->rq_xprt);
+ 
+ 	g = zone_getspecific(nlm_zone_key, curzone);
+-	host = nlm_host_findcreate(g, name, netid, addr);
++	host = nlm_host_findcreate(g, name, netid, addr, laddr);
+ 	if (host == NULL) {
+ 		DTRACE_PROBE4(no__host, struct nlm_globals *, g,
+ 		    char *, name, char *, netid, struct netbuf *, addr);
+@@ -516,6 +518,8 @@
+ 	if (res_cb != NULL) {
+ 		error = nlm_host_get_rpc(host, sr->rq_vers, &rpcp);
+ 		if (error != 0) {
++			cmn_err(CE_WARN,
++			"NLM: RPCBIND/PORTMAP failed at res_cb, deny\n");
+ 			ASSERT(rpcp == NULL);
+ 			status = nlm4_denied_nolocks;
+ 			goto out;
+@@ -840,7 +844,7 @@
+ {
+ 	struct nlm_globals *g;
+ 	struct nlm_host *host;
+-	struct netbuf *addr;
++	struct netbuf *addr, *laddr;
+ 	struct nlm_vhold *nvp = NULL;
+ 	nlm_rpc_t *rpcp = NULL;
+ 	char *netid;
+@@ -850,11 +854,12 @@
+ 
+ 	nlm_copy_netobj(&resp->cookie, &argp->cookie);
+ 	netid = svc_getnetid(sr->rq_xprt);
+-	addr = svc_getrpccaller(sr->rq_xprt);
+ 	name = argp->alock.caller_name;
++	addr = svc_getrpccaller(sr->rq_xprt);
++	laddr = svc_getrpchost(sr->rq_xprt);
+ 
+ 	g = zone_getspecific(nlm_zone_key, curzone);
+-	host = nlm_host_findcreate(g, name, netid, addr);
++	host = nlm_host_findcreate(g, name, netid, addr, laddr);
+ 	if (host == NULL) {
+ 		resp->stat.stat = nlm4_denied_nolocks;
+ 		return;
+@@ -937,7 +942,7 @@
+ {
+ 	struct nlm_globals *g;
+ 	struct nlm_host *host;
+-	struct netbuf *addr;
++	struct netbuf *addr, *laddr;
+ 	nlm_rpc_t *rpcp = NULL;
+ 	vnode_t *vp = NULL;
+ 	char *netid;
+@@ -948,8 +953,9 @@
+ 	nlm_copy_netobj(&resp->cookie, &argp->cookie);
+ 
+ 	netid = svc_getnetid(sr->rq_xprt);
+-	addr = svc_getrpccaller(sr->rq_xprt);
+ 	name = argp->alock.caller_name;
++	addr = svc_getrpccaller(sr->rq_xprt);
++	laddr = svc_getrpchost(sr->rq_xprt);
+ 
+ 	/*
+ 	 * NLM_UNLOCK operation doesn't have an error code
+@@ -960,7 +966,7 @@
+ 	resp->stat.stat = nlm4_granted;
+ 
+ 	g = zone_getspecific(nlm_zone_key, curzone);
+-	host = nlm_host_findcreate(g, name, netid, addr);
++	host = nlm_host_findcreate(g, name, netid, addr, laddr);
+ 	if (host == NULL)
+ 		return;
+ 
+@@ -1194,7 +1200,7 @@
+ {
+ 	struct nlm_globals *g;
+ 	struct nlm_host *host;
+-	struct netbuf *addr;
++	struct netbuf *addr, *laddr;
+ 	struct nlm_vhold *nvp = NULL;
+ 	char *netid;
+ 	char *name;
+@@ -1206,9 +1212,10 @@
+ 	name = argp->share.caller_name;
+ 	netid = svc_getnetid(sr->rq_xprt);
+ 	addr = svc_getrpccaller(sr->rq_xprt);
++	laddr = svc_getrpchost(sr->rq_xprt);
+ 
+ 	g = zone_getspecific(nlm_zone_key, curzone);
+-	host = nlm_host_findcreate(g, name, netid, addr);
++	host = nlm_host_findcreate(g, name, netid, addr, laddr);
+ 	if (host == NULL) {
+ 		resp->stat = nlm4_denied_nolocks;
+ 		return;
+diff --git a/usr/src/uts/common/rpc/clnt.h b/usr/src/uts/common/rpc/clnt.h
+index 8c51c44..110c08b 100644
+--- a/usr/src/uts/common/rpc/clnt.h
++++ b/usr/src/uts/common/rpc/clnt.h
+@@ -197,9 +197,9 @@
+ #define	CLCR_SET_LOWVERS	3
+ #define	CLCR_GET_LOWVERS	4
+ #define	CLCR_SET_RPCB_RMTTIME	5
+-#define	CLCR_GET_RPCB_RMTTIME  	6
+-#define	CLCR_SET_CRED_CACHE_SZ 	7
+-#define	CLCR_GET_CRED_CACHE_SZ 	8
++#define	CLCR_GET_RPCB_RMTTIME	6
++#define	CLCR_SET_CRED_CACHE_SZ	7
++#define	CLCR_GET_CRED_CACHE_SZ	8
+ 
+ #define	RPCSMALLMSGSIZE	400	/* a more reasonable packet size */
+ 
+@@ -352,6 +352,11 @@
+ 
+ extern int rpc_uaddr2port(int af, char *addr);
+ 
++extern void clnt_init_netbuf(struct netbuf *, int);
++extern void clnt_free_netbuf(struct netbuf *);
++extern void clnt_dup_netbuf(const struct netbuf *, struct netbuf *);
++extern int clnt_cmp_netaddr(const struct netbuf *, struct netbuf *);
++
+ /*
+  * kRPC internal function. Not for general use. Subject to rapid change.
+  */
+@@ -472,6 +477,8 @@
+ extern void put_loopback_port(struct netbuf *, char *);
+ extern enum clnt_stat rpcbind_getaddr(struct knetconfig *, rpcprog_t,
+     rpcvers_t, struct netbuf *);
++extern enum clnt_stat rpcbind_getaddr5(struct knetconfig *, rpcprog_t,
++    rpcvers_t, struct netbuf *, struct netbuf *);
+ 
+ /*
+  * Kstat stuff
+@@ -517,7 +524,7 @@
+ /*
+  * enum clnt_stat
+  * CLNT_CALL(rh, proc, xargs, argsp, xres, resp, timeout)
+- * 	CLIENT *rh;
++ *	CLIENT *rh;
+  *	rpcproc_t proc;
+  *	xdrproc_t xargs;
+  *	caddr_t argsp;
+@@ -539,7 +546,7 @@
+ /*
+  * enum clnt_stat
+  * CLNT_SEND(rh, proc, xargs, argsp)
+- * 	CLIENT *rh;
++ *	CLIENT *rh;
+  *	rpcproc_t proc;
+  *	xdrproc_t xargs;
+  *	caddr_t argsp;
+@@ -555,7 +562,7 @@
+ /*
+  * void
+  * CLNT_ABORT(rh);
+- * 	CLIENT *rh;
++ *	CLIENT *rh;
+  */
+ #define	CLNT_ABORT(rh)	((*(rh)->cl_ops->cl_abort)(rh))
+ #define	clnt_abort(rh)	((*(rh)->cl_ops->cl_abort)(rh))
+@@ -563,7 +570,7 @@
+ /*
+  * struct rpc_err
+  * CLNT_GETERR(rh);
+- * 	CLIENT *rh;
++ *	CLIENT *rh;
+  */
+ #define	CLNT_GETERR(rh, errp)	((*(rh)->cl_ops->cl_geterr)(rh, errp))
+ #define	clnt_geterr(rh, errp)	((*(rh)->cl_ops->cl_geterr)(rh, errp))
+@@ -571,7 +578,7 @@
+ /*
+  * bool_t
+  * CLNT_FREERES(rh, xres, resp);
+- * 	CLIENT *rh;
++ *	CLIENT *rh;
+  *	xdrproc_t xres;
+  *	caddr_t resp;
+  */
+@@ -606,7 +613,7 @@
+ #define	CLGET_SVC_ADDR		7	/* get server's address (netbuf) */
+ #define	CLSET_FD_CLOSE		8	/* close fd while clnt_destroy */
+ #define	CLSET_FD_NCLOSE		9	/* Do not close fd while clnt_destroy */
+-#define	CLGET_XID 		10	/* Get xid */
++#define	CLGET_XID		10	/* Get xid */
+ #define	CLSET_XID		11	/* Set xid */
+ #define	CLGET_VERS		12	/* Get version number */
+ #define	CLSET_VERS		13	/* Set version number */
+@@ -662,6 +669,8 @@
+ 					/* connection setup error	  */
+ #define	CLSET_BINDRESVPORT	10005	/* Set preference for reserve port */
+ #define	CLGET_BINDRESVPORT	10006	/* Get preference for reserve port */
++#define	CLSET_BINDSRCADDR	10007	/* Set preference for interface */
++					/* and end port */
+ #endif
+ 
+ /*
+@@ -686,7 +695,7 @@
+ /*
+  * void
+  * CLNT_DESTROY(rh);
+- * 	CLIENT *rh;
++ *	CLIENT *rh;
+  *
+  * PSARC 2003/523 Contract Private Interface
+  * CLNT_DESTROY
+@@ -731,7 +740,7 @@
+ 	const char *);
+ /*
+  *
+- * 	const char *hostname;			-- hostname
++ *	const char *hostname;			-- hostname
+  *	const rpcprog_t prog;			-- program number
+  *	const rpcvers_t vers;			-- version number
+  *	const char *nettype;			-- network type
+@@ -749,7 +758,7 @@
+ 	const rpcvers_t, const char *, const struct timeval *);
+ /*
+  *
+- * 	const char *hostname;			-- hostname
++ *	const char *hostname;			-- hostname
+  *	const rpcprog_t prog;			-- program number
+  *	const rpcvers_t vers;			-- version number
+  *	const char *nettype;			-- network type
+@@ -811,7 +820,7 @@
+  *	const char *hostname;			-- hostname
+  *	const rpcprog_t prog;			-- program number
+  *	const rpcvers_t vers;			-- version number
+- *	const struct netconfig *netconf; 	-- network config structure
++ *	const struct netconfig *netconf;	-- network config structure
+  */
+ #else
+ extern CLIENT * clnt_tp_create();
+@@ -828,7 +837,7 @@
+  *	const char *hostname;			-- hostname
+  *	const rpcprog_t prog;			-- program number
+  *	const rpcvers_t vers;			-- version number
+- *	const struct netconfig *netconf; 	-- network config structure
++ *	const struct netconfig *netconf;	-- network config structure
+  *	const struct timeval *tp;		-- timeout
+  */
+ #else
+@@ -1047,8 +1056,8 @@
+  *	const xdrproc_t	xresults;	-- xdr routine for results
+  *	caddr_t		resultsp;	-- pointer to results
+  *	const resultproc_t	eachresult;	-- call with each result
+- *	const int 		inittime;	-- how long to wait initially
+- *	const int 		waittime;	-- maximum time to wait
++ *	const int		inittime;	-- how long to wait initially
++ *	const int		waittime;	-- maximum time to wait
+  *	const char		*nettype;	-- Transport type
+  */
+ 
+diff --git a/usr/src/uts/common/rpc/clnt_clts.c b/usr/src/uts/common/rpc/clnt_clts.c
+index 3564e4f..50d8c62 100644
+--- a/usr/src/uts/common/rpc/clnt_clts.c
++++ b/usr/src/uts/common/rpc/clnt_clts.c
+@@ -114,6 +114,7 @@
+ 	zoneid_t	e_zoneid;	/* zoneid of endpoint type */
+ 	kcondvar_t	e_async_cv;	/* cv for asynchronous reap threads */
+ 	uint_t		e_async_count;	/* count of asynchronous reap threads */
++	struct netbuf	e_laddr;	/* endpnt local address */
+ } endpnt_type_t;
+ 
+ typedef struct endpnt {
+@@ -165,7 +166,8 @@
+ static struct endpnt_type *endpnt_type_create(struct knetconfig *);
+ static void endpnt_type_free(struct endpnt_type *);
+ static int check_endpnt(struct endpnt *, struct endpnt **);
+-static struct endpnt *endpnt_get(struct knetconfig *, int);
++static struct endpnt *endpnt_get(struct knetconfig *, int, int,
++				struct netbuf *);
+ static void endpnt_rele(struct endpnt *);
+ static void endpnt_reap_settimer(endpnt_type_t *);
+ static void endpnt_reap(endpnt_type_t *);
+@@ -204,6 +206,7 @@
+ 	struct endpnt		*cku_endpnt;	/* open end point */
+ 	struct knetconfig	 cku_config;
+ 	struct netbuf		 cku_addr;	/* remote address */
++	struct netbuf		 cku_lcladdr;	/* local address */
+ 	struct rpc_err		 cku_err;	/* error status */
+ 	XDR			 cku_outxdr;	/* xdr stream for output */
+ 	XDR			 cku_inxdr;	/* xdr stream for input */
+@@ -217,6 +220,7 @@
+ 	uint32_t		 cku_xid;	/* current XID */
+ 	bool_t			 cku_bcast;	/* RPC broadcast hint */
+ 	int			cku_useresvport; /* Use reserved port */
++	int			cku_bindsrc;	/* Use source address */
+ 	struct rpc_clts_client	*cku_stats;	/* counters for the zone */
+ };
+ 
+@@ -358,7 +362,8 @@
+ 	plen = strlen(config->knc_protofmly) + 1;
+ 	p->cku_config.knc_protofmly = kmem_alloc(plen, KM_SLEEP);
+ 	bcopy(config->knc_protofmly, p->cku_config.knc_protofmly, plen);
+-	p->cku_useresvport = -1; /* value is has not been set */
++	p->cku_useresvport = -1; /* value has not been set */
++	p->cku_bindsrc = 0; /* value has not been set */
+ 
+ 	cv_init(&p->cku_call.call_cv, NULL, CV_DEFAULT, NULL);
+ 	mutex_init(&p->cku_call.call_lock, NULL, MUTEX_DEFAULT, NULL);
+@@ -386,7 +391,7 @@
+ 
+ 	p->cku_retrys = retrys;
+ 
+-	if (p->cku_addr.maxlen < addr->len) {
++	if (p->cku_addr.maxlen < addr->maxlen) {
+ 		if (p->cku_addr.maxlen != 0 && p->cku_addr.buf != NULL)
+ 			kmem_free(p->cku_addr.buf, p->cku_addr.maxlen);
+ 
+@@ -580,7 +585,8 @@
+ 	 */
+ 
+ 	if (p->cku_endpnt == NULL)
+-		p->cku_endpnt = endpnt_get(&p->cku_config, p->cku_useresvport);
++		p->cku_endpnt = endpnt_get(&p->cku_config, p->cku_useresvport,
++		    p->cku_bindsrc, &p->cku_lcladdr);
+ 
+ 	if (p->cku_endpnt == NULL) {
+ 		freemsg(mp);
+@@ -1090,6 +1096,16 @@
+ 
+ 		return (TRUE);
+ 
++	case CLSET_BINDSRCADDR:
++		if (arg == NULL)
++			return (FALSE);
++
++		struct netbuf *addr = (struct netbuf *)arg;
++		clnt_dup_netbuf(addr, &p->cku_lcladdr);
++		p->cku_bindsrc = 1;
++
++		return (TRUE);
++
+ 	default:
+ 		return (FALSE);
+ 	}
+@@ -1121,6 +1137,7 @@
+ 	plen = strlen(p->cku_config.knc_protofmly) + 1;
+ 	kmem_free(p->cku_config.knc_protofmly, plen);
+ 	kmem_free(p->cku_addr.buf, p->cku_addr.maxlen);
++	kmem_free(p->cku_lcladdr.buf, p->cku_lcladdr.maxlen);
+ 	kmem_free(p, sizeof (*p));
+ }
+ 
+@@ -1267,6 +1284,9 @@
+ 	etype = kmem_alloc(sizeof (struct endpnt_type), KM_SLEEP);
+ 	etype->e_next = NULL;
+ 	etype->e_pcurr = NULL;
++	etype->e_laddr.buf = NULL;
++	etype->e_laddr.maxlen = 0;
++	etype->e_laddr.len = 0;
+ 	etype->e_itimer = 0;
+ 	etype->e_cnt = 0;
+ 
+@@ -1310,6 +1330,8 @@
+ 	mutex_destroy(&etype->e_ilock);
+ 	list_destroy(&etype->e_pool);
+ 	list_destroy(&etype->e_ilist);
++	if (etype->e_laddr.buf != NULL)
++		clnt_free_netbuf(&etype->e_laddr);
+ 	kmem_free(etype, sizeof (endpnt_type_t));
+ }
+ 
+@@ -1393,7 +1415,8 @@
+  * can be obtained.
+  */
+ static struct endpnt *
+-endpnt_get(struct knetconfig *config, int useresvport)
++endpnt_get(struct knetconfig *config, int useresvport,
++    int useintf, struct netbuf *laddr)
+ {
+ 	struct endpnt_type	*n_etype = NULL;
+ 	struct endpnt_type	*np = NULL;
+@@ -1424,12 +1447,20 @@
+ 	rw_enter(&endpnt_type_lock, RW_READER);
+ 
+ top:
+-	for (np = endpnt_type_list; np != NULL; np = np->e_next)
++	for (np = endpnt_type_list; np != NULL; np = np->e_next) {
+ 		if ((np->e_zoneid == zoneid) &&
+ 		    (np->e_rdev == config->knc_rdev) &&
+ 		    (strcmp(np->e_protofmly,
+-		    config->knc_protofmly) == 0))
++		    config->knc_protofmly) == 0)) {
++			if (useintf == 1 && laddr != NULL &&
++			    laddr->buf != NULL && np->e_laddr.buf != NULL) {
++				if (clnt_cmp_netaddr(laddr, &np->e_laddr)) {
++					continue;
++				}
++			}
+ 			break;
++		}
++	}
+ 
+ 	if (np == NULL && n_etype != NULL) {
+ 		ASSERT(rw_write_held(&endpnt_type_lock));
+@@ -1460,6 +1491,9 @@
+ 		 */
+ 		rw_exit(&endpnt_type_lock);
+ 		n_etype = endpnt_type_create(config);
++		if (useintf == 1 && laddr != NULL) {
++			clnt_dup_netbuf(laddr, &n_etype->e_laddr);
++		}
+ 
+ 		/*
+ 		 * We need to reaquire the lock with RW_WRITER here so that
+@@ -1662,12 +1696,12 @@
+ 	if (useresvport == -1)
+ 		useresvport = clnt_clts_do_bindresvport;
+ 
+-	if (useresvport &&
++	if ((useresvport || useintf) &&
+ 	    (strcmp(config->knc_protofmly, NC_INET) == 0 ||
+ 	    strcmp(config->knc_protofmly, NC_INET6) == 0)) {
+ 
+ 		while ((error =
+-		    bindresvport(new->e_tiptr, NULL, NULL, FALSE)) != 0) {
++		    bindresvport(new->e_tiptr, laddr, NULL, FALSE)) != 0) {
+ 			RPCLOG(1,
+ 			    "endpnt_get: bindresvport error %d\n", error);
+ 			if (error != EPROTO) {
+diff --git a/usr/src/uts/common/rpc/clnt_cots.c b/usr/src/uts/common/rpc/clnt_cots.c
+index c76ae63..687a4cc 100644
+--- a/usr/src/uts/common/rpc/clnt_cots.c
++++ b/usr/src/uts/common/rpc/clnt_cots.c
+@@ -354,7 +354,8 @@
+ 	calllist_t		cku_call;	/* for dispatching calls */
+ 	struct rpc_err		cku_err;	/* error status */
+ 
+-	struct netbuf		cku_srcaddr;	/* source address for retries */
++	struct netbuf		cku_srcaddr;	/* source or bind address */
++						/* for retries */
+ 	int			cku_addrfmly;  /* for binding port */
+ 	struct netbuf		cku_addr;	/* remote address */
+ 	dev_t			cku_device;	/* device to use */
+@@ -377,6 +378,7 @@
+ 	bool_t			cku_nodelayonerr;
+ 						/* for CLSET_NODELAYONERR */
+ 	int			cku_useresvport; /* Use reserved port */
++	int			cku_bindsrc;	/* bind to src address */
+ 	struct rpc_cots_client	*cku_stats;	/* stats for zone */
+ } cku_private_t;
+ 
+@@ -401,11 +403,11 @@
+ static void	connmgr_close(struct cm_xprt *);
+ static void	connmgr_release(struct cm_xprt *);
+ static struct cm_xprt *connmgr_wrapget(struct netbuf *, const struct timeval *,
+-	cku_private_t *);
++	cku_private_t *, bool_t);
+ 
+ static struct cm_xprt *connmgr_get(struct netbuf *, const struct timeval *,
+ 	struct netbuf *, int, struct netbuf *, struct rpc_err *, dev_t,
+-	bool_t, int, cred_t *);
++	bool_t, int, cred_t *, bool_t);
+ 
+ static void connmgr_cancelconn(struct cm_xprt *);
+ static enum clnt_stat connmgr_cwait(struct cm_xprt *, const struct timeval *,
+@@ -637,7 +639,8 @@
+ 	p->cku_addr.len = addr->len;
+ 	bcopy(addr->buf, p->cku_addr.buf, addr->len);
+ 	p->cku_stats = rpcstat->rpc_cots_client;
+-	p->cku_useresvport = -1; /* value is has not been set */
++	p->cku_useresvport = -1; /* value has not been set */
++	p->cku_bindsrc = 0;
+ 
+ 	*ncl = h;
+ 	return (0);
+@@ -734,6 +737,17 @@
+ 
+ 		return (TRUE);
+ 
++	case CLSET_BINDSRCADDR:
++		if (arg == NULL)
++			return (FALSE);
++
++		struct netbuf *addr = (struct netbuf *)arg;
++		clnt_dup_netbuf(addr, &p->cku_srcaddr);
++		p->cku_bindsrc = 1;
++
++		return (TRUE);
++
++
+ 	default:
+ 		return (FALSE);
+ 	}
+@@ -799,6 +813,7 @@
+ 	enum clnt_stat status;
+ 	struct timeval cwait;
+ 	bool_t delay_first = FALSE;
++	bool_t srcbind_only = FALSE;
+ 	clock_t ticks, now;
+ 
+ 	RPCLOG(2, "clnt_cots_kcallit, procnum %u\n", procnum);
+@@ -850,7 +865,12 @@
+ 		 */
+ 		ASSERT(p->cku_xid != 0);
+ 
+-		retryaddr = NULL;
++		if (p->cku_bindsrc) {
++			retryaddr = &p->cku_srcaddr;
++			srcbind_only = TRUE;
++		} else {
++			retryaddr = NULL;
++		}
+ 		p->cku_flags &= ~CKU_SENT;
+ 
+ 		if (p->cku_flags & CKU_ONQUEUE) {
+@@ -872,6 +892,7 @@
+ 
+ 	} else if (p->cku_flags & CKU_SENT) {
+ 		retryaddr = &p->cku_srcaddr;
++		srcbind_only = FALSE;
+ 
+ 	} else {
+ 		/*
+@@ -879,7 +900,12 @@
+ 		 * NULL and let connmgr_get() bind to any source port it
+ 		 * can get.
+ 		 */
+-		retryaddr = NULL;
++		if (p->cku_bindsrc) {
++			retryaddr = &p->cku_srcaddr;
++			srcbind_only = TRUE;
++		} else {
++			retryaddr = NULL;
++		}
+ 	}
+ 
+ 	RPCLOG(64, "clnt_cots_kcallit: xid = 0x%x", p->cku_xid);
+@@ -888,7 +914,7 @@
+ 	p->cku_err.re_status = RPC_TIMEDOUT;
+ 	p->cku_err.re_errno = p->cku_err.re_terrno = 0;
+ 
+-	cm_entry = connmgr_wrapget(retryaddr, &cwait, p);
++	cm_entry = connmgr_wrapget(retryaddr, &cwait, p, srcbind_only);
+ 
+ 	if (cm_entry == NULL) {
+ 		RPCLOG(1, "clnt_cots_kcallit: can't connect status %s\n",
+@@ -1580,8 +1606,10 @@
+ 	p->cku_addrfmly = family;
+ 	p->cku_cred = cred;
+ 
+-	if (p->cku_addr.maxlen < addr->len) {
+-		kmem_free(p->cku_addr.buf, p->cku_addr.maxlen);
++	if (p->cku_addr.maxlen < addr->maxlen) {
++		if (p->cku_addr.maxlen != 0 && p->cku_addr.buf != NULL)
++			kmem_free(p->cku_addr.buf, p->cku_addr.maxlen);
++
+ 		p->cku_addr.buf = kmem_zalloc(addr->maxlen, KM_SLEEP);
+ 		p->cku_addr.maxlen = addr->maxlen;
+ 	}
+@@ -1764,13 +1792,15 @@
+ connmgr_wrapget(
+ 	struct netbuf *retryaddr,
+ 	const struct timeval *waitp,
+-	cku_private_t *p)
++	cku_private_t *p,
++	bool_t srcbind_only)
+ {
+ 	struct cm_xprt *cm_entry;
+ 
+ 	cm_entry = connmgr_get(retryaddr, waitp, &p->cku_addr, p->cku_addrfmly,
+ 	    &p->cku_srcaddr, &p->cku_err, p->cku_device,
+-	    p->cku_client.cl_nosignal, p->cku_useresvport, p->cku_cred);
++	    p->cku_client.cl_nosignal, p->cku_useresvport, p->cku_cred,
++	    srcbind_only);
+ 
+ 	if (cm_entry == NULL) {
+ 		/*
+@@ -1812,7 +1842,8 @@
+ 	dev_t		device,
+ 	bool_t		nosignal,
+ 	int		useresvport,
+-	cred_t		*cr)
++	cred_t		*cr,
++	bool_t		do_srcbind)
+ {
+ 	struct cm_xprt *cm_entry;
+ 	struct cm_xprt *lru_entry;
+@@ -1831,7 +1862,7 @@
+ 	 */
+ 	mutex_enter(&connmgr_lock);
+ 
+-	if (retryaddr == NULL) {
++	if (retryaddr == NULL || (do_srcbind && retryaddr != NULL)) {
+ use_new_conn:
+ 		i = 0;
+ 		cm_entry = lru_entry = NULL;
+@@ -1880,12 +1911,29 @@
+ 			}
+ 
+ 
++			/*
++			 * Playing safe, there is a goto below,
++			 * which sets retryaddr to NULL,
++			 * Invalidating the if check above.
++			 */
++			if (retryaddr == NULL) {
++				do_srcbind = FALSE;
++			}
+ 			if ((cm_entry->x_state_flags & X_BADSTATES) == 0 &&
+ 			    cm_entry->x_zoneid == zoneid &&
+ 			    cm_entry->x_rdev == device &&
+ 			    destaddr->len == cm_entry->x_server.len &&
+ 			    bcmp(destaddr->buf, cm_entry->x_server.buf,
+ 			    destaddr->len) == 0) {
++
++				if (do_srcbind) {
++					if (cm_entry->x_src.buf == NULL ||
++					    clnt_cmp_netaddr(retryaddr,
++					    &cm_entry->x_src) != 0) {
++						cmp = &cm_entry->x_next;
++						continue;
++					}
++				}
+ 				/*
+ 				 * If the matching entry isn't connected,
+ 				 * attempt to reconnect it.
+diff --git a/usr/src/uts/common/rpc/clnt_gen.c b/usr/src/uts/common/rpc/clnt_gen.c
+index 78d938d..d966cb0 100644
+--- a/usr/src/uts/common/rpc/clnt_gen.c
++++ b/usr/src/uts/common/rpc/clnt_gen.c
+@@ -24,7 +24,7 @@
+  */
+ 
+ /*	Copyright (c) 1983, 1984, 1985, 1986, 1987, 1988, 1989 AT&T	*/
+-/*	  All Rights Reserved  	*/
++/*	  All Rights Reserved	*/
+ 
+ /*
+  * Portions of this source code were derived from Berkeley 4.3 BSD
+@@ -102,7 +102,7 @@
+ 	case NC_TPI_CLTS:
+ 		RPCLOG0(8, "clnt_tli_kcreate: CLTS selected\n");
+ 		error = clnt_clts_kcreate(config, svcaddr, prog, vers,
+-						retries, cred, &cl);
++		    retries, cred, &cl);
+ 		if (error != 0) {
+ 			RPCLOG(1,
+ 			"clnt_tli_kcreate: clnt_clts_kcreate failed error %d\n",
+@@ -123,7 +123,7 @@
+ 		if (error != 0) {
+ 			RPCLOG(1,
+ 			"clnt_tli_kcreate: clnt_cots_kcreate failed error %d\n",
+-			error);
++			    error);
+ 			return (error);
+ 		}
+ 		break;
+@@ -148,7 +148,7 @@
+ 		if (error != 0) {
+ 			RPCLOG(1,
+ 			"clnt_tli_kcreate: clnt_rdma_kcreate failed error %d\n",
+-			error);
++			    error);
+ 			return (error);
+ 		}
+ 		break;
+@@ -221,7 +221,7 @@
+ {
+ 	struct sockaddr_in	*sin;
+ 	struct sockaddr_in6	*sin6;
+-	bool_t 			ipv6_flag = 0;
++	bool_t			ipv6_flag = 0;
+ 	int			i;
+ 	struct t_bind		*req;
+ 	struct t_bind		*ret;
+@@ -258,20 +258,29 @@
+ 		req->addr.len = sizeof (struct sockaddr_in);
+ 	}
+ 
++	int useresvport = 0;
++	if (addr) {
++		if (ipv6_flag) {
++			bcopy(addr->buf, (char *)sin6,
++			    sizeof (struct sockaddr_in6));
++			if (sin6->sin6_port != 0) {
++				useresvport = 1;
++			}
++		} else {
++			bcopy(addr->buf, req->addr.buf, addr->len);
++			if (sin->sin_port != 0) {
++				useresvport = 1;
++			}
++		}
++		req->addr.len = addr->len;
++		RPCLOG(8, "bindresvport: calling t_kbind useresvport = %d\n",
++		    useresvport);
++	}
+ 	/*
+ 	 * Caller wants to bind to a specific port, so don't bother with the
+ 	 * loop that binds to the next free one.
+ 	 */
+-	if (addr) {
+-		if (ipv6_flag) {
+-			sin6->sin6_port =
+-				((struct sockaddr_in6 *)addr->buf)->sin6_port;
+-		} else {
+-			sin->sin_port =
+-				((struct sockaddr_in *)addr->buf)->sin_port;
+-		}
+-		RPCLOG(8, "bindresvport: calling t_kbind tiptr = %p\n",
+-		    (void *)tiptr);
++	if (useresvport) {
+ 		if ((error = t_kbind(tiptr, req, ret)) != 0) {
+ 			RPCLOG(1, "bindresvport: t_kbind: %d\n", error);
+ 			/*
+@@ -282,7 +291,7 @@
+ 			if (error == EINTR)
+ 				(void) t_kunbind(tiptr);
+ 		} else if (bcmp(req->addr.buf, ret->addr.buf,
+-				ret->addr.len) != 0) {
++		    ret->addr.len) != 0) {
+ 			RPCLOG0(1, "bindresvport: bcmp error\n");
+ 			(void) t_kunbind(tiptr);
+ 			error = EADDRINUSE;
+@@ -328,11 +337,11 @@
+ 		if (!error) {
+ 			if (ipv6_flag) {
+ 				RPCLOG(8, "bindresvport: port assigned %d\n",
+-					sin6->sin6_port);
++				    sin6->sin6_port);
+ 				*last_used = ntohs(sin6->sin6_port);
+ 			} else {
+ 				RPCLOG(8, "bindresvport: port assigned %d\n",
+-					sin->sin_port);
++				    sin->sin_port);
+ 				*last_used = ntohs(sin->sin_port);
+ 			}
+ 		} else if (loop_twice) {
+@@ -388,3 +397,69 @@
+ 
+ 	return (ctp);
+ }
++
++/*
++ * Initialize a netbuf suitable for
++ * describing an address
++ */
++void
++clnt_init_netbuf(struct netbuf *nbuf, int len)
++{
++	nbuf->buf = kmem_zalloc(len, KM_SLEEP);
++	nbuf->maxlen = len;
++	nbuf->len = 0;
++}
++
++/*
++ * Free a netbuf
++ */
++void
++clnt_free_netbuf(struct netbuf *nbuf)
++{
++	if (nbuf == NULL || nbuf->buf == NULL) {
++#ifdef DEBUG
++		cmn_err(CE_PANIC, "Null netbuf in clnt_free_netbuf");
++#endif
++		return;
++	}
++	kmem_free(nbuf->buf, nbuf->maxlen);
++	nbuf->buf = NULL;
++	nbuf->maxlen = 0;
++	nbuf->len = 0;
++}
++
++/*
++ * Duplicate a netbuf, must be followed by a clnt_free_netbuf().
++ */
++void
++clnt_dup_netbuf(const struct netbuf *from, struct netbuf *to)
++{
++	clnt_init_netbuf(to, from->len);
++	to->len = from->len;
++
++	bcopy(from->buf, to->buf, (size_t)from->len);
++}
++
++/*
++ * Compare a netbuf.
++ */
++int
++clnt_cmp_netaddr(const struct netbuf *from, struct netbuf *to)
++{
++	if (to->len != from->len || from->len == 0)
++		return (1);
++	struct sockaddr *saddr = (struct sockaddr *)(from->buf);
++	struct sockaddr *toaddr = (struct sockaddr *)(to->buf);
++
++	if (saddr->sa_family == AF_INET && toaddr->sa_family == AF_INET) {
++		return bcmp(&((struct sockaddr_in *)from->buf)->sin_addr,
++		    &((struct sockaddr_in *)to->buf)->sin_addr,
++		    sizeof (struct in_addr));
++	} else if (saddr->sa_family == AF_INET6 &&
++	    toaddr->sa_family == AF_INET6) {
++		return bcmp(&(((struct sockaddr_in6 *)from->buf)->sin6_addr),
++		    &(((struct sockaddr_in6 *)to->buf)->sin6_addr),
++		    sizeof (struct in6_addr));
++	}
++	return (1);
++}
+diff --git a/usr/src/uts/common/rpc/rpc_subr.c b/usr/src/uts/common/rpc/rpc_subr.c
+index cefd031..987b3d6 100644
+--- a/usr/src/uts/common/rpc/rpc_subr.c
++++ b/usr/src/uts/common/rpc/rpc_subr.c
+@@ -65,7 +65,7 @@
+ static void grow_netbuf(struct netbuf *, size_t);
+ static void loopb_u2t(const char *, struct netbuf *);
+ 
+-#define	RPC_PMAP_TIMEOUT	15
++#define	RPC_PMAP_TIMEOUT	5
+ /*
+  * define for max length of an ip address and port address, the value was
+  * calculated using INET6_ADDRSTRLEN (46) + max port address (12) +
+@@ -495,6 +495,13 @@
+ 	return (status);
+ }
+ 
++enum clnt_stat
++rpcbind_getaddr(struct knetconfig *config, rpcprog_t prog, rpcvers_t vers,
++    struct netbuf *addr)
++{
++	return (rpcbind_getaddr5(config, prog, vers, addr, NULL));
++}
++
+ /*
+  * Try to get the address for the desired service by using the rpcbind
+  * protocol.  Ignores signals.  If addr is a loopback address, it is
+@@ -505,8 +512,8 @@
+  * it tries portmapper protocol version 2.
+  */
+ enum clnt_stat
+-rpcbind_getaddr(struct knetconfig *config, rpcprog_t prog, rpcvers_t vers,
+-    struct netbuf *addr)
++rpcbind_getaddr5(struct knetconfig *config, rpcprog_t prog, rpcvers_t vers,
++    struct netbuf *addr, struct netbuf *laddr)
+ {
+ 	char *ua = NULL;
+ 	enum clnt_stat status;
+@@ -587,6 +594,14 @@
+ 			continue;
+ 		}
+ 
++		if (laddr != NULL) {
++			if (!clnt_control(client, CLSET_BINDSRCADDR,
++			    (char *)laddr)) {
++				cmn_err(CE_WARN, "rpcbind_getaddr: "
++				    "Unable to set CLSET_BINDSRCADDR\n");
++			}
++		}
++
+ 		client->cl_nosignal = 1;
+ 		status = CLNT_CALL(client, RPCBPROC_GETADDR,
+ 		    xdr_rpcb, (char *)&parms,
+diff --git a/usr/src/uts/common/rpc/svc.h b/usr/src/uts/common/rpc/svc.h
+index 28d2f29..24101a8 100644
+--- a/usr/src/uts/common/rpc/svc.h
++++ b/usr/src/uts/common/rpc/svc.h
+@@ -518,6 +518,7 @@
+  *  address mask, and netid of transport.
+  */
+ #define	svc_getrpccaller(x) (&(x)->xp_rtaddr)
++#define	svc_getrpchost(x) (&(x)->xp_lcladdr)
+ #ifdef _KERNEL
+ #define	svc_getcaller(x) (&(x)->xp_rtaddr.buf)
+ #define	svc_getaddrmask(x) (&(x)->xp_master->xp_addrmask)
+diff --git a/usr/src/uts/common/rpc/svc_clts.c b/usr/src/uts/common/rpc/svc_clts.c
+index f38f8e8..4caf53d 100644
+--- a/usr/src/uts/common/rpc/svc_clts.c
++++ b/usr/src/uts/common/rpc/svc_clts.c
+@@ -349,6 +349,9 @@
+ 			    = pkti->ipi6_addr;
+ 			((sin6_t *)(clone_xprt->xp_lcladdr.buf))->sin6_family
+ 			    = AF_INET6;
++			clone_xprt->xp_lcladdr.len = sizeof (sin6_t);
++			clone_xprt->xp_lcladdr.maxlen =
++			    clone_xprt->xp_lcladdr.len;
+ 		} else if (toh->level == IPPROTO_IP && toh->status == 0 &&
+ 		    toh->name == IP_RECVDSTADDR) {
+ 			dstopt += sizeof (struct T_opthdr);
+@@ -356,6 +359,9 @@
+ 			    = *(struct in_addr *)dstopt;
+ 			((sin_t *)(clone_xprt->xp_lcladdr.buf))->sin_family
+ 			    = AF_INET;
++			clone_xprt->xp_lcladdr.len = sizeof (sin_t);
++			clone_xprt->xp_lcladdr.maxlen =
++			    clone_xprt->xp_lcladdr.len;
+ 		}
+ 	}
+ 

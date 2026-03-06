@@ -2,7 +2,7 @@ diff --git a/usr/src/Makefile.master b/usr/src/Makefile.master
 index 9e85a2fa72..8c74d39d76 100644
 --- a/usr/src/Makefile.master
 +++ b/usr/src/Makefile.master
-@@ -597,8 +597,8 @@ CPPFLAGS.native=$(ENVCPPFLAGS1) $(ENVCPPFLAGS2) $(ENVCPPFLAGS3) \
+@@ -595,8 +595,8 @@ CPPFLAGS.native=$(ENVCPPFLAGS1) $(ENVCPPFLAGS2) $(ENVCPPFLAGS3) \
  		$(ENVCPPFLAGS4) -I$(NATIVE_ADJUNCT)/include
  CPPFLAGS=	$(CPPFLAGS.first) $(CPPFLAGS.master)
  AS_CPPFLAGS=	$(CPPFLAGS.first) $(CPPFLAGS.master)

@@ -1,0 +1,122 @@
+From f5eabda8abe3af33947f0b94782db4da019c023a Mon Sep 17 00:00:00 2001
+From: Santosh Kumar Pradhan <santoshp@tegile.com>
+Date: Thu, 01 Oct 2020 17:42:16 +0000
+Subject: [PATCH] 16389 NFS services become unavailable due to ports leak Reviewed by: Evan Layton <elayton@tintri.com> Reviewed by: Joyce McIntosh <jmcintosh@tintri.com> Reviewed by: Suresh Jayaraman <sjayaraman@tintri.com>
+
+Change-Id: I24ffc792ce17015178b6127eab6fc1d6c4a7d24e
+---
+
+diff --git a/usr/src/uts/common/rpc/clnt.h b/usr/src/uts/common/rpc/clnt.h
+index 110c08b..7e73c82 100644
+--- a/usr/src/uts/common/rpc/clnt.h
++++ b/usr/src/uts/common/rpc/clnt.h
+@@ -21,6 +21,7 @@
+ /*
+  * Copyright 2009 Sun Microsystems, Inc.  All rights reserved.
+  * Use is subject to license terms.
++ * Copyright 2020 Tintri by DDN. All rights reserved.
+  */
+ /* Copyright (c) 1983, 1984, 1985, 1986, 1987, 1988, 1989 AT&T */
+ /* All Rights Reserved */
+@@ -471,6 +472,7 @@
+ extern void t_kadvise(TIUSER *, uchar_t *, int);
+ 
+ extern boolean_t connmgr_cpr_reset(void *, int);
++extern void connmgr_destroy(queue_t *);
+ 
+ extern void put_inet_port(struct netbuf *, ushort_t);
+ extern void put_inet6_port(struct netbuf *, ushort_t);
+diff --git a/usr/src/uts/common/rpc/clnt_cots.c b/usr/src/uts/common/rpc/clnt_cots.c
+index 687a4cc..404e5f9 100644
+--- a/usr/src/uts/common/rpc/clnt_cots.c
++++ b/usr/src/uts/common/rpc/clnt_cots.c
+@@ -20,9 +20,9 @@
+  */
+ 
+ /*
+- * Copyright 2016 Nexenta Systems, Inc.  All rights reserved.
+  * Copyright (c) 2016 by Delphix. All rights reserved.
+  * Copyright 2019 Joyent, Inc.
++ * Copyright 2020 Tintri by DDN. All rights reserved.
+  */
+ 
+ /*
+@@ -2422,6 +2422,7 @@
+ 		 * If we need to send a T_DISCON_REQ, send one.
+ 		 */
+ 		connmgr_dis_and_wait(cm_entry);
++		cm_entry->x_dead = FALSE;
+ 
+ 		mutex_exit(&connmgr_lock);
+ 
+@@ -2544,6 +2545,7 @@
+ 		 * then send another T_DISCON_REQ.
+ 		 */
+ 		if (cm_entry->x_waitdis == FALSE) {
++			cm_entry->x_dead = TRUE;
+ 			break;
+ 		} else {
+ 			RPCLOG(8, "connmgr_dis_and_wait: did"
+@@ -3146,6 +3148,37 @@
+ }
+ 
+ /*
++ * We end up here if there is a connection disconnect.
++ * The cm_entry is taken off the list.
++ */
++void
++connmgr_destroy(queue_t *wq)
++{
++	struct cm_xprt *cm_entry, *cm_prev;
++
++	mutex_enter(&connmgr_lock);
++	cm_entry = cm_hd;
++	cm_prev = NULL;
++
++	while (cm_entry) {
++		if (cm_entry->x_wq == wq) {
++			if (cm_prev)
++				cm_prev->x_next = cm_entry->x_next;
++			else
++				cm_hd = cm_entry->x_next;
++			cm_entry->x_next = NULL;
++			break;
++		}
++		cm_prev = cm_entry;
++		cm_entry = cm_entry->x_next;
++	}
++	mutex_exit(&connmgr_lock);
++
++	if (cm_entry)
++		connmgr_close(cm_entry);
++}
++
++/*
+  * Sets up the entry for receiving replies, and calls rpcmod's write put proc
+  * (through put) to send the call.
+  */
+diff --git a/usr/src/uts/common/rpc/rpcmod.c b/usr/src/uts/common/rpc/rpcmod.c
+index 322c6e6..4c8f304 100644
+--- a/usr/src/uts/common/rpc/rpcmod.c
++++ b/usr/src/uts/common/rpc/rpcmod.c
+@@ -25,8 +25,8 @@
+ /*
+  * Copyright 2012 Milan Jurik. All rights reserved.
+  * Copyright 2012 Marcel Telka <marcel@telka.sk>
+- * Copyright 2013 Nexenta Systems, Inc.  All rights reserved.
+  * Copyright 2018 OmniOS Community Edition (OmniOSce) Association.
++ * Copyright 2020 Tintri by DDN. All rights reserved.
+  */
+ /* Copyright (c) 1990 Mentat Inc. */
+ 
+@@ -1177,6 +1177,10 @@
+ 		}
+ 
+ 		mutex_exit(&mir->mir_mutex);
++		/*
++		 * Destroy the cm_entry
++		 */
++		connmgr_destroy(WR(q));
+ 		qprocsoff(q);
+ 
+ 		/* Notify kRPC that this stream is going away. */
