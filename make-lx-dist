@@ -15,13 +15,13 @@
 #
 # }}}
 #
-# Copyright 2025 Peter Tribble
+# Copyright 2026 Peter Tribble
 #
 
 THOME=${THOME:-/packages/localsrc/Tribblix}
 DESTTOP=/export/tribblix
 DESTDIR=${DESTTOP}/dist
-RELEASE=38lx
+RELEASE=39lx
 NFLAG=""
 OVBASE="base-iso"
 MRSIZE="340m"

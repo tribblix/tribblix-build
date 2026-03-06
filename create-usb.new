@@ -15,7 +15,7 @@
 #
 # }}}
 #
-# Copyright 2025 Peter Tribble
+# Copyright 2026 Peter Tribble
 #
 
 #
@@ -24,7 +24,7 @@
 # note, no slice or fdisk partition, just the bare device
 #
 
-RELEASE="0m38"
+RELEASE="0m39"
 
 DESTDIR=/export/tribblix/dist
 

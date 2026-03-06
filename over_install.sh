@@ -15,7 +15,7 @@
 #
 # }}}
 #
-# Copyright 2025 Peter Tribble
+# Copyright 2026 Peter Tribble
 #
 
 #
@@ -54,7 +54,7 @@ DOMAINNAME=""
 BEGIN_SCRIPT=""
 FINISH_SCRIPT=""
 FIRSTBOOT_SCRIPT=""
-NEWBE="tribblix-m38"
+NEWBE="tribblix-m39"
 NFLAG=""
 
 PKGLOC="/.cdrom/pkgs"
@@ -413,7 +413,7 @@ echo "Setting up boot"
 
 # new loader
 /usr/bin/cat > "/${ROOTPOOL}/boot/menu.lst" << _EOF
-title Tribblix 0.38
+title Tribblix 0.39
 bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 _EOF
 

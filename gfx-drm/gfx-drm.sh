@@ -15,14 +15,14 @@
 #
 # }}}
 #
-# Copyright 2025 Peter Tribble
+# Copyright 2026 Peter Tribble
 #
 
 #
 # build the gfx-drm packages
 #
 
-PKG_VERSION="0.38"
+PKG_VERSION="0.39"
 THOME=${THOME:-/packages/localsrc/Tribblix}
 GATE="${HOME}/Illumos/gfx-drm"
 DESTTOP="/var/tmp"
