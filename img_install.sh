@@ -15,7 +15,7 @@
 #
 # }}}
 #
-# Copyright 2025 Peter Tribble
+# Copyright 2026 Peter Tribble
 #
 
 #
@@ -54,7 +54,11 @@ DOMAINNAME=""
 BEGIN_SCRIPT=""
 FINISH_SCRIPT=""
 FIRSTBOOT_SCRIPT=""
-RELEASE="m37"
+RELEASE="m39"
+#
+# the ISO images are served from iso.tribblix.org, but this script uses
+# the ipxe boot archives, which are served from pkgs.tribblix.org
+#
 DLHOST="https://pkgs.tribblix.org"
 NFLAG=""
 
@@ -177,12 +181,6 @@ NEWBE="tribblix-${RELEASE}"
 IMGTMP="/var/tmp/${NEWBE}.archive"
 IMGSRC="${DLHOST}/${RELEASE}/platform/i86pc/boot_archive"
 case $RELEASE in
-    m36.1)
-	IMGSUM="464fee4a318643625c271327dceae5b5b1b9d40c"
-	;;
-    m36lx.1)
-	IMGSUM="feae950a0f20ca3934e1bd4c71b194a80ba2d030"
-	;;
     m37)
 	IMGSUM="22834138619d61a7d1544d17fbc0f391a3da420f"
 	;;
@@ -194,6 +192,12 @@ case $RELEASE in
 	;;
     m38lx)
 	IMGSUM="0bc67c265faf98ffb27d04475f831fca7ff915ee"
+	;;
+    m39)
+	IMGSUM="615a3c125111e76c78431d2a94e62cecfa77ca72"
+	;;
+    m39lx)
+	IMGSUM="10ea9073e2a0f256c905b1bfad1e97800c592e08"
 	;;
     *)
 	bail "Unrecognised release"
