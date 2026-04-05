@@ -1,0 +1,57 @@
+From fc3853ded4deb5bbca59fe85fcb8bccbdf297a61 Mon Sep 17 00:00:00 2001
+From: Hans Rosenfeld <rosenfeld@grumpf.hope-2000.org>
+Date: Sat, 4 Oct 2025 15:50:21 +0200
+Subject: [PATCH] sun4/px: allocate dma cookie for DVMA
+
+Change-Id: I99ad95026b8c61451a797c5a401544a7f402f1f8
+---
+ usr/src/uts/sun4/io/px/px.c | 20 +++++++++++++++++---
+ 1 file changed, 17 insertions(+), 3 deletions(-)
+
+diff --git a/usr/src/uts/sun4/io/px/px.c b/usr/src/uts/sun4/io/px/px.c
+index 82948b2609..545b46bfcc 100644
+--- a/usr/src/uts/sun4/io/px/px.c
++++ b/usr/src/uts/sun4/io/px/px.c
+@@ -967,8 +967,14 @@ px_dma_bindhdl(dev_info_t *dip, dev_info_t *rdip,
+ 	px_t *px_p = DIP_TO_STATE(dip);
+ 	px_mmu_t *mmu_p = px_p->px_mmu_p;
+ 	ddi_dma_impl_t *mp = (ddi_dma_impl_t *)handle;
++	int kmflag;
+ 	int ret;
+ 
++	if (dmareq->dmar_fp == DDI_DMA_SLEEP)
++		kmflag = KM_SLEEP;
++	else
++		kmflag = KM_NOSLEEP;
++
+ 	DBG(DBG_DMA_BINDH, dip, "rdip=%s%d mp=%p dmareq=%p\n",
+ 	    ddi_driver_name(rdip), ddi_get_instance(rdip), mp, dmareq);
+ 
+@@ -998,9 +1004,16 @@ px_dma_bindhdl(dev_info_t *dip, dev_info_t *rdip,
+ 		if (ret = px_dvma_map(mp, dmareq, mmu_p))
+ 			goto map_err;
+ mapped:
+-		*ccountp = 1;
+-		MAKE_DMA_COOKIE(cookiep, mp->dmai_mapping, mp->dmai_size);
+-		mp->dmai_ncookies = 1;
++		mp->dmai_cookie =
++		    kmem_zalloc(sizeof (ddi_dma_cookie_t), kmflag);
++		if (mp->dmai_cookie == NULL) {
++			ret = DDI_DMA_NORESOURCES;
++			goto map_err;
++		}
++
++		MAKE_DMA_COOKIE(mp->dmai_cookie, mp->dmai_mapping, mp->dmai_size);
++		*cookiep = mp->dmai_cookie[0];
++		*ccountp = mp->dmai_ncookies = 1;
+ 		mp->dmai_curcookie = 1;
+ 		break;
+ 	case PX_DMAI_FLAGS_BYPASS:
+@@ -1066,6 +1079,7 @@ px_dma_unbindhdl(dev_info_t *dip, dev_info_t *rdip, ddi_dma_handle_t handle)
+ 		px_mmu_unmap_window(mmu_p, mp);
+ 		px_dvma_unmap(mmu_p, mp);
+ 		px_dma_freepfn(mp);
++		kmem_free(mp->dmai_cookie, sizeof (ddi_dma_cookie_t));
+ 		break;
+ 	case PX_DMAI_FLAGS_BYPASS:
+ 	case PX_DMAI_FLAGS_PTP:

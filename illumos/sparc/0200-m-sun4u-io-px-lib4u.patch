@@ -1,0 +1,74 @@
+diff --git a/usr/src/uts/sun4u/io/px/px_lib4u.c b/usr/src/uts/sun4u/io/px/px_lib4u.c
+index 1180f3fbd9..e83e87be5b 100644
+--- a/usr/src/uts/sun4u/io/px/px_lib4u.c
++++ b/usr/src/uts/sun4u/io/px/px_lib4u.c
+@@ -118,41 +118,35 @@ px_lib_map_regs(pxu_t *pxu_p, dev_info_t *dip)
+ 	/*
+ 	 * PCI CSR Base
+ 	 */
+-	if (ddi_regs_map_setup(dip, reg_bank, &pxu_p->px_address[reg_bank],
+-	    0, 0, &attr, &pxu_p->px_ac[reg_bank]) != DDI_SUCCESS) {
+-		goto fail;
++	if (ddi_regs_map_setup(dip, PX_REG_CSR, &pxu_p->px_address[PX_REG_CSR],
++	    0, 0, &attr, &pxu_p->px_ac[PX_REG_CSR]) != DDI_SUCCESS) {
++		cmn_err(CE_WARN, "%s%d: unable to map reg entry 0x%x\n",
++		    ddi_driver_name(dip), ddi_get_instance(dip), PX_REG_CSR);
++		return (DDI_FAILURE);
+ 	}
+ 
+-	reg_bank++;
++	DBG(DBG_ATTACH, dip, "reg_bank 0x%x address 0x%p\n", PX_REG_CSR,
++	    pxu_p->px_address[PX_REG_CSR]);
+ 
+ 	/*
+ 	 * XBUS CSR Base
+ 	 */
+-	if (ddi_regs_map_setup(dip, reg_bank, &pxu_p->px_address[reg_bank],
+-	    0, 0, &attr, &pxu_p->px_ac[reg_bank]) != DDI_SUCCESS) {
+-		goto fail;
+-	}
++	if (ddi_regs_map_setup(dip, PX_REG_XBC, &pxu_p->px_address[PX_REG_XBC],
++	    0, 0, &attr, &pxu_p->px_ac[PX_REG_XBC]) != DDI_SUCCESS) {
++		pxu_p->px_address[PX_REG_CSR] = NULL;
++		ddi_regs_map_free(&pxu_p->px_ac[PX_REG_CSR]);
+ 
+-	pxu_p->px_address[reg_bank] -= FIRE_CONTROL_STATUS;
+-
+-done:
+-	for (; reg_bank >= PX_REG_CSR; reg_bank--) {
+-		DBG(DBG_ATTACH, dip, "reg_bank 0x%x address 0x%p\n",
+-		    reg_bank, pxu_p->px_address[reg_bank]);
++		cmn_err(CE_WARN, "%s%d: unable to map reg entry 0x%x\n",
++		    ddi_driver_name(dip), ddi_get_instance(dip), PX_REG_XBC);
++		return (DDI_FAILURE);
+ 	}
+ 
+-	return (DDI_SUCCESS);
++	pxu_p->px_address[PX_REG_XBC] -= FIRE_CONTROL_STATUS;
+ 
+-fail:
+-	cmn_err(CE_WARN, "%s%d: unable to map reg entry %d\n",
+-	    ddi_driver_name(dip), ddi_get_instance(dip), reg_bank);
+-
+-	for (reg_bank--; reg_bank >= PX_REG_CSR; reg_bank--) {
+-		pxu_p->px_address[reg_bank] = NULL;
+-		ddi_regs_map_free(&pxu_p->px_ac[reg_bank]);
+-	}
++	DBG(DBG_ATTACH, dip, "reg_bank 0x%x address 0x%p\n", PX_REG_XBC,
++	    pxu_p->px_address[PX_REG_XBC]);
+ 
+-	return (DDI_FAILURE);
++	return (DDI_SUCCESS);
+ }
+ 
+ /*
+--- illumos-gate/usr/src/uts/sun4u/px/Makefile.orig	2025-12-10 21:41:38.266403256 +0100
++++ illumos-gate/usr/src/uts/sun4u/px/Makefile	2025-12-11 18:34:36.750486236 +0100
+@@ -70,7 +70,6 @@
+ CERRWARN	+= $(CNOWARN_UNINIT)
+ CERRWARN	+= -_gcc=-Wno-unused-function
+ CERRWARN	+= -_gcc=-Wno-unused-variable
+-CERRWARN	+= -_gcc=-Wno-unused-label
+ 
+ #
+ #	Dependency
