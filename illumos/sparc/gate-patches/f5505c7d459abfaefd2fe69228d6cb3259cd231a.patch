@@ -1,0 +1,1576 @@
+From f5505c7d459abfaefd2fe69228d6cb3259cd231a Mon Sep 17 00:00:00 2001
+From: Dominik Hassler <hadfl@omnios.org>
+Date: Thu, 14 Mar 2024 22:32:32 +0000
+Subject: [PATCH] 17431 builds with Java 17 should be possible Portions
+ contributed by: Patrick Mooney <pmooney@pfmooney.com> Reviewed by: Andy
+ Fiddaman <illumos@fiddaman.net> Reviewed by: Hans Rosenfeld
+ <rosenfeld@grumpf.hope-2000.org> Reviewed by: Michael van der Westhuizen
+ <r1mikey@gmail.com> Approved by: Dan McDonald <danmcd@mnx.io>
+
+---
+ exception_lists/packaging.deps                |  1 +
+ .../cmd/dtrace/test/cmd/jdtrace/JDTrace.java  |  6 +-
+ .../tst/common/java_api/src/TestBean.java     | 11 +--
+ .../java_api/src/TestMultiAggPrinta.java      |  9 ++-
+ .../sun/solaris/domain/pools/Objective.java   | 11 +--
+ .../solaris/domain/pools/ResourceMonitor.java |  2 +-
+ .../sun/solaris/domain/pools/Statistic.java   | 23 +++---
+ .../solaris/domain/pools/StatisticList.java   |  2 +-
+ .../solaris/domain/pools/SystemMonitor.java   |  2 +-
+ .../solaris/domain/pools/SystemSolver.java    |  5 +-
+ .../service/locality/LocalityDomain.java      |  6 +-
+ .../service/logging/SysloglikeFormatter.java  |  9 +--
+ .../os/dtrace/AbstractAggregationValue.java   |  4 +-
+ .../os/dtrace/LinearDistribution.java         |  2 +-
+ .../opensolaris/os/dtrace/LocalConsumer.java  |  8 +-
+ .../os/dtrace/LogDistribution.java            |  2 +-
+ .../os/dtrace/LogLinearDistribution.java      |  2 +-
+ .../opensolaris/os/dtrace/ProcessState.java   |  2 +-
+ .../javalib/com/sun/slp/ActiveDiscoverer.java |  6 +-
+ .../com/sun/slp/AttributeVerifier.java        |  9 +--
+ .../libslp/javalib/com/sun/slp/AuthBlock.java |  6 +-
+ .../javalib/com/sun/slp/ClientMsgManager.java |  4 +-
+ .../javalib/com/sun/slp/DAAdvertiser.java     |  8 +-
+ .../javalib/com/sun/slp/IANACharCode.java     |  6 +-
+ .../libslp/javalib/com/sun/slp/Parser.java    |  6 +-
+ .../javalib/com/sun/slp/PermSARegTable.java   |  6 +-
+ .../javalib/com/sun/slp/RequestHandler.java   | 75 ++++++++++---------
+ .../libslp/javalib/com/sun/slp/SLPConfig.java |  2 +-
+ .../javalib/com/sun/slp/SLPHeaderV1.java      |  4 +-
+ .../javalib/com/sun/slp/SLPHeaderV2.java      | 16 ++--
+ .../com/sun/slp/SLPServerHeaderV2.java        |  4 +-
+ .../libslp/javalib/com/sun/slp/SSAAdvert.java |  2 +-
+ .../javalib/com/sun/slp/ServerDATable.java    |  6 +-
+ .../com/sun/slp/ServiceLocationAttribute.java |  6 +-
+ .../sun/slp/ServiceLocationAttributeV1.java   |  2 +-
+ .../com/sun/slp/ServiceLocationManager.java   |  2 +-
+ .../com/sun/slp/ServiceStoreFactory.java      |  4 +-
+ .../com/sun/slp/ServiceStoreInMemory.java     | 10 +--
+ .../javalib/com/sun/slp/ServiceTable.java     |  2 +-
+ .../javalib/com/sun/slp/ServiceURL.java       |  2 +-
+ .../javalib/com/sun/slp/SrvLocHeader.java     |  6 +-
+ .../javalib/com/sun/slp/SrvLocMsgImpl.java    |  6 +-
+ .../javalib/com/sun/slp/SunDATable.java       |  4 +-
+ .../javalib/com/sun/slp/SunServerDATable.java |  4 +-
+ .../libslp/javalib/com/sun/slp/Transact.java  | 10 +--
+ .../javalib/com/sun/slp/UARequester.java      |  4 +-
+ .../lib/libslp/javalib/com/sun/slp/slpd.java  |  6 +-
+ 47 files changed, 168 insertions(+), 167 deletions(-)
+
+diff --git a/exception_lists/packaging.deps b/exception_lists/packaging.deps
+index 59d2eeec62..d335fd9f00 100644
+--- a/exception_lists/packaging.deps
++++ b/exception_lists/packaging.deps
+@@ -26,6 +26,7 @@ pkg:/package/pkg
+ pkg:/runtime/python-310
+ pkg:/runtime/java
+ pkg:/runtime/java/openjdk11
++pkg:/runtime/java/openjdk17
+ pkg:/runtime/java/openjdk8
+ pkg:/runtime/java/runtime64
+ pkg:/security/sudo
+diff --git a/usr/src/cmd/dtrace/test/cmd/jdtrace/JDTrace.java b/usr/src/cmd/dtrace/test/cmd/jdtrace/JDTrace.java
+index b39535afb5..a336ae3e87 100644
+--- a/usr/src/cmd/dtrace/test/cmd/jdtrace/JDTrace.java
++++ b/usr/src/cmd/dtrace/test/cmd/jdtrace/JDTrace.java
+@@ -240,10 +240,10 @@ public class JDTrace {
+ 			buf.toString());
+ 	    }
+ 	}
+-	Record record = null;
++	org.opensolaris.os.dtrace.Record record = null;
+ 	Object value;
+-	List <Record> records = data.getRecords();
+-	Iterator <Record> itr = records.iterator();
++	List <org.opensolaris.os.dtrace.Record> records = data.getRecords();
++	Iterator <org.opensolaris.os.dtrace.Record> itr = records.iterator();
+ 	while (itr.hasNext()) {
+ 	    record = itr.next();
+ 
+diff --git a/usr/src/cmd/dtrace/test/tst/common/java_api/src/TestBean.java b/usr/src/cmd/dtrace/test/tst/common/java_api/src/TestBean.java
+index 41a04a1394..765ef9bbd8 100644
+--- a/usr/src/cmd/dtrace/test/tst/common/java_api/src/TestBean.java
++++ b/usr/src/cmd/dtrace/test/tst/common/java_api/src/TestBean.java
+@@ -164,7 +164,7 @@ public class TestBean {
+     getTuple()
+     {
+ 	ValueRecord r1 = new ScalarRecord("cat", 256);
+-	ValueRecord r2 = new ScalarRecord(new Integer(9), 2);
++	ValueRecord r2 = new ScalarRecord(Integer.valueOf(9), 2);
+ 	ValueRecord r3 = new KernelStackRecord(
+ 		new StackFrame[] {
+ 		    new StackFrame("has"),
+@@ -359,7 +359,7 @@ public class TestBean {
+     {
+ 	List < ValueRecord > list = new ArrayList < ValueRecord > ();
+ 	ValueRecord v1 = getScalarRecord();
+-	ValueRecord v2 = new ScalarRecord(new Integer(7), 4);
++	ValueRecord v2 = new ScalarRecord(Integer.valueOf(7), 4);
+ 	list.add(v1);
+ 	list.add(v2);
+ 	PrintfRecord r = new PrintfRecord(list,
+@@ -370,7 +370,8 @@ public class TestBean {
+     public static ProbeData
+     getProbeData()
+     {
+-	List < Record > list = new ArrayList < Record > ();
++	List < org.opensolaris.os.dtrace.Record > list =
++	    new ArrayList < org.opensolaris.os.dtrace.Record > ();
+ 	list.add(getPrintaRecord());
+ 	list.add(getPrintfRecord());
+ 	list.add(getScalarRecord());
+@@ -395,8 +396,8 @@ public class TestBean {
+ 	ValueRecord v2 = new ScalarRecord("dog", 256);
+ 	ValueRecord v3 = new ScalarRecord("mouse", 256);
+ 	ValueRecord v4 = new ScalarRecord("mouse", 256);
+-	ValueRecord v5 = new ScalarRecord(new Byte((byte) 'C'), 1);
+-	ValueRecord v6 = new ScalarRecord(new Short((short) 7), 2);
++	ValueRecord v5 = new ScalarRecord(Byte.valueOf((byte) 'C'), 1);
++	ValueRecord v6 = new ScalarRecord(Short.valueOf((short) 7), 2);
+ 	Tuple tuple = new Tuple(v1, v2, v3, v4, v5, v6);
+ 	AggregationValue value = getCountValue();
+ 	r = new AggregationRecord(tuple, value);
+diff --git a/usr/src/cmd/dtrace/test/tst/common/java_api/src/TestMultiAggPrinta.java b/usr/src/cmd/dtrace/test/tst/common/java_api/src/TestMultiAggPrinta.java
+index facdf7fad3..6d2f265fd2 100644
+--- a/usr/src/cmd/dtrace/test/tst/common/java_api/src/TestMultiAggPrinta.java
++++ b/usr/src/cmd/dtrace/test/tst/common/java_api/src/TestMultiAggPrinta.java
+@@ -71,8 +71,8 @@ public class TestMultiAggPrinta {
+ 	buf.append(data.getFlow());
+ 	buf.append(", records = ");
+ 
+-	List <Record> records = data.getRecords();
+-	Record record;
++	List <org.opensolaris.os.dtrace.Record> records = data.getRecords();
++	org.opensolaris.os.dtrace.Record record;
+ 	Object value;
+ 	buf.append('[');
+ 	for (int i = 0; i < records.size(); ++i) {
+@@ -112,8 +112,9 @@ public class TestMultiAggPrinta {
+ 	consumer.addConsumerListener(new ConsumerAdapter() {
+ 	    public void dataReceived(DataEvent e) {
+ 		ProbeData data = e.getProbeData();
+-		List <Record> records = data.getRecords();
+-		for (Record r : records) {
++		List <org.opensolaris.os.dtrace.Record> records =
++		    data.getRecords();
++		for (org.opensolaris.os.dtrace.Record r : records) {
+ 		    if (r instanceof ExitRecord) {
+ 			ExitRecord exitRecord = (ExitRecord)r;
+ 			exitStatus = exitRecord.getStatus();
+diff --git a/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/Objective.java b/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/Objective.java
+index f787eeb383..2e085e69e4 100644
+--- a/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/Objective.java
++++ b/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/Objective.java
+@@ -697,9 +697,10 @@ final class WeightedLoadObjective extends AbstractObjective
+                 while (cpuIt.hasNext()) {
+                     Component currentCPU = (Component) cpuIt.next();
+                     int cpuid = (int) currentCPU.getLongProperty("cpu.sys_id");
+-                    if (allCPUData.containsKey(new Integer(cpuid))) {
++                    if (allCPUData.containsKey(Integer.valueOf(cpuid))) {
+                         LocalityGroup lg =
+-                            (LocalityGroup) allCPUData.get(new Integer(cpuid));
++                            (LocalityGroup) allCPUData.get(
++                            Integer.valueOf(cpuid));
+                         if (lgroupdata.containsKey(lg)) {
+                             LGroupData cpulgp = (LGroupData) lgroupdata.get(lg);
+                             cpulgp.incNumcpu();
+@@ -892,7 +893,7 @@ final class LocalityObjective extends AbstractObjective
+                 LocalityGroup lg = (LocalityGroup) LGroupIt.next();
+                 int cpu_ids[] = lg.getCPUIDs();
+                 for (int i = 0; i < cpu_ids.length; i++) {
+-                    allCPUData.put(new Integer(cpu_ids[i]), lg);
++                    allCPUData.put(Integer.valueOf(cpu_ids[i]), lg);
+                 }
+             }
+ 
+@@ -1014,7 +1015,7 @@ final class LocalityObjective extends AbstractObjective
+                 Component cpu = (Component) cpulist.get(0);
+ 		int cpuid = (int) cpu.getLongProperty("cpu.sys_id");
+                 LocalityGroup lgroup =
+-                        (LocalityGroup) allCPUData.get(new Integer(cpuid));
++                        (LocalityGroup) allCPUData.get(Integer.valueOf(cpuid));
+                 HashMap allresults = (HashMap) psetlg.getResults();
+                 ResultTuple result = (ResultTuple) allresults.get(lgroup);
+ 
+@@ -1126,7 +1127,7 @@ final class UtilizationObjective extends AbstractObjective
+ 		if (zoneList.size() == 9) {
+ 			zoneList.remove(0);
+ 		}
+-		zoneList.add(new Integer(sl.getZoneMean(val)));
++		zoneList.add(Integer.valueOf(sl.getZoneMean(val)));
+ 
+ 		/*
+ 		 * Evaluate whether or not this objective is under
+diff --git a/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/ResourceMonitor.java b/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/ResourceMonitor.java
+index c370eccc38..edf5e1a117 100644
+--- a/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/ResourceMonitor.java
++++ b/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/ResourceMonitor.java
+@@ -240,7 +240,7 @@ class ResourceMonitor extends HashMap
+ 			}
+ 			utilV = 100 * ((total.doubleValue() - idleV) /
+ 			    total.doubleValue());
+-			return (new DoubleStatistic(new Double(utilV),
++			return (new DoubleStatistic(Double.valueOf(utilV),
+ 				((AggregateStatistic)first.get(first.size() -
+ 				2)).getStart(), ((AggregateStatistic)first.
+ 				getLast()).getEnd()));
+diff --git a/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/Statistic.java b/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/Statistic.java
+index cbd708aab4..69b5608884 100644
+--- a/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/Statistic.java
++++ b/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/Statistic.java
+@@ -253,7 +253,7 @@ final class DoubleStatistic extends AbstractStatistic
+ 	
+ 	public Long getLongValue()
+ 	{
+-		return (new Long(((Double) getValue()).longValue()));
++		return (Long.valueOf(((Double) getValue()).longValue()));
+ 	}
+ 
+ 	public UnsignedInt64 getUnsignedInt64Value()
+@@ -267,7 +267,7 @@ final class DoubleStatistic extends AbstractStatistic
+ 		Double v1 = getDoubleValue();
+ 		Double v2 = o.getDoubleValue();
+ 
+-		return (new DoubleStatistic(new Double(v1.doubleValue() +
++		return (new DoubleStatistic(Double.valueOf(v1.doubleValue() +
+ 					    v2.doubleValue()),
+ 			getStart(), getEnd()));
+ 	}
+@@ -277,7 +277,7 @@ final class DoubleStatistic extends AbstractStatistic
+ 		Double v1 = getDoubleValue();
+ 		Double v2 = o.getDoubleValue();
+ 
+-		return (new DoubleStatistic(new Double(v1.doubleValue() -
++		return (new DoubleStatistic(Double.valueOf(v1.doubleValue() -
+ 					    v2.doubleValue()),
+ 			getStart(), getEnd()));
+ 	}
+@@ -308,8 +308,8 @@ final class DoubleStatistic extends AbstractStatistic
+ 		if (count == 0)
+ 			throw new IllegalArgumentException("Cannot derive a " +
+ 			    "snapshot from an empty iterator");
+-		return (new DoubleStatistic(new Double(total / count), first,
+-			last));
++		return (new DoubleStatistic(Double.valueOf(total / count),
++			first, last));
+ 	}
+ }
+ 
+@@ -336,7 +336,7 @@ final class LongStatistic extends AbstractStatistic
+ 
+ 	public Double getDoubleValue()
+ 	{
+-		return (new Double(((Long) getValue()).longValue()));
++		return (Double.valueOf(((Long) getValue()).longValue()));
+ 	}
+ 	
+ 	public Long getLongValue()
+@@ -355,7 +355,7 @@ final class LongStatistic extends AbstractStatistic
+ 		Long v1 = getLongValue();
+ 		Long v2 = o.getLongValue();
+ 
+-		return (new LongStatistic(new Long(v1.longValue() +
++		return (new LongStatistic(Long.valueOf(v1.longValue() +
+ 					    v2.longValue()),
+ 			getStart(), getEnd()));
+ 	}
+@@ -365,7 +365,7 @@ final class LongStatistic extends AbstractStatistic
+ 		Long v1 = getLongValue();
+ 		Long v2 = o.getLongValue();
+ 
+-		return (new LongStatistic(new Long(v1.longValue() -
++		return (new LongStatistic(Long.valueOf(v1.longValue() -
+ 					    v2.longValue()),
+ 			getStart(), getEnd()));
+ 	}
+@@ -395,7 +395,7 @@ final class LongStatistic extends AbstractStatistic
+ 		if (count == 0)
+ 			throw new IllegalArgumentException("Cannot derive a " +
+ 			    "snapshot from an empty iterator");
+-		return (new LongStatistic(new Long(total / count), first,
++		return (new LongStatistic(Long.valueOf(total / count), first,
+ 			last));
+ 	}
+ }
+@@ -424,12 +424,13 @@ final class UnsignedInt64Statistic extends AbstractStatistic
+ 
+ 	public Double getDoubleValue()
+ 	{
+-		return (new Double(((UnsignedInt64) getValue()).longValue()));
++		return (Double.valueOf(
++		    ((UnsignedInt64) getValue()).longValue()));
+ 	}
+ 	
+ 	public Long getLongValue()
+ 	{
+-		return (new Long(((UnsignedInt64) getValue()).longValue()));
++		return (Long.valueOf(((UnsignedInt64) getValue()).longValue()));
+ 	}
+ 
+ 	public UnsignedInt64 getUnsignedInt64Value()
+diff --git a/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/StatisticList.java b/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/StatisticList.java
+index e6105bf77d..18da8aa39f 100644
+--- a/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/StatisticList.java
++++ b/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/StatisticList.java
+@@ -514,7 +514,7 @@ class StatisticOperations implements StatisticListener
+ 	public StatisticOperations(StatisticList statistics)
+ 	{
+ 		this.statistics = statistics;
+-		total = new DoubleStatistic(new Double(0.0));
++		total = new DoubleStatistic(Double.valueOf(0.0));
+ 	}
+ 
+ 	/**
+diff --git a/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/SystemMonitor.java b/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/SystemMonitor.java
+index 5688f91680..1172a620e9 100644
+--- a/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/SystemMonitor.java
++++ b/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/SystemMonitor.java
+@@ -320,7 +320,7 @@ class SystemMonitor implements Monitor
+ 			util = (DoubleStatistic)mon.getDerivedStatistic(
+ 			    "utilization");
+ 		} catch (NoSuchElementException nsee) {
+-			util = new DoubleStatistic(new Double(0));
++			util = new DoubleStatistic(Double.valueOf(0));
+ 		}
+ 		Poold.MON_LOG.log(Severity.DEBUG,
+ 		    res + " utilization " + util.toString());
+diff --git a/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/SystemSolver.java b/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/SystemSolver.java
+index 0968488151..d9b98a7e95 100644
+--- a/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/SystemSolver.java
++++ b/usr/src/cmd/pools/poold/com/sun/solaris/domain/pools/SystemSolver.java
+@@ -488,10 +488,11 @@ class SystemSolver implements Solver {
+ 						    get(res);
+ 						if (newImp > imp.longValue())
+ 							resImp.put(res,
+-							    new Long(newImp));
++							    Long.valueOf(
++							    newImp));
+ 					} else
+ 						resImp.put(res,
+-						    new Long(newImp));	
++						    Long.valueOf(newImp));
+ 				}
+ 			}
+ 			/*
+diff --git a/usr/src/cmd/pools/poold/com/sun/solaris/service/locality/LocalityDomain.java b/usr/src/cmd/pools/poold/com/sun/solaris/service/locality/LocalityDomain.java
+index 380bb550aa..ad52ff1356 100644
+--- a/usr/src/cmd/pools/poold/com/sun/solaris/service/locality/LocalityDomain.java
++++ b/usr/src/cmd/pools/poold/com/sun/solaris/service/locality/LocalityDomain.java
+@@ -201,14 +201,14 @@ public class LocalityDomain
+ 			Integer score = (Integer) grps.get(group);
+ 			if (score != null) {
+ 				int iscore = score.intValue() + 1;
+-				grps.put(group, new Integer(iscore));
++				grps.put(group, Integer.valueOf(iscore));
+ 			} else {
+-				grps.put(group, new Integer(1));
++				grps.put(group, Integer.valueOf(1));
+ 			}			
+ 		}
+ 		Iterator groupIt = grps.keySet().iterator();
+ 		LocalityGroup centre = null;
+-		Integer highest = new Integer(0);
++		Integer highest = Integer.valueOf(0);
+ 		while (groupIt.hasNext()) {
+ 			LocalityGroup cand = (LocalityGroup) groupIt.next();
+ 			Integer value = (Integer) grps.get(cand);
+diff --git a/usr/src/cmd/pools/poold/com/sun/solaris/service/logging/SysloglikeFormatter.java b/usr/src/cmd/pools/poold/com/sun/solaris/service/logging/SysloglikeFormatter.java
+index 5e39888b05..0b5f5f08c8 100644
+--- a/usr/src/cmd/pools/poold/com/sun/solaris/service/logging/SysloglikeFormatter.java
++++ b/usr/src/cmd/pools/poold/com/sun/solaris/service/logging/SysloglikeFormatter.java
+@@ -33,7 +33,6 @@ import java.text.*;
+ import java.util.*;
+ import java.util.logging.Formatter;
+ import java.util.logging.LogRecord;
+-import java.security.PrivilegedAction;
+ 
+ import com.sun.solaris.service.exception.SuccinctStackTraceFormatter;
+ 
+@@ -70,12 +69,8 @@ public class SysloglikeFormatter extends Formatter {
+ 	/**
+ 	 * Line separator string.
+ 	 */
+-	private String lineSeparator = (String)java.security.AccessController
+-	    .doPrivileged(new PrivilegedAction() {
+-		public Object run() {
+-			return System.getProperty("line.separator");
+-		}
+-	});
++	private String lineSeparator =
++		System.getProperty("line.separator");
+ 
+ 	/**
+ 	 * Flag to set whether log records should indicate the name of
+diff --git a/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/AbstractAggregationValue.java b/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/AbstractAggregationValue.java
+index a136c287a5..a1b02afd05 100644
+--- a/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/AbstractAggregationValue.java
++++ b/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/AbstractAggregationValue.java
+@@ -49,13 +49,13 @@ abstract class AbstractAggregationValue
+     public
+     AbstractAggregationValue(long v)
+     {
+-	value = new Long(v);
++	value = Long.valueOf(v);
+     }
+ 
+     public
+     AbstractAggregationValue(double v)
+     {
+-	value = new Double(v);
++	value = Double.valueOf(v);
+     }
+ 
+     public Number
+diff --git a/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LinearDistribution.java b/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LinearDistribution.java
+index 267012abb3..12cc883f0f 100644
+--- a/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LinearDistribution.java
++++ b/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LinearDistribution.java
+@@ -207,7 +207,7 @@ public final class LinearDistribution extends Distribution
+ 	    total += (double)bucket.getFrequency() *
+ 		    (double)(bucket.getMin() + 1);
+ 	}
+-	return (new Double(total));
++	return (Double.valueOf(total));
+     }
+ 
+     private long
+diff --git a/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LocalConsumer.java b/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LocalConsumer.java
+index d1506e3408..8dfd974e30 100644
+--- a/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LocalConsumer.java
++++ b/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LocalConsumer.java
+@@ -1111,7 +1111,7 @@ public class LocalConsumer implements Consumer {
+     {
+ 	checkGoCalled();
+ 	synchronized (LocalConsumer.class) {
+-	    return _lookupKernelFunction(new Integer(address));
++	    return _lookupKernelFunction(Integer.valueOf(address));
+ 	}
+     }
+ 
+@@ -1120,7 +1120,7 @@ public class LocalConsumer implements Consumer {
+     {
+ 	checkGoCalled();
+ 	synchronized (LocalConsumer.class) {
+-	    return _lookupKernelFunction(new Long(address));
++	    return _lookupKernelFunction(Long.valueOf(address));
+ 	}
+     }
+ 
+@@ -1129,7 +1129,7 @@ public class LocalConsumer implements Consumer {
+     {
+ 	checkGoCalled();
+ 	synchronized (LocalConsumer.class) {
+-	    return _lookupUserFunction(pid, new Integer(address));
++	    return _lookupUserFunction(pid, Integer.valueOf(address));
+ 	}
+     }
+ 
+@@ -1138,7 +1138,7 @@ public class LocalConsumer implements Consumer {
+     {
+ 	checkGoCalled();
+ 	synchronized (LocalConsumer.class) {
+-	    return _lookupUserFunction(pid, new Long(address));
++	    return _lookupUserFunction(pid, Long.valueOf(address));
+ 	}
+     }
+ 
+diff --git a/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LogDistribution.java b/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LogDistribution.java
+index 0913938c24..0d77212906 100644
+--- a/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LogDistribution.java
++++ b/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LogDistribution.java
+@@ -133,7 +133,7 @@ public final class LogDistribution extends Distribution
+ 	for (Distribution.Bucket bucket : buckets) {
+ 	    total += ((double)bucket.getFrequency() * (double)bucket.getMin());
+ 	}
+-	return (new Double(total));
++	return (Double.valueOf(total));
+     }
+ 
+     private long
+diff --git a/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LogLinearDistribution.java b/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LogLinearDistribution.java
+index 8dead05e19..41bd8e9e4a 100644
+--- a/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LogLinearDistribution.java
++++ b/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/LogLinearDistribution.java
+@@ -186,7 +186,7 @@ public final class LogLinearDistribution extends Distribution
+         for (Distribution.Bucket bucket : buckets)
+             total += ((double)bucket.getFrequency() * (double)bucket.getMin());
+ 
+-        return (new Double(total));
++        return (Double.valueOf(total));
+     }
+ 
+     private long getZeroBucketValue() {
+diff --git a/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/ProcessState.java b/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/ProcessState.java
+index 14a068ca0e..667820922c 100644
+--- a/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/ProcessState.java
++++ b/usr/src/lib/libdtrace_jni/java/src/org/opensolaris/os/dtrace/ProcessState.java
+@@ -251,7 +251,7 @@ public final class ProcessState implements Serializable {
+     private void
+     setExitStatus(int status)
+     {
+-	exitStatus = new Integer(status);
++	exitStatus = Integer.valueOf(status);
+     }
+ 
+     /**
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/ActiveDiscoverer.java b/usr/src/lib/libslp/javalib/com/sun/slp/ActiveDiscoverer.java
+index c6deec71b2..88753d65f8 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/ActiveDiscoverer.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/ActiveDiscoverer.java
+@@ -115,7 +115,7 @@ class ActiveDiscoverer extends Thread {
+ 	    Assert.slpassert(false,
+ 			  "sdat_active_err",
+ 			  new Object[] {
+-		new Integer(ex.getErrorCode()),
++		Integer.valueOf(ex.getErrorCode()),
+ 		    ex.getMessage()});
+ 
+ 	}
+@@ -252,7 +252,7 @@ class ActiveDiscoverer extends Thread {
+ 	} catch (ServiceLocationException ex) {
+ 
+ 	    config.writeLog("ad_multi_error",
+-			    new Object[] { new Integer(ex.getErrorCode()),
++			    new Object[] { Integer.valueOf(ex.getErrorCode()),
+ 					       ex.getMessage() });
+ 
+ 	}
+@@ -284,7 +284,7 @@ class ActiveDiscoverer extends Thread {
+ 
+ 		if (config.traceDrop()) {
+ 		    config.writeLog("ad_trans_error", new Object[] {
+-			new Integer(ex.getErrorCode()),
++			Integer.valueOf(ex.getErrorCode()),
+ 			    daAddr,
+ 			    ex.getMessage() });
+ 		}
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/AttributeVerifier.java b/usr/src/lib/libslp/javalib/com/sun/slp/AttributeVerifier.java
+index f3b8b00700..b444fd6a71 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/AttributeVerifier.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/AttributeVerifier.java
+@@ -948,8 +948,7 @@ class AttributeVerifier
+ 		}
+ 
+ 		try {
+-
+-		    new Float(version);
++		    Float.valueOf(version);
+ 		} catch (NumberFormatException ex) {
+ 
+ 		    throw
+@@ -2027,7 +2026,7 @@ class AttributeVerifier
+ 	    } else if (tt == StreamTokenizer.TT_EOF) {
+ 		errorToken = "<end of file>";
+ 	    } else {
+-		errorToken = (new Character((char)tt)).toString();
++		errorToken = (Character.valueOf((char)tt)).toString();
+ 	    }
+ 	    
+ 	    throw
+@@ -2085,11 +2084,11 @@ class AttributeVerifier
+ 
+ 	    if (reqTok.equalsIgnoreCase(TRUE_TOKEN)) {
+ 
+-		reqVal = new Boolean(true);
++		reqVal = Boolean.valueOf(true);
+ 
+ 	    } else if (reqTok.equalsIgnoreCase(FALSE_TOKEN)) {
+ 	      
+-		reqVal = new Boolean(false);
++		reqVal = Boolean.valueOf(false);
+ 
+ 	    } else {
+ 
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/AuthBlock.java b/usr/src/lib/libslp/javalib/com/sun/slp/AuthBlock.java
+index d5fa9a19ff..c8e219260a 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/AuthBlock.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/AuthBlock.java
+@@ -398,7 +398,7 @@ class AuthBlock {
+ 	    return null;
+ 	}
+ 
+-	answer.put(DN, new Integer(ibsd));
++	answer.put(DN, Integer.valueOf(ibsd));
+ 
+ 	return answer;
+     }
+@@ -757,7 +757,7 @@ class AuthBlock {
+ 		ServiceLocationException.INTERNAL_SYSTEM_ERROR,
+ 		"cant_get_security_provider",
+ 		new Object[] {
+-			new Integer(bsd),
++			Integer.valueOf(bsd),
+ 			algo,
+ 			e.getMessage()});
+ 	}
+@@ -767,7 +767,7 @@ class AuthBlock {
+ 	    ServiceLocationException.INTERNAL_SYSTEM_ERROR,
+ 	    "cant_get_security_provider",
+ 	    new Object[] {
+-		new Integer(bsd),
++		Integer.valueOf(bsd),
+ 		algo,
+ 		"Unknown or unsupported BSD"});
+     }
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/ClientMsgManager.java b/usr/src/lib/libslp/javalib/com/sun/slp/ClientMsgManager.java
+index dcc831bb61..19b637d9df 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/ClientMsgManager.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/ClientMsgManager.java
+@@ -102,7 +102,7 @@ abstract class ClientMsgManager extends Object {
+ 				ServiceLocationException.INTERNAL_ERROR,
+ 				"cmm_creation_error",
+ 				new Object[] { keyName,
+-						   new Integer(version)});
++						   Integer.valueOf(version)});
+ 
+ 	    }
+ 
+@@ -127,7 +127,7 @@ abstract class ClientMsgManager extends Object {
+ 				"cmm_creation_exception",
+ 				new Object[] { ex, 
+ 						   keyName, 
+-						   new Integer(version), 
++						   Integer.valueOf(version),
+ 						   ex.getMessage()});
+ 	}
+     }
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/DAAdvertiser.java b/usr/src/lib/libslp/javalib/com/sun/slp/DAAdvertiser.java
+index 5217b7c11e..dd0b731dd4 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/DAAdvertiser.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/DAAdvertiser.java
+@@ -62,7 +62,7 @@ class DAAdvertiser extends Thread {
+     static protected Hashtable daadv =
+ 	new Hashtable();	// Existing advertisers
+ 
+-    private Boolean done = new Boolean(false);
++    private Boolean done = Boolean.valueOf(false);
+ 
+     // Initialize the DAAdvertiser on the designated interface.
+ 
+@@ -201,7 +201,7 @@ class DAAdvertiser extends Thread {
+ 
+ 		// Somebody interrupted us. If we are to exit, then do so.
+ 
+-		synchronized (done) {
++		synchronized (this) {
+ 
+ 		    if (done.booleanValue()) {
+ 			return;
+@@ -251,8 +251,8 @@ class DAAdvertiser extends Thread {
+ 
+     void stopThread() {
+ 
+-	synchronized (done) {
+-	    done = new Boolean(true);
++	synchronized (this) {
++	    done = Boolean.valueOf(true);
+ 
+ 	}
+ 
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/IANACharCode.java b/usr/src/lib/libslp/javalib/com/sun/slp/IANACharCode.java
+index 6d7051a00b..3e87c3a354 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/IANACharCode.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/IANACharCode.java
+@@ -198,7 +198,7 @@ abstract class IANACharCode extends Object {
+ 		    new ServiceLocationException(
+ 				ServiceLocationException.PARSE_ERROR,
+ 				"v1_charcode_error",
+-				new Object[] {new Character(c), encoding});
++				new Object[] {Character.valueOf(c), encoding});
+ 	    }
+ 
+ 	} else if (encoding.equals(ASCII) || encoding.equals(LATIN1)) {
+@@ -210,7 +210,7 @@ abstract class IANACharCode extends Object {
+ 		    new ServiceLocationException(
+ 				ServiceLocationException.PARSE_ERROR,
+ 				"v1_charcode_error",
+-				new Object[] {new Character(c), encoding});
++				new Object[] {Character.valueOf(c), encoding});
+ 	    }
+ 	} else if (encoding.equals(UTF8)) {
+ 
+@@ -219,7 +219,7 @@ abstract class IANACharCode extends Object {
+ 		    new ServiceLocationException(
+ 				ServiceLocationException.PARSE_ERROR,
+ 				"v1_charcode_error",
+-				new Object[] {new Character(c), encoding});
++				new Object[] {Character.valueOf(c), encoding});
+ 	    }
+ 
+ 
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/Parser.java b/usr/src/lib/libslp/javalib/com/sun/slp/Parser.java
+index 47f5022a70..e666c984fc 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/Parser.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/Parser.java
+@@ -451,7 +451,7 @@ abstract class Parser extends Object {
+ 		new ServiceLocationException(
+ 				ServiceLocationException.PARSE_ERROR,
+ 				"par_wild_op",
+-				new Object[] {new Character(op)});
++				new Object[] {Character.valueOf(op)});
+ 
+ 	}
+ 
+@@ -464,7 +464,7 @@ abstract class Parser extends Object {
+ 		new ServiceLocationException(
+ 				ServiceLocationException.PARSE_ERROR,
+ 				"par_bool_op",
+-				new Object[] {new Character(op)});
++				new Object[] {Character.valueOf(op)});
+ 
+ 	}
+ 	
+@@ -476,7 +476,7 @@ abstract class Parser extends Object {
+ 		new ServiceLocationException(
+ 				ServiceLocationException.PARSE_ERROR,
+ 				"par_key_op",
+-				new Object[] {new Character(op)});
++				new Object[] {Character.valueOf(op)});
+ 	}
+ 
+ 	if (eval) {
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/PermSARegTable.java b/usr/src/lib/libslp/javalib/com/sun/slp/PermSARegTable.java
+index 713c6a1bf6..175aeee0d1 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/PermSARegTable.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/PermSARegTable.java
+@@ -76,7 +76,7 @@ class PermSARegTable extends Thread {
+ 
+ 	Object[] rec =
+ 	    new Object[] {
+-	    new Long(System.currentTimeMillis() + INCREMENT),
++	    Long.valueOf(System.currentTimeMillis() + INCREMENT),
+ 		sr};
+ 
+ 	// Note that we do not account for multiple nonservice: URLs under
+@@ -103,7 +103,7 @@ class PermSARegTable extends Thread {
+ 	} catch (ServiceLocationException ex) {
+ 
+ 	    config.writeLog("periodic_exception",
+-			    new Object[] {new Short(ex.getErrorCode()),
++			    new Object[] {Short.valueOf(ex.getErrorCode()),
+ 					      ex.getMessage()});
+ 	} catch (IllegalArgumentException iae) {
+ 	    Assert.slpassert(false, "reregister_bug", new Object[0]);
+@@ -133,7 +133,7 @@ class PermSARegTable extends Thread {
+ 
+ 	    if (xtime <= lnow) {
+ 		send((SrvLocMsg)rec[REG]);
+-		rec[TIME] = new Long(lnow + INCREMENT);
++		rec[TIME] = Long.valueOf(lnow + INCREMENT);
+ 	    }
+ 	}
+ 
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/RequestHandler.java b/usr/src/lib/libslp/javalib/com/sun/slp/RequestHandler.java
+index c8519ce70d..82bb5b9e8e 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/RequestHandler.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/RequestHandler.java
+@@ -247,7 +247,8 @@ class RequestHandler extends Thread {
+ 	    xid = (int)((char)xidBuf[0] & 0xFF) << 8;
+ 	    xid += (int)((char)xidBuf[1] & 0xFF);
+ 	    String syncTableKey =
+-		(new Integer(xid)).toString() +  clientAddr.getHostAddress();
++		(Integer.valueOf(xid)).toString() +
++		clientAddr.getHostAddress();
+ 	    boolean there = false;
+ 
+ 	    synchronized (inProgress) {
+@@ -266,7 +267,7 @@ class RequestHandler extends Thread {
+ 		if (config.traceDrop()) {
+ 		    config.writeLog("rh_rqst_in_progress",
+ 				    new Object[] {clientAddr,
+-						      new Integer(port),
++						      Integer.valueOf(port),
+ 						      interfac});
+ 		}
+ 		return;
+@@ -302,7 +303,7 @@ class RequestHandler extends Thread {
+ 		if (config.traceDrop()) {
+ 		    config.writeLog("rh_datagram_ioe",
+ 				    new Object[] {clientAddr,
+-						      new Integer(port),
++						      Integer.valueOf(port),
+ 						      interfac,
+ 						      ex.getMessage()});
+ 
+@@ -377,7 +378,7 @@ class RequestHandler extends Thread {
+ 		    } catch (ServiceLocationException ex) {
+ 			config.writeLog("sa_forwarding_exception",
+ 					new Object[] {
+-			    new Short(ex.getErrorCode()),
++			    Short.valueOf(ex.getErrorCode()),
+ 				Integer.toHexString(toForward.getHeader().xid),
+ 				ex.getMessage()});
+ 		    }
+@@ -390,7 +391,7 @@ class RequestHandler extends Thread {
+ 
+ 		    config.writeLog("rh_tcp_error",
+ 				    new Object[] {clientAddr,
+-						      new Integer(port),
++						      Integer.valueOf(port),
+ 						      interfac});
+ 
+ 		    break;
+@@ -404,7 +405,7 @@ class RequestHandler extends Thread {
+ 	    if (config.traceMsg()) {
+ 		config.writeLog("rh_socket_closed",
+ 				new Object[] {clientAddr,
+-						  new Integer(port),
++						  Integer.valueOf(port),
+ 						  interfac});
+ 	    }
+ 
+@@ -416,7 +417,7 @@ class RequestHandler extends Thread {
+ 	    if (config.traceDrop()) {
+ 		config.writeLog("ioexception_server_stream",
+ 				new Object[] {clientAddr,
+-						  new Integer(port),
++						  Integer.valueOf(port),
+ 						  interfac,
+ 						  ex.getMessage()});
+ 	    }
+@@ -456,7 +457,7 @@ class RequestHandler extends Thread {
+ 		} catch (ServiceLocationException ex) {
+ 		    config.writeLog("sle_forward_error",
+ 			  new Object[] {
+-			new Integer(ex.getErrorCode()),
++			Integer.valueOf(ex.getErrorCode()),
+ 			    Integer.toHexString(toForward.getHeader().xid),
+ 			    ex.getMessage()});
+ 		}
+@@ -469,7 +470,7 @@ class RequestHandler extends Thread {
+ 	    if (config.traceDrop()) {
+ 		config.writeLog("rh_socket_error",
+ 				new Object[] {clientAddr,
+-						  new Integer(port),
++						  Integer.valueOf(port),
+ 						  interfac,
+ 						  ex.getMessage()});
+ 	    }
+@@ -481,7 +482,7 @@ class RequestHandler extends Thread {
+ 		config.writeLog(
+ 				"rh_ioexception_reply",
+ 				new Object[] {clientAddr,
+-						  new Integer(port),
++						  Integer.valueOf(port),
+ 						  interfac,
+ 						  ex.getMessage()});
+ 	    }
+@@ -525,7 +526,7 @@ class RequestHandler extends Thread {
+ 		    config.writeLog("rh_rqst_in",
+ 				    new Object[] {Integer.toHexString(hdr.xid),
+ 						      clientAddr,
+-						      new Integer(port),
++						      Integer.valueOf(port),
+ 						      interfac,
+ 						      msg.getHeader()});
+ 		}
+@@ -544,7 +545,7 @@ class RequestHandler extends Thread {
+ 					new Object[] {
+ 			    Integer.toHexString(hdr.xid),
+ 				clientAddr,
+-				new Integer(port),
++				Integer.valueOf(port),
+ 				interfac});
+ 
+ 		    }
+@@ -565,7 +566,7 @@ class RequestHandler extends Thread {
+ 			    msg.getClass().getName(),
+ 				Integer.toHexString(hdr.xid),
+ 				clientAddr,
+-				new Integer(port),
++				Integer.valueOf(port),
+ 				interfac});
+ 
+ 
+@@ -604,7 +605,7 @@ class RequestHandler extends Thread {
+ 		config.writeLog("rh_rply_out",
+ 				new Object[] {Integer.toHexString(hdr.xid),
+ 						  clientAddr,
+-						  new Integer(port),
++						  Integer.valueOf(port),
+ 						  interfac,
+ 						  rply.getHeader()});
+ 	    }
+@@ -641,7 +642,7 @@ class RequestHandler extends Thread {
+ 	    config.writeLog("rh_rply_null",
+ 			    new Object[] {xidStr,
+ 					      clientAddr,
+-					      new Integer(port),
++					      Integer.valueOf(port),
+ 					      interfac});
+ 	}
+ 
+@@ -719,9 +720,9 @@ class RequestHandler extends Thread {
+ 			new ServiceLocationException(
+ 				ServiceLocationException.VERSION_NOT_SUPPORTED,
+ 				"rh_version_number_error",
+-				new Object[] {new Integer(ver),
++				new Object[] {Integer.valueOf(ver),
+ 						  clientAddr,
+-						  new Integer(port),
++						  Integer.valueOf(port),
+ 						  interfac});
+ 		} else {
+ 		    return null;
+@@ -801,10 +802,10 @@ class RequestHandler extends Thread {
+ 
+ 	    config.writeLog("rh_unparse_exception",
+ 			    new Object[] {clientAddr,
+-					      new Integer(port),
++					      Integer.valueOf(port),
+ 					      interfac,
+-					      new Integer(ver),
+-					      new Integer(fun),
++					      Integer.valueOf(ver),
++					      Integer.valueOf(fun),
+ 					      exMsg,
+ 					      sw.toString()});
+ 	}
+@@ -970,7 +971,7 @@ class RequestHandler extends Thread {
+ 		config.writeLog("rh_client_sa_advert_drop",
+ 				new Object[] {Integer.toHexString(hdr.xid),
+ 						  clientAddr,
+-						  new Integer(port),
++						  Integer.valueOf(port),
+ 						  interfac});
+ 	    }
+ 
+@@ -1000,7 +1001,7 @@ class RequestHandler extends Thread {
+ 		config.writeLog("rh_prev_resp",
+ 				new Object[] {Integer.toHexString(hdr.xid),
+ 						  clientAddr,
+-						  new Integer(port),
++						  Integer.valueOf(port),
+ 						  interfac});
+ 	    }
+ 
+@@ -1054,7 +1055,7 @@ class RequestHandler extends Thread {
+ 				new Object[] {"SrvReg",
+ 						  Integer.toHexString(hdr.xid),
+ 						  clientAddr,
+-						  new Integer(port),
++						  Integer.valueOf(port),
+ 						  interfac});
+ 	    }
+ 
+@@ -1096,7 +1097,7 @@ class RequestHandler extends Thread {
+ 				new Object[] {"SrvDereg",
+ 						  Integer.toHexString(hdr.xid),
+ 						  clientAddr,
+-						  new Integer(port),
++						  Integer.valueOf(port),
+ 						  interfac});
+ 	    }
+ 
+@@ -1140,7 +1141,7 @@ class RequestHandler extends Thread {
+ 				new Object[] {"SrvTypeRqst",
+ 						  Integer.toHexString(hdr.xid),
+ 						  clientAddr,
+-						  new Integer(port),
++						  Integer.valueOf(port),
+ 						  interfac});
+ 	    }
+ 
+@@ -1162,7 +1163,7 @@ class RequestHandler extends Thread {
+ 				new Object[] {"SrvTypeRqst",
+ 						  Integer.toHexString(hdr.xid),
+ 						  clientAddr,
+-						  new Integer(port),
++						  Integer.valueOf(port),
+ 						  interfac});
+ 
+ 
+@@ -1193,7 +1194,7 @@ class RequestHandler extends Thread {
+ 				new Object[] {"AttrRqst",
+ 						  Integer.toHexString(hdr.xid),
+ 						  clientAddr,
+-						  new Integer(port),
++						  Integer.valueOf(port),
+ 						  interfac});
+ 	    }
+ 
+@@ -1215,7 +1216,7 @@ class RequestHandler extends Thread {
+ 				new Object[] {"AttrRqst",
+ 						  Integer.toHexString(hdr.xid),
+ 						  clientAddr,
+-						  new Integer(port),
++						  Integer.valueOf(port),
+ 						  interfac});
+ 
+ 	    }
+@@ -1258,7 +1259,7 @@ class RequestHandler extends Thread {
+ 		if ((hdr.errCode != ServiceLocationException.OK) &&
+ 		    config.traceMsg()) {
+ 		    config.writeLog("rh_advert_error",
+-				    new Object[] { new Integer(hdr.errCode),
++				    new Object[] { Integer.valueOf(hdr.errCode),
+ 						       "DAAdvert",
+ 						       ""});
+ 
+@@ -1278,7 +1279,7 @@ class RequestHandler extends Thread {
+ 			"DA SrvRqst",
+ 			    Integer.toHexString(hdr.xid),
+ 			    clientAddr,
+-			    new Integer(port),
++			    Integer.valueOf(port),
+ 			    interfac});
+ 
+ 		}
+@@ -1305,7 +1306,7 @@ class RequestHandler extends Thread {
+ 			"SA SrvRqst",
+ 			    Integer.toHexString(hdr.xid),
+ 			    clientAddr,
+-			    new Integer(port),
++			    Integer.valueOf(port),
+ 			    interfac});
+ 
+ 		}
+@@ -1323,9 +1324,9 @@ class RequestHandler extends Thread {
+ 
+ 	    } catch (ServiceLocationException ex) {
+ 		config.writeLog("rh_advert_error",
+-				new Object [] {new Integer(ex.getErrorCode()),
+-						   "SAAdvert",
+-						   ex.getMessage()});
++			new Object [] {Integer.valueOf(ex.getErrorCode()),
++					   "SAAdvert",
++					   ex.getMessage()});
+ 
+ 	    }
+ 
+@@ -1336,7 +1337,7 @@ class RequestHandler extends Thread {
+ 				new Object[] {"SA SrvRqst",
+ 						  Integer.toHexString(hdr.xid),
+ 						  clientAddr,
+-						  new Integer(port),
++						  Integer.valueOf(port),
+ 						  interfac});
+ 
+ 	    }
+@@ -1355,7 +1356,7 @@ class RequestHandler extends Thread {
+ 				new Object[] {"SrvRqst",
+ 						  Integer.toHexString(hdr.xid),
+ 						  clientAddr,
+-						  new Integer(port),
++						  Integer.valueOf(port),
+ 						  interfac});
+ 	    }
+ 
+@@ -1377,7 +1378,7 @@ class RequestHandler extends Thread {
+ 				new Object[] {"SrvRqst",
+ 						  Integer.toHexString(hdr.xid),
+ 						  clientAddr,
+-						  new Integer(port),
++						  Integer.valueOf(port),
+ 						  interfac});
+ 
+ 	    }
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/SLPConfig.java b/usr/src/lib/libslp/javalib/com/sun/slp/SLPConfig.java
+index fa9aaa00d3..9a1ae985a0 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/SLPConfig.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/SLPConfig.java
+@@ -1553,7 +1553,7 @@ class SLPConfig {
+ 
+     boolean getHasSecurity() {
+ 	return securityEnabled &&
+-	    (new Boolean(System.getProperty("net.slp.securityEnabled",
++	    (Boolean.valueOf(System.getProperty("net.slp.securityEnabled",
+ 					    "false")).booleanValue());
+     }
+ 
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/SLPHeaderV1.java b/usr/src/lib/libslp/javalib/com/sun/slp/SLPHeaderV1.java
+index a55c90801b..3c4b71f8b8 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/SLPHeaderV1.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/SLPHeaderV1.java
+@@ -216,7 +216,7 @@ class SLPHeaderV1 extends SrvLocHeader implements Cloneable {
+ 				ServiceLocationException.PARSE_ERROR,
+ 				"function_code_error",
+ 				new Object[] {
+-		    new Integer(functionCode)});
++		    Integer.valueOf(functionCode)});
+ 
+ 	}
+ 
+@@ -228,7 +228,7 @@ class SLPHeaderV1 extends SrvLocHeader implements Cloneable {
+ 				ServiceLocationException.PARSE_ERROR,
+ 				"length_overflow",
+ 				new Object[] {
+-		    new Integer(nbytes), new Integer(length)});
++		    Integer.valueOf(nbytes), Integer.valueOf(length)});
+ 
+ 	}
+ 
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/SLPHeaderV2.java b/usr/src/lib/libslp/javalib/com/sun/slp/SLPHeaderV2.java
+index d5de718303..83e42d336b 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/SLPHeaderV2.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/SLPHeaderV2.java
+@@ -120,7 +120,7 @@ class SLPHeaderV2 extends SrvLocHeader implements Cloneable {
+ 
+     static void registerOptionClass(int id, Class optClass) {
+ 
+-	Integer key = new Integer(id);
++	Integer key = Integer.valueOf(id);
+ 
+ 	// We should probably check if it implements SLPOption.OptionParser,
+ 	//  but...
+@@ -185,7 +185,7 @@ class SLPHeaderV2 extends SrvLocHeader implements Cloneable {
+ 				ServiceLocationException.PARSE_ERROR,
+ 				"option_error",
+ 				new Object[] {
+-		    new Integer(optOff), new Integer(length)});
++		    Integer.valueOf(optOff), Integer.valueOf(length)});
+ 
+ 	}
+ 
+@@ -262,7 +262,7 @@ class SLPHeaderV2 extends SrvLocHeader implements Cloneable {
+ 				ServiceLocationException.PARSE_ERROR,
+ 				"function_code_error",
+ 				new Object[] {
+-		    new Integer(functionCode)});
++		    Integer.valueOf(functionCode)});
+ 
+ 	}
+ 
+@@ -274,7 +274,7 @@ class SLPHeaderV2 extends SrvLocHeader implements Cloneable {
+ 				ServiceLocationException.PARSE_ERROR,
+ 				"length_overflow",
+ 				new Object[] {
+-		    new Integer(nbytes), new Integer(length)});
++		    Integer.valueOf(nbytes), Integer.valueOf(length)});
+ 
+ 	}
+ 
+@@ -293,7 +293,7 @@ class SLPHeaderV2 extends SrvLocHeader implements Cloneable {
+ 	Assert.slpassert(((functionCode <= SAAdvert) &&
+ 	    (functionCode >= SrvReq)),
+ 		      "function_code_error",
+-		      new Object[] {new Integer(functionCode)});
++		      new Object[] {Integer.valueOf(functionCode)});
+ 
+ 	Assert.slpassert((locale != null),
+ 		      "null_locale_error",
+@@ -320,8 +320,8 @@ class SLPHeaderV2 extends SrvLocHeader implements Cloneable {
+ 				ServiceLocationException.BUFFER_OVERFLOW,
+ 				"buffer_overflow",
+ 				new Object[] {
+-		    new Integer(headerLen + SHORT_SIZE),
+-			new Integer(packetLength)});
++		    Integer.valueOf(headerLen + SHORT_SIZE),
++			Integer.valueOf(packetLength)});
+ 	}
+     }
+ 
+@@ -514,7 +514,7 @@ class SLPHeaderV2 extends SrvLocHeader implements Cloneable {
+ 
+ 	    // Lookup an option parser.
+ 
+-	    Integer key = new Integer(optId);
++	    Integer key = Integer.valueOf(optId);
+ 
+ 	    Class optClass = (Class)optClasses.get(key);
+ 
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/SLPServerHeaderV2.java b/usr/src/lib/libslp/javalib/com/sun/slp/SLPServerHeaderV2.java
+index 714ee60441..17175f6700 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/SLPServerHeaderV2.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/SLPServerHeaderV2.java
+@@ -181,7 +181,7 @@ class SLPServerHeaderV2 extends SLPHeaderV2  implements Cloneable {
+ 				ServiceLocationException.PARSE_ERROR,
+ 				"function_code_error",
+ 				new Object[] {
+-		    new Integer(functionCode)});
++		    Integer.valueOf(functionCode)});
+ 
+ 	}
+ 
+@@ -193,7 +193,7 @@ class SLPServerHeaderV2 extends SLPHeaderV2  implements Cloneable {
+ 				ServiceLocationException.PARSE_ERROR,
+ 				"length_overflow",
+ 				new Object[] {
+-		    new Integer(nbytes), new Integer(length)});
++		    Integer.valueOf(nbytes), Integer.valueOf(length)});
+ 
+ 	}
+ 
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/SSAAdvert.java b/usr/src/lib/libslp/javalib/com/sun/slp/SSAAdvert.java
+index de6842f4bd..937b041da8 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/SSAAdvert.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/SSAAdvert.java
+@@ -63,7 +63,7 @@ class SSAAdvert extends SrvLocMsgImpl {
+ 
+ 	Assert.slpassert(hdr != null,
+ 		      "version_number_error",
+-		      new Object[] {new Integer(version)});
++		      new Object[] {Integer.valueOf(version)});
+ 
+ 	hdr.functionCode = SrvLocHeader.SAAdvert;
+ 	hdr.xid = xid;
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/ServerDATable.java b/usr/src/lib/libslp/javalib/com/sun/slp/ServerDATable.java
+index 7a747785eb..51e23be4ab 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/ServerDATable.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/ServerDATable.java
+@@ -335,7 +335,7 @@ abstract class ServerDATable extends DATable {
+ 				  new Object[] {
+ 			advert.URL,
+ 			    hdr.scopes,
+-			    new Long(timestamp)});
++			    Long.valueOf(timestamp)});
+ 		}
+ 
+ 		return;
+@@ -347,7 +347,7 @@ abstract class ServerDATable extends DATable {
+ 			      new Object[] {
+ 		    advert.URL,
+ 			hdr.scopes,
+-			new Long(advert.timestamp)});
++			Long.valueOf(advert.timestamp)});
+ 	    }
+ 
+ 	    // Forward existing registrations to the new advert.
+@@ -595,7 +595,7 @@ abstract class ServerDATable extends DATable {
+ 			      new Object[] {
+ 		    Integer.toHexString(hdr.xid),
+ 			addr,
+-			new Integer(ex.getErrorCode()),
++			Integer.valueOf(ex.getErrorCode()),
+ 			ex.getMessage()});
+ 
+ 	    }
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/ServiceLocationAttribute.java b/usr/src/lib/libslp/javalib/com/sun/slp/ServiceLocationAttribute.java
+index 8e28161121..2efe16b381 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/ServiceLocationAttribute.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/ServiceLocationAttribute.java
+@@ -635,7 +635,7 @@ public class ServiceLocationAttribute extends Object
+ 			new ServiceLocationException(
+ 				ServiceLocationException.PARSE_ERROR,
+ 				"char_not_reserved_attr",
+-				new Object[] {new Character(c), string});
++				new Object[] {Character.valueOf(c), string});
+ 		}
+ 
+ 	    } else {
+@@ -647,7 +647,7 @@ public class ServiceLocationAttribute extends Object
+ 			new ServiceLocationException(
+ 				ServiceLocationException.PARSE_ERROR,
+ 				"reserved_not_escaped",
+-				new Object[] {new Character(c)});
++				new Object[] {Character.valueOf(c)});
+ 		}
+ 
+ 	    }
+@@ -717,7 +717,7 @@ public class ServiceLocationAttribute extends Object
+ 	if (b.length > 3) {
+ 	    Assert.slpassert(false,
+ 			  "illegal_utf8",
+-			  new Object[] {new Character(c)});
++			  new Object[] {Character.valueOf(c)});
+ 
+ 	}
+ 
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/ServiceLocationAttributeV1.java b/usr/src/lib/libslp/javalib/com/sun/slp/ServiceLocationAttributeV1.java
+index dbc4234509..c83e65c95e 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/ServiceLocationAttributeV1.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/ServiceLocationAttributeV1.java
+@@ -603,7 +603,7 @@ class ServiceLocationAttributeV1 extends ServiceLocationAttribute {
+ 			new ServiceLocationException(
+ 				ServiceLocationException.PARSE_ERROR,
+ 				"v1_8bit_error",
+-				new Object[] {new Character(c)});
++				new Object[] {Character.valueOf(c)});
+ 		}
+ 
+ 		buf.append(c);
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/ServiceLocationManager.java b/usr/src/lib/libslp/javalib/com/sun/slp/ServiceLocationManager.java
+index f006b411aa..cc7dd3055c 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/ServiceLocationManager.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/ServiceLocationManager.java
+@@ -238,7 +238,7 @@ abstract public class ServiceLocationManager extends Object {
+ 		new ServiceLocationException(errCode,
+ 					     "loopback_error",
+ 					     new Object[] {
+-		    new Short(errCode)});
++		    Short.valueOf(errCode)});
+ 
+ 	}
+ 
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/ServiceStoreFactory.java b/usr/src/lib/libslp/javalib/com/sun/slp/ServiceStoreFactory.java
+index ee94d0d9ae..dc35286646 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/ServiceStoreFactory.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/ServiceStoreFactory.java
+@@ -306,7 +306,7 @@ class ServiceStoreFactory extends Object {
+ 				ServiceLocationException.PARSE_ERROR,
+ 				"ssf_not_valid_lifetime",
+ 				new Object[] {
+-			slifetime, new Integer(linecount)});
++			slifetime, Integer.valueOf(linecount)});
+ 	
+ 	    } catch (IllegalArgumentException ex) {
+ 		throw
+@@ -314,7 +314,7 @@ class ServiceStoreFactory extends Object {
+ 				ServiceLocationException.PARSE_ERROR,
+ 				"ssf_syntax_err",
+ 				new Object[] {
+-			ex.getMessage(), new Integer(linecount)});
++			ex.getMessage(), Integer.valueOf(linecount)});
+ 
+ 	    }
+ 
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/ServiceStoreInMemory.java b/usr/src/lib/libslp/javalib/com/sun/slp/ServiceStoreInMemory.java
+index 23ee95e6ca..ff122a2c85 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/ServiceStoreInMemory.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/ServiceStoreInMemory.java
+@@ -1074,7 +1074,7 @@ class ServiceStoreInMemory extends Object implements ServiceStore {
+ 	    default:
+ 		Assert.slpassert(false,
+ 			      "ssim_unk_qop",
+-			      new Object[] {new Character((char)op)});
++			      new Object[] {Character.valueOf((char)op)});
+ 	    }
+ 
+ 	    return match;
+@@ -2686,7 +2686,7 @@ class ServiceStoreInMemory extends Object implements ServiceStore {
+ 
+     private List addToAgeOutQueue(ServiceRecordInMemory rec) {
+ 
+-	Long exTime = new Long(rec.getExpirationTime());
++	Long exTime = Long.valueOf(rec.getExpirationTime());
+ 	return ageOutQueue.add(exTime, rec);
+ 
+     }
+@@ -3317,10 +3317,10 @@ class ServiceStoreInMemory extends Object implements ServiceStore {
+ 	// Add a new one if none there, otherwise, bump up old.
+ 
+ 	if (numRegs == null) {
+-	    numRegs = new Integer(1);
++	    numRegs = Integer.valueOf(1);
+ 
+ 	} else {
+-	    numRegs = new Integer(numRegs.intValue() + 1);
++	    numRegs = Integer.valueOf(numRegs.intValue() + 1);
+ 
+ 	}
+ 
+@@ -3363,7 +3363,7 @@ class ServiceStoreInMemory extends Object implements ServiceStore {
+ 
+ 	// Bump down by one, remove if zero.
+ 
+-	numRegs = new Integer(numRegs.intValue() - 1);
++	numRegs = Integer.valueOf(numRegs.intValue() - 1);
+ 
+ 	if (numRegs.intValue() <= 0) {
+ 	    langTable.remove(lang);
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/ServiceTable.java b/usr/src/lib/libslp/javalib/com/sun/slp/ServiceTable.java
+index a442f42d2b..cea86c17dd 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/ServiceTable.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/ServiceTable.java
+@@ -363,7 +363,7 @@ class ServiceTable extends Object {
+ 	
+ 		conf.writeLog("st_serialized_seex",
+ 			      new Object[] {
+-		    new Integer(ex.getErrorCode()),
++		    Integer.valueOf(ex.getErrorCode()),
+ 			surl,
+ 			(msg == null ? "<no message>":msg)});
+ 
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/ServiceURL.java b/usr/src/lib/libslp/javalib/com/sun/slp/ServiceURL.java
+index bd45de17cb..449c431fe1 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/ServiceURL.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/ServiceURL.java
+@@ -287,7 +287,7 @@ public class ServiceURL extends Object implements Serializable   {
+ 		new IllegalArgumentException(
+ 				conf.formatMessage("url_char_error",
+ 						   new Object[] {
+-				    new Character(c)}));
++				    Character.valueOf(c)}));
+ 	}
+     }
+ 
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/SrvLocHeader.java b/usr/src/lib/libslp/javalib/com/sun/slp/SrvLocHeader.java
+index 8e63ae8e4a..527d4be56a 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/SrvLocHeader.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/SrvLocHeader.java
+@@ -174,7 +174,7 @@ abstract class SrvLocHeader extends Object implements SrvLocMsg, Cloneable {
+ 
+ 	    Class headerClass = Class.forName(className);
+ 
+-	    classTable.put(new Integer(version), headerClass);
++	    classTable.put(Integer.valueOf(version), headerClass);
+ 
+ 	} catch (ClassNotFoundException ex) {
+ 
+@@ -195,7 +195,7 @@ abstract class SrvLocHeader extends Object implements SrvLocMsg, Cloneable {
+ 
+ 	    // Get header class.
+ 
+-	    Class hdrClass = (Class)classTable.get(new Integer(version));
++	    Class hdrClass = (Class)classTable.get(Integer.valueOf(version));
+ 
+ 	    if (hdrClass == null) {
+ 		return null;
+@@ -210,7 +210,7 @@ abstract class SrvLocHeader extends Object implements SrvLocMsg, Cloneable {
+ 
+ 	    SLPConfig.getSLPConfig().writeLog("slh_creation_exception",
+ 					      new Object[] {
+-		new Integer(version),
++		Integer.valueOf(version),
+ 		    ex,
+ 		    ex.getMessage()});
+ 	    return null;
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/SrvLocMsgImpl.java b/usr/src/lib/libslp/javalib/com/sun/slp/SrvLocMsgImpl.java
+index 218bd96b1b..a4f19a6483 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/SrvLocMsgImpl.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/SrvLocMsgImpl.java
+@@ -59,9 +59,9 @@ abstract class SrvLocMsgImpl extends Object implements SrvLocMsg {
+ 	if (hdr.functionCode != functionCode) {
+ 	    throw
+ 		new ServiceLocationException(
+-				ServiceLocationException.NETWORK_ERROR,
+-				"wrong_reply_type",
+-				new Object[] {new Integer(hdr.functionCode)});
++			ServiceLocationException.NETWORK_ERROR,
++			"wrong_reply_type",
++			new Object[] {Integer.valueOf(hdr.functionCode)});
+ 	}
+ 
+ 	this.hdr = hdr;
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/SunDATable.java b/usr/src/lib/libslp/javalib/com/sun/slp/SunDATable.java
+index 8efa563766..f804875a64 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/SunDATable.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/SunDATable.java
+@@ -303,7 +303,7 @@ class SunDATable extends DATable {
+ 	buf.append("(");
+ 	buf.append(VERSION_ID);
+ 	buf.append("=");
+-	buf.append((new Integer(version)).toString());
++	buf.append((Integer.valueOf(version)).toString());
+ 	buf.append(")");
+ 
+ 	// Add closing paren if there were any scopes.
+@@ -340,7 +340,7 @@ class SunDATable extends DATable {
+ 		new ServiceLocationException(errCode,
+ 					     "loopback_error",
+ 					     new Object[] {
+-		    new Short(errCode)});
++		    Short.valueOf(errCode)});
+ 
+ 	}
+ 
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/SunServerDATable.java b/usr/src/lib/libslp/javalib/com/sun/slp/SunServerDATable.java
+index f10fbae210..c75d763804 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/SunServerDATable.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/SunServerDATable.java
+@@ -139,7 +139,7 @@ class SunServerDATable extends ServerDATable {
+ 	attrs.addElement(attr);
+ 
+ 	vals = new Vector();
+-	vals.addElement(new Integer(version));
++	vals.addElement(Integer.valueOf(version));
+ 	attr = new ServiceLocationAttribute(SunDATable.VERSION_ID, vals);
+ 	attrs.addElement(attr);
+ 
+@@ -357,7 +357,7 @@ class SunServerDATable extends ServerDATable {
+ 	buf.append("(");
+ 	buf.append(SunDATable.VERSION_ID);
+ 	buf.append("=");
+-	buf.append((new Integer(Defaults.version)).toString());
++	buf.append((Integer.valueOf(Defaults.version)).toString());
+ 	buf.append(")");
+ 
+ 	// Add closing paren if there were any scopes.
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/Transact.java b/usr/src/lib/libslp/javalib/com/sun/slp/Transact.java
+index d558c27ca4..b8f74727ca 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/Transact.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/Transact.java
+@@ -341,7 +341,7 @@ class Transact extends Object implements Runnable {
+ 
+ 			config.writeLog("da_exception_trace",
+ 					new Object[] {
+-			    new Short(ex.getErrorCode()),
++			    Short.valueOf(ex.getErrorCode()),
+ 				addr,
+ 				ex.getMessage()});
+ 
+@@ -704,8 +704,8 @@ class Transact extends Object implements Runnable {
+ 				ServiceLocationException.BUFFER_OVERFLOW,
+ 				"buffer_overflow",
+ 				new Object[] {
+-		    new Integer(outbuf.length),
+-			new Integer(config.getMTU())});
++		    Integer.valueOf(outbuf.length),
++			Integer.valueOf(config.getMTU())});
+ 	}
+ 
+ 	return outbuf;
+@@ -785,7 +785,7 @@ class Transact extends Object implements Runnable {
+ 		    new ServiceLocationException(
+ 				ServiceLocationException.VERSION_NOT_SUPPORTED,
+ 				"version_number_error",
+-				new Object[] {new Integer(ver)});
++				new Object[] {Integer.valueOf(ver)});
+ 
+ 	    }
+ 
+@@ -938,7 +938,7 @@ class Transact extends Object implements Runnable {
+ 
+ 	if (ex != null && config.traceDATraffic()) {
+ 	    config.writeLog("sdat_active_err",
+-			    new Object[] {new Integer(ex.getErrorCode()),
++			    new Object[] {Integer.valueOf(ex.getErrorCode()),
+ 					      ex.getMessage()});
+ 
+ 	    throw ex;
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/UARequester.java b/usr/src/lib/libslp/javalib/com/sun/slp/UARequester.java
+index 64c7ba977c..a2cf9583f8 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/UARequester.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/UARequester.java
+@@ -557,7 +557,7 @@ class UARequester extends Object implements Locator {
+ 	    if (v.size() == 1) {
+ 		config.writeLog("single_exception",
+ 				new Object[] {
+-		    new Integer(err)});
++		    Integer.valueOf(err)});
+ 		throw
+ 		    new ServiceLocationException((short)err,
+ 						 "remote_error",
+@@ -565,7 +565,7 @@ class UARequester extends Object implements Locator {
+ 	    } else {
+ 		config.writeLog("multiple_exception",
+ 				new Object[] {
+-		    new Integer(err)});
++		    Integer.valueOf(err)});
+ 	    }
+ 	}
+     }
+diff --git a/usr/src/lib/libslp/javalib/com/sun/slp/slpd.java b/usr/src/lib/libslp/javalib/com/sun/slp/slpd.java
+index efb8fc78ed..d13721f67b 100644
+--- a/usr/src/lib/libslp/javalib/com/sun/slp/slpd.java
++++ b/usr/src/lib/libslp/javalib/com/sun/slp/slpd.java
+@@ -585,7 +585,7 @@ public class slpd extends SLPConfig {
+ 	    if (msg.getErrorCode() != ServiceLocationException.OK) {
+ 		config.writeLog("slpd_sa_stop_failure",
+ 				new Object[] {
+-		    new Integer(msg.getErrorCode())});
++		    Integer.valueOf(msg.getErrorCode())});
+ 
+ 	    }
+ 
+@@ -593,7 +593,7 @@ public class slpd extends SLPConfig {
+ 
+ 	    if (ex.getErrorCode() != ServiceLocationException.NETWORK_ERROR) {
+ 		config.writeLog("slpd_sa_stop_failure",
+-				new Object[] {new Integer(ex.getErrorCode())});
++			new Object[] {Integer.valueOf(ex.getErrorCode())});
+ 
+ 	    }
+ 
+@@ -634,7 +634,7 @@ public class slpd extends SLPConfig {
+ 	default:
+ 	    System.err.println(formatMessageInternal("slpd_err",
+ 						     new Object[] {
+-		new Integer(ex.getErrorCode()),
++		Integer.valueOf(ex.getErrorCode()),
+ 		    ex.getMessage()},
+ 		bundle));
+ 
+-- 
+2.53.0
+

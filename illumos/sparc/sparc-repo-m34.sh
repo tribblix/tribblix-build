@@ -423,6 +423,9 @@ gatepatch 0153d828c132fdb1a17c11b99386a3d1b87994cf
 # added for m34
 # 15721 rcm_daemon: the comparison will always evaluate as true
 gatepatch 0c5967db436935325af441af2b27d337f4e64af5
+# 17431 builds with Java 17 should be possible
+# needs modifying because of the intervening whitespace cleanup patch
+gatepatch f5505c7d459abfaefd2fe69228d6cb3259cd231a
 
 # TODO
 # 15219 6d3b960aa395b3d268922a1938aed248a213725b
