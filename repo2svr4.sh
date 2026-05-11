@@ -694,7 +694,7 @@ license)
 esac
 done
 if [ -n "$licpath" ]; then
-    dirpath="var/sadm/license/${PKG}"
+    dirpath="var/sadm/license/${OUTPKG}"
     if [ ! -d "${BDIR}/${dirpath}" ]; then
 	mkdir -p "${BDIR}/${dirpath}"
     fi
