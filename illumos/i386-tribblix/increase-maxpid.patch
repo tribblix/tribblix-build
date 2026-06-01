@@ -4,7 +4,7 @@ diff --git a/usr/src/uts/common/sys/param.h b/usr/src/uts/common/sys/param.h
 index 282d84b912..66bd91f76f 100644
 --- a/usr/src/uts/common/sys/param.h
 +++ b/usr/src/uts/common/sys/param.h
-@@ -116,7 +116,7 @@ extern "C" {
+@@ -117,7 +117,7 @@ extern "C" {
  #define	DEFAULT_MAXPID	999999
  #define	DEFAULT_JUMPPID	100000
  #else
