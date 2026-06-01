@@ -15,7 +15,7 @@
 #
 # }}}
 #
-# Copyright 2025 Peter Tribble
+# Copyright 2026 Peter Tribble
 #
 
 DESTTOP=/export/tribblix
@@ -37,11 +37,13 @@ i386)
 	MRSIZE=140m
 	NBPI=8192
 	XARCH="i86"
+	ARCH64="amd64"
 	;;
 sparc)
 	MRSIZE=160m
 	NBPI=16384
 	XARCH="sparcv7"
+	ARCH64="sparcv9"
 	;;
 *)
 	bail "unrecognized architecture"
@@ -205,13 +207,20 @@ if [ -d zonelib ]; then
 fi
 mkdir ${BFS}/usr
 cd usr || bail "cannot cd to usr"
+#
+# depending on exact version we may have a 32-bit or 64-bit /bin/sh
+# and need to copy both, and both architectures of the libraries
+# (the other ksh tools =alias are still 32-bit)
+#
 tar cf - bin/cat bin/head bin/${XARCH}/ksh93 bin/ls bin/sh sbin/lofiadm \
-        bin/sed bin/cut sbin/svcadm \
+        bin/ksh93/bin/sed bin/cut sbin/svcadm \
         lib/fs/ufs/fstyp* lib/fs/hsfs/fstyp* lib/libfstyp.so* \
         lib/libzonecfg* lib/libbrand* \
         lib/libidn.s* bin/wget lib/fs/tmpfs/mount \
         lib/libproject.so lib/libproject.so.1 lib/libshell.so.1 \
         lib/libcmd.so.1 lib/libast.so.1 lib/libsum.so.1 lib/libdll.so.1 \
+        lib/${ARCH64}/libshell.so.1 lib/${ARCH64}/libcmd.so.1 \
+        lib/${ARCH64}/libast.so.1 lib/${ARCH64}/libsum.so.1 lib/${ARCH64}/libdll.so.1 \
         lib/libidmap.so lib/libidmap.so.1 lib/libpkcs11.so lib/libpkcs11.so.1 \
         lib/fm/libfmevent.so lib/fm/libfmevent.so.1 lib/fm/libtopo.so \
         lib/fm/libtopo.so.1 lib/libexacct.so lib/libexacct.so.1 \
@@ -219,7 +228,7 @@ tar cf - bin/cat bin/head bin/${XARCH}/ksh93 bin/ls bin/sh sbin/lofiadm \
         lib/libsmbios.so lib/libsmbios.so.1 | ( cd ${BFS}/usr ; tar xf -)
 cd $BFS
 ln -s usr/bin bin
-strip usr/bin/* usr/sbin/* usr/lib/*
+strip usr/bin/* usr/sbin/* usr/lib/* usr/lib/${ARCH64}/*
 mkdir -p dev/fd devices/pseudo opt var var/run mnt
 /usr/sbin/devfsadm -r ${BFS}
 #
