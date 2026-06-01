@@ -131,13 +131,13 @@ export BUILDPERL32='#'
 #export PYTHON3_SUFFIX=
 
 #
-# Tribblix uses python3.13, but builds the gate with 3.12
+# Tribblix uses python3.13
 #
 #
 # we don't build python artefacts, but still need the tools
 #
-export PYTHON3_VERSION=3.12
-export PYTHON3_PKGVERS=-312
+export PYTHON3_VERSION=3.13
+export PYTHON3_PKGVERS=-313
 export PYTHON3_SUFFIX=
 #
 # don't build python artefacts, we would throw them away anyway
