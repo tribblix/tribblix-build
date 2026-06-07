@@ -1,0 +1,49 @@
+From b44e725734da32e5d48b08b7d76820c806d8c9be Mon Sep 17 00:00:00 2001
+From: Andy Fiddaman <illumos@fiddaman.net>
+Date: Thu, 4 Jun 2026 18:12:38 +0000
+Subject: [PATCH] 18156 Sun::Solaris::Pg::Pg.pm produces warnings under perl
+ 5.42
+
+Change-ID: I57cca65d66bc240c703743b46508ba1217c33520
+---
+ usr/src/cmd/perl/contrib/Sun/Solaris/Pg/Pg.pm | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/usr/src/cmd/perl/contrib/Sun/Solaris/Pg/Pg.pm b/usr/src/cmd/perl/contrib/Sun/Solaris/Pg/Pg.pm
+index c1d84b67d5..60387bd0db 100644
+--- a/usr/src/cmd/perl/contrib/Sun/Solaris/Pg/Pg.pm
++++ b/usr/src/cmd/perl/contrib/Sun/Solaris/Pg/Pg.pm
+@@ -1297,10 +1297,10 @@ sub _capacity_update
+ 
+ 		$c1->{CAPACITY}->{$shname1} = $max_rate if
+ 		  !$c1->{CAPACITY}->{$shname1} ||
+-		    !$c1->{CAPACITY}->{$shname1} < $max_rate;
++		    $c1->{CAPACITY}->{$shname1} < $max_rate;
+ 		$c2->{CAPACITY}->{$shname2} = $max_rate if
+ 		  !$c2->{CAPACITY}->{$shname2} ||
+-		    !$c2->{CAPACITY}->{$shname2} < $max_rate;
++		    $c2->{CAPACITY}->{$shname2} < $max_rate;
+ 	}
+ }
+ 
+@@ -1423,7 +1423,7 @@ sub _set_intersect
+ sub _expand
+ {
+ 	# Skip the first argument if it is the object reference
+-	shift if ref $@[0] eq 'HASH';
++	shift if ref $_[0] eq 'HASH';
+ 
+ 	my $arg = shift;
+ 
+@@ -1464,7 +1464,7 @@ sub _collapse
+ 	my $result = '';
+ 	my $end = $start;	# Initial range consists of the first element
+ 	foreach my $el (@args) {
+-		if (!$el =~ /^\d+$/) {
++		if ($el !~ /^\d+$/) {
+ 			$result = "$result $el";
+ 			$end = $el;
+ 		} elsif ($el == ($end + 1)) {
+-- 
+2.54.0
+

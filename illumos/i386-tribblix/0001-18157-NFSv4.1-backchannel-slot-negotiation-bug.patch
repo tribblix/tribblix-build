@@ -1,0 +1,120 @@
+From 7497e118f8a012bf0da0b79e806a373f224f51c8 Mon Sep 17 00:00:00 2001
+From: Gordon Ross <gordon.w.ross@gmail.com>
+Date: Thu, 4 Jun 2026 16:38:24 -0400
+Subject: [PATCH] 18157 NFSv4.1 backchannel slot negotiation bug
+
+Reviewed by: Jason King <jason.brian.king+illumos@gmail.com>
+Reviewed by: C Fraire <cfraire@me.com>
+Reviewed by: Marco van Wieringen <marco.van.wieringen@planets.elm.net>
+Reviewed by: Toomas Soome <tsoome@me.com>
+Reviewed by: Roland Mainz <roland.mainz@nrubsig.org>
+
+Change-Id: I3afaf8447825bf193d4ed782ace045ee3d9d9930
+---
+ usr/src/uts/common/fs/nfs/nfs4x_srv.c   |  4 ++--
+ usr/src/uts/common/fs/nfs/nfs4x_state.c | 28 ++++++++++++-------------
+ usr/src/uts/common/nfs/nfs4x.h          |  3 ++-
+ 3 files changed, 17 insertions(+), 18 deletions(-)
+
+diff --git a/usr/src/uts/common/fs/nfs/nfs4x_srv.c b/usr/src/uts/common/fs/nfs/nfs4x_srv.c
+index 4ab0ef2929..024a2bdf4c 100644
+--- a/usr/src/uts/common/fs/nfs/nfs4x_srv.c
++++ b/usr/src/uts/common/fs/nfs/nfs4x_srv.c
+@@ -23,7 +23,7 @@
+  * Use is subject to license terms.
+  *
+  * Copyright 2011 Nexenta Systems, Inc. All rights reserved.
+- * Copyright 2017 RackTop Systems.
++ * Copyright 2017-2026 RackTop Systems.
+  */
+ 
+ #include <rpc/types.h>
+@@ -1279,7 +1279,7 @@ rfs4x_bc_setup(rfs4_session_t *sp)
+ 	bcp->cn_dir |= CDFS4_BACK;
+ 	bsdp = CTOBSD(bcp);
+ 	ASSERT(bsdp != NULL);
+-	slot_table_create(&bsdp->bsd_stok, sp->cn_back_attrs.ca_maxrequests);
++	slot_table_create(&bsdp->bsd_stok, sp->sn_bc.maxreqs);
+ 	rw_exit(&bcp->cn_lock);
+ 
+ 	/*
+diff --git a/usr/src/uts/common/fs/nfs/nfs4x_state.c b/usr/src/uts/common/fs/nfs/nfs4x_state.c
+index 9b2f12d1b2..1c63f43fbd 100644
+--- a/usr/src/uts/common/fs/nfs/nfs4x_state.c
++++ b/usr/src/uts/common/fs/nfs/nfs4x_state.c
+@@ -23,7 +23,7 @@
+  * Use is subject to license terms.
+  *
+  * Copyright 2011 Nexenta Systems, Inc.  All rights reserved.
+- * Copyright 2017 RackTop Systems.
++ * Copyright 2017-2026 RackTop Systems.
+  */
+ 
+ #include <sys/sdt.h>
+@@ -302,21 +302,20 @@ sess_chan_limits(rfs4_session_t *sp)
+ 	if (sp->cn_attrs.ca_maxrequests > rfs4_max_slots) {
+ 		sp->cn_attrs.ca_maxrequests = rfs4_max_slots;
+ 	}
+-
+-	if (sp->cn_back_attrs.ca_maxrequests < 1 ||
+-	    sp->cn_back_attrs.ca_maxrequests > rfs4_back_max_slots) {
+-		/*
+-		 * RFC 5661 doesn't specify what error should be return,
+-		 * only says that requested ca_maxrequests for back
+-		 * channel can not be changed.
+-		 * Linux accepts whatever number client sends for back channel
+-		 * check_backchannel_attrs() in linux source.
+-		 * But since we do a mem alloc on this number
+-		 * we cannot accept a arbit large number.
+-		 */
++	if (sp->cn_back_attrs.ca_maxrequests < 1) {
+ 		return (NFS4ERR_INVAL);
+ 	}
+ 
++	/*
++	 * RFC 5661 requires the server to preserve the client's
++	 * backchannel ca_maxrequests value in CREATE_SESSION.
++	 * However, we are not obligated to USE all the slots
++	 * the client offers, so limit what we will use here
++	 * to the lesser of our MAX or the client's.
++	 */
++	sp->sn_bc.maxreqs = MIN(sp->cn_back_attrs.ca_maxrequests,
++	    rfs4_back_max_slots);
++
+ 	if (sp->cn_attrs.ca_maxrequestsize < NFS4_MIN_COMPOUND_REQSZ)
+ 		return (NFS4ERR_TOOSMALL);
+ 
+@@ -670,8 +669,7 @@ rfs4_session_create(rfs4_entry_t u_entry, void *arg)
+ 		 */
+ 		bsdp = CTOBSD(ocp);
+ 		ASSERT(bsdp != NULL);
+-		slot_table_create(&bsdp->bsd_stok,
+-		    sp->cn_back_attrs.ca_maxrequests);
++		slot_table_create(&bsdp->bsd_stok, sp->sn_bc.maxreqs);
+ 		sp->sn_csflags |= CREATE_SESSION4_FLAG_CONN_BACK_CHAN;
+ 		sp->sn_back = ocp;
+ 	} else {
+diff --git a/usr/src/uts/common/nfs/nfs4x.h b/usr/src/uts/common/nfs/nfs4x.h
+index 913fe99453..62e1b8b4c3 100644
+--- a/usr/src/uts/common/nfs/nfs4x.h
++++ b/usr/src/uts/common/nfs/nfs4x.h
+@@ -10,7 +10,7 @@
+  */
+ 
+ /*
+- * Copyright 2017 RackTop Systems.
++ * Copyright 2017-2026 RackTop Systems.
+  */
+ 
+ #ifndef _NFS4X_H
+@@ -214,6 +214,7 @@ typedef struct rfs4_session {
+ 		uint32_t	pngcnt;		/* conn pings outstanding */
+ 		uint32_t	paths;		/* callback paths verified */
+ 		uint32_t	progno;		/* cb_program number */
++		uint32_t	maxreqs;	/* internal callback slots */
+ 		csa_sec_parms_t	secprms;	/* csa_sec_params */
+ 		uint32_t	failed:1;	/* TRUE if no cb path avail */
+ 		uint32_t	pnginprog:1;
+-- 
+2.54.0
+
