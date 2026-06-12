@@ -54,7 +54,7 @@ DOMAINNAME=""
 BEGIN_SCRIPT=""
 FINISH_SCRIPT=""
 FIRSTBOOT_SCRIPT=""
-NEWBE="tribblix-m39"
+NEWBE="tribblix-m40"
 NFLAG=""
 
 PKGLOC="/.cdrom/pkgs"
@@ -413,7 +413,7 @@ echo "Setting up boot"
 
 # new loader
 /usr/bin/cat > "/${ROOTPOOL}/boot/menu.lst" << _EOF
-title Tribblix 0.39
+title Tribblix 0.40
 bootfs ${ROOTPOOL}/ROOT/${NEWBE}
 _EOF
 
