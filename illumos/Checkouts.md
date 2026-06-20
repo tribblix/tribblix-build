@@ -311,3 +311,13 @@ libc @ ILLUMOS_0.57
 713afee74a404f788c093b8240f7cbad85d828b1
 [manually revert 3cb7d45669f9143c833d58e902f8880804a51791]
 [manually revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
+
+m40
+libc @ ILLUMOS_0.57
+ea11db48bd800c65a0262c7b0e2adf59829c7164
+
+m40lx
+libc @ ILLUMOS_0.57
+636c8029b163452f7254bb9ba1a0bcf967f3759d
+[manually revert 3cb7d45669f9143c833d58e902f8880804a51791]
+[manually revert 6b8791159f33fb8479bb3c5a19e624dff6ed35bf]
