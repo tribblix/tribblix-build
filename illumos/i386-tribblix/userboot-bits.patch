@@ -1,0 +1,13 @@
+diff --git a/usr/src/boot/userboot/userboot/Makefile b/usr/src/boot/userboot/userboot/Makefile
+index c15c4ac7c9..aab5b6839d 100644
+--- a/usr/src/boot/userboot/userboot/Makefile
++++ b/usr/src/boot/userboot/userboot/Makefile
+@@ -75,7 +75,7 @@ SRCS=		$(OBJS_SHARED:%.o=%.c) \
+ 
+ CSTD=		$(CSTD_GNU99)
+ SRCDIR=		.
+-CFLAGS64 +=	$(CSOURCEDEBUGFLAGS) -fPIC $(CSTD)
++CFLAGS64 +=	$(CSOURCEDEBUGFLAGS) -m64 -fPIC $(CSTD)
+ CPPFLAGS +=	-D_STANDALONE -DLOADER_MBR_SUPPORT -DLOADER_GPT_SUPPORT
+ CPPFLAGS +=	-I$(SRC)/boot/include
+ CPPFLAGS +=	-I$(SRC)/boot/sys
