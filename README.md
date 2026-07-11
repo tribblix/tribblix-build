@@ -73,14 +73,14 @@ zap create-zone -z illumos-build -t whole -i 172.xxx.xxx.xxx \
 then check out illumos-gate and illumos-omnios, with the following
 naming scheme (so they're siblings with similar names)
 
-m40-gate
-m40lx-gate
+m41-gate
+m41lx-gate
 
-cd /path/to/m40-gate
-${THOME}/tribblix-build/illumos/releasebuild m40
+cd /path/to/m41-gate
+${THOME}/tribblix-build/illumos/releasebuild m41
 
-cd /path/to/m40lx-gate
-${THOME}/tribblix-build/illumos/omnibuild m40lx
+cd /path/to/m41lx-gate
+${THOME}/tribblix-build/illumos/omnibuild m41lx
 
 The argument to releasebuild and omnibuild is used to pick an
 illumos.sh env file (with the given name as the suffix) out of
@@ -118,14 +118,14 @@ The certificate (not the key, obviously) needs to end up in the
 /etc/crypto/certs directory (with any name) in order for elfsign
 to be able to verify signed binaries.
 
-Then, to build packages from a gate build called m40-gate, with package
-version 0.40, ending up in /var/tmp/m40-pkgs and signed with the above
+Then, to build packages from a gate build called m41-gate, with package
+version 0.41, ending up in /var/tmp/m41-pkgs and signed with the above
 
 /path/to/tribblix-build/repo_all.sh \
-  -G /path/to/my/builds/m40-gate \
-  -V "0.40" \
-  -D /var/tmp/m40-pkgs \
-  -S /path/to/elfcert >& /var/tmp/m40.log
+  -G /path/to/my/builds/m41-gate \
+  -V "0.41" \
+  -D /var/tmp/m41-pkgs \
+  -S /path/to/elfcert >& /var/tmp/m41.log
 
 
 Known issues
